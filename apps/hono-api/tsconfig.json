@@ -5,7 +5,15 @@
     "types": ["node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "composite": true,
+    "incremental": true,
+    "moduleResolution": "NodeNext",
+    "module": "NodeNext"
   },
-  "exclude": ["node_modules"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "src/db/schema"],
+  "references": [
+    { "path": "./src/db/schema" }
+  ]
 }
