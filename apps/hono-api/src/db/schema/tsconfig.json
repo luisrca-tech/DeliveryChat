@@ -8,8 +8,12 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "composite": true
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "rootDir": "..",
+    "outDir": "../dist"
   },
-  "include": ["./**/*.ts", "../table.ts", "../**/*.ts"]
+  "include": ["./**/*.ts", "../table.ts"]
 }
 

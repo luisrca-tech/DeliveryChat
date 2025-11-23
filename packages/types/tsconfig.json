@@ -4,6 +4,8 @@
     "outDir": "dist",
     "declaration": true,
     "declarationMap": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "baseUrl": "../..",
     "paths": {
       "hono-api/*": ["apps/hono-api/src/*"]

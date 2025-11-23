@@ -12,7 +12,7 @@
     "module": "NodeNext"
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "src/db/schema"],
+  "exclude": ["node_modules", "src/db/schema", "src/db/table.ts", "**/*.d.ts"],
   "references": [
     { "path": "./src/db/schema" }
   ]
