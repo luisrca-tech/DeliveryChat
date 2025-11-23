@@ -1,123 +1,222 @@
-# Turborepo starter
+# Delivery Chat - Multi-Tenant Chat Service
 
-This Turborepo starter is maintained by the Turborepo core team.
+A modern, scalable chat delivery platform built as a Turborepo monorepo. This service enables companies to embed a customizable chat widget into their websites, allowing end users to communicate with support teams through a beautiful, branded chat interface.
 
-## Using this example
+## 🏗️ Architecture Overview
 
-Run the following command:
+This is a **multi-tenant SaaS platform** where:
+- **Companies** (tenants) purchase the chat service and get access to an admin dashboard
+- **End users** (visitors) interact with companies through an embeddable chat widget
+- Each company operates as an independent tenant with custom domains, branding, and settings
+- All data is isolated per company for security and privacy
 
-```sh
-bunx create-turbo@latest
+### Multi-Tenant Model
+
+- Companies are identified by unique subdomains (e.g., `codewiser.deliverychat.com` or custom domain `codewiser.com`)
+- Each company has its own admin users who manage visitors and configure chat settings
+- Visitors are scoped to specific companies - they can only chat with the company whose widget they're using
+- Company settings control widget appearance, business hours, auto-responses, and features
+
+## 📦 Monorepo Structure
+
+This Turborepo contains 4 main applications:
+
+### 1. **@embed** - Embeddable Chat Widget
+- **Framework**: React Router v7 with React 19
+- **Styling**: Tailwind CSS v4
+- **Purpose**: Lightweight, embeddable iframe chat widget that companies can integrate into their websites
+- **Features**:
+  - Customizable appearance per company (colors, logo, position)
+  - Real-time chat interface
+  - Visitor identification and session management
+  - Responsive design for all devices
+- **Port**: 3002
+
+### 2. **@admin** - Admin Dashboard
+- **Framework**: TanStack Router (React Start) with React 19
+- **Styling**: Tailwind CSS v4
+- **Deployment**: Cloudflare Workers (via Wrangler)
+- **Purpose**: Admin dashboard where company users manage their chat service
+- **Features**:
+  - View and manage visitors
+  - Configure company settings (widget appearance, business hours, auto-responses)
+  - Chat with end users through the support interface
+  - Multi-company support (users can belong to multiple companies with different roles)
+- **Port**: 3001
+
+### 3. **@hono-api** - Backend API
+- **Framework**: Hono (lightweight web framework)
+- **Database**: PostgreSQL with Drizzle ORM
+- **Validation**: Zod schemas
+- **Purpose**: Core API layer handling all business logic and data operations
+- **Features**:
+  - RESTful API endpoints
+  - Multi-tenant data isolation
+  - User authentication and authorization
+  - Company and visitor management
+  - Company settings CRUD operations
+- **Port**: 3000 (default)
+
+### 4. **@landing-page** - Marketing Website
+- **Framework**: Astro (static site generator)
+- **Purpose**: Public-facing marketing website to attract leads and convert them to customers
+- **Key Pages**:
+  - **Homepage**: Hero section, features, pricing, testimonials
+  - **/register**: Registration page where companies sign up for the service
+    - Form fields: Company name, subdomain, admin user details (name, email, password)
+    - Submits to `@hono-api` to create company and user records
+    - After registration, users can configure their tenant settings
+
+## 🛠️ Tech Stack
+
+### Frontend
+- **React 19** - Latest React with concurrent features
+- **TypeScript** - Full type safety across all projects
+- **Tailwind CSS v4** - Utility-first CSS framework
+- **React Router v7** - Modern routing for embed widget
+- **TanStack Router** - Type-safe routing for admin dashboard
+- **Astro** - Fast, content-focused static site generator for landing page
+
+### Backend
+- **Hono** - Ultra-fast web framework (faster than Express)
+- **PostgreSQL** - Robust relational database
+- **Drizzle ORM** - Type-safe SQL ORM with excellent TypeScript support
+- **Zod** - Schema validation and type inference
+
+### Infrastructure & Tools
+- **Turborepo** - High-performance monorepo build system
+- **Bun** - Fast JavaScript runtime and package manager
+- **Cloudflare Workers** - Edge deployment for admin dashboard
+- **Vite** - Next-generation frontend build tool
+
+### Database Schema
+- **users** - Company admin/support users
+- **companies** - Tenant companies with subdomain
+- **users_companies** - Many-to-many relationship (users can belong to multiple companies)
+- **visitors** - End users who interact with chat widgets
+- **company_settings** - Per-company configuration (widget config, business hours, features)
+
+## 🚀 Getting Started
+
+### Prerequisites
+- **Bun** >= 1.2.20
+- **Node.js** >= 18
+- **PostgreSQL** database
+
+### Installation
+
+```bash
+# Install dependencies
+bun install
+
+# Set up environment variables
+cp apps/hono-api/.env.example apps/hono-api/.env
+# Edit .env with your database connection string
 ```
 
-## What's inside?
+### Development
 
-This Turborepo includes the following packages/apps:
+```bash
+# Run all apps in development mode
+bun run dev
 
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-bunx turbo build
+# Run specific app
+bun run dev --filter=embed      # Chat widget (port 3002)
+bun run dev --filter=admin      # Admin dashboard (port 3001)
+bun run dev --filter=hono-api   # API server (port 3000)
+bun run dev --filter=landing-page  # Landing page
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### Database Setup
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+```bash
+# Generate migrations
+cd apps/hono-api
+bun run db:generate
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-bunx turbo build --filter=docs
-```
+# Push schema to database
+bun run db:push
 
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-bunx turbo dev
+# Open Drizzle Studio (database GUI)
+bun run db:studio
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+## 📋 Project Details for Landing Page Development
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+### Registration Flow
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-bunx turbo dev --filter=web
-```
+The `/register` page should:
 
-### Remote Caching
+1. **Collect Company Information**:
+   - Company name (required)
+   - Subdomain (required, unique identifier)
+   - Validation: subdomain must be unique, alphanumeric with hyphens
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+2. **Collect Admin User Information**:
+   - Full name (required)
+   - Email (required, unique)
+   - Password (required, min 8 characters)
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+3. **API Integration**:
+   - POST request to `@hono-api` endpoint (e.g., `/api/companies/register`)
+   - Payload structure:
+     ```json
+     {
+       "company": {
+         "name": "Company Name",
+         "subdomain": "company-name"
+       },
+       "user": {
+         "name": "Admin Name",
+         "email": "admin@company.com",
+         "password": "secure-password"
+       }
+     }
+     ```
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+4. **Post-Registration**:
+   - Show success message
+   - Redirect to admin dashboard or onboarding flow
+   - User can immediately start configuring their tenant settings
 
-```
-cd my-turborepo
+### Design Requirements
 
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
+The landing page should be:
+- **Modern & Professional**: Clean, contemporary design that builds trust
+- **Conversion-Focused**: Clear CTAs, social proof, feature highlights
+- **Responsive**: Mobile-first design that works on all devices
+- **Fast**: Optimized performance (Astro's static generation helps here)
+- **Accessible**: WCAG compliant, keyboard navigation, screen reader friendly
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-bunx turbo login
-```
+### Key Sections to Include
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+1. **Hero Section**: Compelling headline, value proposition, primary CTA
+2. **Features**: Highlight key capabilities (customizable widget, multi-tenant, real-time chat)
+3. **How It Works**: Simple 3-step process
+4. **Pricing**: Clear pricing tiers (if applicable)
+5. **Testimonials**: Social proof from existing customers
+6. **Register Page**: Clean, user-friendly registration form with validation
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## 🔐 Authentication (Future)
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
+**Current State**: Registration creates user records directly in the database. Users authenticate with email/password stored in the `users` table.
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-bunx turbo link
-```
+**Future Plan**: Integrate **Clerk** for:
+- Enhanced authentication (social logins, MFA, passwordless)
+- User session management
+- Better security and compliance
+- Seamless integration with existing user/company structure
 
-## Useful Links
+## 📚 Documentation
 
-Learn more about the power of Turborepo:
+- **Architecture Documentation**: See `packages/docs/visitors-implementation.md`
+- **Database Schema**: See `apps/hono-api/src/db/schema/`
+- **API Documentation**: TBD (will be generated from Hono routes)
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+## 🤝 Contributing
+
+This is a private project. For questions or issues, contact the development team.
+
+## 📄 License
+
+Private - All rights reserved
