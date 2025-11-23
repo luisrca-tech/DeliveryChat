@@ -3,7 +3,11 @@
   "compilerOptions": {
     "outDir": "dist",
     "declaration": true,
-    "declarationMap": true
+    "declarationMap": true,
+    "baseUrl": "../..",
+    "paths": {
+      "hono-api/*": ["apps/hono-api/src/*"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
