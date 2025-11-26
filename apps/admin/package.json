@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite dev --port 3001",
+    "dev": "vite dev --port 3000",
     "build": "vite build",
     "serve": "vite preview",
     "test": "vitest run",
@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.13.8",
-    "@tailwindcss/vite": "^4.0.6",
     "@tanstack/react-devtools": "^0.7.0",
     "@tanstack/react-router": "^1.132.0",
     "@tanstack/react-router-devtools": "^1.132.0",
@@ -24,7 +23,6 @@
     "lucide-react": "^0.544.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "tailwindcss": "^4.0.6",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {
@@ -32,6 +30,7 @@
     "@repo/types": "*",
     "@repo/typescript-config": "*",
     "@repo/ui": "*",
+    "@tailwindcss/vite": "^4.1.13",
     "@tanstack/devtools-vite": "^0.3.11",
     "@testing-library/dom": "^10.4.0",
     "@testing-library/react": "^16.2.0",

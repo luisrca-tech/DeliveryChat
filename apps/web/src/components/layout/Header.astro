@@ -1,0 +1,62 @@
+---
+import { Button } from "@repo/ui/components/ui/button";
+import { MessageCircle } from "lucide-react";
+---
+
+<header class="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+  <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex items-center justify-between h-16">
+      <a href="/" class="flex items-center gap-2 group">
+        <div class="bg-gradient-hero p-2 rounded-lg shadow-soft group-hover:shadow-glow transition-all duration-300">
+          <MessageCircle className="h-6 w-6 text-primary-foreground" client:load />
+        </div>
+        <span class="text-xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+          Delivery Chat
+        </span>
+      </a>
+
+      <nav class="hidden md:flex items-center gap-8">
+        <a
+          href="#features"
+          class="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+        >
+          Features
+        </a>
+        <a
+          href="#how-it-works"
+          class="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+        >
+          How It Works
+        </a>
+        <a
+          href="#pricing"
+          class="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+        >
+          Pricing
+        </a>
+        <a
+          href="#testimonials"
+          class="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+        >
+          Testimonials
+        </a>
+      </nav>
+
+      <div class="flex items-center gap-3">
+        <Button variant="ghost" size="sm" className="hidden sm:inline-flex" client:load>
+          Sign In
+        </Button>
+        <a href="/register">
+          <Button
+            size="sm"
+            className="bg-gradient-hero hover:shadow-glow transition-all duration-300"
+            client:load
+          >
+            Get Started
+          </Button>
+        </a>
+      </div>
+    </div>
+  </div>
+</header>
+

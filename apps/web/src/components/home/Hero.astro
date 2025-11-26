@@ -1,0 +1,95 @@
+---
+import { Button } from "@repo/ui/components/ui/button";
+import { ArrowRight, MessageCircle, Sparkles } from "lucide-react";
+---
+
+<section class="relative min-h-screen flex items-center justify-center overflow-hidden pt-16">
+  <div class="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary-glow/5" />
+  <div class="absolute top-20 right-20 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-float" />
+  <div
+    class="absolute bottom-20 left-20 w-96 h-96 bg-primary-glow/10 rounded-full blur-3xl animate-float"
+    style="animation-delay: 1s"
+  />
+
+  <div class="container relative mx-auto px-4 sm:px-6 lg:px-8 py-20">
+    <div class="max-w-4xl mx-auto text-center space-y-8 animate-fade-in-up">
+      <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent/50 border border-primary/20 backdrop-blur-sm">
+        <Sparkles className="h-4 w-4 text-primary animate-glow" client:load />
+        <span class="text-sm font-medium text-foreground">
+          Multi-tenant SaaS Chat Platform
+        </span>
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl lg:text-7xl font-bold tracking-tight">
+        Deliver Exceptional{" "}
+        <span class="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+          Customer Support
+        </span>
+        <br />
+        with Embedded Chat
+      </h1>
+
+      <p class="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+        A customizable, multi-tenant chat solution that embeds seamlessly
+        into your website. Engage visitors, build relationships, and convert
+        leads—all in real-time.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+        <a href="/register">
+          <Button
+            size="lg"
+            className="bg-gradient-hero hover:shadow-glow transition-all duration-300 text-base px-8 h-12"
+            client:load
+          >
+            Get Started Free
+            <ArrowRight className="ml-2 h-5 w-5" client:load />
+          </Button>
+        </a>
+        <Button size="lg" variant="outline" className="text-base px-8 h-12" client:load>
+          View Demo
+          <MessageCircle className="ml-2 h-5 w-5" client:load />
+        </Button>
+      </div>
+
+      <div class="flex items-center justify-center gap-8 pt-8 text-sm text-muted-foreground">
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-primary animate-glow" />
+          <span>No credit card required</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-primary animate-glow" />
+          <span>5-minute setup</span>
+        </div>
+        <div class="hidden sm:flex items-center gap-2">
+          <div class="w-2 h-2 rounded-full bg-primary animate-glow" />
+          <span>24/7 support</span>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="max-w-5xl mx-auto mt-16 animate-fade-in"
+      style="animation-delay: 0.2s"
+    >
+      <div class="relative rounded-2xl overflow-hidden shadow-glow border border-border/50 bg-gradient-card backdrop-blur-sm">
+        <div class="aspect-video bg-gradient-to-br from-primary/20 to-primary-glow/20 flex items-center justify-center">
+          <MessageCircle className="h-24 w-24 text-primary/30" client:load />
+        </div>
+        <div
+          class="absolute bottom-4 right-4 bg-card rounded-lg shadow-2xl p-4 border border-border animate-scale-in"
+          style="animation-delay: 0.5s"
+        >
+          <div class="flex items-center gap-2 mb-2">
+            <div class="w-2 h-2 rounded-full bg-primary animate-glow" />
+            <span class="text-xs font-medium">Live Chat Active</span>
+          </div>
+          <div class="text-xs text-muted-foreground">
+            Chat with our team...
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
