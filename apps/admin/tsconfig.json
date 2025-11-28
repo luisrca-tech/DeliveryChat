@@ -19,7 +19,11 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@repo/types": ["../../packages/types/src"],
+      "@repo/types/*": ["../../packages/types/src/*"],
+      "hono-api": ["../../apps/hono-api/src"],
+      "hono-api/*": ["../../apps/hono-api/src/*"]
     }
   }
 }

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "files": [],
+  "references": [],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@repo/types": ["packages/types/src"],
+      "@repo/types/*": ["packages/types/src/*"],
+      "hono-api": ["apps/hono-api/src"],
+      "hono-api/*": ["apps/hono-api/src/*"],
+      "@repo/*": ["packages/*/src"]
+    }
+  }
+}
+

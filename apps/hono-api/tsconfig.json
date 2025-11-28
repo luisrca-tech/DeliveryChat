@@ -1,19 +1,21 @@
 {
   "extends": "@repo/typescript-config/base.json",
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "outDir": "dist",
+    "rootDir": "src",
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "declarationMap": true,
+    "composite": true,
+    "incremental": true,
+    "strict": true,
     "types": ["node"],
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    "outDir": "./dist",
-    "composite": true,
-    "incremental": true,
-    "moduleResolution": "NodeNext",
-    "module": "NodeNext"
+    "noEmit": false
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "src/db/schema", "src/db/table.ts", "**/*.d.ts"],
-  "references": [
-    { "path": "./src/db/schema" }
-  ]
+  "include": ["src"]
 }
