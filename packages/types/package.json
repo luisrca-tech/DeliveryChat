@@ -10,6 +10,9 @@
   "scripts": {
     "check-types": "tsc --noEmit"
   },
+  "dependencies": {
+    "hono-api": "*"
+  },
   "devDependencies": {
     "@repo/typescript-config": "*",
     "typescript": "^5.9.2"

@@ -3,16 +3,30 @@
   "version": "0.1.0",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "default": "./dist/types.js"
+    },
+    "./lib/api": {
+      "types": "./dist/lib/api.d.ts",
+      "default": "./dist/lib/api.js"
+    }
   },
-  "types": "./src/index.ts",
+  "types": "./dist/index.d.ts",
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc --build src/db/schema/tsconfig.json && tsc",
+    "build": "tsc",
     "start": "node dist/index.js",
     "lint": "eslint . --max-warnings 0",
-    "check-types": "tsc --build src/db/schema/tsconfig.json && tsc --noEmit",
+    "check-types": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
@@ -32,7 +46,6 @@
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
-    "@repo/types": "*",
     "@repo/typescript-config": "*",
     "@types/node": "^20.11.17",
     "@types/pg": "^8.15.6",

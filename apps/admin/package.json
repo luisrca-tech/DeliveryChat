@@ -30,6 +30,7 @@
     "@repo/types": "*",
     "@repo/typescript-config": "*",
     "@repo/ui": "*",
+    "hono-api": "*",
     "@tailwindcss/vite": "^4.1.13",
     "@tanstack/devtools-vite": "^0.3.11",
     "@testing-library/dom": "^10.4.0",
