@@ -1,7 +1,13 @@
 import { Hono } from "hono";
+import { usersRoute } from "../routes/users.js";
+import { companiesRoute } from "../routes/companies.js";
 
 /**
  * Shared Hono instance for API routes
- * This ensures consistent configuration across all routes
+ * Routes are composed using .route() to ensure proper TypeScript inference for RPC
+ * Following Hono RPC pattern for larger applications: https://hono.dev/docs/guides/rpc
  */
-export const api = new Hono();
+const app = new Hono().route("/", usersRoute).route("/", companiesRoute);
+
+export const api = app;
+export type APIType = typeof app;
