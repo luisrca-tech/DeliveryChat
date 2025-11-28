@@ -1,0 +1,15 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/layout/Header.astro";
+import Footer from "../components/layout/Footer.astro";
+import RegisterForm from "../components/RegisterForm";
+---
+
+<Layout>
+  <div class="min-h-screen bg-background">
+    <Header />
+    <RegisterForm client:load />
+    <Footer />
+  </div>
+</Layout>
+

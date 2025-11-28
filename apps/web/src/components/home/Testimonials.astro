@@ -9,7 +9,9 @@ import { testimonials } from "../../constants/testimonials";
     <div class="max-w-3xl mx-auto text-center mb-16 space-y-4">
       <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold">
         Loved by{" "}
-        <span class="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+        <span
+          class="bg-linear-to-r from-primary to-primary-glow bg-clip-text text-transparent"
+        >
           Teams Worldwide
         </span>
       </h2>
@@ -19,41 +21,42 @@ import { testimonials } from "../../constants/testimonials";
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-      {testimonials.map((testimonial, index) => {
-        const delay = index * 0.1;
-        return (
-          <Card
-            className={`group hover:shadow-glow transition-all duration-300 border-border/50 bg-gradient-card animate-fade-in-up`}
-            style={{ animationDelay: `${delay}s` }}
-            client:load
-          >
-            <CardContent className="p-6 space-y-4">
-              <div class="flex gap-1">
-                {Array.from({ length: testimonial.rating }).map(() => (
-                  <Star
-                    className="h-5 w-5 fill-primary text-primary"
-                    client:load
-                  />
-                ))}
-              </div>
+      {
+        testimonials.map((testimonial, index) => {
+          const delay = index * 0.1;
+          return (
+            <Card
+              className={`group hover:shadow-glow transition-all duration-300 border-border/50 bg-gradient-card animate-fade-in-up`}
+              style={{ animationDelay: `${delay}s` }}
+              client:load
+            >
+              <CardContent className="p-6 space-y-4">
+                <div class="flex gap-1">
+                  {Array.from({ length: testimonial.rating }).map(() => (
+                    <Star
+                      className="h-5 w-5 fill-primary text-primary"
+                      client:load
+                    />
+                  ))}
+                </div>
 
-              <p class="text-muted-foreground leading-relaxed">
-                "{testimonial.content}"
-              </p>
+                <p class="text-muted-foreground leading-relaxed">
+                  "{testimonial.content}"
+                </p>
 
-              <div class="pt-4 border-t border-border/50">
-                <p class="font-semibold group-hover:text-primary transition-colors">
-                  {testimonial.name}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                  {testimonial.role}
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
+                <div class="pt-4 border-t border-border/50">
+                  <p class="font-semibold group-hover:text-primary transition-colors">
+                    {testimonial.name}
+                  </p>
+                  <p class="text-sm text-muted-foreground">
+                    {testimonial.role}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })
+      }
     </div>
   </div>
 </section>
-

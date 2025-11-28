@@ -8,7 +8,9 @@ import { features } from "../../constants/features";
     <div class="max-w-3xl mx-auto text-center mb-16 space-y-4">
       <h2 class="text-3xl sm:text-4xl lg:text-5xl font-bold">
         Everything You Need to{" "}
-        <span class="bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+        <span
+          class="bg-linear-to-r from-primary to-primary-glow bg-clip-text text-transparent"
+        >
           Scale Support
         </span>
       </h2>
@@ -19,30 +21,34 @@ import { features } from "../../constants/features";
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {features.map((feature, index) => {
-        const IconComponent = feature.icon;
-        const delay = index * 0.1;
-        return (
-          <Card
-            className={`group hover:shadow-glow transition-all duration-300 border-border/50 bg-gradient-card animate-fade-in`}
-            style={{ animationDelay: `${delay}s` }}
-            client:load
-          >
-            <CardContent className="p-6 space-y-4">
-              <div class="w-12 h-12 rounded-lg bg-gradient-hero flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-                <IconComponent className="h-6 w-6 text-primary-foreground" client:load />
-              </div>
-              <h3 class="text-xl font-semibold group-hover:text-primary transition-colors">
-                {feature.title}
-              </h3>
-              <p class="text-muted-foreground leading-relaxed">
-                {feature.description}
-              </p>
-            </CardContent>
-          </Card>
-        );
-      })}
+      {
+        features.map((feature, index) => {
+          const IconComponent = feature.icon;
+          const delay = index * 0.1;
+          return (
+            <Card
+              className={`group hover:shadow-glow transition-all duration-300 border-border/50 bg-gradient-card animate-fade-in`}
+              style={{ animationDelay: `${delay}s` }}
+              client:load
+            >
+              <CardContent className="p-6 space-y-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-hero flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                  <IconComponent
+                    className="h-6 w-6 text-primary-foreground"
+                    client:load
+                  />
+                </div>
+                <h3 class="text-xl font-semibold group-hover:text-primary transition-colors">
+                  {feature.title}
+                </h3>
+                <p class="text-muted-foreground leading-relaxed">
+                  {feature.description}
+                </p>
+              </CardContent>
+            </Card>
+          );
+        })
+      }
     </div>
   </div>
 </section>
-

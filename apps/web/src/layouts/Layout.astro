@@ -1,5 +1,6 @@
 ---
 import "@repo/ui/styles.css";
+import { Toaster } from "@repo/ui/components/ui/sonner";
 ---
 
 <!doctype html>
@@ -13,6 +14,7 @@ import "@repo/ui/styles.css";
   </head>
   <body>
     <slot />
+    <Toaster client:load />
   </body>
 </html>
 
