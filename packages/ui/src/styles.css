@@ -1,25 +1,27 @@
 @import "tailwindcss";
 
 @theme {
+  /* Light Mode Colors */
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
+  --color-foreground: hsl(222 47% 11%);
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
+  --color-card-foreground: hsl(222 47% 11%);
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(222.2 47.4% 11.2%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(222.2 84% 4.9%);
+  --color-popover-foreground: hsl(222 47% 11%);
+  --color-primary: hsl(203 89% 53%);
+  --color-primary-foreground: hsl(0 0% 100%);
+  --color-primary-glow: hsl(186 94% 60%);
+  --color-secondary: hsl(210 40% 96%);
+  --color-secondary-foreground: hsl(222 47% 11%);
+  --color-muted: hsl(210 40% 96%);
+  --color-muted-foreground: hsl(215 16% 47%);
+  --color-accent: hsl(186 94% 94%);
+  --color-accent-foreground: hsl(203 89% 53%);
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
+  --color-border: hsl(214 32% 91%);
+  --color-input: hsl(214 32% 91%);
+  --color-ring: hsl(203 89% 53%);
   --radius: 0.5rem;
   --color-chart-1: hsl(12 76% 61%);
   --color-chart-2: hsl(173 58% 39%);
@@ -27,8 +29,15 @@
   --color-chart-4: hsl(43 74% 66%);
   --color-chart-5: hsl(27 87% 67%);
 
-  /* Additional custom colors used in landing page */
-  --color-primary-glow: hsl(222.2 47.4% 11.2%);
+  /* Sidebar Colors - Light Mode */
+  --color-sidebar-background: hsl(0 0% 98%);
+  --color-sidebar-foreground: hsl(240 5.3% 26.1%);
+  --color-sidebar-primary: hsl(240 5.9% 10%);
+  --color-sidebar-primary-foreground: hsl(0 0% 98%);
+  --color-sidebar-accent: hsl(240 4.8% 95.9%);
+  --color-sidebar-accent-foreground: hsl(240 5.9% 10%);
+  --color-sidebar-border: hsl(220 13% 91%);
+  --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
 }
 
 @layer base {
@@ -41,6 +50,7 @@
     --popover-foreground: var(--color-popover-foreground);
     --primary: var(--color-primary);
     --primary-foreground: var(--color-primary-foreground);
+    --primary-glow: var(--color-primary-glow);
     --secondary: var(--color-secondary);
     --secondary-foreground: var(--color-secondary-foreground);
     --muted: var(--color-muted);
@@ -58,33 +68,50 @@
     --chart-3: var(--color-chart-3);
     --chart-4: var(--color-chart-4);
     --chart-5: var(--color-chart-5);
+    --sidebar-background: var(--color-sidebar-background);
+    --sidebar-foreground: var(--color-sidebar-foreground);
+    --sidebar-primary: var(--color-sidebar-primary);
+    --sidebar-primary-foreground: var(--color-sidebar-primary-foreground);
+    --sidebar-accent: var(--color-sidebar-accent);
+    --sidebar-accent-foreground: var(--color-sidebar-accent-foreground);
+    --sidebar-border: var(--color-sidebar-border);
+    --sidebar-ring: var(--color-sidebar-ring);
   }
 
   .dark {
-    --color-background: hsl(222.2 84% 4.9%);
+    --color-background: hsl(222 47% 11%);
     --color-foreground: hsl(210 40% 98%);
-    --color-card: hsl(222.2 84% 4.9%);
+    --color-card: hsl(217 33% 17%);
     --color-card-foreground: hsl(210 40% 98%);
-    --color-popover: hsl(222.2 84% 4.9%);
+    --color-popover: hsl(217 33% 17%);
     --color-popover-foreground: hsl(210 40% 98%);
-    --color-primary: hsl(210 40% 98%);
-    --color-primary-foreground: hsl(222.2 47.4% 11.2%);
-    --color-secondary: hsl(217.2 32.6% 17.5%);
+    --color-primary: hsl(186 94% 60%);
+    --color-primary-foreground: hsl(222 47% 11%);
+    --color-primary-glow: hsl(203 89% 53%);
+    --color-secondary: hsl(217 33% 17%);
     --color-secondary-foreground: hsl(210 40% 98%);
-    --color-muted: hsl(217.2 32.6% 17.5%);
-    --color-muted-foreground: hsl(215 20.2% 65.1%);
-    --color-accent: hsl(217.2 32.6% 17.5%);
-    --color-accent-foreground: hsl(210 40% 98%);
-    --color-destructive: hsl(0 62.8% 30.6%);
+    --color-muted: hsl(217 33% 17%);
+    --color-muted-foreground: hsl(215 20% 65%);
+    --color-accent: hsl(217 33% 23%);
+    --color-accent-foreground: hsl(186 94% 60%);
+    --color-destructive: hsl(0 63% 31%);
     --color-destructive-foreground: hsl(210 40% 98%);
-    --color-border: hsl(217.2 32.6% 17.5%);
-    --color-input: hsl(217.2 32.6% 17.5%);
-    --color-ring: hsl(212.7 26.8% 83.9%);
+    --color-border: hsl(217 33% 17%);
+    --color-input: hsl(217 33% 17%);
+    --color-ring: hsl(186 94% 60%);
     --color-chart-1: hsl(220 70% 50%);
     --color-chart-2: hsl(160 60% 45%);
     --color-chart-3: hsl(30 80% 55%);
     --color-chart-4: hsl(280 65% 60%);
     --color-chart-5: hsl(340 75% 55%);
+    --color-sidebar-background: hsl(240 5.9% 10%);
+    --color-sidebar-foreground: hsl(240 4.8% 95.9%);
+    --color-sidebar-primary: hsl(224.3 76.3% 48%);
+    --color-sidebar-primary-foreground: hsl(0 0% 100%);
+    --color-sidebar-accent: hsl(240 3.7% 15.9%);
+    --color-sidebar-accent-foreground: hsl(240 4.8% 95.9%);
+    --color-sidebar-border: hsl(240 3.7% 15.9%);
+    --color-sidebar-ring: hsl(217.2 91.2% 59.8%);
 
     --background: var(--color-background);
     --foreground: var(--color-foreground);
@@ -94,6 +121,7 @@
     --popover-foreground: var(--color-popover-foreground);
     --primary: var(--color-primary);
     --primary-foreground: var(--color-primary-foreground);
+    --primary-glow: var(--color-primary-glow);
     --secondary: var(--color-secondary);
     --secondary-foreground: var(--color-secondary-foreground);
     --muted: var(--color-muted);
@@ -110,6 +138,14 @@
     --chart-3: var(--color-chart-3);
     --chart-4: var(--color-chart-4);
     --chart-5: var(--color-chart-5);
+    --sidebar-background: var(--color-sidebar-background);
+    --sidebar-foreground: var(--color-sidebar-foreground);
+    --sidebar-primary: var(--color-sidebar-primary);
+    --sidebar-primary-foreground: var(--color-sidebar-primary-foreground);
+    --sidebar-accent: var(--color-sidebar-accent);
+    --sidebar-accent-foreground: var(--color-sidebar-accent-foreground);
+    --sidebar-border: var(--color-sidebar-border);
+    --sidebar-ring: var(--color-sidebar-ring);
   }
 }
 
