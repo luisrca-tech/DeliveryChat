@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { api } from "../lib/api.js";
+import { api } from "../lib/api";
 
 export const Route = createFileRoute("/")({ component: App });
 
@@ -14,10 +14,9 @@ function App() {
     // Test RPC calls
     const testRPC = async () => {
       try {
-        // Test users endpoint - access via nested path structure
-        // @ts-expect-error - Hono RPC types for nested routes
-        const usersRes = await api.api.users.$get({
-          query: { limit: 5, offset: 0 },
+        // Test users endpoint
+        const usersRes = await api.users.$get({
+          query: { limit: "5", offset: "0" },
         });
         if (usersRes.ok) {
           const usersJson = await usersRes.json();
@@ -25,9 +24,8 @@ function App() {
         }
 
         // Test companies endpoint
-        // @ts-expect-error - Hono RPC types for nested routes
-        const companiesRes = await api.api.companies.$get({
-          query: { limit: 5, offset: 0 },
+        const companiesRes = await api.companies.$get({
+          query: { limit: "5", offset: "0" },
         });
         if (companiesRes.ok) {
           const companiesJson = await companiesRes.json();
