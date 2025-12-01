@@ -22,16 +22,21 @@
     "dist"
   ],
   "scripts": {
-    "dev": "tsx watch src/index.ts",
+    "dev": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- tsx watch src/index.ts",
+    "dev:infisical": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- tsx watch src/index.ts",
+    "check:secrets": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- env | grep -E '(DATABASE_URL|NODE_ENV)' || echo 'No secrets found. Make sure you are logged in: infisical login'",
+    "list:folders": "infisical secrets list --env=${NODE_ENV:-dev} || echo 'Run: infisical login'",
+    "create:folder": "echo 'To create the folder, run: infisical secrets set DATABASE_URL \"your-database-url\" --env=dev --path=/hono-api'",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:infisical": "infisical run --env=${NODE_ENV:-prod} --path=/hono-api -- node dist/index.js",
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio",
-    "db:drop": "drizzle-kit drop"
+    "db:generate": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit generate",
+    "db:migrate": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit migrate",
+    "db:push": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit push",
+    "db:studio": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit studio",
+    "db:drop": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit drop"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
