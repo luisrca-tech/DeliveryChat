@@ -88,6 +88,7 @@ This Turborepo contains 4 main applications:
 - **Bun** - Fast JavaScript runtime and package manager
 - **Cloudflare Workers** - Edge deployment for admin dashboard
 - **Vite** - Next-generation frontend build tool
+- **Infisical** - Secrets management platform for secure credential storage
 
 ### Database Schema
 - **users** - Company admin/support users
@@ -101,7 +102,8 @@ This Turborepo contains 4 main applications:
 ### Prerequisites
 - **Bun** >= 1.2.20
 - **Node.js** >= 18
-- **PostgreSQL** database
+- **PostgreSQL** database (remote development database provided via Infisical)
+- **Infisical CLI** - For secrets management
 
 ### Installation
 
@@ -109,23 +111,46 @@ This Turborepo contains 4 main applications:
 # Install dependencies
 bun install
 
-# Set up environment variables
-cp apps/hono-api/.env.example apps/hono-api/.env
-# Edit .env with your database connection string
+# Install Infisical CLI (if not already installed)
+npm install -g @infisical/cli
+
+# Login to Infisical
+infisical login
+
+# Initialize Infisical project (at monorepo root)
+infisical init
+# When prompted, use project ID: 138b9de2-a089-44ca-a3a2-04047daf0bb5
+# Select environment: development
 ```
+
+### 🔐 Secrets Management
+
+All secrets are managed via **Infisical**. The project uses a single Infisical project with folder-based organization:
+
+- `/hono-api/` - Backend API secrets (DATABASE_URL, etc.)
+- `/admin/` - Admin dashboard secrets
+- `/web/` - Landing page secrets
+- `/widget/` - Widget iframe secrets
+
+**Local Development**: Secrets are automatically injected when running apps via Infisical CLI.
+
+**See**: [`packages/docs/infisical-architecture.md`](packages/docs/infisical-architecture.md) for detailed setup instructions.
 
 ### Development
 
 ```bash
 # Run all apps in development mode
+# Secrets are automatically loaded from Infisical
 bun run dev
 
 # Run specific app
 bun run dev --filter=embed      # Chat widget (port 3002)
 bun run dev --filter=admin      # Admin dashboard (port 3001)
-bun run dev --filter=hono-api   # API server (port 3000)
+bun run dev --filter=hono-api   # API server (port 8000)
 bun run dev --filter=landing-page  # Landing page
 ```
+
+**Note**: The `hono-api` dev script uses Infisical CLI to inject secrets. Ensure you've run `infisical login` and `infisical init` first.
 
 ### Database Setup
 
