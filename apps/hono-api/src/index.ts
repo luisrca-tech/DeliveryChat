@@ -34,12 +34,23 @@ app.route("/api", api);
 
 export type AppType = typeof app;
 
+const port = Number(process.env.PORT) || 8000;
+
 serve(
   {
     fetch: app.fetch,
-    port: 8000,
+    port,
   },
   (info) => {
-    console.log(`Server is running on http://localhost:${info.port}`);
+    console.log(
+      `[Hono API] ✅ Server is running on http://localhost:${info.port}`
+    );
+    console.log(`[Hono API] Health check: http://localhost:${info.port}/`);
+    console.log(
+      `[Hono API] API endpoint: http://localhost:${info.port}/api/users`
+    );
   }
-);
+).on("error", (error) => {
+  console.error(`[Hono API] ❌ Failed to start server:`, error);
+  process.exit(1);
+});
