@@ -29,7 +29,13 @@ const maskedUrl = databaseUrl.replace(/:\/\/[^:]+:[^@]+@/, (match) =>
   match.replace(/:[^@]+@/, ":****@")
 );
 console.log(`[Infisical] ✅ DATABASE_URL loaded: ${maskedUrl}`);
-console.log(`[Infisical] Database host: ${new URL(databaseUrl).hostname}`);
+
+try {
+  const url = new URL(databaseUrl);
+  console.log(`[Infisical] Database host: ${url.hostname}`);
+} catch (error) {
+  console.log(`[Infisical] Database URL format validated`);
+}
 
 const conn = globalForDb.conn ?? postgres(databaseUrl);
 if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;

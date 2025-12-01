@@ -1,5 +1,4 @@
 {
-  "path": "/hono-api",
-  "env": "dev"
+  "path": "/hono-api"
 }
 
