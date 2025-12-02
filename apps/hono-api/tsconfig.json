@@ -9,7 +9,6 @@
     "declaration": true,
     "emitDeclarationOnly": false,
     "declarationMap": true,
-    "composite": true,
     "incremental": true,
     "strict": true,
     "types": ["node"],
@@ -17,5 +16,6 @@
     "jsxImportSource": "hono/jsx",
     "noEmit": false
   },
-  "include": ["src"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist"]
 }
