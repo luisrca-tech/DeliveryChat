@@ -30,7 +30,6 @@ Infisical Project: delivery-chat
     └── prod
 ```
 
-**Project URL**: https://app.infisical.com/organizations/61ddf519-8069-49e0-adba-0031e5fa957b/projects/secret-management/138b9de2-a089-44ca-a3a2-04047daf0bb5
 
 ### Why This Structure?
 
@@ -63,10 +62,6 @@ This will open your browser to authenticate. After successful login, your creden
 
 At the monorepo root:
 
-```bash
-infisical init
-```
-
 When prompted:
 - **Project ID**: `138b9de2-a089-44ca-a3a2-04047daf0bb5`
 - **Environment**: `dev` (for local dev)
@@ -77,10 +72,12 @@ This creates a `.infisical.json` file (git-ignored) that links your local setup 
 
 Each app has its own `infisical.json` file that specifies the secret path:
 
-- `apps/hono-api/infisical.json` - path: `/hono-api`, env: `dev`
-- `apps/admin/infisical.json` - path: `/admin`, env: `dev`
-- `apps/web/infisical.json` - path: `/web`, env: `dev`
-- `apps/widget/infisical.json` - path: `/widget`, env: `dev`
+- `apps/hono-api/infisical.json` - path: `/hono-api`
+- `apps/admin/infisical.json` - path: `/admin`
+- `apps/web/infisical.json` - path: `/web`
+- `apps/widget/infisical.json` - path: `/widget`
+
+**Note**: The environment is detected automatically by Infisical from your `.infisical.json` configuration or `NODE_ENV`.
 
 When you run `infisical run` from within an app directory, it automatically uses the local `infisical.json` config.
 
@@ -98,22 +95,33 @@ You should see your `DATABASE_URL` secret printed. The `infisical.json` file in 
 
 ### Via Dashboard UI
 
-1. Navigate to your project: https://app.infisical.com/.../138b9de2-a089-44ca-a3a2-04047daf0bb5
+1. Navigate to your project: https://app.infisical.com/[project]
 2. Select the folder (e.g., `/hono-api`)
 3. Select the environment (e.g., `dev`)
 4. Click "Add Secret"
 5. Enter secret name (e.g., `DATABASE_URL`) and value
-6. **Important**: Use the direct connection string format (e.g., `postgresql://...`), not commands like `psql 'postgresql://...'`
+6. **Important**: Use the direct connection string format, **not** shell commands or environment variable references.
+   
+   **Correct formats:**
+   - `postgresql://username:password@hostname:5432/database_name`
+   - `postgres://username:password@hostname:5432/database_name`
+   
+   **Incorrect formats:**
+   - `psql 'postgresql://...'` (shell command)
+   - `$DATABASE_URL` (variable reference)
+   - `@hostname:5432/database_name` (missing protocol/credentials)
 7. Save
 
 ### Via CLI
 
 ```bash
 # Add a secret to /hono-api/dev
-infisical secrets set DATABASE_URL "postgresql://..." --env=dev --path=/hono-api
+infisical secrets set DATABASE_URL "postgresql://user:password@host:5432/database" --env=dev --path=/hono-api
 
 # Add a secret to /hono-api/prod
-infisical secrets set DATABASE_URL "postgresql://..." --env=prod --path=/hono-api
+infisical secrets set DATABASE_URL "postgresql://user:password@host:5432/database" --env=prod --path=/hono-api
+
+# Remember: Use direct connection string format, not shell commands or variable references
 ```
 
 ## Local Development Workflow
@@ -149,18 +157,59 @@ Your code just uses `process.env.DATABASE_URL` - no SDK calls needed for local d
 ### Option 1: CI/CD with Service Tokens (Recommended)
 
 1. **Create Service Token**:
-   - Go to Infisical Dashboard → Project Settings → Service Tokens
-   - Create a new token with access to required folders/environments
-   - Store token securely in your CI/CD platform (GitHub Secrets, etc.)
-
-2. **In CI/CD Pipeline**:
-   ```bash
-   # Set service token
-   export INFISICAL_TOKEN="your-service-token"
+   - Go to Infisical Dashboard → **Project Settings** → **Service Tokens**
+   - Click **Create Service Token**
    
-   # Run build/deploy with secrets injected
-   infisical run --env=prod --path=/hono-api -- npm run build
+   **Configuration options:**
+   - **Service Token Name**: Pode ser qualquer nome descritivo (ex: `production-deploy`, `ci-cd-token`, `vercel-production`). O nome é apenas para identificação.
+   - **Environment**: Selecione os ambientes que o token terá acesso. Você pode:
+     - ✅ **Opção 1 (Recomendada)**: Criar um único token com acesso a `development`, `staging`, e `production` - mais simples de gerenciar
+     - ✅ **Opção 2**: Criar tokens separados para cada ambiente (mais seguro, princípio de menor privilégio)
+   - **Secrets Path**: 
+     - ❌ Não use `/` (isso dá acesso a TODOS os paths do projeto - muito perigoso)
+     - **Opção A (Recomendada para monorepo)**: Adicione múltiplos paths para todos os apps:
+       - `/hono-api`
+       - `/admin`
+       - `/web`
+       - `/widget`
+       - Isso permite que o mesmo token acesse secrets de todos os apps
+     - **Opção B (Mais seguro)**: Crie tokens separados, um por app:
+       - Token 1: apenas `/hono-api`
+       - Token 2: apenas `/admin`
+       - Token 3: apenas `/web`
+       - Token 4: apenas `/widget`
+       - Configure tokens diferentes na Vercel para cada app/projeto
+   - **Expiration**: `Never` é ok para tokens de deployment (ou defina uma data longa)
+   - **Permissions**: 
+     - ✅ **Read** é suficiente para deployments (CI/CD só precisa ler secrets, não escrever)
+     - ❌ **Write** só se você precisar que o deployment possa criar/atualizar secrets (raro, não recomendado)
+   
+   - Copy the generated token (you'll only see it once!)
+   - Store token securely in your CI/CD platform (GitHub Secrets, Vercel Environment Variables, Railway, etc.)
+
+2. **In CI/CD Pipeline or Deployment Platform**:
+   - **Add as environment variable** in your deployment platform (GitHub Actions, Vercel, Railway, etc.):
+     - Variable name: `INFISICAL_TOKEN`
+     - Variable value: `seu-service-token-copiado`
+   - No need to add it in your code or `.env` files (never commit tokens!)
+   
+   ```bash
+   # In CI/CD, the token is automatically available from environment variables
+   # Your scripts already use 'infisical run' which detects INFISICAL_TOKEN automatically
+   npm run build  # or bun run build
    ```
+
+**Important**: 
+- ✅ **For monorepo with multiple apps**: Create **one Service Token** with access to all app paths (`/hono-api`, `/admin`, `/web`, `/widget`)
+- ✅ Add `INFISICAL_TOKEN` as environment variable in your **deployment platform** (not in code)
+- ✅ The same token works for all apps - each app will only access its own path via `infisical.json`
+- ❌ Don't add it to `.env` files or commit it to git
+- ✅ For **local development**: You don't need it (use `infisical login` instead)
+
+**Why one token works for all apps?**
+- Each app has its own `infisical.json` file specifying the path (e.g., `/hono-api`)
+- When you run `infisical run --path=/hono-api`, it only accesses secrets from that specific path
+- The token just needs permission to read from those paths, but the app code controls which path it accesses
 
 ### Option 2: SDK Runtime Loading (Optional)
 
@@ -177,9 +226,33 @@ const dbUrl = secrets.DATABASE_URL;
 
 **Required environment variables** (set in your deployment platform):
 - `INFISICAL_PROJECT_ID` - Your Infisical project ID
-- `INFISICAL_TOKEN` - Service token with access to the required folders/environments
+- **Authentication** (choose one method):
 
-**Note**: For most use cases, prefer `infisical run` in CI/CD pipelines. Only use the SDK helper when runtime secret fetching is necessary (e.g., serverless cold starts, dynamic environments).
+  **Option A: Service Token (Recommended - Simplest) ✅**
+  - `INFISICAL_TOKEN` - Service token from Infisical dashboard
+  - **How to get**: 
+    1. Go to **Project Settings** > **Service Tokens** (no nível do projeto)
+    2. Click **Create Service Token**
+    3. Copy the token generated
+  - **Advantage**: Mais simples, apenas um token, criado direto no projeto
+  - **Use case**: Deployments automatizados, CI/CD, serverless
+
+  **Option B: Universal Auth (Machine Identity)**
+  - `INFISICAL_CLIENT_ID` - Client ID from Machine Identity
+  - `INFISICAL_CLIENT_SECRET` - Client Secret from Machine Identity
+  - **How to get**:
+    1. Go to **Organization Settings** > **Access Control** > **Identities** (no nível da organização)
+    2. Click **Create Identity** and select **Universal Auth**
+    3. Generate **Client Secret** and copy `Client ID` and `Client Secret`
+    4. Add the identity to your project: **Project Settings** > **Access Control** > **Machine Identities**
+  - **Use case**: Quando precisa de mais controle e auditoria granular
+
+  **Local Development (`infisical login`):**
+  - Para desenvolvimento local, você usa `infisical login` no terminal
+  - Isso autentica você pessoalmente e o SDK pode usar essas credenciais automaticamente
+  - **Não funciona em produção/deployments** - apenas para desenvolvimento local
+
+**Note**: Use the SDK helper only when `infisical run` cannot be used (e.g., in serverless cold starts or dynamic environments). In standard CI/CD pipelines, prefer `infisical run` to inject secrets at build or deploy time.
 
 ## Database Migrations with Drizzle
 
@@ -208,7 +281,7 @@ All these commands use `infisical run` internally, so `DATABASE_URL` is automati
 
 | Secret | Description | Environments |
 |--------|-------------|---------------|
-| `DATABASE_URL` | PostgreSQL connection string (direct format: `postgresql://...`) | dev, staging, prod |
+| `DATABASE_URL` | PostgreSQL connection string in direct format: `postgresql://user:password@host:port/database` | dev, staging, prod |
 
 ### Future Secrets
 
@@ -247,8 +320,8 @@ As the application grows, you may add:
 1. Ensure you're logged in: `infisical login`
 2. Verify project is initialized: Check `.infisical.json` exists
 3. Confirm secret exists in dashboard: Check `/hono-api/dev` folder
-4. Test manually: `infisical run --env=dev --path=/hono-api -- env | grep DATABASE_URL`
-5. Verify DATABASE_URL format: Should be direct connection string (`postgresql://...`), not `psql 'postgresql://...'`
+4. Test manually: `infisical run --path=/hono-api -- env | grep DATABASE_URL`
+5. Verify DATABASE_URL format: Should be direct connection string (`postgresql://user:password@host:port/database`), not shell commands like `psql 'postgresql://...'`
 
 ### "Authentication failed" Error
 
@@ -265,7 +338,7 @@ As the application grows, you may add:
 **Cause**: Cached credentials or wrong environment
 
 **Solutions**:
-1. Verify you're using the correct environment: `--env=dev` (not `development`)
+1. Verify you're using the correct environment in Infisical dashboard (dev, staging, prod)
 2. Check folder path is correct: `--path=/hono-api` (with leading slash)
 3. Clear Infisical cache: `infisical logout && infisical login`
 
@@ -283,7 +356,7 @@ export DATABASE_URL="postgresql://localhost:5432/delivery_chat"
 
 ```bash
 # Use remote development database from Infisical
-infisical run --env=dev --path=/hono-api -- bun run dev
+infisical run --path=/hono-api -- bun run dev
 # DATABASE_URL automatically injected
 
 # Or use the dev script which already includes Infisical:

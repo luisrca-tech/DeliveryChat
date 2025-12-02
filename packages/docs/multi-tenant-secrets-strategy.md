@@ -105,19 +105,22 @@ async function getMasterKey(environment: "dev" | "staging" | "prod" = "dev"): Pr
 // Encrypt tenant secret
 async function encryptSecret(value: string): Promise<string> {
   const masterKey = await getMasterKey();
-  const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv("aes-256-cbc", Buffer.from(masterKey, "hex"), iv);
+  const iv = crypto.randomBytes(12); // 12 bytes for GCM
+  const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(masterKey, "hex"), iv);
   let encrypted = cipher.update(value, "utf8", "hex");
   encrypted += cipher.final("hex");
-  return `${iv.toString("hex")}:${encrypted}`;
+  const authTag = cipher.getAuthTag().toString("hex");
+  return `${iv.toString("hex")}:${encrypted}:${authTag}`;
 }
 
 // Decrypt tenant secret
 async function decryptSecret(encryptedValue: string): Promise<string> {
   const masterKey = await getMasterKey();
-  const [ivHex, encrypted] = encryptedValue.split(":");
+  const [ivHex, encrypted, authTagHex] = encryptedValue.split(":");
   const iv = Buffer.from(ivHex, "hex");
-  const decipher = crypto.createDecipheriv("aes-256-cbc", Buffer.from(masterKey, "hex"), iv);
+  const authTag = Buffer.from(authTagHex, "hex");
+  const decipher = crypto.createDecipheriv("aes-256-gcm", Buffer.from(masterKey, "hex"), iv);
+  decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encrypted, "hex", "utf8");
   decrypted += decipher.final("utf8");
   return decrypted;
@@ -160,7 +163,7 @@ async function getTenantSecret(
 
 ```typescript
 // packages/db/src/schema/company-secrets.ts
-import { text, uuid, varchar } from "drizzle-orm/pg-core";
+import { text, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core";
 import { createTable } from "../table";
 import { companies } from "./companies";
 
@@ -177,9 +180,7 @@ export const companySecrets = createTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    uniqueCompanySecret: {
-      unique: { columns: [table.companyId, table.secretKey] },
-    },
+    uniqueCompanySecret: unique().on(table.companyId, table.secretKey),
   })
 );
 ```
@@ -335,7 +336,7 @@ async function exportTenantSecrets() {
 
   for (const tenant of tenants) {
     const secrets = await getSecrets(`/tenants/${tenant}`, "prod");
-    
+
     for (const [secretKey, secretValue] of Object.entries(secrets)) {
       await setTenantSecret(tenant, secretKey, secretValue);
     }
