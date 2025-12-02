@@ -34,15 +34,37 @@ export async function getSecrets<T extends Record<string, string>>(
     );
   }
 
+  // Authenticate using Service Token (preferred) or Universal Auth
+  const serviceToken = process.env.INFISICAL_TOKEN;
+  const clientId = process.env.INFISICAL_CLIENT_ID;
+  const clientSecret = process.env.INFISICAL_CLIENT_SECRET;
+
+  if (!serviceToken && (!clientId || !clientSecret)) {
+    throw new Error(
+      "Authentication required. Set either INFISICAL_TOKEN (recommended) or INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET. " +
+        "For Service Token: Go to Project Settings > Service Tokens in Infisical dashboard. " +
+        "For Universal Auth: Create a Machine Identity in Organization Settings > Identities. " +
+        "Use 'infisical run' CLI for local development."
+    );
+  }
+
   const sdk = new InfisicalSDK({
     siteUrl: process.env.INFISICAL_URL || "https://app.infisical.com",
   });
+
+  if (serviceToken) {
+  } else if (clientId && clientSecret) {
+    await sdk.auth().universalAuth.login({
+      clientId,
+      clientSecret,
+    });
+  }
 
   const response = await sdk.secrets().listSecrets({
     secretPath: path,
     environment,
     projectId,
-    viewSecretValue: true,
+    expandSecretReferences: true,
   });
 
   const secretsObj: Record<string, string> = {};
