@@ -22,32 +22,27 @@
     "dist"
   ],
   "scripts": {
-    "dev": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- tsx watch src/index.ts",
-    "dev:infisical": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- tsx watch src/index.ts",
-    "check:secrets": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- env | grep -E '(DATABASE_URL|NODE_ENV)' || echo 'No secrets found. Make sure you are logged in: infisical login'",
-    "list:folders": "infisical secrets list --env=${NODE_ENV:-dev} || echo 'Run: infisical login'",
-    "create:folder": "echo 'To create the folder, run: infisical secrets set DATABASE_URL \"your-database-url\" --env=dev --path=/hono-api'",
+    "dev": "infisical run --path=/hono-api -- tsx watch src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js",
-    "start:infisical": "infisical run --env=${NODE_ENV:-prod} --path=/hono-api -- node dist/index.js",
+    "start": "infisical run --path=/hono-api -- node dist/index.js",
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
-    "db:generate": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit generate",
-    "db:migrate": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit migrate",
-    "db:push": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit push",
-    "db:studio": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit studio",
-    "db:drop": "infisical run --env=${NODE_ENV:-dev} --path=/hono-api -- drizzle-kit drop"
+    "db:generate": "infisical run --path=/hono-api -- drizzle-kit generate",
+    "db:migrate": "infisical run --path=/hono-api -- drizzle-kit migrate",
+    "db:push": "infisical run --path=/hono-api -- drizzle-kit push",
+    "db:studio": "infisical run --path=/hono-api -- drizzle-kit studio",
+    "db:drop": "infisical run --path=/hono-api -- drizzle-kit drop"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
     "@hono/zod-validator": "^0.7.5",
+    "@repo/types": "*",
     "@repo/ui": "*",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.6",
     "pg": "^8.16.3",
-    "postgres": "^3.4.7",
-    "zod": "^3.25.76"
+    "postgres": "^3.4.7"
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
