@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { usersRoute } from "../routes/users.js";
-import { companiesRoute } from "../routes/companies.js";
+import { usersRoute } from "../routes/users";
+import { companiesRoute } from "../routes/companies";
 
 /**
  * Shared Hono instance for API routes
