@@ -117,8 +117,6 @@ npm install -g @infisical/cli
 # Login to Infisical
 infisical login
 
-# Initialize Infisical project (at monorepo root)
-infisical init
 # When prompted, use project ID: 138b9de2-a089-44ca-a3a2-04047daf0bb5
 # Select environment: development
 ```
