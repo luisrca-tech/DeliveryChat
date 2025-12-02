@@ -9,11 +9,11 @@
     },
     "lint": {
       "dependsOn": ["^lint"],
-      "env": ["NODE_ENV"]
+      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "SKIP_ENV_VALIDATION"]
     },
     "check-types": {
       "dependsOn": ["^check-types"],
-      "env": ["NODE_ENV"]
+      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "SKIP_ENV_VALIDATION"]
     },
     "dev": {
       "cache": false,
