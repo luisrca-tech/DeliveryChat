@@ -1,4 +1,4 @@
-import { createEnv, z } from '@repo/types';
+import { createEnv, z } from "@repo/types";
 
 /**
  * Environment variables schema for hono-api.
@@ -8,11 +8,14 @@ export const env = createEnv({
   server: {
     DATABASE_URL: z.string().url(),
     NODE_ENV: z
-      .enum(['development', 'test', 'staging', 'production'])
-      .default('development'),
+      .enum(["development", "test", "staging", "production"])
+      .default("development"),
     PORT: z.string().optional(),
   },
-  client: {},
+  client: {
+    // Add client-side env vars here if needed
+  },
+  clientPrefix: "",
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,

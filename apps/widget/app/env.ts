@@ -1,7 +1,7 @@
 import { createEnv, z } from "@repo/types";
 
 /**
- * Environment variables schema for web (landing page) app.
+ * Environment variables schema for widget app.
  * Secrets are loaded from Infisical via CLI (infisical run).
  */
 export const env = createEnv({
@@ -11,8 +11,9 @@ export const env = createEnv({
       .default("development"),
   },
   client: {
-    // Add client-side env vars here (e.g., PUBLIC_API_URL)
+    // Add client-side env vars here (e.g., PUBLIC_API_ENDPOINT)
   },
+  clientPrefix: "",
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
   },
