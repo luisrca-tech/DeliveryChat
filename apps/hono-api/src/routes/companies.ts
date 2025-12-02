@@ -1,11 +1,11 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { db } from "../db/index.js";
-import { companies } from "../db/schema/companies.js";
+import { db } from "../db/index";
+import { companies } from "../db/schema/companies";
 import {
   createCompanySchema,
   listCompaniesQuerySchema,
-} from "./schemas/companies.js";
+} from "./schemas/companies";
 
 export const companiesRoute = new Hono()
   // GET /companies - list companies
