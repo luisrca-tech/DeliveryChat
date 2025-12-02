@@ -1,1 +1,1 @@
-export { getSecrets } from "./client.js";
+export { getSecrets } from "./client";

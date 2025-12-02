@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import * as schema from "./schema/index.js";
+import * as schema from "./schema/index";
+import { env } from "../env";
 
 const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
@@ -9,32 +10,28 @@ const globalForDb = globalThis as unknown as {
 /**
  * Database URL is loaded from Infisical.
  *
- * When using Infisical CLI (`infisical run --env=dev --path=/hono-api`),
+ * When using Infisical CLI (`infisical run --path=/hono-api`),
  * secrets are automatically injected as environment variables.
  *
  * Infisical environments: dev, staging, prod
  */
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  const env = process.env.NODE_ENV || "development";
-  throw new Error(
-    `DATABASE_URL is not set for environment "${env}". ` +
-      `Ensure you're running with Infisical CLI: ` +
-      `infisical run --env=dev --path=/hono-api -- <command> ` +
-      `or set DATABASE_URL as an environment variable.`
-  );
-}
+const databaseUrl = env.DATABASE_URL;
 
-const maskedUrl = databaseUrl.replace(/:\/\/[^:]+:[^@]+@/, (match) =>
-  match.replace(/:[^@]+@/, ":****@")
-);
+const maskedUrl = databaseUrl.replace(/:[^:@]+@/, ":****@");
 console.log(`[Infisical] ✅ DATABASE_URL loaded: ${maskedUrl}`);
 
 try {
   const url = new URL(databaseUrl);
   console.log(`[Infisical] Database host: ${url.hostname}`);
 } catch (error) {
-  console.log(`[Infisical] Database URL format validated`);
+  console.warn(`[Infisical] ⚠️  Invalid DATABASE_URL format: ${maskedUrl}`);
+  console.warn(
+    `[Infisical] Error:`,
+    error instanceof Error ? error.message : "Unknown error"
+  );
+  console.warn(
+    `[Infisical] The database connection may fail. Expected format: postgresql://user:password@host:port/database`
+  );
 }
 
 const conn = globalForDb.conn ?? postgres(databaseUrl);

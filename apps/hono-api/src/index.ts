@@ -2,7 +2,8 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { api } from "./lib/api.js";
+import { api } from "./lib/api";
+import { env } from "./env";
 
 const app = new Hono();
 
@@ -34,7 +35,7 @@ app.route("/api", api);
 
 export type AppType = typeof app;
 
-const port = Number(process.env.PORT) || 8000;
+const port = Number(env.PORT) || 8000;
 
 serve(
   {
@@ -42,11 +43,11 @@ serve(
     port,
   },
   (info) => {
-    console.log(
+    console.info(
       `[Hono API] ✅ Server is running on http://localhost:${info.port}`
     );
-    console.log(`[Hono API] Health check: http://localhost:${info.port}/`);
-    console.log(
+    console.info(`[Hono API] Health check: http://localhost:${info.port}/`);
+    console.info(
       `[Hono API] API endpoint: http://localhost:${info.port}/api/users`
     );
   }
