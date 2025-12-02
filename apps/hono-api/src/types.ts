@@ -1,2 +1,2 @@
-export type { AppType } from "./index.js";
-export type { APIType } from "./lib/api.js";
+export type { AppType } from "./index";
+export type { APIType } from "./lib/api";
