@@ -1,5 +1,5 @@
 import { timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { createTable } from "../table";
+import { createTable } from "../table.js";
 
 export const companies = createTable("companies", {
   id: uuid("id").primaryKey(),

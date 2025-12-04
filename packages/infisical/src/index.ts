@@ -1,0 +1,1 @@
+export { getSecrets } from "./client";
