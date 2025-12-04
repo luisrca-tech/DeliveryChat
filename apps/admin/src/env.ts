@@ -2,7 +2,7 @@ import { createEnv, z } from "@repo/types";
 
 /**
  * Environment variables schema for admin app.
- * Secrets are loaded from Infisical via CLI (infisical run).
+ * Variables are loaded from Infisical via native integration in Vercel.
  */
 export const env = createEnv({
   server: {
@@ -11,11 +11,12 @@ export const env = createEnv({
       .default("development"),
   },
   client: {
-    // Add client-side env vars here (e.g., NEXT_PUBLIC_API_URL)
+    PUBLIC_API_URL: z.string().url().optional(),
   },
-  clientPrefix: "",
+  clientPrefix: "PUBLIC_",
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
+    PUBLIC_API_URL: process.env.PUBLIC_API_URL,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
