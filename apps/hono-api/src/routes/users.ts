@@ -1,8 +1,8 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { db } from "../db/index";
-import { users } from "../db/schema/users";
-import { createUserSchema, listUsersQuerySchema } from "./schemas/users";
+import { db } from "../db/index.js";
+import { users } from "../db/schema/users.js";
+import { createUserSchema, listUsersQuerySchema } from "./schemas/users.js";
 
 export const usersRoute = new Hono()
   // GET /users - list users

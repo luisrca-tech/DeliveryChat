@@ -2,8 +2,8 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { api } from "./lib/api";
-import { env } from "./env";
+import { api } from "./lib/api.js";
+import { env } from "./env.js";
 
 const app = new Hono();
 
