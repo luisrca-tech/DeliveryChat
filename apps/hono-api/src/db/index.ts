@@ -18,11 +18,11 @@ const globalForDb = globalThis as unknown as {
 const databaseUrl = env.DATABASE_URL;
 
 const maskedUrl = databaseUrl.replace(/:[^:@]+@/, ":****@");
-console.log(`[Infisical] ✅ DATABASE_URL loaded: ${maskedUrl}`);
+console.info(`[Infisical] ✅ DATABASE_URL loaded: ${maskedUrl}`);
 
 try {
   const url = new URL(databaseUrl);
-  console.log(`[Infisical] Database host: ${url.hostname}`);
+  console.info(`[Infisical] Database host: ${url.hostname}`);
 } catch (error) {
   console.warn(`[Infisical] ⚠️  Invalid DATABASE_URL format: ${maskedUrl}`);
   console.warn(
