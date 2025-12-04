@@ -1,18 +1,37 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema/index.js";
+import { env } from "../env.js";
 
-/**
- * Cache the database connection in development. This avoids creating a new connection on every HMR
- * update.
- */
 const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
 };
 
-const databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl) {
-  throw new Error("DATABASE_URL is not set");
+/**
+ * Database URL is loaded from Infisical.
+ *
+ * When using Infisical CLI (`infisical run --path=/hono-api`),
+ * secrets are automatically injected as environment variables.
+ *
+ * Infisical environments: dev, staging, prod
+ */
+const databaseUrl = env.DATABASE_URL;
+
+const maskedUrl = databaseUrl.replace(/:[^:@]+@/, ":****@");
+console.info(`[Infisical] ✅ DATABASE_URL loaded: ${maskedUrl}`);
+
+try {
+  const url = new URL(databaseUrl);
+  console.info(`[Infisical] Database host: ${url.hostname}`);
+} catch (error) {
+  console.warn(`[Infisical] ⚠️  Invalid DATABASE_URL format: ${maskedUrl}`);
+  console.warn(
+    `[Infisical] Error:`,
+    error instanceof Error ? error.message : "Unknown error"
+  );
+  console.warn(
+    `[Infisical] The database connection may fail. Expected format: postgresql://user:password@host:port/database`
+  );
 }
 
 const conn = globalForDb.conn ?? postgres(databaseUrl);
