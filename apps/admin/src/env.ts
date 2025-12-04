@@ -1,4 +1,5 @@
-import { createEnv, z } from "@repo/types";
+import { createEnv } from "@t3-oss/env-core";
+import { z } from "zod";
 
 /**
  * Environment variables schema for admin app.

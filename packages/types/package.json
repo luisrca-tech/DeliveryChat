@@ -10,10 +10,7 @@
   "scripts": {
     "check-types": "tsc --noEmit"
   },
-  "dependencies": {
-    "@t3-oss/env-core": "^0.13.8",
-    "zod": "^3.23.8"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@repo/typescript-config": "*",
     "typescript": "^5.9.2"
