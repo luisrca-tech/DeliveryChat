@@ -2,8 +2,9 @@ services:
   - type: web
     name: hono-api
     runtime: bun
-    buildCommand: bun install && cd apps/hono-api && bun run build
-    startCommand: cd apps/hono-api && bun run start
+    rootDir: apps/hono-api
+    buildCommand: cd ../.. && bun install && cd apps/hono-api && bun run build
+    startCommand: bun run start
     envVars:
       - key: NODE_ENV
         value: production
