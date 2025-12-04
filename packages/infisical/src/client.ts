@@ -48,11 +48,15 @@ export async function getSecrets<T extends Record<string, string>>(
     );
   }
 
+  // Initialize SDK
   const sdk = new InfisicalSDK({
     siteUrl: process.env.INFISICAL_URL || "https://app.infisical.com",
   });
 
+  // Authenticate using Service Token (preferred) or Universal Auth
   if (serviceToken) {
+    // In Infisical SDK v4.0, service tokens are set via the auth().accessToken() method
+    sdk.auth().accessToken(serviceToken);
   } else if (clientId && clientSecret) {
     await sdk.auth().universalAuth.login({
       clientId,

@@ -3,7 +3,7 @@ services:
     name: hono-api
     runtime: bun
     rootDir: apps/hono-api
-    buildCommand: cd ../.. && bun install && cd apps/hono-api && bun run build && ls -la dist
+    buildCommand: cd ../.. && bun install && cd apps/hono-api && bun run build
     startCommand: bun run start
     envVars:
       - key: NODE_ENV
