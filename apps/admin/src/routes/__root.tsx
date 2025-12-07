@@ -71,16 +71,27 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     });
   }
 
-  // Inject API URL if available - MUST be first script in head
+  // Inject API URL if available - MUST be first script in head (before HeadContent)
+  // This ensures window.__API_URL__ is available before any module code runs
   return (
     <html lang="en">
       <head>
-        {apiUrl && (
+        {apiUrl ? (
           <script
             dangerouslySetInnerHTML={{
               __html: `
-                window.__API_URL__ = ${JSON.stringify(apiUrl)};
-                console.log('Injected API URL:', window.__API_URL__);
+                (function() {
+                  window.__API_URL__ = ${JSON.stringify(apiUrl)};
+                  console.log('Injected API URL:', window.__API_URL__);
+                })();
+              `,
+            }}
+          />
+        ) : (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                console.error('API URL not available during SSR. Check Vercel environment variables.');
               `,
             }}
           />
