@@ -39,20 +39,37 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const apiUrl =
-    typeof window === "undefined" ? process.env.VITE_API_URL : undefined;
+  // Debug: Log all env vars on server
+  if (typeof window === "undefined") {
+    console.log("Server env vars:", {
+      VITE_API_URL: process.env.VITE_API_URL,
+      PUBLIC_API_URL: process.env.PUBLIC_API_URL,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      NODE_ENV: process.env.NODE_ENV,
+    });
+  }
 
+  // Try multiple sources
+  const apiUrl =
+    typeof window === "undefined"
+      ? process.env.VITE_API_URL || 
+        process.env.PUBLIC_API_URL ||
+        undefined
+      : undefined;
+
+  // Always inject, even if undefined, so we can debug
   return (
     <html lang="en">
       <head>
         <HeadContent />
-        {apiUrl && (
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `window.__API_URL__ = ${JSON.stringify(apiUrl)};`,
-            }}
-          />
-        )}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.__API_URL__ = ${apiUrl ? JSON.stringify(apiUrl) : 'undefined'};
+              console.log('Injected API URL:', window.__API_URL__);
+            `,
+          }}
+        />
       </head>
       <body>
         {children}
