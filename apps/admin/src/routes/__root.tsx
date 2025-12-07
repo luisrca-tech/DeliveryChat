@@ -42,31 +42,57 @@ export const Route = createRootRoute({
 function RootDocument({ children }: { children: React.ReactNode }) {
   const isServer = typeof window === "undefined";
 
-  // Get API URL - use process.env on server (VITE_ vars are client-only in env.ts)
-  const apiUrl = isServer
-    ? process.env.VITE_API_URL ||
-      (env.NODE_ENV === "development" ? "http://localhost:8000" : undefined)
-    : undefined;
+  // Try multiple sources for API URL on server
+  let apiUrl: string | undefined;
 
-  // Build-time env var for client-side fallback (Vite replaces this)
-  const buildTimeUrl = import.meta.env.VITE_API_URL;
-  const isDev = import.meta.env.DEV;
-
-  // Debug: Log SSR environment check
   if (isServer) {
+    // Priority 1: process.env (available during SSR/runtime)
+    apiUrl = process.env.VITE_API_URL;
+
+    // Priority 2: Try Nitro runtimeConfig (if available)
+    if (!apiUrl && typeof (globalThis as any).useRuntimeConfig === "function") {
+      try {
+        const config = (globalThis as any).useRuntimeConfig();
+        apiUrl = config.public?.VITE_API_URL || config.VITE_API_URL;
+      } catch (e) {
+        // Nitro config not available
+      }
+    }
+
+    // Priority 3: Development fallback
+    if (!apiUrl && env.NODE_ENV === "development") {
+      apiUrl = "http://localhost:8000";
+    }
+
+    // Debug: Log SSR environment check
+    const allViteKeys = Object.keys(process.env).filter((k) =>
+      k.startsWith("VITE_")
+    );
+    const allEnvKeys = Object.keys(process.env).sort();
+
     console.log("[SSR] RootDocument - Environment check:", {
       "process.env.VITE_API_URL": process.env.VITE_API_URL
         ? `✓ ${process.env.VITE_API_URL.substring(0, 30)}...`
         : "✗ Not set",
+      "process.env.VERCEL": process.env.VERCEL || "✗ Not set",
+      "process.env.VERCEL_ENV": process.env.VERCEL_ENV || "✗ Not set",
       "env.NODE_ENV": env.NODE_ENV,
-      "resolved apiUrl": apiUrl || "undefined",
-      "import.meta.env.VITE_API_URL": import.meta.env.VITE_API_URL
-        ? `✓ ${import.meta.env.VITE_API_URL.substring(0, 30)}...`
-        : "✗ Not set (expected on server)",
-      VERCEL: process.env.VERCEL,
-      VERCEL_ENV: process.env.VERCEL_ENV,
+      "resolved apiUrl": apiUrl || "✗ undefined",
+      "All VITE_ keys": allViteKeys.length > 0 ? allViteKeys : "✗ None found",
+      "Sample env keys (first 20)": allEnvKeys.slice(0, 20),
+      "Total env keys": allEnvKeys.length,
     });
+
+    if (!apiUrl) {
+      console.error(
+        "[SSR] ⚠️ WARNING: No API URL resolved! This will cause client-side errors."
+      );
+    }
   }
+
+  // Build-time env var for client-side fallback (Vite replaces this)
+  const buildTimeUrl = import.meta.env.VITE_API_URL;
+  const isDev = import.meta.env.DEV;
 
   return (
     <html lang="en">
