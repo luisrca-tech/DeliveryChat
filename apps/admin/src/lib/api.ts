@@ -2,7 +2,6 @@ import type { APIType } from "hono-api/types";
 import { hc } from "hono/client";
 
 function getApiUrl(): string {
-  // Priority 1: Runtime injection from SSR (most reliable)
   if (typeof window !== "undefined" && (window as any).__API_URL__) {
     const injectedUrl = (window as any).__API_URL__;
     return injectedUrl.endsWith("/api")
@@ -10,7 +9,6 @@ function getApiUrl(): string {
       : `${injectedUrl.replace(/\/$/, "")}/api`;
   }
 
-  // Priority 2: Build-time env var
   if (import.meta.env.VITE_API_URL) {
     const baseUrl = import.meta.env.VITE_API_URL;
     return baseUrl.endsWith("/api")
@@ -18,18 +16,30 @@ function getApiUrl(): string {
       : `${baseUrl.replace(/\/$/, "")}/api`;
   }
 
-  // Only use localhost for local development (when actually running locally)
   if (import.meta.env.DEV || import.meta.env.MODE === "development") {
     return "http://localhost:8000/api";
   }
 
-  // If no env var is set in production, throw an error
   throw new Error(
     "VITE_API_URL environment variable is not set. Please configure it in Vercel."
   );
 }
 
-const apiUrl = getApiUrl();
-console.log("API URL:", apiUrl);
+let apiClient: ReturnType<typeof hc<APIType>> | null = null;
 
-export const api = hc<APIType>(apiUrl);
+function getApiClient() {
+  if (!apiClient) {
+    const apiUrl = getApiUrl();
+    console.log("API URL:", apiUrl);
+    apiClient = hc<APIType>(apiUrl);
+  }
+  return apiClient;
+}
+
+export const api = new Proxy({} as ReturnType<typeof hc<APIType>>, {
+  get(_target, prop) {
+    const client = getApiClient();
+    const value = (client as any)[prop];
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});

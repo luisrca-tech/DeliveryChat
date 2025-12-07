@@ -71,11 +71,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     });
   }
 
-  // Inject API URL if available
+  // Inject API URL if available - MUST be first script in head
   return (
     <html lang="en">
       <head>
-        <HeadContent />
         {apiUrl && (
           <script
             dangerouslySetInnerHTML={{
@@ -86,6 +85,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             }}
           />
         )}
+        <HeadContent />
       </head>
       <body>
         {children}
