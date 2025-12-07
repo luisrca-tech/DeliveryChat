@@ -39,10 +39,22 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const apiUrl =
+    typeof window === "undefined"
+      ? process.env.PUBLIC_API_URL || process.env.VITE_API_URL
+      : undefined;
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
+        {apiUrl && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `window.__API_URL__ = ${JSON.stringify(apiUrl)};`,
+            }}
+          />
+        )}
       </head>
       <body>
         {children}

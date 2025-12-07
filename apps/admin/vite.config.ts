@@ -5,10 +5,10 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 import { nitro } from "nitro/vite";
+
 const config = defineConfig({
   plugins: [
     devtools(),
-    // this is the plugin that enables path aliases
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
     }),
@@ -17,6 +17,7 @@ const config = defineConfig({
     viteReact(),
     nitro(),
   ],
+  envPrefix: ["VITE_", "PUBLIC_"],
 });
 
 export default config;

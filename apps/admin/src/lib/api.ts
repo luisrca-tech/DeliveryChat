@@ -1,13 +1,22 @@
 import type { APIType } from "hono-api/types";
 import { hc } from "hono/client";
 
-const baseUrl = import.meta.env.PUBLIC_API_URL;
+function getApiUrl(): string {
+  if (typeof window !== "undefined" && (window as any).__API_URL__) {
+    return (window as any).__API_URL__;
+  }
 
-console.log("baseUrl", baseUrl);
-const apiUrl = baseUrl
-  ? baseUrl.endsWith("/api")
-    ? baseUrl
-    : `${baseUrl.replace(/\/$/, "")}/api`
-  : "http://localhost:8000/api";
+  if (import.meta.env.PUBLIC_API_URL) {
+    const baseUrl = import.meta.env.PUBLIC_API_URL;
+    return baseUrl.endsWith("/api")
+      ? baseUrl
+      : `${baseUrl.replace(/\/$/, "")}/api`;
+  }
+
+  return "http://localhost:8000/api";
+}
+
+const apiUrl = getApiUrl();
+console.log("API URL:", apiUrl);
 
 export const api = hc<APIType>(apiUrl);
