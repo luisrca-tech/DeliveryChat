@@ -8,13 +8,17 @@ function getApiUrl(): string {
   if (isServer) {
     const serverUrl = env.VITE_API_URL;
     if (serverUrl) {
-      return serverUrl.endsWith("/api")
+      const url = serverUrl.endsWith("/api")
         ? serverUrl
         : `${serverUrl.replace(/\/$/, "")}/api`;
+      console.log("[API] Server-side URL:", url);
+      return url;
     }
 
     if (env.NODE_ENV === "development") {
-      return "http://localhost:8000/api";
+      const devUrl = "http://localhost:8000/api";
+      console.log("[API] Using dev fallback:", devUrl);
+      return devUrl;
     }
 
     throw new Error("VITE_API_URL not set on server");
@@ -22,20 +26,26 @@ function getApiUrl(): string {
 
   const injectedUrl = (window as any).__API_URL__;
   if (injectedUrl) {
-    return injectedUrl.endsWith("/api")
+    const url = injectedUrl.endsWith("/api")
       ? injectedUrl
       : `${injectedUrl.replace(/\/$/, "")}/api`;
+    console.log("[API] Client-side injected URL:", url);
+    return url;
   }
 
   const envUrl = import.meta.env.VITE_API_URL;
   if (envUrl) {
-    return envUrl.endsWith("/api")
+    const url = envUrl.endsWith("/api")
       ? envUrl
       : `${envUrl.replace(/\/$/, "")}/api`;
+    console.log("[API] Client-side env URL:", url);
+    return url;
   }
 
   if (import.meta.env.DEV) {
-    return "http://localhost:8000/api";
+    const devUrl = "http://localhost:8000/api";
+    console.log("[API] Using dev fallback:", devUrl);
+    return devUrl;
   }
 
   throw new Error("VITE_API_URL environment variable is not set.");
@@ -43,13 +53,41 @@ function getApiUrl(): string {
 
 let _api: ReturnType<typeof hc<APIType>> | null = null;
 
+function getClient() {
+  if (!_api) {
+    try {
+      const apiUrl = getApiUrl();
+      console.log("[API] Initializing Hono client with URL:", apiUrl);
+      _api = hc<APIType>(apiUrl);
+      console.log("[API] Client initialized successfully");
+      console.log("[API] Client has users?", "users" in _api);
+      console.log("[API] Client has companies?", "companies" in _api);
+    } catch (error) {
+      console.error("[API] Failed to initialize client:", error);
+      throw error;
+    }
+  }
+  return _api;
+}
+
 export const api = new Proxy({} as ReturnType<typeof hc<APIType>>, {
   get(_target, prop) {
-    if (!_api) {
-      const apiUrl = getApiUrl();
-      _api = hc<APIType>(apiUrl);
+    try {
+      const client = getClient();
+      const value = (client as any)[prop];
+
+      if (value === undefined) {
+        console.error(`[API] Property "${String(prop)}" not found on client`);
+        console.log("[API] Available properties:", Object.keys(client));
+      }
+
+      if (typeof value === "function") {
+        return value.bind(client);
+      }
+      return value;
+    } catch (error) {
+      console.error(`[API] Error accessing property "${String(prop)}":`, error);
+      throw error;
     }
-    const value = (_api as any)[prop];
-    return typeof value === "function" ? value.bind(_api) : value;
   },
 });

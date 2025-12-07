@@ -1,43 +1,51 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 
-export const Route = createFileRoute("/")({ component: App });
+export const Route = createFileRoute("/")({
+  loader: async () => {
+    try {
+      console.log("[App] Loading data via TanStack Router loader...");
+
+      // Load users
+      const usersRes = await api.users.$get({
+        query: { limit: "5", offset: "0" },
+      });
+
+      if (!usersRes.ok) {
+        const errorText = await usersRes.text();
+        throw new Error(`Users API error: ${usersRes.status} - ${errorText}`);
+      }
+
+      const usersData = await usersRes.json();
+
+      // Load companies
+      const companiesRes = await api.companies.$get({
+        query: { limit: "5", offset: "0" },
+      });
+
+      if (!companiesRes.ok) {
+        const errorText = await companiesRes.text();
+        throw new Error(
+          `Companies API error: ${companiesRes.status} - ${errorText}`
+        );
+      }
+
+      const companiesData = await companiesRes.json();
+
+      return {
+        users: usersData,
+        companies: companiesData,
+      };
+    } catch (error) {
+      console.error("[App] Loader Error:", error);
+      throw error;
+    }
+  },
+  component: App,
+});
 
 function App() {
-  const [usersData, setUsersData] = useState<unknown>(null);
-  const [companiesData, setCompaniesData] = useState<unknown>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // TODO: remove this once we have a real API
-  useEffect(() => {
-    // Test RPC calls
-    const testRPC = async () => {
-      try {
-        // Test users endpoint
-        const usersRes = await api.users.$get({
-          query: { limit: "5", offset: "0" },
-        });
-        if (usersRes.ok) {
-          const usersJson = await usersRes.json();
-          setUsersData(usersJson);
-        }
-
-        // Test companies endpoint
-        const companiesRes = await api.companies.$get({
-          query: { limit: "5", offset: "0" },
-        });
-        if (companiesRes.ok) {
-          const companiesJson = await companiesRes.json();
-          setCompaniesData(companiesJson);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
-      }
-    };
-
-    testRPC();
-  }, []);
+  const { users, companies } = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -46,16 +54,11 @@ function App() {
           <h2 className="text-2xl font-semibold text-white mb-4">
             RPC Integration Test
           </h2>
-          {error && (
-            <div className="mb-4 p-4 bg-red-900/50 border border-red-700 rounded-lg">
-              <p className="text-red-300">Error: {error}</p>
-            </div>
-          )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <h3 className="text-lg font-semibold text-white mb-2">Users</h3>
               <pre className="bg-slate-900 p-4 rounded-lg overflow-auto text-sm text-gray-300">
-                {usersData ? JSON.stringify(usersData, null, 2) : "Loading..."}
+                {JSON.stringify(users, null, 2)}
               </pre>
             </div>
             <div>
@@ -63,9 +66,7 @@ function App() {
                 Companies
               </h3>
               <pre className="bg-slate-900 p-4 rounded-lg overflow-auto text-sm text-gray-300">
-                {companiesData
-                  ? JSON.stringify(companiesData, null, 2)
-                  : "Loading..."}
+                {JSON.stringify(companies, null, 2)}
               </pre>
             </div>
           </div>
