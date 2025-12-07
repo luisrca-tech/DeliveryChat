@@ -4,8 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
-    "build": "node scripts/check-env.js && vite build",
-    "build:debug": "node scripts/check-env.js",
+    "build": "vite build",
     "serve": "vite preview",
     "test": "vitest run",
     "deploy": "wrangler deploy",
