@@ -17,7 +17,8 @@ export const env = createEnv({
   clientPrefix: "VITE_",
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    VITE_API_URL: process.env.VITE_API_URL,
+    VITE_API_URL: process.env.VITE_API_URL ?? "",
   },
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION || !process.env.VITE_API_URL,
 });
