@@ -6,7 +6,7 @@ function getApiUrl(): string {
   const isServer = typeof window === "undefined";
 
   if (isServer) {
-    const serverUrl = import.meta.env.VITE_API_URL;
+    const serverUrl = env.VITE_API_URL;
     if (serverUrl) {
       return serverUrl.endsWith("/api")
         ? serverUrl
