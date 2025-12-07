@@ -49,7 +49,7 @@ function getApiUrl(): string {
   // This should not happen if SSR injection is working correctly
   throw new Error(
     "VITE_API_URL environment variable is not set. Please configure it in Vercel. " +
-    "If using Infisical, ensure the variable is synced to Vercel environment variables."
+      "If using Infisical, ensure the variable is synced to Vercel environment variables."
   );
 }
 
