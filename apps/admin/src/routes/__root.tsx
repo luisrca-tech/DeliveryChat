@@ -39,7 +39,6 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  // Get API URL from environment variables (server-side only)
   const getApiUrl = () => {
     if (typeof window !== "undefined") return undefined; // Client-side, will use injected value
 
