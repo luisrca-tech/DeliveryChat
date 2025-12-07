@@ -39,37 +39,54 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  // Debug: Log all env vars on server
+  // Get API URL from environment variables (server-side only)
+  const getApiUrl = () => {
+    if (typeof window !== "undefined") return undefined; // Client-side, will use injected value
+
+    // Try environment variables - these should be set in Vercel
+    if (process.env.VITE_API_URL) return process.env.VITE_API_URL;
+    if (process.env.PUBLIC_API_URL) return process.env.PUBLIC_API_URL;
+
+    // Only use localhost for local development
+    if (process.env.NODE_ENV === "development" || !process.env.VERCEL) {
+      return "http://localhost:8000";
+    }
+
+    // If we're on Vercel but no env var is set, log error
+    console.error(
+      "VITE_API_URL or PUBLIC_API_URL environment variable is not set in Vercel."
+    );
+    return undefined;
+  };
+
+  const apiUrl = getApiUrl();
+
+  // Debug: Log on server to help diagnose
   if (typeof window === "undefined") {
-    console.log("Server env vars:", {
-      VITE_API_URL: process.env.VITE_API_URL,
-      PUBLIC_API_URL: process.env.PUBLIC_API_URL,
+    console.log("Server env vars check:", {
+      VITE_API_URL: process.env.VITE_API_URL ? "✓ Set" : "✗ Not set",
+      PUBLIC_API_URL: process.env.PUBLIC_API_URL ? "✓ Set" : "✗ Not set",
       VERCEL_ENV: process.env.VERCEL_ENV,
       NODE_ENV: process.env.NODE_ENV,
+      resolvedApiUrl: apiUrl || "undefined",
     });
   }
 
-  // Try multiple sources
-  const apiUrl =
-    typeof window === "undefined"
-      ? process.env.VITE_API_URL || 
-        process.env.PUBLIC_API_URL ||
-        undefined
-      : undefined;
-
-  // Always inject, even if undefined, so we can debug
+  // Inject API URL if available
   return (
     <html lang="en">
       <head>
         <HeadContent />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.__API_URL__ = ${apiUrl ? JSON.stringify(apiUrl) : 'undefined'};
-              console.log('Injected API URL:', window.__API_URL__);
-            `,
-          }}
-        />
+        {apiUrl && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.__API_URL__ = ${JSON.stringify(apiUrl)};
+                console.log('Injected API URL:', window.__API_URL__);
+              `,
+            }}
+          />
+        )}
       </head>
       <body>
         {children}
