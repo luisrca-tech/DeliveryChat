@@ -6,8 +6,8 @@ function getApiUrl(): string {
     return (window as any).__API_URL__;
   }
 
-  if (import.meta.env.PUBLIC_API_URL) {
-    const baseUrl = import.meta.env.PUBLIC_API_URL;
+  if (import.meta.env.VITE_API_URL) {
+    const baseUrl = import.meta.env.VITE_API_URL;
     return baseUrl.endsWith("/api")
       ? baseUrl
       : `${baseUrl.replace(/\/$/, "")}/api`;
@@ -17,6 +17,6 @@ function getApiUrl(): string {
 }
 
 const apiUrl = getApiUrl();
-console.log("API URL:", apiUrl);
+console.log("API URL:", apiUrl, "Full env:", import.meta.env);
 
 export const api = hc<APIType>(apiUrl);

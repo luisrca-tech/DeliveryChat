@@ -40,9 +40,7 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   const apiUrl =
-    typeof window === "undefined"
-      ? process.env.PUBLIC_API_URL || process.env.VITE_API_URL
-      : undefined;
+    typeof window === "undefined" ? process.env.VITE_API_URL : undefined;
 
   return (
     <html lang="en">
