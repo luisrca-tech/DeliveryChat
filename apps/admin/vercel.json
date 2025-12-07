@@ -1,10 +1,10 @@
 {
   "buildCommand": "bun run build",
- "rewrites": [
+  "outputDirectory": "dist/client",
+  "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!assets/).*)",
       "destination": "/api"
     }
   ]
 }
-
