@@ -51,43 +51,8 @@ function getApiUrl(): string {
   throw new Error("VITE_API_URL environment variable is not set.");
 }
 
-let _api: ReturnType<typeof hc<APIType>> | null = null;
+// Initialize client immediately
+const apiUrl = getApiUrl();
+console.log("[API] Initializing Hono client with URL:", apiUrl);
 
-function getClient() {
-  if (!_api) {
-    try {
-      const apiUrl = getApiUrl();
-      console.log("[API] Initializing Hono client with URL:", apiUrl);
-      _api = hc<APIType>(apiUrl);
-      console.log("[API] Client initialized successfully");
-      console.log("[API] Client has users?", "users" in _api);
-      console.log("[API] Client has companies?", "companies" in _api);
-    } catch (error) {
-      console.error("[API] Failed to initialize client:", error);
-      throw error;
-    }
-  }
-  return _api;
-}
-
-export const api = new Proxy({} as ReturnType<typeof hc<APIType>>, {
-  get(_target, prop) {
-    try {
-      const client = getClient();
-      const value = (client as any)[prop];
-
-      if (value === undefined) {
-        console.error(`[API] Property "${String(prop)}" not found on client`);
-        console.log("[API] Available properties:", Object.keys(client));
-      }
-
-      if (typeof value === "function") {
-        return value.bind(client);
-      }
-      return value;
-    } catch (error) {
-      console.error(`[API] Error accessing property "${String(prop)}":`, error);
-      throw error;
-    }
-  },
-});
+export const api = hc<APIType>(apiUrl);
