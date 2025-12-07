@@ -1,9 +1,9 @@
 import type { APIType } from "hono-api/types";
 import { hc } from "hono/client";
-import { env } from "../env";
 
-const baseUrl = env.PUBLIC_API_URL;
+const baseUrl = import.meta.env.PUBLIC_API_URL;
 
+console.log("baseUrl", baseUrl);
 const apiUrl = baseUrl
   ? baseUrl.endsWith("/api")
     ? baseUrl
