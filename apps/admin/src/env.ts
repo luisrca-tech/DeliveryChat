@@ -12,13 +12,13 @@ export const env = createEnv({
       .default("development"),
   },
   client: {
-    PUBLIC_API_URL: z.string().url().optional(),
+    VITE_API_URL: z.string().url(),
   },
-  clientPrefix: "PUBLIC_",
+  clientPrefix: "VITE_",
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    PUBLIC_API_URL: process.env.PUBLIC_API_URL,
+    VITE_API_URL: process.env.VITE_API_URL ?? "",
   },
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
-  emptyStringAsUndefined: true,
+  skipValidation:
+    !!process.env.SKIP_ENV_VALIDATION || !process.env.VITE_API_URL,
 });

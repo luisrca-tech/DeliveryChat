@@ -3,6 +3,7 @@ import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 
 import appCss from "@repo/ui/styles.css?url";
+import { env } from "../env";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -39,9 +40,47 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const isServer = typeof window === "undefined";
+
+  let apiUrl: string | undefined;
+
+  if (isServer) {
+    apiUrl = env.VITE_API_URL;
+
+    if (!apiUrl && env.NODE_ENV === "development") {
+      apiUrl = "http://localhost:8000";
+    }
+  }
+
+  const buildTimeUrl = import.meta.env.VITE_API_URL;
+  const isDev = import.meta.env.DEV;
+
   return (
     <html lang="en">
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                var ssrUrl = ${apiUrl ? JSON.stringify(apiUrl) : "null"};
+                if (ssrUrl) {
+                  window.__API_URL__ = ssrUrl;
+                  return;
+                }
+                var buildUrl = ${buildTimeUrl ? JSON.stringify(buildTimeUrl) : "null"};
+                if (buildUrl) {
+                  window.__API_URL__ = buildUrl;
+                  return;
+                }
+                var isDev = ${isDev ? "true" : "false"};
+                if (isDev) {
+                  window.__API_URL__ = "http://localhost:8000";
+                  return;
+                }
+              })();
+            `,
+          }}
+        />
         <HeadContent />
       </head>
       <body>
