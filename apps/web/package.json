@@ -3,9 +3,11 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
-    "dev": "astro dev --port 3002",
+    "dev": "infisical run --path=/web -- astro dev --port 3002",
+    "local:build": "infisical run --path=/web -- astro build",
     "build": "astro build",
     "preview": "astro preview",
+    "local:preview": "infisical run --path=/web -- astro preview",
     "astro": "astro"
   },
   "dependencies": {
