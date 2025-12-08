@@ -14,11 +14,10 @@ export const env = createEnv({
   client: {
     VITE_API_URL: z.string().url(),
   },
-  clientPrefix: "VITE_",
+  clientPrefix: "",
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
-    VITE_API_URL: process.env.VITE_API_URL ?? "",
+    VITE_API_URL: import.meta.env.VITE_API_URL ?? "",
   },
-  skipValidation:
-    !!process.env.SKIP_ENV_VALIDATION || !process.env.VITE_API_URL,
+  skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
 });
