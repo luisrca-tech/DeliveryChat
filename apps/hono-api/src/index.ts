@@ -30,7 +30,6 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
-// Mount API routes
 app.route("/api", api);
 
 export type AppType = typeof app;
