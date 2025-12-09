@@ -14,7 +14,6 @@ const logClientEnv = () => {
   };
 
   console.info("[admin] Client env snapshot:", exposedEnv);
-
   if (!env.VITE_API_URL) {
     console.error("[admin] Missing VITE_API_URL; API client will fail.");
   }
