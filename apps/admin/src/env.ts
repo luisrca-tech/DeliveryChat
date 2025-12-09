@@ -16,8 +16,9 @@ export const env = createEnv({
   },
   clientPrefix: "",
   runtimeEnv: {
-    NODE_ENV: process.env.NODE_ENV,
-    VITE_API_URL: import.meta.env.VITE_API_URL ?? "",
+    NODE_ENV: import.meta.env.NODE_ENV,
+    VITE_API_URL: import.meta.env.VITE_API_URL,
   },
   skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
+  emptyStringAsUndefined: true,
 });
