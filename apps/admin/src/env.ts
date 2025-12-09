@@ -10,16 +10,23 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "staging", "production"])
       .default("development"),
-    // Needed during SSR loaders that hit the API
     VITE_API_URL: z.string().url(),
   },
   client: {
+    NODE_ENV: z
+      .enum(["development", "staging", "production"])
+      .default("development"),
     VITE_API_URL: z.string().url(),
   },
   clientPrefix: "",
   runtimeEnv: {
-    NODE_ENV: import.meta.env.NODE_ENV,
-    VITE_API_URL: import.meta.env.VITE_API_URL,
+    NODE_ENV:
+      import.meta.env.MODE ??
+      import.meta.env.NODE_ENV ??
+      process.env.NODE_ENV ??
+      "development",
+    VITE_API_URL:
+      import.meta.env.VITE_API_URL ?? process.env.VITE_API_URL ?? "",
   },
   skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
 });
