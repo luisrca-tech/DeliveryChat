@@ -10,6 +10,8 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "staging", "production"])
       .default("development"),
+    // Needed during SSR loaders that hit the API
+    VITE_API_URL: z.string().url(),
   },
   client: {
     VITE_API_URL: z.string().url(),
