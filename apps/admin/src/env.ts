@@ -8,7 +8,7 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     NODE_ENV: z
-      .enum(["development", "test", "staging", "production"])
+      .enum(["development", "staging", "production"])
       .default("development"),
   },
   client: {
@@ -20,5 +20,4 @@ export const env = createEnv({
     VITE_API_URL: import.meta.env.VITE_API_URL,
   },
   skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
-  emptyStringAsUndefined: true,
 });
