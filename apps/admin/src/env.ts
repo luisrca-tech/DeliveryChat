@@ -8,17 +8,25 @@ import { z } from "zod";
 export const env = createEnv({
   server: {
     NODE_ENV: z
-      .enum(["development", "test", "staging", "production"])
+      .enum(["development", "staging", "production"])
       .default("development"),
-  },
-  client: {
     VITE_API_URL: z.string().url(),
   },
-  clientPrefix: "VITE_",
-  runtimeEnv: {
-    NODE_ENV: process.env.NODE_ENV,
-    VITE_API_URL: process.env.VITE_API_URL ?? "",
+  client: {
+    NODE_ENV: z
+      .enum(["development", "staging", "production"])
+      .default("development"),
+    VITE_API_URL: z.string().url(),
   },
-  skipValidation:
-    !!process.env.SKIP_ENV_VALIDATION || !process.env.VITE_API_URL,
+  clientPrefix: "",
+  runtimeEnv: {
+    NODE_ENV:
+      import.meta.env.MODE ??
+      import.meta.env.NODE_ENV ??
+      process.env.NODE_ENV ??
+      "development",
+    VITE_API_URL:
+      import.meta.env.VITE_API_URL ?? process.env.VITE_API_URL ?? "",
+  },
+  skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
 });

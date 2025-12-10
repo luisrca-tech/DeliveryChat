@@ -1,5 +1,5 @@
 import { uuid, varchar } from "drizzle-orm/pg-core";
-import { createTable } from "../table";
+import { createTable } from "../table.js";
 
 export const users = createTable("users", {
   id: uuid("id").primaryKey(),
