@@ -1,7 +1,7 @@
 import { timestamp, uuid, varchar } from "drizzle-orm/pg-core";
-import { createTable } from "../table.js";
-import { companies } from "./companies.js";
-import { users } from "./users.js";
+import { createTable } from "../table";
+import { companies } from "./companies";
+import { users } from "./users";
 
 export const usersCompanies = createTable(
   "users_companies",
