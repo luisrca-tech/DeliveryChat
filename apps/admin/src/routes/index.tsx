@@ -18,23 +18,23 @@ export const Route = createFileRoute("/")({
 
       const usersData = await usersRes.json();
 
-      // Load companies
-      const companiesRes = await api.companies.$get({
+      // Load applications
+      const applicationsRes = await api.applications.$get({
         query: { limit: "5", offset: "0" },
       });
 
-      if (!companiesRes.ok) {
-        const errorText = await companiesRes.text();
+      if (!applicationsRes.ok) {
+        const errorText = await applicationsRes.text();
         throw new Error(
-          `Companies API error: ${companiesRes.status} - ${errorText}`
+          `Applications API error: ${applicationsRes.status} - ${errorText}`
         );
       }
 
-      const companiesData = await companiesRes.json();
+      const applicationsData = await applicationsRes.json();
 
       return {
         users: usersData,
-        companies: companiesData,
+        applications: applicationsData,
       };
     } catch (error) {
       console.error("[App] Loader Error:", error);
@@ -45,7 +45,7 @@ export const Route = createFileRoute("/")({
 });
 
 function App() {
-  const { users, companies } = Route.useLoaderData();
+  const { users, applications } = Route.useLoaderData();
 
   return (
     <div className="min-h-screen bg-linear-to-b from-slate-900 via-slate-800 to-slate-900">
@@ -63,10 +63,10 @@ function App() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-white mb-2">
-                Companies
+                Applications
               </h3>
               <pre className="bg-slate-900 p-4 rounded-lg overflow-auto text-sm text-gray-300">
-                {JSON.stringify(companies, null, 2)}
+                {JSON.stringify(applications, null, 2)}
               </pre>
             </div>
           </div>
