@@ -29,6 +29,7 @@
     "check-types": "tsc --noEmit",
     "db:generate": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit generate",
     "db:migrate": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit migrate",
+    "db:seed": "infisical run --path=/hono-api -- bun run src/db/seeds/index.ts",
     "db:push": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit push",
     "db:studio": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit studio",
     "db:drop": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop"
