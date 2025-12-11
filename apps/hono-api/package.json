@@ -37,9 +37,9 @@
   "dependencies": {
     "@hono/node-server": "^1.19.6",
     "@hono/zod-validator": "^0.7.5",
-    "@t3-oss/env-core": "^0.13.8",
     "@repo/types": "*",
     "@repo/ui": "*",
+    "@t3-oss/env-core": "^0.13.8",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.6",
@@ -47,6 +47,7 @@
     "postgres": "^3.4.7"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.1.0",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/node": "^20.11.17",
