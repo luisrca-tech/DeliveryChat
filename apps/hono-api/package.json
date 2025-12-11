@@ -23,15 +23,15 @@
   ],
   "scripts": {
     "dev": "infisical run --path=/hono-api -- tsx watch src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
+    "build": "tsc && node scripts/fix-dist-extensions.js",
+    "start": "node --experimental-specifier-resolution=node dist/index.js",
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
-    "db:generate": "infisical run --path=/hono-api -- drizzle-kit generate",
-    "db:migrate": "infisical run --path=/hono-api -- drizzle-kit migrate",
-    "db:push": "infisical run --path=/hono-api -- drizzle-kit push",
-    "db:studio": "infisical run --path=/hono-api -- drizzle-kit studio",
-    "db:drop": "infisical run --path=/hono-api -- drizzle-kit drop"
+    "db:generate": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit generate",
+    "db:migrate": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit migrate",
+    "db:push": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit push",
+    "db:studio": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit studio",
+    "db:drop": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
