@@ -1,53 +1,47 @@
 import { randomUUID } from "node:crypto";
+import { faker } from "@faker-js/faker";
 import { inArray } from "drizzle-orm";
 import { db } from "../index";
 import { applications } from "../schema/applications";
 import type { TenantMap } from "./types/tenantMap.type";
 
-const applicationSeedData = [
-  {
-    tenantSlug: "acme",
-    slug: "support-widget",
-    name: "Support Widget",
-    description: "Embeddable chat widget for Acme support.",
-    settings: { channels: ["web"], realtime: true },
-  },
-  {
-    tenantSlug: "globex",
-    slug: "support-widget",
-    name: "Support Widget",
-    description: "Embeddable chat widget for Globex.",
-    settings: { channels: ["web"], realtime: true },
-  },
-  {
-    tenantSlug: "acme",
-    slug: "admin-dashboard",
-    name: "Admin Dashboard",
-    description: "Internal admin for support ops.",
-    settings: { roles: ["admin", "agent"] },
-  },
-];
+const APPS_PER_TENANT = 5;
+
+function buildApplicationSeedValues(tenantMap: TenantMap) {
+  const values: {
+    id: string;
+    tenantId: string;
+    slug: string;
+    subdomain: string;
+    name: string;
+    description: string;
+    settings: Record<string, unknown>;
+  }[] = [];
+
+  for (const [tenantSlug, tenantId] of tenantMap.entries()) {
+    for (let i = 0; i < APPS_PER_TENANT; i++) {
+      const slugFragment = faker.string.alphanumeric(6).toLowerCase();
+      const slug = `${tenantSlug}-${slugFragment}`;
+      values.push({
+        id: randomUUID(),
+        tenantId,
+        slug,
+        subdomain: `${slug}.widget`,
+        name: faker.commerce.productName(),
+        description: faker.company.catchPhrase(),
+        settings: {},
+      });
+    }
+  }
+
+  return values;
+}
 
 export async function seedApplications(
   tenantMap: TenantMap,
   client = db
 ): Promise<{ id: string; slug: string; tenant_id: string; name: string }[]> {
-  const values = applicationSeedData.map((app) => {
-    const tenantId = tenantMap.get(app.tenantSlug);
-    if (!tenantId) {
-      throw new Error(
-        `[seed] Missing tenant for slug ${app.tenantSlug} - did seedTenants run?`
-      );
-    }
-    return {
-      id: randomUUID(),
-      tenantId,
-      slug: app.slug,
-      name: app.name,
-      description: app.description,
-      settings: app.settings,
-    };
-  });
+  const values = buildApplicationSeedValues(tenantMap);
 
   await client
     .insert(applications)
@@ -64,6 +58,7 @@ export async function seedApplications(
       slug: applications.slug,
       tenant_id: applications.tenantId,
       name: applications.name,
+      subdomain: applications.subdomain,
     })
     .from(applications)
     .where(inArray(applications.tenantId, tenantIds));

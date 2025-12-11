@@ -19,6 +19,7 @@ export const applications = createTable(
       .references(() => tenants.id),
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull(),
+    subdomain: varchar("subdomain", { length: 255 }).notNull(),
     description: text("description"),
     settings: jsonb("settings").default({}).notNull(),
     deletedAt: timestamp("deleted_at"),
@@ -31,5 +32,8 @@ export const applications = createTable(
       table.slug,
       table.tenantId
     ),
+    subdomainPerTenantIdx: uniqueIndex(
+      "applications_subdomain_tenant_unique"
+    ).on(table.subdomain, table.tenantId),
   })
 );
