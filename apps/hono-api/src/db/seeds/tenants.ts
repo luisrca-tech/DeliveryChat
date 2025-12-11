@@ -17,6 +17,7 @@ export async function seedTenants(client = db): Promise<TenantMap> {
         name: tenant.name,
         description: tenant.description,
         settings: tenant.settings,
+        plan: tenant.plan,
       }))
     )
     .onConflictDoNothing({ target: tenants.slug });
