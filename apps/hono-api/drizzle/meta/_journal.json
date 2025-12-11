@@ -6,14 +6,21 @@
       "idx": 0,
       "version": "7",
       "when": 1763909677636,
-      "tag": "0000_early_the_leader",
+      "tag": "0000_initial_companies_users",
       "breakpoints": true
     },
     {
       "idx": 1,
       "version": "7",
       "when": 1765421670777,
-      "tag": "0001_supreme_brother_voodoo",
+      "tag": "0001_add_tenants_and_apps",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1765453037882,
+      "tag": "0002_add_tenant_plan_enum",
       "breakpoints": true
     }
   ]
