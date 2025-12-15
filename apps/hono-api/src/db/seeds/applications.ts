@@ -10,7 +10,7 @@ const APPS_PER_TENANT = 5;
 function buildApplicationSeedValues(tenantMap: TenantMap) {
   const values: {
     id: string;
-    tenantId: string;
+    organizationId: string;
     slug: string;
     subdomain: string;
     name: string;
@@ -18,13 +18,13 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
     settings: Record<string, unknown>;
   }[] = [];
 
-  for (const [tenantSlug, tenantId] of tenantMap.entries()) {
+  for (const [tenantSlug, organizationId] of tenantMap.entries()) {
     for (let i = 0; i < APPS_PER_TENANT; i++) {
       const slugFragment = faker.string.alphanumeric(6).toLowerCase();
       const slug = `${tenantSlug}-${slugFragment}`;
       values.push({
         id: randomUUID(),
-        tenantId,
+        organizationId,
         slug,
         subdomain: `${slug}.widget`,
         name: faker.commerce.productName(),
@@ -40,28 +40,32 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
 export async function seedApplications(
   tenantMap: TenantMap,
   client = db
-): Promise<{ id: string; slug: string; tenant_id: string; name: string }[]> {
+): Promise<
+  { id: string; slug: string; organization_id: string; name: string }[]
+> {
   const values = buildApplicationSeedValues(tenantMap);
 
   await client
     .insert(applications)
     .values(values)
     .onConflictDoNothing({
-      target: [applications.slug, applications.tenantId],
+      target: [applications.slug, applications.organizationId],
     });
 
-  const tenantIds = Array.from(new Set(values.map((v) => v.tenantId)));
+  const organizationIds = Array.from(
+    new Set(values.map((v) => v.organizationId))
+  );
 
   const rows = await client
     .select({
       id: applications.id,
       slug: applications.slug,
-      tenant_id: applications.tenantId,
+      organization_id: applications.organizationId,
       name: applications.name,
       subdomain: applications.subdomain,
     })
     .from(applications)
-    .where(inArray(applications.tenantId, tenantIds));
+    .where(inArray(applications.organizationId, organizationIds));
 
   console.info(`[seed] applications upserted/fetched: ${rows.length}`);
 

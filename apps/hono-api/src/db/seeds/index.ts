@@ -1,5 +1,5 @@
 import { seedApplications } from "./applications";
-import { seedTenants } from "./tenants";
+import { seedTenants } from "./organization";
 
 async function main() {
   const tenantMap = await seedTenants();
