@@ -12,6 +12,8 @@ export const env = createEnv({
       .enum(["development", "test", "staging", "production"])
       .default("development"),
     PORT: z.string().optional(),
+    BETTER_AUTH_SECRET: z.string().min(32),
+    BETTER_AUTH_URL: z.string().url(),
   },
   client: {
     // Add client-side env vars here if needed
@@ -21,6 +23,8 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     NODE_ENV: process.env.NODE_ENV,
     PORT: process.env.PORT,
+    BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
