@@ -2,6 +2,7 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { auth } from "./lib/auth.js";
 import { api } from "./lib/api.js";
 import { env } from "./env.js";
 
@@ -28,6 +29,11 @@ app.use(
 
 app.get("/", (c) => {
   return c.text("Hello Hono!");
+});
+
+// Mount Better Auth routes
+app.all("/api/auth/*", async (c) => {
+  return auth.handler(c.req.raw);
 });
 
 app.route("/api", api);
