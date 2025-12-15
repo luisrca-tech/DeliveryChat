@@ -1,13 +1,12 @@
-import { uuid, varchar } from "drizzle-orm/pg-core";
+import { text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { createTable } from "../table";
-import { tenants } from "./tenants";
 
-export const users = createTable("users", {
-  id: uuid("id").primaryKey(),
-  tenantId: uuid("tenant_id")
-    .notNull()
-    .references(() => tenants.id),
+export const user = createTable("user", {
+  id: text("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
-  password: varchar("password", { length: 255 }).notNull(),
+  emailVerified: timestamp("email_verified"),
+  image: varchar("image", { length: 500 }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
