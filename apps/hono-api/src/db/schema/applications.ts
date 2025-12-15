@@ -8,15 +8,15 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { createTable } from "../table";
-import { tenants } from "./tenants";
+import { organization } from "./organization";
 
 export const applications = createTable(
   "applications",
   {
     id: uuid("id").primaryKey(),
-    tenantId: uuid("tenant_id")
+    organizationId: text("organization_id")
       .notNull()
-      .references(() => tenants.id),
+      .references(() => organization.id),
     name: varchar("name", { length: 255 }).notNull(),
     slug: varchar("slug", { length: 255 }).notNull(),
     subdomain: varchar("subdomain", { length: 255 }).notNull(),
@@ -27,13 +27,14 @@ export const applications = createTable(
     updatedAt: timestamp("updated_at").defaultNow().notNull(),
   },
   (table) => ({
-    tenantIdx: index("applications_tenant_idx").on(table.tenantId),
-    slugPerTenantIdx: uniqueIndex("applications_slug_tenant_unique").on(
-      table.slug,
-      table.tenantId
+    organizationIdx: index("applications_organization_idx").on(
+      table.organizationId
     ),
-    subdomainPerTenantIdx: uniqueIndex(
-      "applications_subdomain_tenant_unique"
-    ).on(table.subdomain, table.tenantId),
+    slugPerOrganizationIdx: uniqueIndex(
+      "applications_slug_organization_unique"
+    ).on(table.slug, table.organizationId),
+    subdomainPerOrganizationIdx: uniqueIndex(
+      "applications_subdomain_organization_unique"
+    ).on(table.subdomain, table.organizationId),
   })
 );
