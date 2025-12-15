@@ -41,7 +41,13 @@ export async function seedApplications(
   tenantMap: TenantMap,
   client = db
 ): Promise<
-  { id: string; slug: string; organization_id: string; name: string }[]
+  {
+    id: string;
+    slug: string;
+    organization_id: string;
+    name: string;
+    subdomain: string;
+  }[]
 > {
   const values = buildApplicationSeedValues(tenantMap);
 
