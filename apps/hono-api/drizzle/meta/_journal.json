@@ -8,6 +8,13 @@
       "when": 1765468037963,
       "tag": "0000_initial_tenants_apps",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1765759639093,
+      "tag": "0004_migrate_to_better_auth",
+      "breakpoints": true
     }
   ]
 }
