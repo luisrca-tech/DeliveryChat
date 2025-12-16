@@ -55,10 +55,10 @@ export const applicationsRoute = new Hono()
             error: "Failed to fetch applications",
             message: error instanceof Error ? error.message : "Unknown error",
           },
-          500
+          500,
         );
       }
-    }
+    },
   )
   // POST /applications - create application (requires organization membership)
   .post(
@@ -84,8 +84,8 @@ export const applicationsRoute = new Hono()
           .where(
             and(
               eq(member.userId, session.user.id),
-              eq(member.organizationId, data.organizationId)
-            )
+              eq(member.organizationId, data.organizationId),
+            ),
           )
           .limit(1);
 
@@ -95,7 +95,7 @@ export const applicationsRoute = new Hono()
               error: "Forbidden",
               message: "You are not a member of this organization",
             },
-            403
+            403,
           );
         }
 
@@ -111,8 +111,8 @@ export const applicationsRoute = new Hono()
             error: "Failed to create application",
             message: error instanceof Error ? error.message : "Unknown error",
           },
-          500
+          500,
         );
       }
-    }
+    },
   );

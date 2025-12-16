@@ -96,7 +96,7 @@ const settings = await getCompanySettings(company.id);
 loadChatWidget({
   companyId: company.id,
   widgetConfig: settings.widget_config,
-  businessHours: settings.business_hours
+  businessHours: settings.business_hours,
 });
 ```
 
@@ -129,6 +129,7 @@ Admin Dashboard ←── API ←── Database
 ```
 
 Both embed and admin interact with the same database, but:
+
 - Embed creates/updates visitor records
 - Admin views visitor data and manages company settings
 - Data is isolated by company_id for security
@@ -215,4 +216,3 @@ CREATE TABLE delivery_chat_company_settings (
 - **@embed**: The embeddable chat widget that creates and interacts with visitors
 - **@admin**: The admin dashboard for viewing visitors and managing company settings
 - **@hono-api**: The API layer that handles visitor CRUD operations and company settings management
-

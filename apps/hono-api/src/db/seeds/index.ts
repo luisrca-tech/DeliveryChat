@@ -13,8 +13,8 @@ async function main() {
         applications: applications.length,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 }
 

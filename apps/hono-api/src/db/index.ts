@@ -27,10 +27,10 @@ try {
   console.warn(`[Infisical] ⚠️  Invalid DATABASE_URL format: ${maskedUrl}`);
   console.warn(
     `[Infisical] Error:`,
-    error instanceof Error ? error.message : "Unknown error"
+    error instanceof Error ? error.message : "Unknown error",
   );
   console.warn(
-    `[Infisical] The database connection may fail. Expected format: postgresql://user:password@host:port/database`
+    `[Infisical] The database connection may fail. Expected format: postgresql://user:password@host:port/database`,
   );
 }
 

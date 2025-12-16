@@ -7,7 +7,7 @@ dotenv.config();
 if (!env.DATABASE_URL) {
   throw new Error(
     "DATABASE_URL is not set. " +
-      "Run with Infisical: infisical run --env=dev --path=/hono-api -- drizzle-kit generate"
+      "Run with Infisical: infisical run --env=dev --path=/hono-api -- drizzle-kit generate",
   );
 }
 
@@ -19,7 +19,7 @@ try {
   console.info("[Drizzle Config] Database port:", url.port || "5432 (default)");
   console.info(
     "[Drizzle Config] Database name:",
-    url.pathname.split("/").pop()
+    url.pathname.split("/").pop(),
   );
 } catch (error) {
   console.warn("[Drizzle Config] Could not parse DATABASE_URL");

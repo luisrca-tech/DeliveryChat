@@ -28,13 +28,13 @@ export const applications = createTable(
   },
   (table) => ({
     organizationIdx: index("applications_organization_idx").on(
-      table.organizationId
+      table.organizationId,
     ),
     slugPerOrganizationIdx: uniqueIndex(
-      "applications_slug_organization_unique"
+      "applications_slug_organization_unique",
     ).on(table.slug, table.organizationId),
     subdomainPerOrganizationIdx: uniqueIndex(
-      "applications_subdomain_organization_unique"
+      "applications_subdomain_organization_unique",
     ).on(table.subdomain, table.organizationId),
-  })
+  }),
 );

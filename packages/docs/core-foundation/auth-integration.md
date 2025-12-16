@@ -5,6 +5,7 @@ This plan outlines the steps to integrate Better Auth into the delivery-chat mon
 ## 1. Architecture & Strategy
 
 ### 1.1 Multi-Tenancy Model
+
 - **Strategy**: "Organization per Tenant".
 - **Database**:
   - `users`: Global entity (can belong to multiple organizations).
@@ -15,6 +16,7 @@ This plan outlines the steps to integrate Better Auth into the delivery-chat mon
   - **Production**: Wildcard cookies (e.g., `.delivery-chat.com`) allow a single session to span the landing page and all tenant subdomains.
 
 ### 1.2 Auth Flow
+
 1.  **Sign Up (Web)**: User creates an account + Organization (Tenant).
 2.  **Login (Admin/Web)**: User logs in once. Cookie is set for root domain.
 3.  **Access (Tenant Subdomain)**:
@@ -46,18 +48,21 @@ const ac = createAccessControl(statement);
 Three custom roles are defined with hierarchical permissions:
 
 **1. Owner Role** (Full Control)
+
 - **Organization**: `update`, `delete`
 - **Member**: `create`, `update`, `delete`
 - **Invitation**: `create`, `cancel`
 - **Use Case**: Organization creator gets this role automatically. Can manage everything.
 
 **2. Admin Role** (Management Control)
+
 - **Organization**: `update` (cannot delete)
 - **Member**: `create`, `update`, `delete`
 - **Invitation**: `create`, `cancel`
 - **Use Case**: Team managers who can manage members and invitations but cannot delete the organization.
 
 **3. Operator Role** (Limited Control)
+
 - **Member**: `create`
 - **Invitation**: `create`
 - **Use Case**: Support operators who can add new members and send invitations but cannot modify or delete existing members or organization settings.
@@ -98,6 +103,7 @@ export const auth = betterAuth({
 ```
 
 **Important Notes:**
+
 - There is **no `defaultRole` option** - roles are assigned explicitly during invitation or member creation
 - The access control instance (`ac`) must be shared between server and client configurations
 - Permissions are enforced server-side by Better Auth automatically
@@ -106,12 +112,13 @@ export const auth = betterAuth({
 ## 2. Implementation Steps
 
 ### 2.1 Backend (`apps/hono-api`)
+
 - **Dependencies**: Add `better-auth`.
 - **Database Schema (`src/db/schema`)**:
   - Remove legacy `tenantId` from `users`.
   - Add Better Auth core tables: `user`, `session`, `account`, `verification`.
   - Add Organization plugin tables: `organization`, `member`, `invitation`.
-  - *Migration*: Map existing `tenants` to `organization` table.
+  - _Migration_: Map existing `tenants` to `organization` table.
 - **Auth Config (`src/lib/auth.ts`)**:
   - Initialize `betterAuth` with `drizzleAdapter`.
   - **Plugins**: Enable `organization()` with access control system.
@@ -123,15 +130,18 @@ export const auth = betterAuth({
   - Export access control instance and roles for use in auth config.
 
 ### 2.2 Shared UI (`packages/ui`)
+
 - Ensure standard form components are available.
 
 ### 2.3 Landing Page (`apps/web`)
+
 - **Register Form**:
   - Inputs: User Name, Email, Password, Company Name (Org Name), Subdomain (Org Slug).
   - Action: Chain `signUp` -> `createOrganization`.
   - Redirect: To `http://<slug>.domain.com/admin`.
 
 ### 2.4 Admin Dashboard (`apps/admin`)
+
 - **Dependencies**: Add `better-auth` client.
 - **Client Config**: Initialize `createAuthClient` with `organizationClient()` plugin.
 - **Login Page**: Standard login.
@@ -143,12 +153,14 @@ export const auth = betterAuth({
 - **Tenant Context**: Provide `currentOrganization` to the app.
 
 ## 3. Environment & Secrets
+
 - **Infisical**:
   - `BETTER_AUTH_SECRET`: Generate new secret.
   - `BETTER_AUTH_URL`: Base API URL (e.g., `http://api.delivery-chat.com` or `http://localhost:3000`).
   - `DATABASE_URL`: Existing.
 
 ## 4. Execution Order
+
 1.  **Backend**: Install deps, Update Schema, Configure Auth.
 2.  **Web**: Implement Sign Up with Org creation.
 3.  **Admin**: Implement Login & Subdomain Guard.

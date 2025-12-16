@@ -7,6 +7,7 @@ This document outlines strategies for managing tenant-specific secrets in the De
 ## Use Cases
 
 Examples of tenant-specific secrets:
+
 - **Stripe API Keys**: Each company processes payments with their own Stripe account
 - **SendGrid API Tokens**: Companies send emails through their own SendGrid accounts
 - **Custom Integration Keys**: Third-party service API keys per tenant
@@ -45,17 +46,22 @@ import { getSecrets } from "@repo/infisical";
 async function getTenantSecret(
   companySubdomain: string,
   secretKey: string,
-  environment: "dev" | "staging" | "prod" = "dev"
+  environment: "dev" | "staging" | "prod" = "dev",
 ): Promise<string | undefined> {
   const secrets = await getSecrets(`/tenants/${companySubdomain}`, environment);
   return secrets[secretKey];
 }
 
 // Usage
-const stripeKey = await getTenantSecret("codewiser", "STRIPE_SECRET_KEY", "prod");
+const stripeKey = await getTenantSecret(
+  "codewiser",
+  "STRIPE_SECRET_KEY",
+  "prod",
+);
 ```
 
 **Pros**:
+
 - ✅ Centralized management in Infisical UI
 - ✅ Easy to add/edit secrets per tenant
 - ✅ Built-in audit trail
@@ -63,6 +69,7 @@ const stripeKey = await getTenantSecret("codewiser", "STRIPE_SECRET_KEY", "prod"
 - ✅ Simple implementation
 
 **Cons**:
+
 - ❌ API call per tenant lookup (latency)
 - ❌ Rate limits at scale (1000s of tenants)
 - ❌ Requires Infisical API access in production
@@ -95,7 +102,9 @@ import { db } from "./db";
 import { companySecrets } from "./schema";
 
 // Get master encryption key from Infisical
-async function getMasterKey(environment: "dev" | "staging" | "prod" = "dev"): Promise<string> {
+async function getMasterKey(
+  environment: "dev" | "staging" | "prod" = "dev",
+): Promise<string> {
   const secrets = await getSecrets("/hono-api", environment);
   const key = secrets.MASTER_ENCRYPTION_KEY;
   if (!key) throw new Error("MASTER_ENCRYPTION_KEY not found");
@@ -106,7 +115,11 @@ async function getMasterKey(environment: "dev" | "staging" | "prod" = "dev"): Pr
 async function encryptSecret(value: string): Promise<string> {
   const masterKey = await getMasterKey();
   const iv = crypto.randomBytes(12); // 12 bytes for GCM
-  const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(masterKey, "hex"), iv);
+  const cipher = crypto.createCipheriv(
+    "aes-256-gcm",
+    Buffer.from(masterKey, "hex"),
+    iv,
+  );
   let encrypted = cipher.update(value, "utf8", "hex");
   encrypted += cipher.final("hex");
   const authTag = cipher.getAuthTag().toString("hex");
@@ -119,7 +132,11 @@ async function decryptSecret(encryptedValue: string): Promise<string> {
   const [ivHex, encrypted, authTagHex] = encryptedValue.split(":");
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", Buffer.from(masterKey, "hex"), iv);
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    Buffer.from(masterKey, "hex"),
+    iv,
+  );
   decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encrypted, "hex", "utf8");
   decrypted += decipher.final("utf8");
@@ -130,23 +147,26 @@ async function decryptSecret(encryptedValue: string): Promise<string> {
 async function setTenantSecret(
   companyId: string,
   secretKey: string,
-  secretValue: string
+  secretValue: string,
 ): Promise<void> {
   const encrypted = await encryptSecret(secretValue);
-  await db.insert(companySecrets).values({
-    companyId,
-    secretKey,
-    secretValueEncrypted: encrypted,
-  }).onConflictDoUpdate({
-    target: [companySecrets.companyId, companySecrets.secretKey],
-    set: { secretValueEncrypted: encrypted },
-  });
+  await db
+    .insert(companySecrets)
+    .values({
+      companyId,
+      secretKey,
+      secretValueEncrypted: encrypted,
+    })
+    .onConflictDoUpdate({
+      target: [companySecrets.companyId, companySecrets.secretKey],
+      set: { secretValueEncrypted: encrypted },
+    });
 }
 
 // Retrieve tenant secret
 async function getTenantSecret(
   companyId: string,
-  secretKey: string
+  secretKey: string,
 ): Promise<string | null> {
   const secret = await db.query.companySecrets.findFirst({
     where: (secrets, { eq, and }) =>
@@ -181,11 +201,12 @@ export const companySecrets = createTable(
   },
   (table) => ({
     uniqueCompanySecret: unique().on(table.companyId, table.secretKey),
-  })
+  }),
 );
 ```
 
 **Pros**:
+
 - ✅ Fast database lookups (no API calls)
 - ✅ Scales to thousands of tenants
 - ✅ Works offline (no external API dependency)
@@ -193,6 +214,7 @@ export const companySecrets = createTable(
 - ✅ Supports bulk operations
 
 **Cons**:
+
 - ❌ Need to build UI for secret management
 - ❌ More complex implementation
 - ❌ Requires database migration
@@ -214,6 +236,7 @@ export const companySecrets = createTable(
 - Sufficient performance for small scale
 
 **Implementation Steps**:
+
 1. Create `/tenants/{subdomain}/` folders in Infisical
 2. Add secrets per tenant via dashboard
 3. Implement `getTenantSecret()` helper function
@@ -225,8 +248,11 @@ export const companySecrets = createTable(
 // apps/hono-api/src/routes/payments.ts
 app.post("/api/payments/create", async (c) => {
   const company = await getCompanyFromRequest(c);
-  const stripeKey = await getTenantSecret(company.subdomain, "STRIPE_SECRET_KEY");
-  
+  const stripeKey = await getTenantSecret(
+    company.subdomain,
+    "STRIPE_SECRET_KEY",
+  );
+
   // Use stripeKey for payment processing
 });
 ```
@@ -267,7 +293,7 @@ Combine both strategies:
 async function getTenantSecret(
   companySubdomain: string,
   secretKey: string,
-  useCache = true
+  useCache = true,
 ): Promise<string | undefined> {
   // Check in-memory cache first
   if (useCache) {
@@ -283,7 +309,10 @@ async function getTenantSecret(
   }
 
   // Fallback to Infisical (slower, but always up-to-date)
-  const infisicalSecret = await getTenantSecretFromInfisical(companySubdomain, secretKey);
+  const infisicalSecret = await getTenantSecretFromInfisical(
+    companySubdomain,
+    secretKey,
+  );
   if (infisicalSecret) {
     // Optionally sync to database for next time
     await setTenantSecretInDB(companySubdomain, secretKey, infisicalSecret);
@@ -332,7 +361,7 @@ When ready to migrate from Strategy A to Strategy B:
 import { getSecrets } from "@repo/infisical";
 
 async function exportTenantSecrets() {
-  const tenants = ["codewiser", "acmecorp", /* ... */];
+  const tenants = ["codewiser", "acmecorp" /* ... */];
 
   for (const tenant of tenants) {
     const secrets = await getSecrets(`/tenants/${tenant}`, "prod");
@@ -398,4 +427,3 @@ company_secrets
 
 - [Infisical Architecture Guide](./infisical-architecture.md) - Current infrastructure setup
 - [Database Schema](../hono-api/src/db/schema/) - Database structure
-
