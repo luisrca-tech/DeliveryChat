@@ -5,6 +5,12 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { env } from "../env.js";
 import { ac, owner, admin, operator } from "./permissions.js";
+import { createTrustedOrigins } from "./auth/origins.js";
+import { getAuthBaseURL } from "./auth/baseUrl.js";
+import { getAdvancedOptions } from "./auth/advanced.js";
+
+const trustedOrigins = createTrustedOrigins();
+const baseURL = getAuthBaseURL(env);
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -34,14 +40,19 @@ export const auth = betterAuth({
     }),
   ],
   secret: env.BETTER_AUTH_SECRET,
-  baseURL: env.BETTER_AUTH_URL,
-  advanced: {
-    cookiePrefix: "better-auth",
-    cookieDomain:
-      process.env.NODE_ENV === "production"
-        ? ".delivery-chat.com" // Wildcard for subdomain SSO
-        : undefined, // localhost doesn't support wildcard cookies
-  },
+  baseURL,
+  trustedOrigins,
+  advanced: getAdvancedOptions(env),
+});
+
+console.info("[Better Auth] Configuration:", {
+  baseURL,
+  secretSet: !!env.BETTER_AUTH_SECRET,
+  secretLength: env.BETTER_AUTH_SECRET?.length || 0,
+  trustedOrigins:
+    typeof trustedOrigins === "function"
+      ? "[dynamic: dev localhost + prod]"
+      : trustedOrigins,
 });
 
 export type Session = typeof auth.$Infer.Session;

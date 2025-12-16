@@ -15,7 +15,15 @@ app.use(
       if (!origin) return origin;
       if (
         origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:")
+        origin.startsWith("http://127.0.0.1:") ||
+        /^http:\/\/[a-z0-9-]+\.localhost:\d+$/.test(origin)
+      ) {
+        return origin;
+      }
+      if (
+        origin === "https://deliverychat-dev.onrender.com" ||
+        origin === "https://deliverychat-prod.onrender.com" ||
+        /^https:\/\/[a-z0-9-]+\.deliverychat\.com$/.test(origin)
       ) {
         return origin;
       }
@@ -31,9 +39,59 @@ app.get("/", (c) => {
   return c.text("Hello Hono!");
 });
 
-// Mount Better Auth routes
 app.all("/api/auth/*", async (c) => {
-  return auth.handler(c.req.raw);
+  const url = new URL(c.req.url);
+  const startedAt = Date.now();
+  const method = c.req.method;
+  const pathname = url.pathname;
+  const origin = c.req.header("origin");
+  const host = c.req.header("host");
+  const contentType = c.req.header("content-type");
+  const contentLength = c.req.header("content-length");
+  const transferEncoding = c.req.header("transfer-encoding");
+
+  const abortSignal = c.req.raw.signal;
+  const onAbort = () => {
+    console.error(
+      `[Better Auth] Request aborted: ${method} ${pathname} (+${
+        Date.now() - startedAt
+      }ms)`
+    );
+  };
+  abortSignal?.addEventListener?.("abort", onAbort, { once: true });
+
+  try {
+    console.info(
+      `[Better Auth] -> ${method} ${pathname} (host=${host ?? "?"}, origin=${
+        origin ?? "?"
+      })`
+    );
+
+    // Debug: request metadata only (do NOT read body; it can hang some requests)
+    if (method !== "GET" && method !== "HEAD") {
+      console.info(`[Better Auth] req meta ${method} ${pathname}`, {
+        contentType: contentType ?? null,
+        contentLengthHeader: contentLength ?? null,
+        transferEncoding: transferEncoding ?? null,
+      });
+    }
+
+    const res = await auth.handler(c.req.raw);
+    console.info(
+      `[Better Auth] ${method} ${pathname} -> ${res.status} (+${
+        Date.now() - startedAt
+      }ms)`
+    );
+    return res;
+  } catch (err) {
+    console.error(
+      `[Better Auth] ${method} ${pathname} threw (+${Date.now() - startedAt}ms)`,
+      err
+    );
+    throw err;
+  } finally {
+    abortSignal?.removeEventListener?.("abort", onAbort);
+  }
 });
 
 app.route("/api", api);
