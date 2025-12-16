@@ -1,6 +1,8 @@
-import { text, timestamp } from "drizzle-orm/pg-core";
+import { text } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { user } from "./users";
+import { timestampString, timestampStringNullable } from "./custom-types";
 
 export const account = createTable("account", {
   id: text("id").primaryKey(),
@@ -11,8 +13,12 @@ export const account = createTable("account", {
   providerId: text("provider_id").notNull(),
   accessToken: text("access_token"),
   refreshToken: text("refresh_token"),
-  expiresAt: timestamp("expires_at"),
+  expiresAt: timestampStringNullable("expires_at"),
   password: text("password"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestampString("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestampString("updated_at")
+    .default(sql`now()`)
+    .notNull(),
 });

@@ -1,13 +1,8 @@
-import {
-  index,
-  jsonb,
-  text,
-  timestamp,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { index, jsonb, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { tenantPlanEnum } from "./enums/tenantPlanEnum";
+import { timestampString, timestampStringNullable } from "./custom-types";
 
 export const organization = createTable(
   "organization",
@@ -17,12 +12,16 @@ export const organization = createTable(
     slug: varchar("slug", { length: 255 }).notNull(),
     logo: text("logo"),
     metadata: jsonb("metadata"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
+    createdAt: timestampString("created_at")
+      .default(sql`now()`)
+      .notNull(),
     description: text("description"),
     settings: jsonb("settings").default({}).notNull(),
     plan: tenantPlanEnum("plan").notNull().default("BASIC"),
-    deletedAt: timestamp("deleted_at"),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+    deletedAt: timestampStringNullable("deleted_at"),
+    updatedAt: timestampString("updated_at")
+      .default(sql`now()`)
+      .notNull(),
   },
   (table) => ({
     slugIdx: uniqueIndex("organization_slug_unique").on(table.slug),

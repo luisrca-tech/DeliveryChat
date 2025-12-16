@@ -1,6 +1,8 @@
-import { text, timestamp } from "drizzle-orm/pg-core";
+import { text } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { organization } from "./organization";
+import { timestampString } from "./custom-types";
 
 export const invitation = createTable("invitation", {
   id: text("id").primaryKey(),
@@ -10,7 +12,11 @@ export const invitation = createTable("invitation", {
   email: text("email").notNull(),
   role: text("role").notNull().default("operator"),
   token: text("token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  expiresAt: timestampString("expires_at").notNull(),
+  createdAt: timestampString("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestampString("updated_at")
+    .default(sql`now()`)
+    .notNull(),
 });

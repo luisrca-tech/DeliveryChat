@@ -1,7 +1,9 @@
-import { text, timestamp } from "drizzle-orm/pg-core";
+import { text } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { user } from "./users";
 import { organization } from "./organization";
+import { timestampString } from "./custom-types";
 
 export const member = createTable("member", {
   id: text("id").primaryKey(),
@@ -12,6 +14,10 @@ export const member = createTable("member", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   role: text("role").notNull().default("operator"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  createdAt: timestampString("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestampString("updated_at")
+    .default(sql`now()`)
+    .notNull(),
 });

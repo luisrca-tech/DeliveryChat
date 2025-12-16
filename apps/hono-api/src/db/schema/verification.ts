@@ -1,11 +1,17 @@
-import { text, timestamp } from "drizzle-orm/pg-core";
+import { text } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createTable } from "../table";
+import { timestampString } from "./custom-types";
 
 export const verification = createTable("verification", {
   id: text("id").primaryKey(),
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
-  expiresAt: timestamp("expires_at").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  expiresAt: timestampString("expires_at").notNull(),
+  createdAt: timestampString("created_at")
+    .default(sql`now()`)
+    .notNull(),
+  updatedAt: timestampString("updated_at")
+    .default(sql`now()`)
+    .notNull(),
 });
