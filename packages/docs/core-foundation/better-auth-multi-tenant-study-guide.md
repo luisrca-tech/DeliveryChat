@@ -38,15 +38,19 @@ This document is a study guide for the Better Auth integration and the multi-ten
 ## Key Decisions (and why)
 
 ### 1) Host-subdomain is the source of truth for tenant scoping
+
 Using Host keeps the API stateless and prevents clients from “switching tenants” by passing an `organizationId`.
 
 ### 2) Active-org-only scoping (not all memberships)
+
 Even if a user belongs to multiple organizations, **the subdomain determines which org’s data is accessible**.
 
 ### 3) SSR gotchas in the Admin app
+
 TanStack Start runs some route logic during SSR. Session cookies may not be available server-side, which can cause redirect loops (“blinking”). The fix is to avoid server-side redirects that depend on browser cookies.
 
 ### 4) Cookie/session handling in dev with subdomains
+
 Subdomain dev (`tenant.localhost`) can behave differently than plain `localhost` with cookies and proxies.
 The stable approach is to keep auth requests and cookies aligned with the hostname being used.
 
@@ -90,6 +94,7 @@ The stable approach is to keep auth requests and cookies aligned with the hostna
 ## How to extend correctly
 
 ### Stronger permissions (recommended next step)
+
 Right now, route enforcement is a minimal **role rank gate**.
 To make it fully aligned with Better Auth access control statements:
 
@@ -97,6 +102,7 @@ To make it fully aligned with Better Auth access control statements:
 - Keep enforcement in API middleware, not just UI.
 
 ### Additional tenant-scoped routes
+
 Copy the pattern used in `applications.ts`:
 
 - `requireTenantAuth()`
@@ -115,4 +121,3 @@ Copy the pattern used in `applications.ts`:
 
 - **Unexpected cross-tenant data**
   - Ensure the route is filtering by `organization.id` (not by all memberships).
-

@@ -32,7 +32,7 @@ app.use(
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  })
+  }),
 );
 
 app.get("/", (c) => {
@@ -55,7 +55,7 @@ app.all("/api/auth/*", async (c) => {
     console.error(
       `[Better Auth] Request aborted: ${method} ${pathname} (+${
         Date.now() - startedAt
-      }ms)`
+      }ms)`,
     );
   };
   abortSignal?.addEventListener?.("abort", onAbort, { once: true });
@@ -64,7 +64,7 @@ app.all("/api/auth/*", async (c) => {
     console.info(
       `[Better Auth] -> ${method} ${pathname} (host=${host ?? "?"}, origin=${
         origin ?? "?"
-      })`
+      })`,
     );
 
     // Debug: request metadata only (do NOT read body; it can hang some requests)
@@ -80,13 +80,13 @@ app.all("/api/auth/*", async (c) => {
     console.info(
       `[Better Auth] ${method} ${pathname} -> ${res.status} (+${
         Date.now() - startedAt
-      }ms)`
+      }ms)`,
     );
     return res;
   } catch (err) {
     console.error(
       `[Better Auth] ${method} ${pathname} threw (+${Date.now() - startedAt}ms)`,
-      err
+      err,
     );
     throw err;
   } finally {
@@ -107,13 +107,13 @@ serve(
   },
   (info) => {
     console.info(
-      `[Hono API] ✅ Server is running on http://localhost:${info.port}`
+      `[Hono API] ✅ Server is running on http://localhost:${info.port}`,
     );
     console.info(`[Hono API] Health check: http://localhost:${info.port}/`);
     console.info(
-      `[Hono API] API endpoint: http://localhost:${info.port}/api/users`
+      `[Hono API] API endpoint: http://localhost:${info.port}/api/users`,
     );
-  }
+  },
 ).on("error", (error) => {
   console.error(`[Hono API] ❌ Failed to start server:`, error);
   process.exit(1);

@@ -61,7 +61,7 @@ export default function RegisterForm() {
 
       if (!signUpResult.data) {
         throw new Error(
-          signUpResult.error?.message || "Failed to create account"
+          signUpResult.error?.message || "Failed to create account",
         );
       }
 
@@ -72,7 +72,7 @@ export default function RegisterForm() {
 
       if (!orgResult.data) {
         throw new Error(
-          orgResult.error?.message || "Failed to create organization"
+          orgResult.error?.message || "Failed to create organization",
         );
       }
 

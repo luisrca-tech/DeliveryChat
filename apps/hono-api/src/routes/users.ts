@@ -47,8 +47,8 @@ export const usersRoute = new Hono().get(
         c,
         500,
         "Failed to fetch users",
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
-  }
+  },
 );

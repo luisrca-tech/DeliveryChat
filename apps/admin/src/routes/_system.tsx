@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_system")({
 
     const currentOrg = organizations.find(
       (org: { slug?: string; id: string }) =>
-        org.slug === subdomain || org.id === subdomain
+        org.slug === subdomain || org.id === subdomain,
     );
 
     if (!currentOrg) {

@@ -58,7 +58,7 @@ export function requireTenantAuth(): MiddlewareHandler {
         c,
         403,
         "Forbidden",
-        "You are not a member of this organization"
+        "You are not a member of this organization",
       );
     }
 
@@ -80,7 +80,7 @@ export function getTenantAuth(c: {
 }
 
 export function requireRole(
-  minRole: "operator" | "admin" | "owner"
+  minRole: "operator" | "admin" | "owner",
 ): MiddlewareHandler {
   const rank: Record<string, number> = { operator: 1, admin: 2, owner: 3 };
   return async (c, next) => {

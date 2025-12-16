@@ -38,10 +38,10 @@ export const applicationsRoute = new Hono()
           c,
           500,
           "Failed to fetch applications",
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : "Unknown error",
         );
       }
-    }
+    },
   )
   .post(
     "/applications",
@@ -71,8 +71,8 @@ export const applicationsRoute = new Hono()
           c,
           500,
           "Failed to create application",
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : "Unknown error",
         );
       }
-    }
+    },
   );
