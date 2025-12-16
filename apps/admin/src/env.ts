@@ -13,11 +13,15 @@ export const env = createEnv({
   },
   client: {
     VITE_API_URL: z.string().url(),
+    VITE_BETTER_AUTH_URL: z.string().url(),
+    VITE_BETTER_AUTH_SECRET: z.string().min(1), // Secret string, not a URL
   },
   clientPrefix: "",
   runtimeEnv: {
     NODE_ENV: import.meta.env.NODE_ENV,
     VITE_API_URL: import.meta.env.VITE_API_URL,
+    VITE_BETTER_AUTH_URL: import.meta.env.VITE_BETTER_AUTH_URL,
+    VITE_BETTER_AUTH_SECRET: import.meta.env.VITE_BETTER_AUTH_SECRET,
   },
   skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
 });

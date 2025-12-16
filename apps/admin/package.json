@@ -28,6 +28,8 @@
     "nitro": "^3.0.1-alpha.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-hook-form": "^7.53.2",
+    "@hookform/resolvers": "^3.9.1",
     "vite-tsconfig-paths": "^5.1.4",
     "zod": "^3.23.8"
   },
