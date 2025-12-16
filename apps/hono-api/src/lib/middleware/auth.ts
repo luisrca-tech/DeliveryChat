@@ -9,7 +9,8 @@ import { getHostSubdomain, resolveOrganizationBySubdomain } from "../tenant.js";
 type MembershipRow = typeof member.$inferSelect;
 
 type AuthContext = {
-  session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+  session: Awaited<ReturnType<typeof auth.api.getSession>>;
+  user: { id: string };
   organization: Awaited<
     ReturnType<typeof resolveOrganizationBySubdomain>
   > extends infer T
@@ -20,9 +21,16 @@ type AuthContext = {
 
 export function requireTenantAuth(): MiddlewareHandler {
   return async (c, next) => {
-    const session = await auth.api.getSession({ headers: c.req.raw.headers });
+    const sessionResult = await auth.api.getSession({
+      headers: c.req.raw.headers,
+    });
 
-    if (!session?.user) {
+    const user =
+      (sessionResult as any)?.user ??
+      (sessionResult as any)?.data?.user ??
+      null;
+
+    if (!user?.id) {
       return jsonError(c, 401, "Unauthorized");
     }
 
@@ -41,12 +49,7 @@ export function requireTenantAuth(): MiddlewareHandler {
     const memberships = await db
       .select()
       .from(member)
-      .where(
-        and(
-          eq(member.userId, session.user.id),
-          eq(member.organizationId, org.id)
-        )
-      )
+      .where(and(eq(member.userId, user.id), eq(member.organizationId, org.id)))
       .limit(1);
 
     const membership = memberships[0];
@@ -60,7 +63,8 @@ export function requireTenantAuth(): MiddlewareHandler {
     }
 
     c.set("auth", {
-      session,
+      session: sessionResult,
+      user,
       organization: org,
       membership,
     } satisfies AuthContext);
