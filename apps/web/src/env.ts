@@ -14,14 +14,12 @@ export const env = createEnv({
   client: {
     PUBLIC_API_URL: z.string().url(),
     PUBLIC_BETTER_AUTH_URL: z.string().url(),
-    PUBLIC_BETTER_AUTH_SECRET: z.string().min(1),
   },
   clientPrefix: "",
   runtimeEnv: {
     NODE_ENV: process.env.NODE_ENV,
     PUBLIC_API_URL: process.env.PUBLIC_API_URL,
     PUBLIC_BETTER_AUTH_URL: process.env.PUBLIC_BETTER_AUTH_URL,
-    PUBLIC_BETTER_AUTH_SECRET: process.env.PUBLIC_BETTER_AUTH_SECRET,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
