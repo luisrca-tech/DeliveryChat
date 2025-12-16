@@ -17,6 +17,14 @@ const config = defineConfig({
     viteReact(),
     nitro(),
   ],
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+    },
+  },
   envPrefix: ["VITE_", "PUBLIC_"],
 });
 
