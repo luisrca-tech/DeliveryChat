@@ -3,6 +3,9 @@ import { organizationClient } from "better-auth/client/plugins";
 import { env } from "../env";
 
 const getAuthBaseURL = () => {
+  const apiUrl = env.VITE_API_URL.replace(/\/+$/, "").replace(/\/api$/, "");
+  const apiOrigin = new URL(apiUrl);
+
   if (typeof window !== "undefined") {
     const hostname = window.location.hostname;
     if (
@@ -10,12 +13,16 @@ const getAuthBaseURL = () => {
       hostname === "127.0.0.1" ||
       hostname.endsWith(".localhost")
     ) {
-      return window.location.origin.replace(/:\d+$/, ":8000");
+      const port = apiOrigin.port
+        ? `:${apiOrigin.port}`
+        : apiOrigin.protocol === "https:"
+          ? ""
+          : "";
+      return `${apiOrigin.protocol}//${hostname}${port}`;
     }
   }
-  const apiUrl = env.VITE_API_URL;
-  const baseUrl = apiUrl.replace(/\/+$/, "").replace(/\/api$/, "");
-  return baseUrl;
+
+  return apiOrigin.origin;
 };
 
 export const authClient = createAuthClient({
