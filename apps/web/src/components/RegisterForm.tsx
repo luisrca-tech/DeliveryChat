@@ -14,6 +14,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { registrationSchema, type RegistrationFormData } from "@repo/types";
+import { authClient } from "../lib/authClient";
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -51,13 +52,53 @@ export default function RegisterForm() {
   const onSubmit = async (data: RegistrationFormData) => {
     setIsLoading(true);
 
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const signUpResult = await authClient.signUp.email({
+        email: data.email,
+        password: data.password,
+        name: data.fullName,
+      });
+
+      if (!signUpResult.data) {
+        throw new Error(
+          signUpResult.error?.message || "Failed to create account"
+        );
+      }
+
+      const orgResult = await authClient.organization.create({
+        name: data.companyName,
+        slug: data.subdomain,
+      });
+
+      if (!orgResult.data) {
+        throw new Error(
+          orgResult.error?.message || "Failed to create organization"
+        );
+      }
+
       toast.success("Account Created Successfully!", {
         description:
-          "Welcome to Delivery Chat. You can now configure your settings.",
+          "Welcome to Delivery Chat. Redirecting to your dashboard...",
       });
-    }, 2000);
+
+      const isDevelopment = window.location.hostname === "localhost";
+      const adminUrl = isDevelopment
+        ? `http://${data.subdomain}.localhost:3000`
+        : `https://${data.subdomain}.deliverychat.com`;
+
+      setTimeout(() => {
+        window.location.href = adminUrl;
+      }, 1500);
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Registration Failed", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "An error occurred while creating your account. Please try again.",
+      });
+      setIsLoading(false);
+    }
   };
 
   const isFormValid =
@@ -95,7 +136,15 @@ export default function RegisterForm() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSubmit(onSubmit)(e);
+                }}
+                method="post"
+                className="space-y-6"
+                autoComplete="off"
+              >
                 {/* Company Information */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-border">
@@ -277,7 +326,7 @@ export default function RegisterForm() {
                 {/* Submit Button */}
                 <Button
                   type="submit"
-                  className="w-full bg-gradient-hero hover:shadow-glow transition-all duration-300"
+                  className="w-full bg-gradient-hero transition-all duration-300 py-2 cursor-pointer bg-white text-primary hover:text-white border-primary border"
                   disabled={!isFormValid || isLoading}
                   size="lg"
                 >
