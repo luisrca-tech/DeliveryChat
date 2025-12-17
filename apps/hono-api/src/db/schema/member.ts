@@ -3,7 +3,7 @@ import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { user } from "./users";
 import { organization } from "./organization";
-import { timestampString } from "./custom-types";
+import { timestampString } from "./customTypes";
 
 export const member = createTable("member", {
   id: text("id").primaryKey(),

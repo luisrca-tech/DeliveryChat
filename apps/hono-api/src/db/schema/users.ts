@@ -1,7 +1,7 @@
 import { text, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
-import { emailVerifiedTimestamp, timestampString } from "./custom-types";
+import { emailVerifiedTimestamp, timestampString } from "./customTypes";
 
 export const user = createTable("user", {
   id: text("id").primaryKey(),

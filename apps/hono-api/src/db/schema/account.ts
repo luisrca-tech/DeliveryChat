@@ -2,7 +2,7 @@ import { text } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { user } from "./users";
-import { timestampString, timestampStringNullable } from "./custom-types";
+import { timestampString, timestampStringNullable } from "./customTypes";
 
 export const account = createTable("account", {
   id: text("id").primaryKey(),

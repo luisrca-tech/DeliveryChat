@@ -2,7 +2,7 @@ import { text } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { user } from "./users";
-import { timestampString } from "./custom-types";
+import { timestampString } from "./customTypes";
 
 export const session = createTable("session", {
   id: text("id").primaryKey(),

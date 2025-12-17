@@ -2,7 +2,7 @@ import { index, jsonb, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { tenantPlanEnum } from "./enums/tenantPlanEnum";
-import { timestampString, timestampStringNullable } from "./custom-types";
+import { timestampString, timestampStringNullable } from "./customTypes";
 
 export const organization = createTable(
   "organization",
