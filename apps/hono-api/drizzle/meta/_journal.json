@@ -15,6 +15,13 @@
       "when": 1765759639093,
       "tag": "0004_migrate_to_better_auth",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765974432969,
+      "tag": "0005_global_unique_application_subdomain",
+      "breakpoints": true
     }
   ]
 }

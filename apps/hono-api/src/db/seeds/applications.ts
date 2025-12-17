@@ -11,7 +11,6 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
   const values: {
     id: string;
     organizationId: string;
-    slug: string;
     subdomain: string;
     name: string;
     description: string;
@@ -21,12 +20,11 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
   for (const [tenantSlug, organizationId] of tenantMap.entries()) {
     for (let i = 0; i < APPS_PER_TENANT; i++) {
       const slugFragment = faker.string.alphanumeric(6).toLowerCase();
-      const slug = `${tenantSlug}-${slugFragment}`;
+      const subdomain = `${tenantSlug}-${slugFragment}`;
       values.push({
         id: randomUUID(),
         organizationId,
-        slug,
-        subdomain: `${slug}.widget`,
+        subdomain,
         name: faker.commerce.productName(),
         description: faker.company.catchPhrase(),
         settings: {},
@@ -39,11 +37,10 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
 
 export async function seedApplications(
   tenantMap: TenantMap,
-  client = db,
+  client = db
 ): Promise<
   {
     id: string;
-    slug: string;
     organization_id: string;
     name: string;
     subdomain: string;
@@ -55,17 +52,16 @@ export async function seedApplications(
     .insert(applications)
     .values(values)
     .onConflictDoNothing({
-      target: [applications.slug, applications.organizationId],
+      target: [applications.subdomain],
     });
 
   const organizationIds = Array.from(
-    new Set(values.map((v) => v.organizationId)),
+    new Set(values.map((v) => v.organizationId))
   );
 
   const rows = await client
     .select({
       id: applications.id,
-      slug: applications.slug,
       organization_id: applications.organizationId,
       name: applications.name,
       subdomain: applications.subdomain,

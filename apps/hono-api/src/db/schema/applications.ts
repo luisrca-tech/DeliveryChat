@@ -18,7 +18,6 @@ export const applications = createTable(
       .notNull()
       .references(() => organization.id),
     name: varchar("name", { length: 255 }).notNull(),
-    slug: varchar("slug", { length: 255 }).notNull(),
     subdomain: varchar("subdomain", { length: 255 }).notNull(),
     description: text("description"),
     settings: jsonb("settings").default({}).notNull(),
@@ -28,13 +27,10 @@ export const applications = createTable(
   },
   (table) => ({
     organizationIdx: index("applications_organization_idx").on(
-      table.organizationId,
+      table.organizationId
     ),
-    slugPerOrganizationIdx: uniqueIndex(
-      "applications_slug_organization_unique",
-    ).on(table.slug, table.organizationId),
-    subdomainPerOrganizationIdx: uniqueIndex(
-      "applications_subdomain_organization_unique",
-    ).on(table.subdomain, table.organizationId),
-  }),
+    subdomainIdx: uniqueIndex("applications_subdomain_unique").on(
+      table.subdomain
+    ),
+  })
 );

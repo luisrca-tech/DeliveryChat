@@ -8,13 +8,6 @@ export const listApplicationsQuerySchema = z.object({
 export const createApplicationSchema = z.object({
   organizationId: z.string().optional(),
   name: z.string().min(1).max(255),
-  slug: z
-    .string()
-    .min(1)
-    .max(255)
-    .regex(/^[a-z0-9-]+$/, {
-      message: "Slug must contain only lowercase letters, numbers, and hyphens",
-    }),
   subdomain: z
     .string()
     .min(1)
