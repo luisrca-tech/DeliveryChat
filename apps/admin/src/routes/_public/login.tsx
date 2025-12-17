@@ -19,10 +19,10 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock } from "lucide-react";
-import { authClient } from "../../lib/authClient";
+import { authClient } from "@/lib/authClient";
 import { useState } from "react";
-import { loginSchema, loginSearchSchema } from "../../schemas/auth";
-import type { LoginFormData, LoginSearchParams } from "../../types/auth";
+import { loginSchema, loginSearchSchema } from "@/schemas/auth";
+import type { LoginFormData, LoginSearchParams } from "@/types/auth";
 
 export const Route = createFileRoute("/_public/login")({
   component: LoginPage,
@@ -35,12 +35,12 @@ function LoginPage() {
   const navigate = useNavigate();
   const search = useSearch({ from: "/_public/login" }) as LoginSearchParams;
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -50,9 +50,6 @@ function LoginPage() {
   });
 
   const onSubmit = async (data: LoginFormData) => {
-    if (isLoading) return;
-    setIsLoading(true);
-
     try {
       const result = await authClient.signIn.email({
         email: data.email,
@@ -75,14 +72,16 @@ function LoginPage() {
       navigate({ to: redirectTo });
     } catch (error) {
       console.error("Login error:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Invalid email or password. Please try again.";
+
+      setError("email", { type: "server", message });
+
       toast.error("Sign In Failed", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "Invalid email or password. Please try again.",
+        description: message,
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -129,7 +128,7 @@ function LoginPage() {
               placeholder="admin@company.com"
               {...register("email")}
               className={`h-12 ${errors.email ? "border-destructive focus-visible:ring-destructive/20" : ""}`}
-              disabled={isLoading}
+              disabled={isSubmitting}
               autoComplete="email"
             />
             {errors.email && (
@@ -155,14 +154,14 @@ function LoginPage() {
                     ? "border-destructive focus-visible:ring-destructive/20"
                     : ""
                 }`}
-                disabled={isLoading}
+                disabled={isSubmitting}
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:cursor-not-allowed p-1 rounded-md hover:bg-muted/50"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
@@ -192,10 +191,10 @@ function LoginPage() {
           <Button
             type="submit"
             className="w-full h-12 font-semibold cursor-pointer hover:bg-primary/90 hover:shadow-lg transition-all text-base"
-            disabled={isLoading}
+            disabled={isSubmitting}
             size="lg"
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Signing in...

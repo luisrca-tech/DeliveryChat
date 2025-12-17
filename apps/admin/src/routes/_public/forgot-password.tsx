@@ -20,22 +20,19 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { authClient } from "../../lib/authClient";
-import { useState } from "react";
-import { forgotPasswordSchema } from "../../schemas/auth";
-import type { ForgotPasswordFormData } from "../../types/auth";
+import { forgotPasswordSchema } from "@/schemas/auth";
+import type { ForgotPasswordFormData } from "@/types/auth";
 
 export const Route = createFileRoute("/_public/forgot-password")({
   component: ForgotPasswordPage,
 });
 
 function ForgotPasswordPage() {
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-
   const {
     register,
     handleSubmit,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
     defaultValues: {
@@ -44,8 +41,6 @@ function ForgotPasswordPage() {
   });
 
   const onSubmit = async (data: ForgotPasswordFormData) => {
-    setIsLoading(true);
-
     try {
       const result = await authClient.requestPasswordReset({
         email: data.email,
@@ -56,23 +51,25 @@ function ForgotPasswordPage() {
         throw new Error(result.error?.message || "Failed to send reset email");
       }
 
-      setIsSuccess(true);
       toast.success("Reset link sent!", {
         description: "Check your email for password reset instructions.",
       });
     } catch (error) {
       console.error("Forgot password error:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An error occurred. Please try again.";
+
+      setError("email", { type: "server", message });
+
       toast.error("Failed to send reset email", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "An error occurred. Please try again.",
+        description: message,
       });
-      setIsLoading(false);
     }
   };
 
-  if (isSuccess) {
+  if (isSubmitSuccessful) {
     return (
       <Card className="border-border/50 shadow-xl w-full backdrop-blur-sm bg-card/95">
         <CardHeader className="space-y-3 px-6 pt-8 pb-5">
@@ -157,7 +154,7 @@ function ForgotPasswordPage() {
                   ? "border-destructive focus-visible:ring-destructive/20"
                   : ""
               }`}
-              disabled={isLoading}
+              disabled={isSubmitting}
             />
             {errors.email && (
               <p className="text-sm text-destructive flex items-center gap-1.5 mt-1.5">
@@ -170,10 +167,10 @@ function ForgotPasswordPage() {
           <Button
             type="submit"
             className="w-full h-12 font-semibold cursor-pointer hover:bg-primary/90 hover:shadow-lg transition-all text-base"
-            disabled={isLoading}
+            disabled={isSubmitting}
             size="lg"
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Sending...

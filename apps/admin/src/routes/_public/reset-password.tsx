@@ -25,16 +25,13 @@ import {
   Lock,
   KeyRound,
 } from "lucide-react";
-import { authClient } from "../../lib/authClient";
+import { authClient } from "@/lib/authClient";
 import { useState } from "react";
-import {
-  resetPasswordSchema,
-  resetPasswordSearchSchema,
-} from "../../schemas/auth";
+import { resetPasswordSchema, resetPasswordSearchSchema } from "@/schemas/auth";
 import type {
   ResetPasswordFormData,
   ResetPasswordSearchParams,
-} from "../../types/auth";
+} from "@/types/auth";
 
 export const Route = createFileRoute("/_public/reset-password")({
   component: ResetPasswordPage,
@@ -50,14 +47,13 @@ function ResetPasswordPage() {
   }) as ResetPasswordSearchParams;
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
-    formState: { errors },
+    setError,
+    formState: { errors, isSubmitting, isSubmitSuccessful },
   } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
@@ -102,8 +98,6 @@ function ResetPasswordPage() {
   }
 
   const onSubmit = async (data: ResetPasswordFormData) => {
-    setIsLoading(true);
-
     try {
       const result = await authClient.resetPassword({
         token: search.token!,
@@ -114,7 +108,6 @@ function ResetPasswordPage() {
         throw new Error(result.error?.message || "Failed to reset password");
       }
 
-      setIsSuccess(true);
       toast.success("Password reset successfully!", {
         description: "You can now sign in with your new password.",
       });
@@ -131,17 +124,20 @@ function ResetPasswordPage() {
       }, 2000);
     } catch (error) {
       console.error("Reset password error:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "This link may be invalid or expired. Please request a new one.";
+
+      setError("password", { type: "server", message });
+
       toast.error("Failed to reset password", {
-        description:
-          error instanceof Error
-            ? error.message
-            : "This link may be invalid or expired. Please request a new one.",
+        description: message,
       });
-      setIsLoading(false);
     }
   };
 
-  if (isSuccess) {
+  if (isSubmitSuccessful) {
     return (
       <Card className="border-border/50 shadow-lg w-full">
         <CardHeader className="space-y-1 pb-6">
@@ -198,13 +194,13 @@ function ResetPasswordPage() {
                     ? "border-destructive focus-visible:ring-destructive/20"
                     : ""
                 }`}
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:cursor-not-allowed p-1 rounded-md hover:bg-muted/50"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 aria-label={showPassword ? "Hide password" : "Show password"}
               >
                 {showPassword ? (
@@ -241,13 +237,13 @@ function ResetPasswordPage() {
                     ? "border-destructive focus-visible:ring-destructive/20"
                     : ""
                 }`}
-                disabled={isLoading}
+                disabled={isSubmitting}
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors cursor-pointer disabled:cursor-not-allowed p-1 rounded-md hover:bg-muted/50"
-                disabled={isLoading}
+                disabled={isSubmitting}
                 aria-label={
                   showConfirmPassword ? "Hide password" : "Show password"
                 }
@@ -276,10 +272,10 @@ function ResetPasswordPage() {
           <Button
             type="submit"
             className="w-full h-12 font-semibold cursor-pointer hover:bg-primary/90 hover:shadow-lg transition-all text-base"
-            disabled={isLoading}
+            disabled={isSubmitting}
             size="lg"
           >
-            {isLoading ? (
+            {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Resetting...
