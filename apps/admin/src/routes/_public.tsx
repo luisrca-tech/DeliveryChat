@@ -1,31 +1,24 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { authClient } from "../lib/authClient";
-import { useEffect } from "react";
 
 import "@repo/ui/styles.css";
 
 export const Route = createFileRoute("/_public")({
-  // Remove beforeLoad/clientLoader - session check happens client-side in component
-  // This prevents SSR issues where cookies aren't available
+  beforeLoad: async () => {
+    if (typeof window === "undefined") return;
+
+    const session = await authClient.getSession();
+
+    if (session?.data?.session) {
+      throw redirect({
+        to: "/",
+      });
+    }
+  },
   component: PublicLayout,
 });
 
 function PublicLayout() {
-  const navigate = useNavigate();
-
-  // Check session client-side only (after hydration)
-  useEffect(() => {
-    const checkSession = async () => {
-      const session = await authClient.getSession();
-
-      if (session?.data?.session) {
-        navigate({ to: "/" });
-      }
-    };
-
-    checkSession();
-  }, [navigate]);
-
   return (
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/20 flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md space-y-8">
@@ -36,6 +29,8 @@ function PublicLayout() {
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
+              aria-label="Chat icon"
+              role="img"
             >
               <path
                 strokeLinecap="round"
