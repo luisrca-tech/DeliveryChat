@@ -38,10 +38,10 @@ export const applicationsRoute = new Hono()
           c,
           500,
           "Failed to fetch applications",
-          error instanceof Error ? error.message : "Unknown error",
+          error instanceof Error ? error.message : "Unknown error"
         );
       }
-    },
+    }
   )
   .post(
     "/applications",
@@ -51,10 +51,6 @@ export const applicationsRoute = new Hono()
       try {
         const { organization } = getTenantAuth(c);
         const data = c.req.valid("json");
-
-        if (data.organizationId && data.organizationId !== organization.id) {
-          return jsonError(c, 403, "Forbidden", "Organization mismatch");
-        }
 
         const [newApp] = await db
           .insert(applications)
@@ -71,8 +67,8 @@ export const applicationsRoute = new Hono()
           c,
           500,
           "Failed to create application",
-          error instanceof Error ? error.message : "Unknown error",
+          error instanceof Error ? error.message : "Unknown error"
         );
       }
-    },
+    }
   );

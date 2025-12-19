@@ -6,7 +6,6 @@ export const listApplicationsQuerySchema = z.object({
 });
 
 export const createApplicationSchema = z.object({
-  organizationId: z.string().optional(),
   name: z.string().min(1).max(255),
   domain: z
     .string()
