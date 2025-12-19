@@ -14,19 +14,19 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { registrationSchema, type RegistrationFormData } from "@repo/types";
-import { authClient } from "../lib/authClient";
+import { registerUser } from "../lib/registration";
+import { getAdminUrl } from "../lib/urls";
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<RegistrationFormData>({
     resolver: zodResolver(registrationSchema),
     defaultValues: {
@@ -50,55 +50,25 @@ export default function RegisterForm() {
   };
 
   const onSubmit = async (data: RegistrationFormData) => {
-    setIsLoading(true);
+    const result = await registerUser(data);
 
-    try {
-      const signUpResult = await authClient.signUp.email({
-        email: data.email,
-        password: data.password,
-        name: data.fullName,
-      });
-
-      if (!signUpResult.data) {
-        throw new Error(
-          signUpResult.error?.message || "Failed to create account",
-        );
-      }
-
-      const orgResult = await authClient.organization.create({
-        name: data.companyName,
-        slug: data.subdomain,
-      });
-
-      if (!orgResult.data) {
-        throw new Error(
-          orgResult.error?.message || "Failed to create organization",
-        );
-      }
-
-      toast.success("Account Created Successfully!", {
-        description:
-          "Welcome to Delivery Chat. Redirecting to your dashboard...",
-      });
-
-      const isDevelopment = window.location.hostname === "localhost";
-      const adminUrl = isDevelopment
-        ? `http://${data.subdomain}.localhost:3000`
-        : `https://${data.subdomain}.deliverychat.com`;
-
-      setTimeout(() => {
-        window.location.href = adminUrl;
-      }, 1500);
-    } catch (error) {
-      console.error("Registration error:", error);
+    if (!result.success) {
       toast.error("Registration Failed", {
         description:
-          error instanceof Error
-            ? error.message
-            : "An error occurred while creating your account. Please try again.",
+          result.error ||
+          "An error occurred while creating your account. Please try again.",
       });
-      setIsLoading(false);
+      return;
     }
+
+    toast.success("Account Created Successfully!", {
+      description: "Welcome to Delivery Chat. Redirecting to your dashboard...",
+    });
+
+    const adminUrl = getAdminUrl(data.subdomain);
+    setTimeout(() => {
+      window.location.href = adminUrl;
+    }, 1500);
   };
 
   const isFormValid =
@@ -114,7 +84,6 @@ export default function RegisterForm() {
     <div className="min-h-screen bg-background flex flex-col">
       <main className="flex-1 flex items-center justify-center px-4 py-20">
         <div className="w-full max-w-2xl space-y-8 animate-fade-in-up">
-          {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="text-3xl sm:text-4xl font-bold">
               Create Your{" "}
@@ -127,7 +96,6 @@ export default function RegisterForm() {
             </p>
           </div>
 
-          {/* Form Card */}
           <Card className="border-border/50 shadow-soft">
             <CardHeader>
               <CardTitle>Registration Details</CardTitle>
@@ -145,7 +113,6 @@ export default function RegisterForm() {
                 className="space-y-6"
                 autoComplete="off"
               >
-                {/* Company Information */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-border">
                     <div className="w-2 h-2 rounded-full bg-primary" />
@@ -199,7 +166,6 @@ export default function RegisterForm() {
                   </div>
                 </div>
 
-                {/* Admin User Information */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 pb-2 border-b border-border">
                     <div className="w-2 h-2 rounded-full bg-primary" />
@@ -323,14 +289,13 @@ export default function RegisterForm() {
                   </div>
                 </div>
 
-                {/* Submit Button */}
                 <Button
                   type="submit"
                   className="w-full bg-gradient-hero transition-all duration-300 py-2 cursor-pointer bg-white text-primary hover:text-white border-primary border"
-                  disabled={!isFormValid || isLoading}
+                  disabled={!isFormValid || isSubmitting}
                   size="lg"
                 >
-                  {isLoading ? (
+                  {isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Creating Account...
@@ -339,22 +304,10 @@ export default function RegisterForm() {
                     "Create Account"
                   )}
                 </Button>
-
-                {/* Sign in link */}
-                <p className="text-center text-sm text-muted-foreground">
-                  Already have an account?{" "}
-                  <a
-                    href="/"
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Sign in
-                  </a>
-                </p>
               </form>
             </CardContent>
           </Card>
 
-          {/* Trust indicators */}
           <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-primary" />
