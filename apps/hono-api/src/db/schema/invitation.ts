@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { organization } from "./organization";
 import { timestampString } from "./customTypes";
+import { memberRoleEnum } from "./enums/memberRoleEnum";
 
 export const invitation = createTable("invitation", {
   id: text("id").primaryKey(),
@@ -10,7 +11,7 @@ export const invitation = createTable("invitation", {
     .notNull()
     .references(() => organization.id, { onDelete: "cascade" }),
   email: text("email").notNull(),
-  role: text("role").notNull().default("operator"),
+  role: memberRoleEnum("role").notNull().default("operator"),
   token: text("token").notNull().unique(),
   expiresAt: timestampString("expires_at").notNull(),
   createdAt: timestampString("created_at")

@@ -22,6 +22,13 @@
       "when": 1765974432969,
       "tag": "0005_global_unique_application_subdomain",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766111512002,
+      "tag": "0006_update_schema_remove_settings_rename_subdomain_to_domain_add_super_admin_role",
+      "breakpoints": true
     }
   ]
 }

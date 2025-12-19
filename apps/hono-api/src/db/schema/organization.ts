@@ -16,8 +16,7 @@ export const organization = createTable(
       .default(sql`now()`)
       .notNull(),
     description: text("description"),
-    settings: jsonb("settings").default({}).notNull(),
-    plan: tenantPlanEnum("plan").notNull().default("BASIC"),
+    plan: tenantPlanEnum("plan").notNull().default("FREE"),
     deletedAt: timestampStringNullable("deleted_at"),
     updatedAt: timestampString("updated_at")
       .default(sql`now()`)
@@ -26,5 +25,5 @@ export const organization = createTable(
   (table) => ({
     slugIdx: uniqueIndex("organization_slug_unique").on(table.slug),
     slugLookupIdx: index("organization_slug_idx").on(table.slug),
-  }),
+  })
 );
