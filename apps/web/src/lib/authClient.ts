@@ -1,14 +1,18 @@
 import { createAuthClient } from "better-auth/react";
 import { organizationClient } from "better-auth/client/plugins";
+import { env } from "../env";
 
 const getBaseURL = () => {
-  if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "http://localhost:8000";
-    }
-    return window.location.origin.replace(/:\d+$/, ":8000");
+  if (env.PUBLIC_BETTER_AUTH_URL) {
+    return env.PUBLIC_BETTER_AUTH_URL.replace(/\/+$/, "");
   }
+
+  if (typeof window !== "undefined") {
+    const apiUrl = env.PUBLIC_API_URL.replace(/\/+$/, "").replace(/\/api$/, "");
+    const apiOrigin = new URL(apiUrl);
+    return apiOrigin.origin;
+  }
+
   return "http://localhost:8000";
 };
 
