@@ -10,7 +10,7 @@ import {
   requireRole,
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
-import { jsonError } from "../lib/http.js";
+import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const usersRoute = new Hono().get(
   "/users",
@@ -45,10 +45,10 @@ export const usersRoute = new Hono().get(
       console.error("Error fetching users:", error);
       return jsonError(
         c,
-        500,
-        "Failed to fetch users",
-        error instanceof Error ? error.message : "Unknown error",
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+        error instanceof Error ? error.message : "Unknown error"
       );
     }
-  },
+  }
 );

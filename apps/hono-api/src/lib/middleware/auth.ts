@@ -3,7 +3,7 @@ import type { MiddlewareHandler } from "hono";
 import { auth } from "../../lib/auth.js";
 import { db } from "../../db/index.js";
 import { member } from "../../db/schema/member.js";
-import { jsonError } from "../http.js";
+import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 import { getHostSubdomain, resolveOrganizationBySubdomain } from "../tenant.js";
 
 type MembershipRow = typeof member.$inferSelect;
@@ -19,31 +19,48 @@ type AuthContext = {
   membership: MembershipRow;
 };
 
+type SessionResult = Awaited<ReturnType<typeof auth.api.getSession>>;
+type SessionWithUser = SessionResult & {
+  user?: { id: string };
+  data?: { user?: { id: string } };
+};
+
 export function requireTenantAuth(): MiddlewareHandler {
   return async (c, next) => {
-    const sessionResult = await auth.api.getSession({
+    const sessionResult = (await auth.api.getSession({
       headers: c.req.raw.headers,
-    });
+    })) as SessionWithUser | null;
 
-    const user =
-      (sessionResult as any)?.user ??
-      (sessionResult as any)?.data?.user ??
-      null;
+    const user = sessionResult?.user ?? sessionResult?.data?.user ?? null;
 
     if (!user?.id) {
-      return jsonError(c, 401, "Unauthorized");
+      return jsonError(
+        c,
+        HTTP_STATUS.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED
+      );
     }
 
     const host = c.req.header("host") ?? null;
     const subdomain = getHostSubdomain(host);
 
     if (!subdomain) {
-      return jsonError(c, 403, "Forbidden", "Tenant subdomain not found");
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        ERROR_MESSAGES.FORBIDDEN,
+        "Tenant subdomain not found"
+      );
     }
 
     const org = await resolveOrganizationBySubdomain(subdomain);
     if (!org) {
-      return jsonError(c, 403, "Forbidden", "Tenant not found");
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        ERROR_MESSAGES.FORBIDDEN,
+        "Tenant not found"
+      );
     }
 
     const memberships = await db
@@ -56,8 +73,8 @@ export function requireTenantAuth(): MiddlewareHandler {
     if (!membership) {
       return jsonError(
         c,
-        403,
-        "Forbidden",
+        HTTP_STATUS.FORBIDDEN,
+        ERROR_MESSAGES.FORBIDDEN,
         "You are not a member of this organization"
       );
     }
@@ -92,7 +109,12 @@ export function requireRole(
     const current = rank[membership.role] ?? 0;
     const required = rank[minRole] ?? 0;
     if (current < required) {
-      return jsonError(c, 403, "Forbidden", "Insufficient role");
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        ERROR_MESSAGES.FORBIDDEN,
+        "Insufficient role"
+      );
     }
     await next();
   };

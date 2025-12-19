@@ -12,7 +12,7 @@ import {
   requireRole,
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
-import { jsonError } from "../lib/http.js";
+import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const applicationsRoute = new Hono()
   .use("*", requireTenantAuth())
@@ -36,8 +36,8 @@ export const applicationsRoute = new Hono()
         console.error("Error fetching applications:", error);
         return jsonError(
           c,
-          500,
-          "Failed to fetch applications",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
           error instanceof Error ? error.message : "Unknown error"
         );
       }
@@ -65,8 +65,8 @@ export const applicationsRoute = new Hono()
         console.error("Error creating application:", error);
         return jsonError(
           c,
-          500,
-          "Failed to create application",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
           error instanceof Error ? error.message : "Unknown error"
         );
       }
