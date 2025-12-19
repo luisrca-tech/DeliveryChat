@@ -4,7 +4,7 @@ import { organization } from "better-auth/plugins";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { env } from "../env.js";
-import { ac, owner, admin, operator } from "./permissions.js";
+import { ac, super_admin, admin, operator } from "./permissions.js";
 import { createTrustedOrigins } from "./auth/origins.js";
 import { getAuthBaseURL } from "./auth/baseUrl.js";
 import { getAdvancedOptions } from "./auth/advanced.js";
@@ -33,7 +33,7 @@ export const auth = betterAuth({
     organization({
       ac,
       roles: {
-        owner,
+        super_admin,
         admin,
         operator,
       },

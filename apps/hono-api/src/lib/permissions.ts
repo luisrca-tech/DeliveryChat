@@ -7,7 +7,7 @@ const statement = {
 
 const ac = createAccessControl(statement);
 
-export const owner = ac.newRole({
+export const super_admin = ac.newRole({
   organization: ["update", "delete"],
   member: ["create", "update", "delete"],
   invitation: ["create", "cancel"],
