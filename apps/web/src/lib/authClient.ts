@@ -4,7 +4,8 @@ import { organizationClient } from "better-auth/client/plugins";
 const getBaseURL = () => {
   const betterAuthUrl = import.meta.env.PUBLIC_BETTER_AUTH_URL;
   if (betterAuthUrl) {
-    return betterAuthUrl.replace(/\/+$/, "");
+    const url = new URL(betterAuthUrl);
+    return url.origin;
   }
 
   if (typeof window !== "undefined") {
