@@ -4,7 +4,8 @@ import { env } from "../env";
 
 const getAuthBaseURL = () => {
   if (env.VITE_BETTER_AUTH_URL) {
-    return env.VITE_BETTER_AUTH_URL.replace(/\/+$/, "");
+    const url = new URL(env.VITE_BETTER_AUTH_URL);
+    return url.origin;
   }
 
   const apiUrl = env.VITE_API_URL.replace(/\/+$/, "").replace(/\/api$/, "");
