@@ -17,7 +17,7 @@ const getAuthBaseURL = () => {
         ? `:${apiOrigin.port}`
         : apiOrigin.protocol === "https:"
           ? ""
-          : "";
+          : ":8000";
       return `${apiOrigin.protocol}//${hostname}${port}`;
     }
   }
