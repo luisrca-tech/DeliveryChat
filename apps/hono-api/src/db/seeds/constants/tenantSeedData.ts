@@ -6,13 +6,11 @@ export const tenantSeedData = [
     name: "Acme Inc",
     description: "Core tenant for the embeddable support product.",
     plan: "PREMIUM",
-    settings: {},
   },
   {
     slug: "globex",
     name: "Globex Corp",
     description: "Secondary tenant to validate multi-tenant constraints.",
     plan: "BASIC",
-    settings: {},
   },
 ] satisfies TenantSeed[];

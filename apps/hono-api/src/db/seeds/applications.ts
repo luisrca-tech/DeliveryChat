@@ -11,7 +11,7 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
   const values: {
     id: string;
     organizationId: string;
-    subdomain: string;
+    domain: string;
     name: string;
     description: string;
     settings: Record<string, unknown>;
@@ -20,11 +20,11 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
   for (const [tenantSlug, organizationId] of tenantMap.entries()) {
     for (let i = 0; i < APPS_PER_TENANT; i++) {
       const slugFragment = faker.string.alphanumeric(6).toLowerCase();
-      const subdomain = `${tenantSlug}-${slugFragment}`;
+      const domain = `${tenantSlug}-${slugFragment}`;
       values.push({
         id: randomUUID(),
         organizationId,
-        subdomain,
+        domain,
         name: faker.commerce.productName(),
         description: faker.company.catchPhrase(),
         settings: {},
@@ -43,7 +43,7 @@ export async function seedApplications(
     id: string;
     organization_id: string;
     name: string;
-    subdomain: string;
+    domain: string;
   }[]
 > {
   const values = buildApplicationSeedValues(tenantMap);
@@ -52,7 +52,7 @@ export async function seedApplications(
     .insert(applications)
     .values(values)
     .onConflictDoNothing({
-      target: [applications.subdomain],
+      target: [applications.domain],
     });
 
   const organizationIds = Array.from(
@@ -64,7 +64,7 @@ export async function seedApplications(
       id: applications.id,
       organization_id: applications.organizationId,
       name: applications.name,
-      subdomain: applications.subdomain,
+      domain: applications.domain,
     })
     .from(applications)
     .where(inArray(applications.organizationId, organizationIds));
