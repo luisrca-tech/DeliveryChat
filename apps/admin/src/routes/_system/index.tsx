@@ -39,8 +39,13 @@ function Dashboard() {
                   await authClient.signOut();
                   toast.success("Signed out");
                   navigate({ to: "/login" });
-                } catch {
-                  toast.error("Failed to sign out");
+                } catch (error) {
+                  console.error("Logout error:", error);
+                  toast.error(
+                    error instanceof Error
+                      ? error.message
+                      : "Failed to sign out"
+                  );
                   setIsLoggingOut(false);
                 }
               }}
