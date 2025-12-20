@@ -7,7 +7,7 @@ export interface RegistrationResult {
 }
 
 export async function registerUser(
-  data: RegistrationFormData
+  data: RegistrationFormData,
 ): Promise<RegistrationResult> {
   try {
     const apiUrl = getApiUrl();

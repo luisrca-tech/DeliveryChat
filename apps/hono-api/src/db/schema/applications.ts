@@ -27,8 +27,8 @@ export const applications = createTable(
   },
   (table) => ({
     organizationIdx: index("applications_organization_idx").on(
-      table.organizationId
+      table.organizationId,
     ),
     domainIdx: uniqueIndex("applications_domain_unique").on(table.domain),
-  })
+  }),
 );

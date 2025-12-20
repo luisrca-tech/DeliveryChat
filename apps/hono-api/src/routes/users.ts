@@ -47,8 +47,8 @@ export const usersRoute = new Hono().get(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
-  }
+  },
 );

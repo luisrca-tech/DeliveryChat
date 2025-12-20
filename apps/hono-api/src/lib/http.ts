@@ -25,13 +25,13 @@ export function jsonError(
   c: Context,
   status: HttpStatus,
   error: string,
-  message?: string
+  message?: string,
 ) {
   return c.json(
     {
       error,
       ...(message ? { message } : {}),
     },
-    status
+    status,
   );
 }

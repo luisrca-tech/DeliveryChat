@@ -47,7 +47,7 @@ function Dashboard() {
                   toast.error(
                     error instanceof Error
                       ? error.message
-                      : "Failed to sign out"
+                      : "Failed to sign out",
                   );
                   setIsLoggingOut(false);
                 }

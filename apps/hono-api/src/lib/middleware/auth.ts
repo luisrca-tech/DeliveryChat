@@ -37,7 +37,7 @@ export function requireTenantAuth(): MiddlewareHandler {
       return jsonError(
         c,
         HTTP_STATUS.UNAUTHORIZED,
-        ERROR_MESSAGES.UNAUTHORIZED
+        ERROR_MESSAGES.UNAUTHORIZED,
       );
     }
 
@@ -49,7 +49,7 @@ export function requireTenantAuth(): MiddlewareHandler {
         c,
         HTTP_STATUS.FORBIDDEN,
         ERROR_MESSAGES.FORBIDDEN,
-        "Tenant subdomain not found"
+        "Tenant subdomain not found",
       );
     }
 
@@ -59,7 +59,7 @@ export function requireTenantAuth(): MiddlewareHandler {
         c,
         HTTP_STATUS.FORBIDDEN,
         ERROR_MESSAGES.FORBIDDEN,
-        "Tenant not found"
+        "Tenant not found",
       );
     }
 
@@ -75,7 +75,7 @@ export function requireTenantAuth(): MiddlewareHandler {
         c,
         HTTP_STATUS.FORBIDDEN,
         ERROR_MESSAGES.FORBIDDEN,
-        "You are not a member of this organization"
+        "You are not a member of this organization",
       );
     }
 
@@ -97,7 +97,7 @@ export function getTenantAuth(c: {
 }
 
 export function requireRole(
-  minRole: "operator" | "admin" | "super_admin"
+  minRole: "operator" | "admin" | "super_admin",
 ): MiddlewareHandler {
   const rank: Record<string, number> = {
     operator: 1,
@@ -113,7 +113,7 @@ export function requireRole(
         c,
         HTTP_STATUS.FORBIDDEN,
         ERROR_MESSAGES.FORBIDDEN,
-        "Insufficient role"
+        "Insufficient role",
       );
     }
     await next();

@@ -38,10 +38,10 @@ export const applicationsRoute = new Hono()
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : "Unknown error",
         );
       }
-    }
+    },
   )
   .post(
     "/applications",
@@ -67,8 +67,8 @@ export const applicationsRoute = new Hono()
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : "Unknown error",
         );
       }
-    }
+    },
   );

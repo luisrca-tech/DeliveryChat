@@ -12,7 +12,7 @@ import { eq } from "drizzle-orm";
 import { API_ERROR_STATUS_CODE_MAP } from "./constants/httpStatus.js";
 
 function mapToHttpStatus(
-  status: string | number
+  status: string | number,
 ): (typeof HTTP_STATUS)[keyof typeof HTTP_STATUS] {
   const statusNum = typeof status === "string" ? parseInt(status, 10) : status;
   return (
@@ -49,7 +49,7 @@ export const registerRoute = new Hono().post(
             c,
             mapToHttpStatus(error.status),
             "Failed to create account",
-            error.message
+            error.message,
           );
         }
         throw error;
@@ -60,7 +60,7 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "User creation failed"
+          "User creation failed",
         );
       }
 
@@ -98,7 +98,7 @@ export const registerRoute = new Hono().post(
             c,
             mapToHttpStatus(error.status),
             "Failed to create organization",
-            error.message
+            error.message,
           );
         }
         throw error;
@@ -113,8 +113,8 @@ export const registerRoute = new Hono().post(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
-  }
+  },
 );

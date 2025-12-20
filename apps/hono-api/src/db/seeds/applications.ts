@@ -37,7 +37,7 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
 
 export async function seedApplications(
   tenantMap: TenantMap,
-  client = db
+  client = db,
 ): Promise<
   {
     id: string;
@@ -56,7 +56,7 @@ export async function seedApplications(
     });
 
   const organizationIds = Array.from(
-    new Set(values.map((v) => v.organizationId))
+    new Set(values.map((v) => v.organizationId)),
   );
 
   const rows = await client

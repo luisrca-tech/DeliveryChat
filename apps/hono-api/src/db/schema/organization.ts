@@ -25,5 +25,5 @@ export const organization = createTable(
   (table) => ({
     slugIdx: uniqueIndex("organization_slug_unique").on(table.slug),
     slugLookupIdx: index("organization_slug_idx").on(table.slug),
-  })
+  }),
 );
