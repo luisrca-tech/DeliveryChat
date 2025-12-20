@@ -3,13 +3,25 @@ import { organizationClient } from "better-auth/client/plugins";
 import { env } from "../env";
 
 const getAuthBaseURL = () => {
-  if (env.VITE_BETTER_AUTH_URL) {
-    const url = new URL(env.VITE_BETTER_AUTH_URL);
-    return url.origin;
-  }
-
   const apiUrl = env.VITE_API_URL.replace(/\/+$/, "").replace(/\/api$/, "");
   const apiOrigin = new URL(apiUrl);
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.endsWith(".localhost")
+    ) {
+      const port = apiOrigin.port
+        ? `:${apiOrigin.port}`
+        : apiOrigin.protocol === "https:"
+          ? ""
+          : ":8000";
+      return `${apiOrigin.protocol}//${hostname}${port}`;
+    }
+  }
+
   return apiOrigin.origin;
 };
 

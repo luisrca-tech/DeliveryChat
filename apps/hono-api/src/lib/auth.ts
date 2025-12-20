@@ -37,22 +37,45 @@ export const auth = betterAuth({
         admin,
         operator,
       },
+      schema: {
+        organization: {
+          additionalFields: {
+            plan: {
+              type: "string",
+              required: false,
+              defaultValue: "FREE",
+              input: false,
+            },
+          },
+        },
+      },
+      organizationHooks: {
+        beforeCreateOrganization: async ({ organization }) => {
+          return {
+            data: {
+              ...organization,
+              plan: "FREE" as const,
+            },
+          };
+        },
+        beforeAddMember: async ({ member }) => {
+          if (member.role === "owner") {
+            return {
+              data: {
+                ...member,
+                role: "super_admin" as const,
+              },
+            };
+          }
+          return { data: member };
+        },
+      },
     }),
   ],
   secret: env.BETTER_AUTH_SECRET,
   baseURL,
   trustedOrigins,
   advanced: getAdvancedOptions(env),
-});
-
-console.info("[Better Auth] Configuration:", {
-  baseURL,
-  secretSet: !!env.BETTER_AUTH_SECRET,
-  secretLength: env.BETTER_AUTH_SECRET?.length || 0,
-  trustedOrigins:
-    typeof trustedOrigins === "function"
-      ? "[dynamic: dev localhost + prod]"
-      : trustedOrigins,
 });
 
 export type Session = typeof auth.$Infer.Session;
