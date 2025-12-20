@@ -10,11 +10,8 @@ export function isDevelopment(): boolean {
 }
 
 export function getApiUrl(): string {
-  if (typeof window !== "undefined") {
-    const hostname = window.location.hostname;
-    if (hostname === "localhost" || hostname === "127.0.0.1") {
-      return "http://localhost:8000";
-    }
+  if (isDevelopment()) {
+    return "http://localhost:8000";
   }
   return (
     import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "http://localhost:8000"
@@ -24,4 +21,16 @@ export function getApiUrl(): string {
 export function getApiBaseUrl(): string {
   const baseUrl = getApiUrl();
   return baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+}
+
+export function getSubdomainOrigin(): string {
+  if (typeof window === "undefined") return "";
+  return window.location.origin;
+}
+
+export function getSubdomainUrl(path: string): string {
+  if (typeof window === "undefined") return path;
+  const origin = getSubdomainOrigin();
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  return `${origin}${cleanPath}`;
 }

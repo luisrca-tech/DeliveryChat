@@ -1,15 +1,15 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/authClient";
+import { getSubdomainUrl } from "../../lib/urls";
 
 export const Route = createFileRoute("/_system/")({
   component: Dashboard,
 });
 
 function Dashboard() {
-  const navigate = useNavigate();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const context = Route.useRouteContext();
   const currentOrganization =
@@ -36,9 +36,12 @@ function Dashboard() {
               onClick={async () => {
                 setIsLoggingOut(true);
                 try {
-                  await authClient.signOut();
-                  toast.success("Signed out");
-                  navigate({ to: "/login" });
+                  await authClient.signOut({
+                    fetchOptions: {
+                      credentials: "include",
+                    },
+                  });
+                  window.location.href = getSubdomainUrl("/login");
                 } catch (error) {
                   console.error("Logout error:", error);
                   toast.error(

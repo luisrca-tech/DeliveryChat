@@ -20,6 +20,7 @@ import {
   CheckCircle2,
 } from "lucide-react";
 import { authClient } from "../../lib/authClient";
+import { getSubdomainUrl } from "../../lib/urls";
 import { forgotPasswordSchema } from "@/schemas/auth";
 import type { ForgotPasswordFormData } from "@/types/auth";
 
@@ -44,7 +45,7 @@ function ForgotPasswordPage() {
     try {
       const result = await authClient.requestPasswordReset({
         email: data.email,
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: getSubdomainUrl("/reset-password"),
       });
 
       if (!result.data) {

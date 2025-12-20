@@ -1,8 +1,4 @@
-import {
-  createFileRoute,
-  useNavigate,
-  useSearch,
-} from "@tanstack/react-router";
+import { createFileRoute, Link, useSearch } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
@@ -20,6 +16,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { Eye, EyeOff, AlertCircle, Loader2, Mail, Lock } from "lucide-react";
 import { authClient } from "@/lib/authClient";
+import { getSubdomainUrl } from "@/lib/urls";
 import { useState } from "react";
 import { loginSchema, loginSearchSchema } from "@/schemas/auth";
 import type { LoginFormData, LoginSearchParams } from "@/types/auth";
@@ -32,7 +29,6 @@ export const Route = createFileRoute("/_public/login")({
 });
 
 function LoginPage() {
-  const navigate = useNavigate();
   const search = useSearch({ from: "/_public/login" }) as LoginSearchParams;
   const [showPassword, setShowPassword] = useState(false);
 
@@ -60,16 +56,10 @@ function LoginPage() {
         throw new Error(result.error?.message || "Failed to sign in");
       }
 
-      const session = await authClient.getSession();
-
-      if (!session?.data?.session) {
-        throw new Error("Signed in, but session cookie was not set");
-      }
-
       toast.success("Signed in successfully!");
 
       const redirectTo = search.redirect || "/";
-      navigate({ to: redirectTo });
+      window.location.href = getSubdomainUrl(redirectTo);
     } catch (error) {
       console.error("Login error:", error);
       const message =
@@ -180,12 +170,12 @@ function LoginPage() {
           </div>
 
           <div className="flex items-center justify-end pt-2">
-            <a
-              href="/forgot-password"
+            <Link
+              to="/forgot-password"
               className="text-sm text-primary hover:text-primary/80 hover:underline font-medium cursor-pointer transition-colors"
             >
               Forgot password?
-            </a>
+            </Link>
           </div>
 
           <Button

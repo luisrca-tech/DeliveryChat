@@ -16,16 +16,12 @@ export const Route = createFileRoute("/_system")({
 
     const subdomain = getSubdomain();
 
-    if (!subdomain) {
-      return;
-    }
-
     const orgsResult = await authClient.organization.list();
     const organizations = orgsResult.data || [];
 
     const currentOrg = organizations.find(
       (org: { slug?: string; id: string }) =>
-        org.slug === subdomain || org.id === subdomain,
+        org.slug === subdomain || org.id === subdomain
     );
 
     if (!currentOrg) {
