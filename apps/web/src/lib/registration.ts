@@ -1,5 +1,5 @@
-import { authClient } from "./authClient";
 import type { RegistrationFormData } from "@repo/types";
+import { getApiUrl } from "./urls.js";
 
 export interface RegistrationResult {
   success: boolean;
@@ -10,28 +10,36 @@ export async function registerUser(
   data: RegistrationFormData
 ): Promise<RegistrationResult> {
   try {
-    const signUpResult = await authClient.signUp.email({
-      email: data.email,
-      password: data.password,
-      name: data.fullName,
+    const apiUrl = getApiUrl();
+    const response = await fetch(`${apiUrl}/api/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({
+        email: data.email,
+        password: data.password,
+        name: data.fullName,
+        companyName: data.companyName,
+        subdomain: data.subdomain,
+      }),
     });
 
-    if (!signUpResult.data) {
+    let result;
+    try {
+      result = await response.json();
+    } catch (jsonError) {
       return {
         success: false,
-        error: signUpResult.error?.message || "Failed to create account",
+        error: `Registration failed: ${response.status} ${response.statusText}`,
       };
     }
 
-    const orgResult = await authClient.organization.create({
-      name: data.companyName,
-      slug: data.subdomain,
-    });
-
-    if (!orgResult.data) {
+    if (!response.ok) {
       return {
         success: false,
-        error: orgResult.error?.message || "Failed to create organization",
+        error: result.message || result.error || "Registration failed",
       };
     }
 
