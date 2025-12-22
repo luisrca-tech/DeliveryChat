@@ -3,6 +3,7 @@ import { getApiUrl } from "./urls.js";
 
 export interface RegistrationResult {
   success: boolean;
+  status?: "OTP_SENT" | "PENDING_VERIFICATION_EXISTS";
   error?: string;
 }
 
@@ -43,7 +44,10 @@ export async function registerUser(
       };
     }
 
-    return { success: true };
+    return {
+      success: true,
+      status: result.status as "OTP_SENT" | "PENDING_VERIFICATION_EXISTS",
+    };
   } catch (error) {
     console.error("Registration error:", error);
     return {

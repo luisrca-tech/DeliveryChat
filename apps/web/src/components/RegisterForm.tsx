@@ -61,6 +61,21 @@ export default function RegisterForm() {
       return;
     }
 
+    if (result.status === "PENDING_VERIFICATION_EXISTS") {
+      const params = new URLSearchParams({ email: data.email });
+      window.location.href = `/verify-email?${params.toString()}`;
+      return;
+    }
+
+    if (result.status === "OTP_SENT") {
+      toast.success("Verification Code Sent!", {
+        description: "Please check your email for the verification code.",
+      });
+      const params = new URLSearchParams({ email: data.email });
+      window.location.href = `/verify-email?${params.toString()}`;
+      return;
+    }
+
     toast.success("Account Created Successfully!", {
       description: "Welcome to Delivery Chat. Redirecting to your dashboard...",
     });

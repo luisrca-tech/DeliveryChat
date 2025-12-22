@@ -1,0 +1,16 @@
+---
+import Layout from "../layouts/Layout.astro";
+import Header from "../components/layout/Header.astro";
+import Footer from "../components/layout/Footer.astro";
+import VerifyEmailForm from "../components/VerifyEmailForm";
+
+const email = Astro.url.searchParams.get("email") || undefined;
+---
+
+<Layout>
+  <div class="min-h-screen bg-background">
+    <Header />
+    <VerifyEmailForm email={email} client:load />
+    <Footer />
+  </div>
+</Layout>

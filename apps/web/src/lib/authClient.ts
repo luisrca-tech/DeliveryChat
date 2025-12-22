@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/react";
-import { organizationClient } from "better-auth/client/plugins";
+import { organizationClient, emailOTPClient } from "better-auth/client/plugins";
 import { getApiUrl } from "./urls.js";
 
 export const authClient = createAuthClient({
@@ -7,5 +7,5 @@ export const authClient = createAuthClient({
   fetchOptions: {
     credentials: "include",
   },
-  plugins: [organizationClient()],
+  plugins: [organizationClient(), emailOTPClient()],
 });
