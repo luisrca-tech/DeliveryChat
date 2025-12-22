@@ -20,11 +20,7 @@ app.use(
       ) {
         return origin;
       }
-      if (
-        origin === "https://deliverychat-dev.onrender.com" ||
-        origin === "https://deliverychat-prod.onrender.com" ||
-        /^https:\/\/[a-z0-9-]+\.deliverychat\.com$/.test(origin)
-      ) {
+      if (env.ALLOWED_ORIGINS?.includes(origin)) {
         return origin;
       }
       return null;
@@ -32,7 +28,7 @@ app.use(
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  }),
+  })
 );
 
 app.get("/", (c) => {
@@ -54,7 +50,7 @@ serve(
     fetch: app.fetch,
     port,
   },
-  () => {},
+  () => {}
 ).on("error", (error) => {
   console.error(`[Hono API] Failed to start server:`, error);
   process.exit(1);
