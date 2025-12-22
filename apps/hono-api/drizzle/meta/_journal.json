@@ -29,6 +29,13 @@
       "when": 1766111512002,
       "tag": "0006_update_schema_remove_settings_rename_subdomain_to_domain_add_super_admin_role",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766263066856,
+      "tag": "0007_add_account_lifecycle_status",
+      "breakpoints": true
     }
   ]
 }

@@ -6,3 +6,4 @@ export * from "./account";
 export * from "./verification";
 export * from "./member";
 export * from "./invitation";
+export * from "./enums/statusEnum";
