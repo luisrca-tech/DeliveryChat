@@ -34,3 +34,10 @@ export function getSubdomainUrl(path: string): string {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${origin}${cleanPath}`;
 }
+
+export function getWebAppUrl(): string {
+  if (isDevelopment()) {
+    return "http://localhost:3002";
+  }
+  return "https://delivery-chat-admin.vercel.app";
+}
