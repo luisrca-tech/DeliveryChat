@@ -34,7 +34,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
 
   const [emailFromUrl] = useQueryState(
     "email",
-    parseAsString.withDefault(initialEmail || "")
+    parseAsString.withDefault(initialEmail || ""),
   );
 
   const formEmail = emailFromUrl || initialEmail || "";

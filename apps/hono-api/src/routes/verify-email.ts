@@ -30,7 +30,7 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.NOT_FOUND,
           ERROR_MESSAGES.NOT_FOUND,
-          "User not found"
+          "User not found",
         );
       }
 
@@ -39,7 +39,7 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.BAD_REQUEST,
           ERROR_MESSAGES.BAD_REQUEST,
-          "Email already verified or invalid status"
+          "Email already verified or invalid status",
         );
       }
 
@@ -68,7 +68,7 @@ export const verifyEmailRoute = new Hono().post(
             c,
             mapToHttpStatus(verifyResponse.status),
             "Verification failed",
-            errorData.message || "Invalid OTP code"
+            errorData.message || "Invalid OTP code",
           );
         }
       } catch (error) {
@@ -77,14 +77,14 @@ export const verifyEmailRoute = new Hono().post(
             c,
             mapToHttpStatus(error.status),
             "Verification failed",
-            error.message
+            error.message,
           );
         }
         return jsonError(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          error instanceof Error ? error.message : "Unknown error"
+          error instanceof Error ? error.message : "Unknown error",
         );
       }
 
@@ -100,7 +100,7 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "Organization membership not found"
+          "Organization membership not found",
         );
       }
 
@@ -116,7 +116,7 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "Organization not found"
+          "Organization not found",
         );
       }
 
@@ -150,8 +150,8 @@ export const verifyEmailRoute = new Hono().post(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
-  }
+  },
 );

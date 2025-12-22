@@ -82,6 +82,7 @@ Even if a user belongs to multiple organizations, **the subdomain determines whi
 ### 3) Centralized account lifecycle logic
 
 All status-based business rules are in `apps/hono-api/src/lib/accountLifecycle.ts`:
+
 - Prevents status checks scattered across codebase
 - Single source of truth for signup/login/slug-reuse rules
 - Easy to test and maintain
@@ -98,12 +99,14 @@ All status-based business rules are in `apps/hono-api/src/lib/accountLifecycle.t
 ### 5) Custom Drizzle types for Better Auth compatibility
 
 Better Auth uses `boolean` for `emailVerified`, but we store timestamps in PostgreSQL:
+
 - `emailVerifiedTimestamp` custom type converts `true` → current timestamp, `false` → null
 - Allows querying "when was email verified" while staying compatible with Better Auth
 
 ### 6) Password reset with dynamic URLs
 
 Reset emails contain subdomain-specific URLs:
+
 - System looks up user's organization
 - Generates URL like `https://{subdomain}.deliverychat.com/reset-password?token={token}`
 - User stays in their tenant context during password reset
@@ -120,6 +123,7 @@ The stable approach is to keep auth requests and cookies aligned with the hostna
 ### 9) Role conversion from owner to super_admin
 
 Better Auth automatically assigns `owner` role to organization creators, but we use `super_admin` internally:
+
 - Organization hooks convert `owner` → `super_admin` automatically
 - Keeps naming consistent with our role hierarchy
 - No manual role assignment needed for first user
@@ -210,13 +214,14 @@ To add new status-based behavior:
 4. **Update E2E tests** in `scripts/test-cleanup.ts`
 
 **Example**: Adding a "SUSPENDED" status for manually suspended accounts:
+
 ```typescript
 // Add to statusEnum
 export const statusEnum = pgEnum("status", [
   "PENDING_VERIFICATION",
   "EXPIRED",
   "ACTIVE",
-  "SUSPENDED",  // New
+  "SUSPENDED", // New
   "DELETED",
 ]);
 
@@ -225,7 +230,7 @@ const LOGIN_OUTCOME_MAP: Record<UserStatus, LoginOutcome> = {
   ACTIVE: "ALLOW",
   PENDING_VERIFICATION: "REJECT_EMAIL_NOT_VERIFIED",
   EXPIRED: "REJECT_SIGNUP_EXPIRED",
-  SUSPENDED: "REJECT_ACCOUNT_SUSPENDED",  // New
+  SUSPENDED: "REJECT_ACCOUNT_SUSPENDED", // New
   DELETED: "REJECT_INVALID_CREDENTIALS",
 };
 ```
@@ -233,6 +238,7 @@ const LOGIN_OUTCOME_MAP: Record<UserStatus, LoginOutcome> = {
 ### Email templates
 
 To customize email templates:
+
 - Edit `apps/hono-api/src/lib/email.ts`
 - Update `sendVerificationOTPEmail()` for OTP emails
 - Update `sendResetPasswordEmail()` for password reset emails
@@ -240,6 +246,7 @@ To customize email templates:
 ### Cleanup job schedule
 
 To adjust cleanup timing:
+
 - Edit constants in `apps/hono-api/src/jobs/cleanupPendingAccounts.ts`
 - Update `sevenDaysAgo` constant for pending expiration
 - Update `ninetyDaysAgo` constant for deletion retention
@@ -323,7 +330,10 @@ if (outcome !== "ALLOW") {
 ```typescript
 import { resolveSignupAction } from "@/lib/accountLifecycle";
 
-const action = resolveSignupAction(existingUser, existingUser?.pendingExpiresAt);
+const action = resolveSignupAction(
+  existingUser,
+  existingUser?.pendingExpiresAt,
+);
 if (action === "REJECT") {
   return error("Email already in use");
 } else if (action === "RESEND_OTP") {

@@ -41,17 +41,20 @@ The system implements a comprehensive account lifecycle with the following statu
 All lifecycle business logic is centralized in `apps/hono-api/src/lib/accountLifecycle.ts`:
 
 **Signup Actions**:
+
 - `ACTIVE` user → `REJECT` (email already in use)
 - `PENDING_VERIFICATION` user → `RESEND_OTP` (allow resending verification code)
 - `EXPIRED` or `DELETED` user → `ALLOW_NEW` (can recreate account)
 
 **Login Outcomes**:
+
 - `ACTIVE` → `ALLOW` (can login)
 - `PENDING_VERIFICATION` → `REJECT_EMAIL_NOT_VERIFIED`
 - `EXPIRED` → `REJECT_SIGNUP_EXPIRED`
 - `DELETED` → `REJECT_INVALID_CREDENTIALS`
 
 **Organization Slug Reuse**:
+
 - Only `EXPIRED` organizations can have their slug reused
 - `ACTIVE` and `PENDING_VERIFICATION` slugs are protected
 
@@ -69,6 +72,7 @@ Two automated cleanup functions maintain account hygiene:
    - Allows email/slug reuse for new registrations
 
 **Manual Execution**:
+
 ```bash
 npm run test:cleanup  # E2E test script that validates cleanup logic
 ```
@@ -78,6 +82,7 @@ npm run test:cleanup  # E2E test script that validates cleanup logic
 Better Auth is configured with the `emailOTP` plugin for email verification:
 
 #### Flow
+
 1. User registers via `/api/register`
 2. System sends 6-digit OTP code via Resend email service
 3. User enters code on verification page
@@ -107,12 +112,12 @@ Better Auth is configured with the `emailOTP` plugin for email verification:
 plugins: [
   emailOTP({
     overrideDefaultEmailVerification: true,
-    sendVerificationOnSignUp: false,  // Manual control
+    sendVerificationOnSignUp: false, // Manual control
     async sendVerificationOTP({ email, otp, type }) {
       await sendVerificationOTPEmail({ email, otp });
     },
   }),
-]
+];
 ```
 
 ### 1.5 Password Reset
@@ -120,6 +125,7 @@ plugins: [
 Password reset is handled by Better Auth's `emailAndPassword` plugin with dynamic URL generation:
 
 #### Flow
+
 1. User requests reset via `/forgot-password`
 2. System generates token and sends email with reset link
 3. Link points to user's organization subdomain: `https://{subdomain}.deliverychat.com/reset-password?token={token}`
@@ -142,6 +148,7 @@ emailAndPassword: {
 ```
 
 The `getUserAdminUrl()` function:
+
 - Looks up user's organization via `member` table
 - Returns subdomain-specific URL
 - Falls back to default admin URL if no organization found
@@ -259,36 +266,30 @@ export const auth = betterAuth({
   - Add lifecycle fields: `status`, `pendingExpiresAt`, `expiredAt` to `user` and `organization`.
   - Add custom types: `emailVerifiedTimestamp`, `timestampString`, `timestampStringNullable`.
   - _Migration_: Map existing `tenants` to `organization` table.
-  
 - **Auth Config (`src/lib/auth.ts`)**:
   - Initialize `betterAuth` with `drizzleAdapter`.
-  - **Plugins**: 
+  - **Plugins**:
     - Enable `emailOTP()` for email verification with custom sender.
     - Enable `organization()` with access control system and role conversion hooks.
     - Enable `emailAndPassword()` with dynamic password reset URLs.
   - **Cookie Config**: Set `advanced.cookie.domain` to allow cross-subdomain access.
   - **API**: Mount auth routes at `/api/auth/*`.
-  
 - **Permissions (`src/lib/permissions.ts`)**:
   - Create access control instance with `createAccessControl`.
   - Define custom roles: `super_admin`, `admin`, `operator`.
   - Export access control instance and roles for use in auth config.
-  
 - **Account Lifecycle (`src/lib/accountLifecycle.ts`)**:
   - Centralize all status-based business logic.
   - Define signup actions, login outcomes, and slug reuse rules.
   - Export helper functions for status resolution.
-  
 - **Email Service (`src/lib/email.ts`)**:
   - Implement `sendVerificationOTPEmail()` for email verification.
   - Implement `sendResetPasswordEmail()` for password reset.
   - Use Resend API with configurable sender.
-  
 - **Cleanup Jobs (`src/jobs/cleanupPendingAccounts.ts`)**:
   - Implement `expirePendingAccounts()` - marks pending as expired after 7 days.
   - Implement `deleteExpiredAccounts()` - deletes expired after 90 days.
   - Add E2E test script in `scripts/test-cleanup.ts`.
-  
 - **Custom Routes**:
   - `/api/register` - Custom registration with OTP sending.
   - `/api/verify-email` - Custom email verification with status updates.
@@ -304,13 +305,11 @@ export const auth = betterAuth({
   - Inputs: User Name, Email, Password, Company Name (Org Name), Subdomain (Org Slug).
   - Action: Call `/api/register` which creates user, organization, and sends OTP.
   - Redirect: To email verification page with email pre-filled.
-  
 - **Email Verification Form**:
   - Input: 6-digit OTP code.
   - Action: Call `/api/verify-email` to validate OTP.
   - On success: Updates user and org status to `ACTIVE`.
   - Redirect: To `http://<slug>.domain.com/admin` (tenant subdomain).
-  
 - **Resend OTP**:
   - Button to call `/api/resend-otp`.
   - Only enabled if pending verification period not expired.
@@ -344,7 +343,7 @@ export const auth = betterAuth({
 
 ## 4. Execution Order
 
-1.  **Backend**: 
+1.  **Backend**:
     - Install deps (`better-auth`, `resend`).
     - Update database schema with lifecycle fields and custom types.
     - Configure Better Auth with plugins (emailOTP, organization, emailAndPassword).
@@ -352,14 +351,12 @@ export const auth = betterAuth({
     - Implement email service with Resend.
     - Create custom auth routes (register, verify-email, resend-otp).
     - Implement cleanup jobs.
-    
-2.  **Web**: 
+2.  **Web**:
     - Implement Sign Up form with org creation.
     - Implement Email Verification form with OTP input.
     - Implement Resend OTP functionality.
     - Redirect to tenant subdomain after verification.
-    
-3.  **Admin**: 
+3.  **Admin**:
     - Implement Login with status validation.
     - Implement Forgot Password flow.
     - Implement Reset Password flow with dynamic URLs.
@@ -394,12 +391,14 @@ export const auth = betterAuth({
 ### Automated Testing
 
 Run cleanup job E2E test:
+
 ```bash
 cd apps/hono-api
 npm run test:cleanup
 ```
 
 This validates:
+
 - Pending accounts expire after 7 days.
 - Expired accounts delete after 90 days.
 - Control accounts remain unchanged.
@@ -410,18 +409,21 @@ This validates:
 ### Cleanup Jobs
 
 Currently, cleanup jobs must be run manually:
+
 ```bash
 cd apps/hono-api
 infisical run --path=/hono-api -- tsx src/jobs/cleanupPendingAccounts.ts
 ```
 
 **Recommended Schedule** (future implementation with Render Cron Jobs or GitHub Actions):
+
 - **Expire**: Weekly (every Sunday at 2 AM UTC)
 - **Delete**: Bi-weekly (every other Sunday at 3 AM UTC)
 
 ### Monitoring
 
 Monitor the following:
+
 - Email delivery rates (Resend dashboard).
 - Account lifecycle transitions (DB queries).
 - Cleanup job execution logs.

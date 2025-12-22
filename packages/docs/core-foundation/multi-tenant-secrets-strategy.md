@@ -481,16 +481,19 @@ Currently, the application uses a single Resend account for all email sending:
 If you need tenants to send emails from their own domains:
 
 **Option 1**: Multiple Resend API keys (one per tenant)
+
 - Store tenant's `RESEND_API_KEY` in database (encrypted) or Infisical folder
 - Initialize Resend client per-request based on tenant
 - Each tenant verifies their domain in Resend
 
 **Option 2**: SMTP per tenant
+
 - Store SMTP credentials (host, port, username, password) encrypted in DB
 - Use nodemailer or similar with tenant-specific config
 - Tenants use their own email infrastructure
 
 **Option 3**: SendGrid per tenant (similar to Resend)
+
 - Store SendGrid API keys per tenant
 - Tenants verify domains in their SendGrid accounts
 

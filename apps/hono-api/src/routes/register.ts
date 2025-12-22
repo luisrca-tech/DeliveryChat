@@ -41,7 +41,7 @@ export const registerRoute = new Hono().post(
 
       const signupAction = resolveSignupAction(
         existingUser,
-        existingUser?.pendingExpiresAt ?? null
+        existingUser?.pendingExpiresAt ?? null,
       );
 
       if (signupAction === "REJECT") {
@@ -49,7 +49,7 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.CONFLICT,
           ERROR_MESSAGES.CONFLICT,
-          "Email already in use"
+          "Email already in use",
         );
       }
 
@@ -61,8 +61,8 @@ export const registerRoute = new Hono().post(
             .where(
               and(
                 eq(member.organizationId, existingOrg.id),
-                eq(member.userId, existingUser.id)
-              )
+                eq(member.userId, existingUser.id),
+              ),
             )
             .limit(1);
 
@@ -73,7 +73,7 @@ export const registerRoute = new Hono().post(
                 c,
                 HTTP_STATUS.CONFLICT,
                 ERROR_MESSAGES.CONFLICT,
-                "Subdomain already in use"
+                "Subdomain already in use",
               );
             }
           }
@@ -98,7 +98,7 @@ export const registerRoute = new Hono().post(
             c,
             HTTP_STATUS.INTERNAL_SERVER_ERROR,
             ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-            "Failed to resend verification code"
+            "Failed to resend verification code",
           );
         }
       }
@@ -109,7 +109,7 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.CONFLICT,
           ERROR_MESSAGES.CONFLICT,
-          "Subdomain already in use"
+          "Subdomain already in use",
         );
       }
 
@@ -137,7 +137,7 @@ export const registerRoute = new Hono().post(
             c,
             mapToHttpStatus(error.status),
             "Failed to create account",
-            error.message
+            error.message,
           );
         }
         throw error;
@@ -148,7 +148,7 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "User creation failed"
+          "User creation failed",
         );
       }
 
@@ -197,7 +197,7 @@ export const registerRoute = new Hono().post(
         } catch (error) {
           console.error(
             "[Register] Failed to delete account and session:",
-            error
+            error,
           );
         }
 
@@ -206,7 +206,7 @@ export const registerRoute = new Hono().post(
             c,
             mapToHttpStatus(error.status),
             "Failed to create organization",
-            error.message
+            error.message,
           );
         }
         throw error;
@@ -226,7 +226,7 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "Failed to send verification code"
+          "Failed to send verification code",
         );
       }
 
@@ -240,8 +240,8 @@ export const registerRoute = new Hono().post(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
-  }
+  },
 );

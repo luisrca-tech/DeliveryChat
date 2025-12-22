@@ -159,7 +159,7 @@ async function createTestData() {
     updatedAt: now,
   });
   console.log(
-    `[Test] Created control user (should not expire): ${TEST_EMAIL_CONTROL}`
+    `[Test] Created control user (should not expire): ${TEST_EMAIL_CONTROL}`,
   );
 
   await db.insert(user).values({
@@ -206,7 +206,7 @@ async function createTestData() {
     updatedAt: now,
   });
   console.log(
-    `[Test] Created control organization (should not expire): ${TEST_ORG_CONTROL_ID}`
+    `[Test] Created control organization (should not expire): ${TEST_ORG_CONTROL_ID}`,
   );
 
   console.log("[Test] Test data created successfully");
@@ -228,12 +228,12 @@ async function verifyResults() {
     allPassed = false;
   } else if (expiredUser[0].status !== "EXPIRED") {
     console.error(
-      `[Test] ❌ FAILED: User ${TEST_USER_EXPIRE_ID} status is ${expiredUser[0].status}, expected EXPIRED`
+      `[Test] ❌ FAILED: User ${TEST_USER_EXPIRE_ID} status is ${expiredUser[0].status}, expected EXPIRED`,
     );
     allPassed = false;
   } else {
     console.log(
-      `[Test] ✅ PASSED: User ${TEST_USER_EXPIRE_ID} correctly expired`
+      `[Test] ✅ PASSED: User ${TEST_USER_EXPIRE_ID} correctly expired`,
     );
   }
 
@@ -245,12 +245,12 @@ async function verifyResults() {
 
   if (deletedUser.length > 0) {
     console.error(
-      `[Test] ❌ FAILED: User ${TEST_USER_DELETE_ID} still exists, should have been deleted`
+      `[Test] ❌ FAILED: User ${TEST_USER_DELETE_ID} still exists, should have been deleted`,
     );
     allPassed = false;
   } else {
     console.log(
-      `[Test] ✅ PASSED: User ${TEST_USER_DELETE_ID} correctly deleted`
+      `[Test] ✅ PASSED: User ${TEST_USER_DELETE_ID} correctly deleted`,
     );
   }
 
@@ -262,17 +262,17 @@ async function verifyResults() {
 
   if (controlUser.length === 0) {
     console.error(
-      `[Test] ❌ FAILED: Control user ${TEST_USER_CONTROL_ID} not found`
+      `[Test] ❌ FAILED: Control user ${TEST_USER_CONTROL_ID} not found`,
     );
     allPassed = false;
   } else if (controlUser[0].status !== "PENDING_VERIFICATION") {
     console.error(
-      `[Test] ❌ FAILED: Control user status is ${controlUser[0].status}, expected PENDING_VERIFICATION`
+      `[Test] ❌ FAILED: Control user status is ${controlUser[0].status}, expected PENDING_VERIFICATION`,
     );
     allPassed = false;
   } else {
     console.log(
-      `[Test] ✅ PASSED: Control user ${TEST_USER_CONTROL_ID} correctly unchanged`
+      `[Test] ✅ PASSED: Control user ${TEST_USER_CONTROL_ID} correctly unchanged`,
     );
   }
 
@@ -284,17 +284,17 @@ async function verifyResults() {
 
   if (expiredOrg.length === 0) {
     console.error(
-      `[Test] ❌ FAILED: Organization ${TEST_ORG_EXPIRE_ID} not found`
+      `[Test] ❌ FAILED: Organization ${TEST_ORG_EXPIRE_ID} not found`,
     );
     allPassed = false;
   } else if (expiredOrg[0].status !== "EXPIRED") {
     console.error(
-      `[Test] ❌ FAILED: Organization ${TEST_ORG_EXPIRE_ID} status is ${expiredOrg[0].status}, expected EXPIRED`
+      `[Test] ❌ FAILED: Organization ${TEST_ORG_EXPIRE_ID} status is ${expiredOrg[0].status}, expected EXPIRED`,
     );
     allPassed = false;
   } else {
     console.log(
-      `[Test] ✅ PASSED: Organization ${TEST_ORG_EXPIRE_ID} correctly expired`
+      `[Test] ✅ PASSED: Organization ${TEST_ORG_EXPIRE_ID} correctly expired`,
     );
   }
 
@@ -306,12 +306,12 @@ async function verifyResults() {
 
   if (deletedOrg.length > 0) {
     console.error(
-      `[Test] ❌ FAILED: Organization ${TEST_ORG_DELETE_ID} still exists, should have been deleted`
+      `[Test] ❌ FAILED: Organization ${TEST_ORG_DELETE_ID} still exists, should have been deleted`,
     );
     allPassed = false;
   } else {
     console.log(
-      `[Test] ✅ PASSED: Organization ${TEST_ORG_DELETE_ID} correctly deleted`
+      `[Test] ✅ PASSED: Organization ${TEST_ORG_DELETE_ID} correctly deleted`,
     );
   }
 
@@ -323,17 +323,17 @@ async function verifyResults() {
 
   if (controlOrg.length === 0) {
     console.error(
-      `[Test] ❌ FAILED: Control organization ${TEST_ORG_CONTROL_ID} not found`
+      `[Test] ❌ FAILED: Control organization ${TEST_ORG_CONTROL_ID} not found`,
     );
     allPassed = false;
   } else if (controlOrg[0].status !== "PENDING_VERIFICATION") {
     console.error(
-      `[Test] ❌ FAILED: Control organization status is ${controlOrg[0].status}, expected PENDING_VERIFICATION`
+      `[Test] ❌ FAILED: Control organization status is ${controlOrg[0].status}, expected PENDING_VERIFICATION`,
     );
     allPassed = false;
   } else {
     console.log(
-      `[Test] ✅ PASSED: Control organization ${TEST_ORG_CONTROL_ID} correctly unchanged`
+      `[Test] ✅ PASSED: Control organization ${TEST_ORG_CONTROL_ID} correctly unchanged`,
     );
   }
 
@@ -351,7 +351,7 @@ async function testUserRecreation() {
 
   if (deletedUser.length > 0) {
     console.log(
-      `[Test] User ${TEST_USER_RECREATE_ID} still exists, deleting first...`
+      `[Test] User ${TEST_USER_RECREATE_ID} still exists, deleting first...`,
     );
     await db.delete(user).where(eq(user.id, TEST_USER_RECREATE_ID));
   }
@@ -368,13 +368,13 @@ async function testUserRecreation() {
     });
 
     console.log(
-      `[Test] ✅ PASSED: Successfully recreated user with email ${TEST_EMAIL_RECREATE}`
+      `[Test] ✅ PASSED: Successfully recreated user with email ${TEST_EMAIL_RECREATE}`,
     );
     return true;
   } catch (error) {
     console.error(
       `[Test] ❌ FAILED: Could not recreate user with email ${TEST_EMAIL_RECREATE}:`,
-      error
+      error,
     );
     return false;
   }
@@ -411,7 +411,7 @@ async function main() {
     console.log("Test Summary");
     console.log("=".repeat(60));
     console.log(
-      `Verification: ${verificationPassed ? "✅ PASSED" : "❌ FAILED"}`
+      `Verification: ${verificationPassed ? "✅ PASSED" : "❌ FAILED"}`,
     );
     console.log(`Recreation: ${recreationPassed ? "✅ PASSED" : "❌ FAILED"}`);
 

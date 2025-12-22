@@ -28,7 +28,7 @@ export const resendOtpRoute = new Hono().post(
           c,
           HTTP_STATUS.NOT_FOUND,
           ERROR_MESSAGES.NOT_FOUND,
-          "User not found"
+          "User not found",
         );
       }
 
@@ -37,7 +37,7 @@ export const resendOtpRoute = new Hono().post(
           c,
           HTTP_STATUS.BAD_REQUEST,
           ERROR_MESSAGES.BAD_REQUEST,
-          "User is not in pending verification status"
+          "User is not in pending verification status",
         );
       }
 
@@ -46,7 +46,7 @@ export const resendOtpRoute = new Hono().post(
           c,
           HTTP_STATUS.BAD_REQUEST,
           ERROR_MESSAGES.BAD_REQUEST,
-          "Verification period has expired"
+          "Verification period has expired",
         );
       }
 
@@ -58,7 +58,7 @@ export const resendOtpRoute = new Hono().post(
           c,
           HTTP_STATUS.BAD_REQUEST,
           ERROR_MESSAGES.BAD_REQUEST,
-          "Verification period has expired"
+          "Verification period has expired",
         );
       }
 
@@ -82,7 +82,7 @@ export const resendOtpRoute = new Hono().post(
             c,
             mapToHttpStatus(error.status),
             "Failed to resend verification code",
-            error.message
+            error.message,
           );
         }
         throw error;
@@ -97,8 +97,8 @@ export const resendOtpRoute = new Hono().post(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        error instanceof Error ? error.message : "Unknown error"
+        error instanceof Error ? error.message : "Unknown error",
       );
     }
-  }
+  },
 );
