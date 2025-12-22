@@ -1,3 +1,5 @@
+import { env } from "../env.js";
+
 export function isDevelopment(): boolean {
   if (typeof window === "undefined") return false;
 
@@ -20,8 +22,5 @@ export function getApiUrl(): string {
   if (isDevelopment()) {
     return "http://localhost:8000";
   }
-  return (
-    import.meta.env.PUBLIC_API_URL?.replace(/\/+$/, "") ||
-    "http://localhost:8000"
-  );
+  return env.PUBLIC_API_URL.replace(/\/+$/, "");
 }
