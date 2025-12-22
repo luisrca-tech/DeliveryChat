@@ -1,3 +1,5 @@
+import { env } from "../env.js";
+
 export function isDevelopment(): boolean {
   if (typeof window === "undefined") return false;
 
@@ -39,5 +41,5 @@ export function getWebAppUrl(): string {
   if (isDevelopment()) {
     return "http://localhost:3002";
   }
-  return "https://delivery-chat-admin.vercel.app";
+  return env.VITE_WEB_APP_URL;
 }

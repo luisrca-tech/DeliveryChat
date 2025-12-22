@@ -27,7 +27,7 @@ async function getUserAdminUrl(userId: string): Promise<string> {
     if (members.length === 0) {
       return env.NODE_ENV === "development"
         ? "http://localhost:3000"
-        : "https://delivery-chat-admin.vercel.app";
+        : env.ADMIN_BASE_URL;
     }
 
     const userMember = members[0];
@@ -41,7 +41,7 @@ async function getUserAdminUrl(userId: string): Promise<string> {
     if (orgs.length === 0 || !orgs[0]?.slug) {
       return env.NODE_ENV === "development"
         ? "http://localhost:3000"
-        : "https://delivery-chat-admin.vercel.app";
+        : env.ADMIN_BASE_URL;
     }
 
     const org = orgs[0];
@@ -56,7 +56,7 @@ async function getUserAdminUrl(userId: string): Promise<string> {
     console.error("[Auth] Error building admin URL:", error);
     return env.NODE_ENV === "development"
       ? "http://localhost:3000"
-      : "https://delivery-chat-admin.vercel.app";
+      : env.ADMIN_BASE_URL;
   }
 }
 
