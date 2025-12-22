@@ -51,7 +51,11 @@ async function getUserAdminUrl(userId: string): Promise<string> {
       return `http://${subdomain}.localhost:3000`;
     }
 
-    return `https://${subdomain}.deliverychat.com`;
+    if (env.TENANT_DOMAIN) {
+      return `https://${subdomain}.${env.TENANT_DOMAIN}`;
+    }
+
+    return env.ADMIN_BASE_URL;
   } catch (error) {
     console.error("[Auth] Error building admin URL:", error);
     return env.NODE_ENV === "development"

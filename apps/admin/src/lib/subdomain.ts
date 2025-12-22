@@ -1,3 +1,5 @@
+import { env } from "../env.js";
+
 export function getSubdomain(): string | null {
   if (typeof window === "undefined") return null;
 
@@ -10,7 +12,10 @@ export function getSubdomain(): string | null {
     return parts.length > 1 ? (parts[0] ?? null) : null;
   }
 
-  if (hostname.endsWith(".deliverychat.com")) {
+  if (
+    env.VITE_TENANT_DOMAIN &&
+    hostname.endsWith(`.${env.VITE_TENANT_DOMAIN}`)
+  ) {
     const parts = hostname.split(".");
     return parts.length > 2 ? (parts[0] ?? null) : null;
   }
