@@ -1,4 +1,4 @@
-import { index, jsonb, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { index, jsonb, text, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { tenantPlanEnum } from "./enums/tenantPlanEnum";
@@ -26,12 +26,6 @@ export const organization = createTable(
       .notNull(),
   },
   (table) => ({
-    slugIdx: uniqueIndex("organization_slug_unique").on(table.slug),
     slugLookupIdx: index("organization_slug_idx").on(table.slug),
-  }),
+  })
 );
-
-// TODO: Add partial unique index for slug uniqueness
-// CREATE UNIQUE INDEX organization_slug_unique_active
-// ON organization(slug)
-// WHERE status IN ('ACTIVE', 'PENDING_VERIFICATION');

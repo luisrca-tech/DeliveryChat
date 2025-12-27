@@ -11,7 +11,7 @@ import { statusEnum } from "./enums/statusEnum";
 export const user = createTable("user", {
   id: text("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).notNull().unique(),
+  email: varchar("email", { length: 255 }).notNull(),
   emailVerified: emailVerifiedTimestamp("email_verified"),
   image: varchar("image", { length: 500 }),
   status: statusEnum("status").notNull().default("PENDING_VERIFICATION"),
@@ -24,8 +24,3 @@ export const user = createTable("user", {
     .default(sql`now()`)
     .notNull(),
 });
-
-// TODO: Add partial unique index for email uniqueness
-// CREATE UNIQUE INDEX users_email_unique_active
-// ON users(email)
-// WHERE status IN ('ACTIVE', 'PENDING_VERIFICATION');

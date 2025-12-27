@@ -41,7 +41,7 @@ export const registerRoute = new Hono().post(
 
       const signupAction = resolveSignupAction(
         existingUser,
-        existingUser?.pendingExpiresAt ?? null,
+        existingUser?.pendingExpiresAt ?? null
       );
 
       if (signupAction === "REJECT") {
@@ -49,7 +49,7 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.CONFLICT,
           ERROR_MESSAGES.CONFLICT,
-          "Email already in use",
+          "Email already in use"
         );
       }
 
@@ -61,8 +61,8 @@ export const registerRoute = new Hono().post(
             .where(
               and(
                 eq(member.organizationId, existingOrg.id),
-                eq(member.userId, existingUser.id),
-              ),
+                eq(member.userId, existingUser.id)
+              )
             )
             .limit(1);
 
@@ -73,7 +73,7 @@ export const registerRoute = new Hono().post(
                 c,
                 HTTP_STATUS.CONFLICT,
                 ERROR_MESSAGES.CONFLICT,
-                "Subdomain already in use",
+                "Subdomain already in use"
               );
             }
           }
@@ -98,7 +98,7 @@ export const registerRoute = new Hono().post(
             c,
             HTTP_STATUS.INTERNAL_SERVER_ERROR,
             ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-            "Failed to resend verification code",
+            "Failed to resend verification code"
           );
         }
       }
@@ -109,107 +109,208 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.CONFLICT,
           ERROR_MESSAGES.CONFLICT,
-          "Subdomain already in use",
+          "Subdomain already in use"
         );
       }
 
       const pendingExpiresAt = new Date();
       pendingExpiresAt.setDate(pendingExpiresAt.getDate() + 7);
 
-      let signUpResult;
+      const isReactivatingUser =
+        existingUser &&
+        (existingUser.status === "DELETED" ||
+          existingUser.status === "EXPIRED");
+
+      let userId: string;
       let signUpHeaders: Headers | undefined;
-      try {
-        const signUpResponse = await auth.api.signUpEmail({
-          body: {
-            email,
-            password,
+
+      if (isReactivatingUser) {
+        userId = existingUser.id;
+
+        await db
+          .update(user)
+          .set({
             name,
-          },
-          headers: c.req.raw.headers,
-          returnHeaders: true,
+            status: "PENDING_VERIFICATION",
+            pendingExpiresAt: pendingExpiresAt.toISOString(),
+            expiredAt: null,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(user.id, userId));
+
+        await db.transaction(async (tx) => {
+          await tx.delete(account).where(eq(account.userId, userId));
+          await tx.delete(session).where(eq(session.userId, userId));
         });
 
-        signUpResult = signUpResponse.response;
-        signUpHeaders = signUpResponse.headers;
-      } catch (error) {
-        if (error instanceof APIError) {
-          return jsonError(
-            c,
-            mapToHttpStatus(error.status),
-            "Failed to create account",
-            error.message,
-          );
-        }
-        throw error;
-      }
-
-      if (!signUpResult?.user?.id) {
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "User creation failed",
-        );
-      }
-
-      const userId = signUpResult.user.id;
-
-      await db
-        .update(user)
-        .set({
-          status: "PENDING_VERIFICATION",
-          pendingExpiresAt: pendingExpiresAt.toISOString(),
-        })
-        .where(eq(user.id, userId));
-
-      try {
-        const orgHeaders = new Headers(c.req.raw.headers);
-        if (signUpHeaders) {
-          const setCookie = signUpHeaders.get("set-cookie");
-          if (setCookie) {
-            orgHeaders.set("cookie", setCookie);
-          }
-        }
-
-        const orgResponse = await auth.api.createOrganization({
-          body: {
-            name: companyName,
-            slug: subdomain,
-          },
-          headers: orgHeaders,
-        });
-
-        if (orgResponse?.id) {
-          await db
-            .update(organization)
-            .set({
-              status: "PENDING_VERIFICATION",
-            })
-            .where(eq(organization.id, orgResponse?.id));
-        }
-      } catch (error) {
         try {
-          await db.transaction(async (tx) => {
-            await tx.delete(account).where(eq(account.userId, userId));
-            await tx.delete(session).where(eq(session.userId, userId));
-            await tx.delete(user).where(eq(user.id, userId));
+          const bcrypt = await import("bcrypt");
+          const hashedPassword = await bcrypt.default.hash(password, 10);
+
+          const accountId = `credential_${userId}`;
+          await db.insert(account).values({
+            id: accountId,
+            userId,
+            accountId: email,
+            providerId: "credential",
+            password: hashedPassword,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
           });
-        } catch (error) {
+        } catch (bcryptError) {
           console.error(
-            "[Register] Failed to delete account and session:",
-            error,
+            "[Register] Failed to hash password - bcrypt not available:",
+            bcryptError
+          );
+          return jsonError(
+            c,
+            HTTP_STATUS.INTERNAL_SERVER_ERROR,
+            ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+            "Password hashing failed. Please install bcrypt: bun add bcrypt @types/bcrypt"
           );
         }
 
-        if (error instanceof APIError) {
+        signUpHeaders = undefined;
+      } else {
+        let signUpResult;
+        try {
+          const signUpResponse = await auth.api.signUpEmail({
+            body: {
+              email,
+              password,
+              name,
+            },
+            headers: c.req.raw.headers,
+            returnHeaders: true,
+          });
+
+          signUpResult = signUpResponse.response;
+          signUpHeaders = signUpResponse.headers;
+        } catch (error) {
+          if (error instanceof APIError) {
+            return jsonError(
+              c,
+              mapToHttpStatus(error.status),
+              "Failed to create account",
+              error.message
+            );
+          }
+          throw error;
+        }
+
+        if (!signUpResult?.user?.id) {
           return jsonError(
             c,
-            mapToHttpStatus(error.status),
-            "Failed to create organization",
-            error.message,
+            HTTP_STATUS.INTERNAL_SERVER_ERROR,
+            ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+            "User creation failed"
           );
         }
-        throw error;
+
+        userId = signUpResult.user.id;
+      }
+
+      if (!isReactivatingUser) {
+        await db
+          .update(user)
+          .set({
+            status: "PENDING_VERIFICATION",
+            pendingExpiresAt: pendingExpiresAt.toISOString(),
+          })
+          .where(eq(user.id, userId));
+      }
+
+      const isReactivatingOrg =
+        existingOrg &&
+        (existingOrg.status === "DELETED" || existingOrg.status === "EXPIRED");
+
+      let orgId: string;
+
+      if (isReactivatingOrg) {
+        orgId = existingOrg.id;
+
+        await db
+          .update(organization)
+          .set({
+            name: companyName,
+            status: "PENDING_VERIFICATION",
+            expiredAt: null,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(organization.id, orgId));
+
+        const existingMembers = await db
+          .select()
+          .from(member)
+          .where(
+            and(eq(member.organizationId, orgId), eq(member.userId, userId))
+          )
+          .limit(1);
+
+        if (existingMembers.length === 0) {
+          const memberId = `member_${orgId}_${userId}`;
+          await db.insert(member).values({
+            id: memberId,
+            organizationId: orgId,
+            userId,
+            role: "super_admin",
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          });
+        }
+      } else {
+        try {
+          const orgHeaders = new Headers(c.req.raw.headers);
+          if (signUpHeaders) {
+            const setCookie = signUpHeaders.get("set-cookie");
+            if (setCookie) {
+              orgHeaders.set("cookie", setCookie);
+            }
+          }
+
+          const orgResponse = await auth.api.createOrganization({
+            body: {
+              name: companyName,
+              slug: subdomain,
+            },
+            headers: orgHeaders,
+          });
+
+          if (orgResponse?.id) {
+            orgId = orgResponse.id;
+            await db
+              .update(organization)
+              .set({
+                status: "PENDING_VERIFICATION",
+              })
+              .where(eq(organization.id, orgId));
+          } else {
+            throw new Error("Organization creation failed");
+          }
+        } catch (error) {
+          try {
+            await db.transaction(async (tx) => {
+              await tx.delete(account).where(eq(account.userId, userId));
+              await tx.delete(session).where(eq(session.userId, userId));
+              await tx.delete(user).where(eq(user.id, userId));
+            });
+          } catch (deleteError) {
+            console.error(
+              "[Register] Failed to delete account and session:",
+              deleteError
+            );
+          }
+
+          if (error instanceof APIError) {
+            return jsonError(
+              c,
+              mapToHttpStatus(error.status),
+              "Failed to create organization",
+              error.message
+            );
+          }
+          throw error;
+        }
       }
 
       try {
@@ -226,22 +327,28 @@ export const registerRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "Failed to send verification code",
+          "Failed to send verification code"
         );
       }
+
+      const userRecord = await db
+        .select()
+        .from(user)
+        .where(eq(user.id, userId))
+        .limit(1);
 
       return c.json({
         status: "OTP_SENT",
         success: true,
-        user: signUpResult.user,
+        user: userRecord[0] ?? { id: userId, email, name },
       });
     } catch (error) {
       return jsonError(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        error instanceof Error ? error.message : "Unknown error",
+        error instanceof Error ? error.message : "Unknown error"
       );
     }
-  },
+  }
 );

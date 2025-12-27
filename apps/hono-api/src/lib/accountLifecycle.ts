@@ -44,7 +44,7 @@ const SLUG_REUSE_MAP: Record<OrganizationStatus, boolean> = {
   ACTIVE: false,
   PENDING_VERIFICATION: false,
   EXPIRED: true,
-  DELETED: false,
+  DELETED: true,
 } as const;
 
 const ERROR_MESSAGE_MAP: Record<LoginOutcome, string> = {
@@ -57,7 +57,7 @@ const ERROR_MESSAGE_MAP: Record<LoginOutcome, string> = {
 
 export function resolveSignupAction(
   user: User | null,
-  pendingExpiresAt: string | null,
+  pendingExpiresAt: string | null
 ): SignupAction {
   if (!user) {
     return "ALLOW_NEW";

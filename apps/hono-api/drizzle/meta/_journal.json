@@ -36,6 +36,13 @@
       "when": 1766263066856,
       "tag": "0007_add_account_lifecycle_status",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1766873674862,
+      "tag": "0008_add_partial_unique_indexes",
+      "breakpoints": true
     }
   ]
 }
