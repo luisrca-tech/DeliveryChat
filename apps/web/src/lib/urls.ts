@@ -1,3 +1,5 @@
+import { env } from "../env.js";
+
 export function isDevelopment(): boolean {
   if (typeof window === "undefined") return false;
 
@@ -13,15 +15,22 @@ export function getAdminUrl(subdomain: string): string {
   if (isDevelopment()) {
     return `http://${subdomain}.localhost:3000`;
   }
-  return `https://${subdomain}.deliverychat.com`;
+
+  if (env.PUBLIC_TENANT_DOMAIN) {
+    return `https://${subdomain}.${env.PUBLIC_TENANT_DOMAIN}`;
+  }
+
+  const baseUrl = env.PUBLIC_ADMIN_BASE_URL.replace(/\/+$/, "");
+  if (baseUrl.includes("{subdomain}")) {
+    return baseUrl.replace("{subdomain}", subdomain);
+  }
+
+  return baseUrl;
 }
 
 export function getApiUrl(): string {
   if (isDevelopment()) {
     return "http://localhost:8000";
   }
-  return (
-    import.meta.env.PUBLIC_API_URL?.replace(/\/+$/, "") ||
-    "http://localhost:8000"
-  );
+  return env.PUBLIC_API_URL.replace(/\/+$/, "");
 }

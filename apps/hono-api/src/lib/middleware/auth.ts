@@ -3,8 +3,13 @@ import type { MiddlewareHandler } from "hono";
 import { auth } from "../../lib/auth.js";
 import { db } from "../../db/index.js";
 import { member } from "../../db/schema/member.js";
+import { user } from "../../db/schema/users.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 import { getHostSubdomain, resolveOrganizationBySubdomain } from "../tenant.js";
+import {
+  resolveLoginOutcome,
+  getStatusSpecificErrorMessage,
+} from "../accountLifecycle.js";
 
 type MembershipRow = typeof member.$inferSelect;
 
@@ -31,13 +36,41 @@ export function requireTenantAuth(): MiddlewareHandler {
       headers: c.req.raw.headers,
     })) as SessionWithUser | null;
 
-    const user = sessionResult?.user ?? sessionResult?.data?.user ?? null;
+    const sessionUser =
+      sessionResult?.user ?? sessionResult?.data?.user ?? null;
 
-    if (!user?.id) {
+    if (!sessionUser?.id) {
       return jsonError(
         c,
         HTTP_STATUS.UNAUTHORIZED,
         ERROR_MESSAGES.UNAUTHORIZED,
+      );
+    }
+
+    const users = await db
+      .select()
+      .from(user)
+      .where(eq(user.id, sessionUser.id))
+      .limit(1);
+    const dbUser = users[0];
+
+    if (!dbUser) {
+      return jsonError(
+        c,
+        HTTP_STATUS.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED,
+      );
+    }
+
+    const loginOutcome = resolveLoginOutcome(dbUser);
+
+    if (loginOutcome !== "ALLOW") {
+      const errorMessage = getStatusSpecificErrorMessage(loginOutcome);
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        ERROR_MESSAGES.FORBIDDEN,
+        errorMessage,
       );
     }
 
@@ -66,7 +99,12 @@ export function requireTenantAuth(): MiddlewareHandler {
     const memberships = await db
       .select()
       .from(member)
-      .where(and(eq(member.userId, user.id), eq(member.organizationId, org.id)))
+      .where(
+        and(
+          eq(member.userId, sessionUser.id),
+          eq(member.organizationId, org.id),
+        ),
+      )
       .limit(1);
 
     const membership = memberships[0];
@@ -81,7 +119,7 @@ export function requireTenantAuth(): MiddlewareHandler {
 
     c.set("auth", {
       session: sessionResult,
-      user,
+      user: sessionUser,
       organization: org,
       membership,
     } satisfies AuthContext);

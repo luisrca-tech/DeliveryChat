@@ -1,16 +1,68 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization } from "better-auth/plugins";
+import { organization, emailOTP } from "better-auth/plugins";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
+import { member } from "../db/schema/member.js";
+import { organization as organizationSchema } from "../db/schema/organization.js";
+import { eq } from "drizzle-orm";
 import { env } from "../env.js";
 import { ac, super_admin, admin, operator } from "./permissions.js";
 import { createTrustedOrigins } from "./auth/origins.js";
 import { getAuthBaseURL } from "./auth/baseUrl.js";
 import { getAdvancedOptions } from "./auth/advanced.js";
+import { sendVerificationOTPEmail, sendResetPasswordEmail } from "./email.js";
 
 const trustedOrigins = createTrustedOrigins();
 const baseURL = getAuthBaseURL(env);
+
+async function getUserAdminUrl(userId: string): Promise<string> {
+  try {
+    const members = await db
+      .select()
+      .from(member)
+      .where(eq(member.userId, userId))
+      .limit(1);
+
+    if (members.length === 0) {
+      return env.NODE_ENV === "development"
+        ? "http://localhost:3000"
+        : env.ADMIN_BASE_URL;
+    }
+
+    const userMember = members[0];
+
+    const orgs = await db
+      .select()
+      .from(organizationSchema)
+      .where(eq(organizationSchema.id, userMember?.organizationId || ""))
+      .limit(1);
+
+    if (orgs.length === 0 || !orgs[0]?.slug) {
+      return env.NODE_ENV === "development"
+        ? "http://localhost:3000"
+        : env.ADMIN_BASE_URL;
+    }
+
+    const org = orgs[0];
+    const subdomain = org.slug;
+
+    if (env.NODE_ENV === "development") {
+      return `http://${subdomain}.localhost:3000`;
+    }
+
+    if (env.TENANT_DOMAIN) {
+      return `https://${subdomain}.${env.TENANT_DOMAIN}`;
+    }
+
+    return env.ADMIN_BASE_URL;
+  } catch (error) {
+    console.error("[Auth] Error building admin URL:", error);
+    return env.NODE_ENV === "development"
+      ? "http://localhost:3000"
+      : env.ADMIN_BASE_URL;
+  }
+}
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -28,8 +80,40 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
+    async sendResetPassword({ user, token }) {
+      try {
+        const adminBaseUrl = await getUserAdminUrl(user.id);
+        const resetUrl = `${adminBaseUrl}/reset-password?token=${token}`;
+
+        await sendResetPasswordEmail({
+          email: user.email,
+          url: resetUrl,
+          userName: user.name || undefined,
+        });
+      } catch (error) {
+        console.error("[Auth] Failed to send reset password email:", error);
+        throw error;
+      }
+    },
+    async onPasswordReset({ user }) {
+      console.info("[Auth] Password reset successfully for user:", user.email);
+    },
   },
   plugins: [
+    emailOTP({
+      overrideDefaultEmailVerification: true,
+      sendVerificationOnSignUp: false,
+      async sendVerificationOTP({ email, otp, type }) {
+        if (type === "email-verification") {
+          try {
+            await sendVerificationOTPEmail({ email, otp });
+          } catch (error) {
+            console.error("[Auth] Failed to send OTP email:", error);
+            throw error;
+          }
+        }
+      },
+    }),
     organization({
       ac,
       roles: {

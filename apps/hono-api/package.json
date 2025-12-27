@@ -32,7 +32,8 @@
     "db:seed": "infisical run --path=/hono-api -- bun run src/db/seeds/index.ts",
     "db:push": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit push",
     "db:studio": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit studio",
-    "db:drop": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop"
+    "db:drop": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop",
+    "test:cleanup": "infisical run --path=/hono-api -- tsx scripts/test-cleanup.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
@@ -40,17 +41,20 @@
     "@repo/types": "*",
     "@repo/ui": "*",
     "@t3-oss/env-core": "^0.13.8",
+    "bcrypt": "^6.0.0",
     "better-auth": "^1.4.7",
     "dotenv": "^17.2.3",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.6",
     "pg": "^8.16.3",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "resend": "^6.6.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.1.0",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
+    "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.11.17",
     "@types/pg": "^8.15.6",
     "drizzle-kit": "^0.31.7",

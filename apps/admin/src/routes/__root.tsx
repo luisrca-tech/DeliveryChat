@@ -24,9 +24,14 @@ export const Route = createRootRoute({
   }),
 
   notFoundComponent: () => {
-    const searchParams = new URLSearchParams(window.location.search);
-    const error = searchParams.get("error");
-    const message = searchParams.get("message");
+    let error: string | null = null;
+    let message: string | null = null;
+
+    if (typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search);
+      error = searchParams.get("error");
+      message = searchParams.get("message");
+    }
 
     if (error === "subdomain_required") {
       return (

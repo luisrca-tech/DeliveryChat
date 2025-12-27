@@ -16,6 +16,7 @@ import { Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { registrationSchema, type RegistrationFormData } from "@repo/types";
 import { registerUser } from "../lib/registration";
 import { getAdminUrl } from "../lib/urls";
+import { env } from "../env";
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -58,6 +59,21 @@ export default function RegisterForm() {
           result.error ||
           "An error occurred while creating your account. Please try again.",
       });
+      return;
+    }
+
+    if (result.status === "PENDING_VERIFICATION_EXISTS") {
+      const params = new URLSearchParams({ email: data.email });
+      window.location.href = `/verify-email?${params.toString()}`;
+      return;
+    }
+
+    if (result.status === "OTP_SENT") {
+      toast.success("Verification Code Sent!", {
+        description: "Please check your email for the verification code.",
+      });
+      const params = new URLSearchParams({ email: data.email });
+      window.location.href = `/verify-email?${params.toString()}`;
       return;
     }
 
@@ -150,7 +166,9 @@ export default function RegisterForm() {
                         className={errors.subdomain ? "border-destructive" : ""}
                       />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        .deliverychat.com
+                        {env.PUBLIC_TENANT_DOMAIN
+                          ? `.${env.PUBLIC_TENANT_DOMAIN}`
+                          : ".your-domain.com"}
                       </span>
                     </div>
                     {errors.subdomain ? (

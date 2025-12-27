@@ -20,11 +20,7 @@ app.use(
       ) {
         return origin;
       }
-      if (
-        origin === "https://deliverychat-dev.onrender.com" ||
-        origin === "https://deliverychat-prod.onrender.com" ||
-        /^https:\/\/[a-z0-9-]+\.deliverychat\.com$/.test(origin)
-      ) {
+      if (env.ALLOWED_ORIGINS?.includes(origin)) {
         return origin;
       }
       return null;

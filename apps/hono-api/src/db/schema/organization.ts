@@ -1,7 +1,8 @@
-import { index, jsonb, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import { index, jsonb, text, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { tenantPlanEnum } from "./enums/tenantPlanEnum";
+import { statusEnum } from "./enums/statusEnum";
 import { timestampString, timestampStringNullable } from "./customTypes";
 
 export const organization = createTable(
@@ -12,6 +13,8 @@ export const organization = createTable(
     slug: varchar("slug", { length: 255 }).notNull(),
     logo: text("logo"),
     metadata: jsonb("metadata"),
+    status: statusEnum("status").notNull().default("PENDING_VERIFICATION"),
+    expiredAt: timestampStringNullable("expired_at"),
     createdAt: timestampString("created_at")
       .default(sql`now()`)
       .notNull(),
@@ -23,7 +26,6 @@ export const organization = createTable(
       .notNull(),
   },
   (table) => ({
-    slugIdx: uniqueIndex("organization_slug_unique").on(table.slug),
     slugLookupIdx: index("organization_slug_idx").on(table.slug),
-  }),
+  })
 );

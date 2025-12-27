@@ -2,6 +2,8 @@ import { Hono } from "hono";
 import { usersRoute } from "../routes/users.js";
 import { applicationsRoute } from "../routes/applications.js";
 import { registerRoute } from "../routes/register.js";
+import { verifyEmailRoute } from "../routes/verify-email.js";
+import { resendOtpRoute } from "../routes/resend-otp.js";
 
 /**
  * Shared Hono instance for API routes
@@ -10,6 +12,8 @@ import { registerRoute } from "../routes/register.js";
  */
 const app = new Hono()
   .route("/", registerRoute)
+  .route("/", verifyEmailRoute)
+  .route("/", resendOtpRoute)
   .route("/", usersRoute)
   .route("/", applicationsRoute);
 

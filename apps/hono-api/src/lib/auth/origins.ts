@@ -1,14 +1,12 @@
+import { env } from "../../env";
+
 const devTrustedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:3002",
 ] as const;
 
-const prodTrustedOrigins = [
-  "https://deliverychat-dev.onrender.com",
-  "https://deliverychat-prod.onrender.com",
-  "https://*.deliverychat.com",
-] as const;
+export const allowedOrigins = env.ALLOWED_ORIGINS;
 
 function isAllowedLocalhostOrigin(origin: string) {
   try {
@@ -29,9 +27,13 @@ export function createTrustedOrigins() {
   return (request: Request): string[] => {
     const origin = request.headers.get("origin");
 
-    const base: string[] = [...devTrustedOrigins, ...prodTrustedOrigins];
-    if (origin && isAllowedLocalhostOrigin(origin) && !base.includes(origin)) {
-      base.push(origin);
+    const base: string[] = [...devTrustedOrigins, ...(allowedOrigins || [])];
+    if (
+      origin &&
+      isAllowedLocalhostOrigin(origin) &&
+      !(allowedOrigins || []).includes(origin)
+    ) {
+      (allowedOrigins || []).push(origin);
     }
 
     return base;

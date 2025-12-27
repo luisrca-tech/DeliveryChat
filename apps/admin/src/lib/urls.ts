@@ -1,3 +1,5 @@
+import { env } from "../env.js";
+
 export function isDevelopment(): boolean {
   if (typeof window === "undefined") return false;
 
@@ -33,4 +35,11 @@ export function getSubdomainUrl(path: string): string {
   const origin = getSubdomainOrigin();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${origin}${cleanPath}`;
+}
+
+export function getWebAppUrl(): string {
+  if (isDevelopment()) {
+    return "http://localhost:3002";
+  }
+  return env.VITE_WEB_APP_URL;
 }

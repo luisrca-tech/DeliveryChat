@@ -11,6 +11,7 @@ export const HTTP_STATUS = {
 } as const;
 
 export const ERROR_MESSAGES = {
+  BAD_REQUEST: "Bad Request",
   UNAUTHORIZED: "Unauthorized",
   FORBIDDEN: "Forbidden",
   NOT_FOUND: "Not Found",
