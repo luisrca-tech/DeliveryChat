@@ -6,6 +6,10 @@ import { z } from "zod";
  * Variables are loaded from Infisical via native integration in Vercel.
  * In Astro, client-side env vars must use PUBLIC_ prefix.
  */
+const isBuildTime = typeof window === "undefined" && import.meta.env.SSR;
+const requiredClientVarsMissing =
+  !import.meta.env.PUBLIC_API_URL || !import.meta.env.PUBLIC_ADMIN_BASE_URL;
+
 export const env = createEnv({
   server: {
     NODE_ENV: z
@@ -24,6 +28,8 @@ export const env = createEnv({
     PUBLIC_ADMIN_BASE_URL: import.meta.env.PUBLIC_ADMIN_BASE_URL,
     PUBLIC_TENANT_DOMAIN: import.meta.env.PUBLIC_TENANT_DOMAIN,
   },
-  skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
+  skipValidation:
+    !!import.meta.env.SKIP_ENV_VALIDATION ||
+    (isBuildTime && requiredClientVarsMissing),
   emptyStringAsUndefined: true,
 });
