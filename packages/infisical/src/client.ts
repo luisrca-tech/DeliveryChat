@@ -25,12 +25,12 @@ export async function getSecrets<T extends Record<string, string>>(
     if (nodeEnv === "production") return "prod";
     if (nodeEnv === "staging") return "staging";
     return "dev"; // default to dev
-  })()
+  })(),
 ): Promise<T> {
   const projectId = process.env.INFISICAL_PROJECT_ID;
   if (!projectId) {
     throw new Error(
-      "INFISICAL_PROJECT_ID must be set. Use 'infisical run' CLI for local development."
+      "INFISICAL_PROJECT_ID must be set. Use 'infisical run' CLI for local development.",
     );
   }
 
@@ -44,7 +44,7 @@ export async function getSecrets<T extends Record<string, string>>(
       "Authentication required. Set either INFISICAL_TOKEN (recommended) or INFISICAL_CLIENT_ID + INFISICAL_CLIENT_SECRET. " +
         "For Service Token: Go to Project Settings > Service Tokens in Infisical dashboard. " +
         "For Universal Auth: Create a Machine Identity in Organization Settings > Identities. " +
-        "Use 'infisical run' CLI for local development."
+        "Use 'infisical run' CLI for local development.",
     );
   }
 

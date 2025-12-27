@@ -10,7 +10,7 @@ interface NavLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
 const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
   (
     { className, activeClassName, pendingClassName, to, href, ...props },
-    ref
+    ref,
   ) => {
     // In Astro, we use regular anchor tags
     // Active state can be determined client-side if needed
@@ -25,7 +25,7 @@ const NavLink = forwardRef<HTMLAnchorElement, NavLinkProps>(
         {...props}
       />
     );
-  }
+  },
 );
 
 NavLink.displayName = "NavLink";

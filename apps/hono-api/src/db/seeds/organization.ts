@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { inArray } from "drizzle-orm";
 import { db } from "../index";
-import { tenants } from "../schema/tenants";
+import { organization } from "../schema/organization";
 import { tenantSeedData } from "./constants/tenantSeedData";
 import type { TenantMap } from "./types/tenantMap.type";
 
@@ -9,26 +9,25 @@ export async function seedTenants(client = db): Promise<TenantMap> {
   const slugList = tenantSeedData.map((t) => t.slug);
 
   await client
-    .insert(tenants)
+    .insert(organization)
     .values(
       tenantSeedData.map((tenant) => ({
         id: randomUUID(),
         slug: tenant.slug,
         name: tenant.name,
         description: tenant.description,
-        settings: tenant.settings,
         plan: tenant.plan,
-      }))
+      })),
     )
-    .onConflictDoNothing({ target: tenants.slug });
+    .onConflictDoNothing({ target: organization.slug });
 
   const rows = await client
     .select({
-      id: tenants.id,
-      slug: tenants.slug,
+      id: organization.id,
+      slug: organization.slug,
     })
-    .from(tenants)
-    .where(inArray(tenants.slug, slugList));
+    .from(organization)
+    .where(inArray(organization.slug, slugList));
 
   const tenantMap: TenantMap = new Map();
   for (const row of rows) {

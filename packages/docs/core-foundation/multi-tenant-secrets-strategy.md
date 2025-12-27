@@ -4,9 +4,28 @@
 
 This document outlines strategies for managing tenant-specific secrets in the Delivery Chat multi-tenant system. Each company (tenant) may need their own API keys, authentication tokens, and integration credentials.
 
-## Use Cases
+## Current Infrastructure Secrets
+
+### Global Secrets (Infisical: `/hono-api`)
+
+The following secrets are configured globally for the entire application:
+
+- **BETTER_AUTH_SECRET**: Better Auth session encryption key (min 32 characters)
+- **BETTER_AUTH_URL**: Base API URL for Better Auth callbacks
+- **DATABASE_URL**: PostgreSQL connection string
+- **RESEND_API_KEY**: Resend API key for transactional emails
+- **EMAIL_FROM**: (Optional) Custom sender email address (e.g., `"Delivery Chat <onboarding@deliverychat.online>"`)
+  - Falls back to `"Delivery Chat <onboarding@resend.dev>"` if not set
+  - Used for OTP verification and password reset emails
+- **NODE_ENV**: Environment (`development`, `staging`, `production`)
+- **PORT**: (Optional) Server port
+
+These are infrastructure-level secrets used by the application itself, not specific to any tenant.
+
+## Use Cases for Tenant-Specific Secrets
 
 Examples of tenant-specific secrets:
+
 - **Stripe API Keys**: Each company processes payments with their own Stripe account
 - **SendGrid API Tokens**: Companies send emails through their own SendGrid accounts
 - **Custom Integration Keys**: Third-party service API keys per tenant
@@ -22,12 +41,19 @@ Examples of tenant-specific secrets:
 ```
 Infisical Project: delivery-chat
 ├── /hono-api/              # Infrastructure secrets
+│   ├── BETTER_AUTH_SECRET
+│   ├── BETTER_AUTH_URL
+│   ├── DATABASE_URL
+│   ├── RESEND_API_KEY      # Global email service
+│   ├── EMAIL_FROM          # Global sender address
+│   ├── NODE_ENV
+│   └── PORT
 ├── /admin/
 ├── /widget/
 └── /tenants/               # Tenant-specific secrets
     ├── /codewiser/         # Company subdomain
     │   ├── STRIPE_SECRET_KEY
-    │   ├── SENDGRID_API_KEY
+    │   ├── SENDGRID_API_KEY  # If tenant wants their own email service
     │   └── CUSTOM_API_KEY
     ├── /acmecorp/
     │   ├── STRIPE_SECRET_KEY
@@ -45,17 +71,22 @@ import { getSecrets } from "@repo/infisical";
 async function getTenantSecret(
   companySubdomain: string,
   secretKey: string,
-  environment: "dev" | "staging" | "prod" = "dev"
+  environment: "dev" | "staging" | "prod" = "dev",
 ): Promise<string | undefined> {
   const secrets = await getSecrets(`/tenants/${companySubdomain}`, environment);
   return secrets[secretKey];
 }
 
 // Usage
-const stripeKey = await getTenantSecret("codewiser", "STRIPE_SECRET_KEY", "prod");
+const stripeKey = await getTenantSecret(
+  "codewiser",
+  "STRIPE_SECRET_KEY",
+  "prod",
+);
 ```
 
 **Pros**:
+
 - ✅ Centralized management in Infisical UI
 - ✅ Easy to add/edit secrets per tenant
 - ✅ Built-in audit trail
@@ -63,6 +94,7 @@ const stripeKey = await getTenantSecret("codewiser", "STRIPE_SECRET_KEY", "prod"
 - ✅ Simple implementation
 
 **Cons**:
+
 - ❌ API call per tenant lookup (latency)
 - ❌ Rate limits at scale (1000s of tenants)
 - ❌ Requires Infisical API access in production
@@ -83,7 +115,11 @@ Database Table: company_secrets
 ├── secret_value_encrypted (text) - AES-256 encrypted
 └── created_at, updated_at
 
-Infisical: /hono-api/MASTER_ENCRYPTION_KEY
+Infisical: /hono-api/
+├── MASTER_ENCRYPTION_KEY    # For tenant secrets encryption
+├── RESEND_API_KEY            # Global infrastructure
+├── EMAIL_FROM                # Global sender
+└── ... (other global secrets)
 ```
 
 **Implementation**:
@@ -95,7 +131,9 @@ import { db } from "./db";
 import { companySecrets } from "./schema";
 
 // Get master encryption key from Infisical
-async function getMasterKey(environment: "dev" | "staging" | "prod" = "dev"): Promise<string> {
+async function getMasterKey(
+  environment: "dev" | "staging" | "prod" = "dev",
+): Promise<string> {
   const secrets = await getSecrets("/hono-api", environment);
   const key = secrets.MASTER_ENCRYPTION_KEY;
   if (!key) throw new Error("MASTER_ENCRYPTION_KEY not found");
@@ -106,7 +144,11 @@ async function getMasterKey(environment: "dev" | "staging" | "prod" = "dev"): Pr
 async function encryptSecret(value: string): Promise<string> {
   const masterKey = await getMasterKey();
   const iv = crypto.randomBytes(12); // 12 bytes for GCM
-  const cipher = crypto.createCipheriv("aes-256-gcm", Buffer.from(masterKey, "hex"), iv);
+  const cipher = crypto.createCipheriv(
+    "aes-256-gcm",
+    Buffer.from(masterKey, "hex"),
+    iv,
+  );
   let encrypted = cipher.update(value, "utf8", "hex");
   encrypted += cipher.final("hex");
   const authTag = cipher.getAuthTag().toString("hex");
@@ -119,7 +161,11 @@ async function decryptSecret(encryptedValue: string): Promise<string> {
   const [ivHex, encrypted, authTagHex] = encryptedValue.split(":");
   const iv = Buffer.from(ivHex, "hex");
   const authTag = Buffer.from(authTagHex, "hex");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", Buffer.from(masterKey, "hex"), iv);
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    Buffer.from(masterKey, "hex"),
+    iv,
+  );
   decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encrypted, "hex", "utf8");
   decrypted += decipher.final("utf8");
@@ -130,23 +176,26 @@ async function decryptSecret(encryptedValue: string): Promise<string> {
 async function setTenantSecret(
   companyId: string,
   secretKey: string,
-  secretValue: string
+  secretValue: string,
 ): Promise<void> {
   const encrypted = await encryptSecret(secretValue);
-  await db.insert(companySecrets).values({
-    companyId,
-    secretKey,
-    secretValueEncrypted: encrypted,
-  }).onConflictDoUpdate({
-    target: [companySecrets.companyId, companySecrets.secretKey],
-    set: { secretValueEncrypted: encrypted },
-  });
+  await db
+    .insert(companySecrets)
+    .values({
+      companyId,
+      secretKey,
+      secretValueEncrypted: encrypted,
+    })
+    .onConflictDoUpdate({
+      target: [companySecrets.companyId, companySecrets.secretKey],
+      set: { secretValueEncrypted: encrypted },
+    });
 }
 
 // Retrieve tenant secret
 async function getTenantSecret(
   companyId: string,
-  secretKey: string
+  secretKey: string,
 ): Promise<string | null> {
   const secret = await db.query.companySecrets.findFirst({
     where: (secrets, { eq, and }) =>
@@ -181,11 +230,12 @@ export const companySecrets = createTable(
   },
   (table) => ({
     uniqueCompanySecret: unique().on(table.companyId, table.secretKey),
-  })
+  }),
 );
 ```
 
 **Pros**:
+
 - ✅ Fast database lookups (no API calls)
 - ✅ Scales to thousands of tenants
 - ✅ Works offline (no external API dependency)
@@ -193,6 +243,7 @@ export const companySecrets = createTable(
 - ✅ Supports bulk operations
 
 **Cons**:
+
 - ❌ Need to build UI for secret management
 - ❌ More complex implementation
 - ❌ Requires database migration
@@ -214,6 +265,7 @@ export const companySecrets = createTable(
 - Sufficient performance for small scale
 
 **Implementation Steps**:
+
 1. Create `/tenants/{subdomain}/` folders in Infisical
 2. Add secrets per tenant via dashboard
 3. Implement `getTenantSecret()` helper function
@@ -225,8 +277,11 @@ export const companySecrets = createTable(
 // apps/hono-api/src/routes/payments.ts
 app.post("/api/payments/create", async (c) => {
   const company = await getCompanyFromRequest(c);
-  const stripeKey = await getTenantSecret(company.subdomain, "STRIPE_SECRET_KEY");
-  
+  const stripeKey = await getTenantSecret(
+    company.subdomain,
+    "STRIPE_SECRET_KEY",
+  );
+
   // Use stripeKey for payment processing
 });
 ```
@@ -267,7 +322,7 @@ Combine both strategies:
 async function getTenantSecret(
   companySubdomain: string,
   secretKey: string,
-  useCache = true
+  useCache = true,
 ): Promise<string | undefined> {
   // Check in-memory cache first
   if (useCache) {
@@ -283,7 +338,10 @@ async function getTenantSecret(
   }
 
   // Fallback to Infisical (slower, but always up-to-date)
-  const infisicalSecret = await getTenantSecretFromInfisical(companySubdomain, secretKey);
+  const infisicalSecret = await getTenantSecretFromInfisical(
+    companySubdomain,
+    secretKey,
+  );
   if (infisicalSecret) {
     // Optionally sync to database for next time
     await setTenantSecretInDB(companySubdomain, secretKey, infisicalSecret);
@@ -300,10 +358,17 @@ async function getTenantSecret(
 
 ### Master Key Management
 
-- **Store in Infisical**: `/hono-api/MASTER_ENCRYPTION_KEY`
+- **Store in Infisical**: `/hono-api/MASTER_ENCRYPTION_KEY` (for tenant-specific secrets only)
 - **Rotate Regularly**: Update master key every 90 days
 - **Key Derivation**: Use PBKDF2 or Argon2 for key derivation
 - **Backup**: Store encrypted backup of master key
+
+### Infrastructure Secrets
+
+- **BETTER_AUTH_SECRET**: Rotate every 90 days, invalidates all existing sessions
+- **RESEND_API_KEY**: Rotate if compromised, monitor usage in Resend dashboard
+- **EMAIL_FROM**: Verify domain ownership in Resend before use
+- **DATABASE_URL**: Use connection pooling, rotate credentials periodically
 
 ### Access Control
 
@@ -311,6 +376,7 @@ async function getTenantSecret(
 - **API Authorization**: Verify company ownership before secret access
 - **Audit Logging**: Log all secret access attempts
 - **Rate Limiting**: Prevent brute force attacks
+- **Infisical Access**: Limit who can access `/hono-api` folder (infrastructure team only)
 
 ### Encryption Best Practices
 
@@ -332,7 +398,7 @@ When ready to migrate from Strategy A to Strategy B:
 import { getSecrets } from "@repo/infisical";
 
 async function exportTenantSecrets() {
-  const tenants = ["codewiser", "acmecorp", /* ... */];
+  const tenants = ["codewiser", "acmecorp" /* ... */];
 
   for (const tenant of tenants) {
     const secrets = await getSecrets(`/tenants/${tenant}`, "prod");
@@ -396,6 +462,39 @@ company_secrets
 
 ## Related Documentation
 
-- [Infisical Architecture Guide](./infisical-architecture.md) - Current infrastructure setup
+- [Auth Integration Guide](./auth/auth-integration.md) - Better Auth setup with email verification
+- [Better Auth Multi-Tenant Study Guide](./auth/better-auth-multi-tenant-study-guide.md) - Account lifecycle and authentication flows
 - [Database Schema](../hono-api/src/db/schema/) - Database structure
 
+## Email Service Configuration
+
+### Current Setup (Global Resend)
+
+Currently, the application uses a single Resend account for all email sending:
+
+- **OTP Verification Emails**: Sent during user registration
+- **Password Reset Emails**: Sent with tenant-specific reset URLs
+- **Sender Address**: Configurable via `EMAIL_FROM` environment variable
+
+### Future: Per-Tenant Email Service
+
+If you need tenants to send emails from their own domains:
+
+**Option 1**: Multiple Resend API keys (one per tenant)
+
+- Store tenant's `RESEND_API_KEY` in database (encrypted) or Infisical folder
+- Initialize Resend client per-request based on tenant
+- Each tenant verifies their domain in Resend
+
+**Option 2**: SMTP per tenant
+
+- Store SMTP credentials (host, port, username, password) encrypted in DB
+- Use nodemailer or similar with tenant-specific config
+- Tenants use their own email infrastructure
+
+**Option 3**: SendGrid per tenant (similar to Resend)
+
+- Store SendGrid API keys per tenant
+- Tenants verify domains in their SendGrid accounts
+
+This would follow the same pattern as Strategy A or B above for managing these credentials.

@@ -6,22 +6,14 @@ export const listApplicationsQuerySchema = z.object({
 });
 
 export const createApplicationSchema = z.object({
-  tenantId: z.string().uuid(),
   name: z.string().min(1).max(255),
-  slug: z
-    .string()
-    .min(1)
-    .max(255)
-    .regex(/^[a-z0-9-]+$/, {
-      message: "Slug must contain only lowercase letters, numbers, and hyphens",
-    }),
-  subdomain: z
+  domain: z
     .string()
     .min(1)
     .max(255)
     .regex(/^[a-z0-9-]+$/, {
       message:
-        "Subdomain must contain only lowercase letters, numbers, and hyphens",
+        "Domain must contain only lowercase letters, numbers, and hyphens",
     }),
   description: z.string().optional(),
   settings: z.record(z.any()).optional().default({}),

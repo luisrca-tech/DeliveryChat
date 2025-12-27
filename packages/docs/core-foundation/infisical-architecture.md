@@ -30,7 +30,6 @@ Infisical Project: delivery-chat
     └── prod
 ```
 
-
 ### Why This Structure?
 
 - **Single Project**: Easier to manage, single source of truth
@@ -63,6 +62,7 @@ This will open your browser to authenticate. After successful login, your creden
 At the monorepo root:
 
 When prompted:
+
 - **Project ID**: `138b9de2-a089-44ca-a3a2-04047daf0bb5`
 - **Environment**: `dev` (for local dev)
 
@@ -101,15 +101,16 @@ You should see your `DATABASE_URL` secret printed. The `infisical.json` file in 
 4. Click "Add Secret"
 5. Enter secret name (e.g., `DATABASE_URL`) and value
 6. **Important**: Use the direct connection string format, **not** shell commands or environment variable references.
-   
+
    **Correct formats:**
    - `postgresql://username:password@hostname:5432/database_name`
    - `postgres://username:password@hostname:5432/database_name`
-   
+
    **Incorrect formats:**
    - `psql 'postgresql://...'` (shell command)
    - `$DATABASE_URL` (variable reference)
    - `@hostname:5432/database_name` (missing protocol/credentials)
+
 7. Save
 
 ### Via CLI
@@ -159,13 +160,13 @@ Your code just uses `process.env.DATABASE_URL` - no SDK calls needed for local d
 1. **Create Service Token**:
    - Go to Infisical Dashboard → **Project Settings** → **Service Tokens**
    - Click **Create Service Token**
-   
+
    **Configuration options:**
    - **Service Token Name**: Pode ser qualquer nome descritivo (ex: `production-deploy`, `ci-cd-token`, `vercel-production`). O nome é apenas para identificação.
    - **Environment**: Selecione os ambientes que o token terá acesso. Você pode:
      - ✅ **Opção 1 (Recomendada)**: Criar um único token com acesso a `development`, `staging`, e `production` - mais simples de gerenciar
      - ✅ **Opção 2**: Criar tokens separados para cada ambiente (mais seguro, princípio de menor privilégio)
-   - **Secrets Path**: 
+   - **Secrets Path**:
      - ❌ Não use `/` (isso dá acesso a TODOS os paths do projeto - muito perigoso)
      - **Opção A (Recomendada para monorepo)**: Adicione múltiplos paths para todos os apps:
        - `/hono-api`
@@ -180,10 +181,9 @@ Your code just uses `process.env.DATABASE_URL` - no SDK calls needed for local d
        - Token 4: apenas `/widget`
        - Configure tokens diferentes na Vercel para cada app/projeto
    - **Expiration**: `Never` é ok para tokens de deployment (ou defina uma data longa)
-   - **Permissions**: 
+   - **Permissions**:
      - ✅ **Read** é suficiente para deployments (CI/CD só precisa ler secrets, não escrever)
      - ❌ **Write** só se você precisar que o deployment possa criar/atualizar secrets (raro, não recomendado)
-   
    - Copy the generated token (you'll only see it once!)
    - Store token securely in your CI/CD platform (GitHub Secrets, Vercel Environment Variables, Railway, etc.)
 
@@ -192,14 +192,15 @@ Your code just uses `process.env.DATABASE_URL` - no SDK calls needed for local d
      - Variable name: `INFISICAL_TOKEN`
      - Variable value: `seu-service-token-copiado`
    - No need to add it in your code or `.env` files (never commit tokens!)
-   
+
    ```bash
    # In CI/CD, the token is automatically available from environment variables
    # Your scripts already use 'infisical run' which detects INFISICAL_TOKEN automatically
    npm run build  # or bun run build
    ```
 
-**Important**: 
+**Important**:
+
 - ✅ **For monorepo with multiple apps**: Create **one Service Token** with access to all app paths (`/hono-api`, `/admin`, `/web`, `/widget`)
 - ✅ Add `INFISICAL_TOKEN` as environment variable in your **deployment platform** (not in code)
 - ✅ The same token works for all apps - each app will only access its own path via `infisical.json`
@@ -207,6 +208,7 @@ Your code just uses `process.env.DATABASE_URL` - no SDK calls needed for local d
 - ✅ For **local development**: You don't need it (use `infisical login` instead)
 
 **Why one token works for all apps?**
+
 - Each app has its own `infisical.json` file specifying the path (e.g., `/hono-api`)
 - When you run `infisical run --path=/hono-api`, it only accesses secrets from that specific path
 - The token just needs permission to read from those paths, but the app code controls which path it accesses
@@ -225,12 +227,13 @@ const dbUrl = secrets.DATABASE_URL;
 ```
 
 **Required environment variables** (set in your deployment platform):
+
 - `INFISICAL_PROJECT_ID` - Your Infisical project ID
 - **Authentication** (choose one method):
 
   **Option A: Service Token (Recommended - Simplest) ✅**
   - `INFISICAL_TOKEN` - Service token from Infisical dashboard
-  - **How to get**: 
+  - **How to get**:
     1. Go to **Project Settings** > **Service Tokens** (no nível do projeto)
     2. Click **Create Service Token**
     3. Copy the token generated
@@ -279,8 +282,8 @@ All these commands use `infisical run` internally, so `DATABASE_URL` is automati
 
 ### `/hono-api/` Folder
 
-| Secret | Description | Environments |
-|--------|-------------|---------------|
+| Secret         | Description                                                                                    | Environments       |
+| -------------- | ---------------------------------------------------------------------------------------------- | ------------------ |
 | `DATABASE_URL` | PostgreSQL connection string in direct format: `postgresql://user:password@host:port/database` | dev, staging, prod |
 
 ### Future Secrets
@@ -317,6 +320,7 @@ As the application grows, you may add:
 **Cause**: Secrets not loaded from Infisical
 
 **Solutions**:
+
 1. Ensure you're logged in: `infisical login`
 2. Verify project is initialized: Check `.infisical.json` exists
 3. Confirm secret exists in dashboard: Check `/hono-api/dev` folder
@@ -328,6 +332,7 @@ As the application grows, you may add:
 **Cause**: Expired or invalid credentials
 
 **Solutions**:
+
 1. Re-login: `infisical login`
 2. Check token expiration in dashboard
 3. Verify project ID is correct in root `.infisical.json`
@@ -338,6 +343,7 @@ As the application grows, you may add:
 **Cause**: Cached credentials or wrong environment
 
 **Solutions**:
+
 1. Verify you're using the correct environment in Infisical dashboard (dev, staging, prod)
 2. Check folder path is correct: `--path=/hono-api` (with leading slash)
 3. Clear Infisical cache: `infisical logout && infisical login`
@@ -376,4 +382,3 @@ bun run dev
 
 - [Multi-Tenant Secrets Strategy](./multi-tenant-secrets-strategy.md) - Future patterns for tenant-specific secrets
 - [Infisical Official Docs](https://infisical.com/docs) - Complete Infisical documentation
-

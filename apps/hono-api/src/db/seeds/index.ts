@@ -1,5 +1,5 @@
 import { seedApplications } from "./applications";
-import { seedTenants } from "./tenants";
+import { seedTenants } from "./organization";
 
 async function main() {
   const tenantMap = await seedTenants();
@@ -13,8 +13,8 @@ async function main() {
         applications: applications.length,
       },
       null,
-      2
-    )
+      2,
+    ),
   );
 }
 
