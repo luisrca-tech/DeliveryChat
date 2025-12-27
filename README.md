@@ -5,6 +5,7 @@ A modern, scalable chat delivery platform built as a Turborepo monorepo. This se
 ## 🏗️ Architecture Overview
 
 This is a **multi-tenant SaaS platform** where:
+
 - **Companies** (tenants) purchase the chat service and get access to an admin dashboard
 - **End users** (visitors) interact with companies through an embeddable chat widget
 - Each company operates as an independent tenant with custom domains, branding, and settings
@@ -22,6 +23,7 @@ This is a **multi-tenant SaaS platform** where:
 This Turborepo contains 4 main applications:
 
 ### 1. **@embed** - Embeddable Chat Widget
+
 - **Framework**: React Router v7 with React 19
 - **Styling**: Tailwind CSS v4
 - **Purpose**: Lightweight, embeddable iframe chat widget that companies can integrate into their websites
@@ -33,6 +35,7 @@ This Turborepo contains 4 main applications:
 - **Port**: 3002
 
 ### 2. **@admin** - Admin Dashboard
+
 - **Framework**: TanStack Router (React Start) with React 19
 - **Styling**: Tailwind CSS v4
 - **Deployment**: Cloudflare Workers (via Wrangler)
@@ -45,6 +48,7 @@ This Turborepo contains 4 main applications:
 - **Port**: 3001
 
 ### 3. **@hono-api** - Backend API
+
 - **Framework**: Hono (lightweight web framework)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Validation**: Zod schemas
@@ -58,6 +62,7 @@ This Turborepo contains 4 main applications:
 - **Port**: 3000 (default)
 
 ### 4. **@landing-page** - Marketing Website
+
 - **Framework**: Astro (static site generator)
 - **Purpose**: Public-facing marketing website to attract leads and convert them to customers
 - **Key Pages**:
@@ -70,6 +75,7 @@ This Turborepo contains 4 main applications:
 ## 🛠️ Tech Stack
 
 ### Frontend
+
 - **React 19** - Latest React with concurrent features
 - **TypeScript** - Full type safety across all projects
 - **Tailwind CSS v4** - Utility-first CSS framework
@@ -78,12 +84,14 @@ This Turborepo contains 4 main applications:
 - **Astro** - Fast, content-focused static site generator for landing page
 
 ### Backend
+
 - **Hono** - Ultra-fast web framework (faster than Express)
 - **PostgreSQL** - Robust relational database
 - **Drizzle ORM** - Type-safe SQL ORM with excellent TypeScript support
 - **Zod** - Schema validation and type inference
 
 ### Infrastructure & Tools
+
 - **Turborepo** - High-performance monorepo build system
 - **Bun** - Fast JavaScript runtime and package manager
 - **Cloudflare Workers** - Edge deployment for admin dashboard
@@ -91,6 +99,7 @@ This Turborepo contains 4 main applications:
 - **Infisical** - Secrets management platform for secure credential storage
 
 ### Database Schema
+
 - **users** - Company admin/support users
 - **companies** - Tenant companies with subdomain
 - **users_companies** - Many-to-many relationship (users can belong to multiple companies)
@@ -100,6 +109,7 @@ This Turborepo contains 4 main applications:
 ## 🚀 Getting Started
 
 ### Prerequisites
+
 - **Bun** >= 1.2.20
 - **Node.js** >= 18
 - **PostgreSQL** database (remote development database provided via Infisical)
@@ -205,6 +215,7 @@ The `/register` page should:
 ### Design Requirements
 
 The landing page should be:
+
 - **Modern & Professional**: Clean, contemporary design that builds trust
 - **Conversion-Focused**: Clear CTAs, social proof, feature highlights
 - **Responsive**: Mobile-first design that works on all devices
@@ -225,6 +236,7 @@ The landing page should be:
 **Current State**: Registration creates user records directly in the database. Users authenticate with email/password stored in the `users` table.
 
 **Future Plan**: Integrate **Clerk** for:
+
 - Enhanced authentication (social logins, MFA, passwordless)
 - User session management
 - Better security and compliance

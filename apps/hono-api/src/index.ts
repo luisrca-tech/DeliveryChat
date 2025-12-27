@@ -2,6 +2,7 @@ import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { auth } from "./lib/auth.js";
 import { api } from "./lib/api.js";
 import { env } from "./env.js";
 
@@ -14,8 +15,12 @@ app.use(
       if (!origin) return origin;
       if (
         origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:")
+        origin.startsWith("http://127.0.0.1:") ||
+        /^http:\/\/[a-z0-9-]+\.localhost:\d+$/.test(origin)
       ) {
+        return origin;
+      }
+      if (env.ALLOWED_ORIGINS?.includes(origin)) {
         return origin;
       }
       return null;
@@ -23,11 +28,15 @@ app.use(
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  })
+  }),
 );
 
 app.get("/", (c) => {
   return c.text("Hello Hono!");
+});
+
+app.all("/api/auth/*", async (c) => {
+  return auth.handler(c.req.raw);
 });
 
 app.route("/api", api);
@@ -41,16 +50,8 @@ serve(
     fetch: app.fetch,
     port,
   },
-  (info) => {
-    console.info(
-      `[Hono API] ✅ Server is running on http://localhost:${info.port}`
-    );
-    console.info(`[Hono API] Health check: http://localhost:${info.port}/`);
-    console.info(
-      `[Hono API] API endpoint: http://localhost:${info.port}/api/users`
-    );
-  }
+  () => {},
 ).on("error", (error) => {
-  console.error(`[Hono API] ❌ Failed to start server:`, error);
+  console.error(`[Hono API] Failed to start server:`, error);
   process.exit(1);
 });

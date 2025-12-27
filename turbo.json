@@ -5,20 +5,20 @@
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**", "build/**", ".next/**", "!.next/cache/**"],
-      "env": ["NODE_ENV"]
+      "env": ["NODE_ENV", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "RESEND_API_KEY", "EMAIL_FROM", "ALLOWED_ORIGINS", "ADMIN_BASE_URL", "TENANT_DOMAIN"]
     },
     "lint": {
       "dependsOn": ["^lint"],
-      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "SKIP_ENV_VALIDATION"]
+      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "SKIP_ENV_VALIDATION", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "RESEND_API_KEY", "EMAIL_FROM", "ALLOWED_ORIGINS", "ADMIN_BASE_URL"]
     },
     "check-types": {
       "dependsOn": ["^check-types"],
-      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "SKIP_ENV_VALIDATION"]
+      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "SKIP_ENV_VALIDATION", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "RESEND_API_KEY", "EMAIL_FROM", "ALLOWED_ORIGINS", "ADMIN_BASE_URL"]
     },
     "dev": {
       "cache": false,
       "persistent": true,
-      "env": ["DEV"]
+      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "SKIP_ENV_VALIDATION", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "RESEND_API_KEY", "EMAIL_FROM", "ALLOWED_ORIGINS", "ADMIN_BASE_URL"]
     }
   }
 }

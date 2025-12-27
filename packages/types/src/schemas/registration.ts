@@ -8,7 +8,7 @@ export const registrationSchema = z
       .min(1, "Subdomain is required")
       .regex(
         /^[a-z0-9-]+$/,
-        "Only lowercase letters, numbers, and hyphens allowed"
+        "Only lowercase letters, numbers, and hyphens allowed",
       ),
     fullName: z.string().min(1, "Full name is required").trim(),
     email: z

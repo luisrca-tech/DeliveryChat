@@ -5,8 +5,43 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1763909677636,
-      "tag": "0000_early_the_leader",
+      "when": 1765468037963,
+      "tag": "0000_initial_tenants_apps",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1765759639093,
+      "tag": "0004_migrate_to_better_auth",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1765974432969,
+      "tag": "0005_global_unique_application_subdomain",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1766111512002,
+      "tag": "0006_update_schema_remove_settings_rename_subdomain_to_domain_add_super_admin_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1766263066856,
+      "tag": "0007_add_account_lifecycle_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1766873674862,
+      "tag": "0008_add_partial_unique_indexes",
       "breakpoints": true
     }
   ]

@@ -1,0 +1,1 @@
+export type TenantMap = Map<string, string>;
