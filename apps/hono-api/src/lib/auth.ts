@@ -16,7 +16,10 @@ import { sendVerificationOTPEmail, sendResetPasswordEmail } from "./email.js";
 const trustedOrigins = createTrustedOrigins();
 const baseURL = getAuthBaseURL(env);
 
-async function getUserAdminUrl(userId: string): Promise<string> {
+async function getUserAdminUrl(
+  userId: string,
+  requestHost: string | null
+): Promise<string> {
   try {
     const result = await db
       .select({
@@ -38,8 +41,12 @@ async function getUserAdminUrl(userId: string): Promise<string> {
 
     const subdomain = result[0].slug;
 
-    if (env.NODE_ENV === "development") {
+    if (requestHost?.endsWith(".localhost") || env.NODE_ENV === "development") {
       return `http://${subdomain}.localhost:3000`;
+    }
+
+    if (requestHost?.endsWith(".vercel.app")) {
+      return `https://${subdomain}.${requestHost}`;
     }
 
     if (!env.TENANT_DOMAIN) {
@@ -69,9 +76,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
-    async sendResetPassword({ user, token }) {
+    async sendResetPassword({ user, token }, request) {
       try {
-        const adminBaseUrl = await getUserAdminUrl(user.id);
+        const host = request?.headers.get("host") ?? null;
+        const adminBaseUrl = await getUserAdminUrl(user.id, host);
         const resetUrl = `${adminBaseUrl}/reset-password?token=${token}`;
 
         await sendResetPasswordEmail({
