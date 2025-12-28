@@ -1,12 +1,10 @@
-import { env } from "../env.js";
-
 export function getSubdomain(): string | null {
   if (typeof window === "undefined") return null;
 
   const hostname = window.location.hostname.toLowerCase();
   if (!hostname) return null;
 
-  const tenantDomain = env.VITE_TENANT_DOMAIN;
+  const tenantDomain = import.meta.env.VITE_TENANT_DOMAIN;
   if (!tenantDomain && !hostname.endsWith(".vercel.app")) return null;
   if (hostname === tenantDomain || hostname === "localhost") return null;
 
