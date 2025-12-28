@@ -12,19 +12,18 @@ export function isDevelopment(): boolean {
 }
 
 export function getAdminUrl(tenant: string): string {
+  const safeTenant = tenant.toLowerCase().trim();
+
+  if (isDevelopment()) {
+    return `http://${safeTenant}.localhost:3000`;
+  }
+
   const base = env.PUBLIC_ADMIN_URL;
   if (!base) {
     throw new Error("PUBLIC_ADMIN_URL is required (admin root without tenant)");
   }
 
-  const safeTenant = tenant.toLowerCase().trim();
-
   const url = new URL(base);
-
-  if (url.hostname === "localhost") {
-    return `http://${safeTenant}.localhost:3000`;
-  }
-
   return `${url.protocol}//${safeTenant}.${url.hostname}`;
 }
 
