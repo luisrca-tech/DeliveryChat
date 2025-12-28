@@ -7,7 +7,20 @@ export const registerSchema = z.object({
   companyName: z.string().min(1).max(256),
   subdomain: z
     .string()
-    .regex(/^[a-z0-9-]+$/)
-    .min(1)
-    .max(256),
+    .min(1, "Subdomain is required")
+    .max(256, "Subdomain must be 256 characters or less")
+    .toLowerCase()
+    .trim()
+    .regex(
+      /^[a-z0-9-]+$/,
+      "Only lowercase letters, numbers, and hyphens allowed"
+    )
+    .refine(
+      (val) => !val.startsWith("-") && !val.endsWith("-"),
+      "Subdomain cannot start or end with a hyphen"
+    )
+    .refine(
+      (val) => !val.includes("--"),
+      "Subdomain cannot contain consecutive hyphens"
+    ),
 });
