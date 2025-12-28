@@ -25,9 +25,7 @@ async function getUserAdminUrl(userId: string): Promise<string> {
       .limit(1);
 
     if (members.length === 0) {
-      return env.NODE_ENV === "development"
-        ? "http://localhost:3000"
-        : env.ADMIN_BASE_URL;
+      throw new Error("User has no organization membership");
     }
 
     const userMember = members[0];
@@ -39,9 +37,7 @@ async function getUserAdminUrl(userId: string): Promise<string> {
       .limit(1);
 
     if (orgs.length === 0 || !orgs[0]?.slug) {
-      return env.NODE_ENV === "development"
-        ? "http://localhost:3000"
-        : env.ADMIN_BASE_URL;
+      throw new Error("User's organization not found or has no slug");
     }
 
     const org = orgs[0];
@@ -51,16 +47,14 @@ async function getUserAdminUrl(userId: string): Promise<string> {
       return `http://${subdomain}.localhost:3000`;
     }
 
-    if (env.TENANT_DOMAIN) {
-      return `https://${subdomain}.${env.TENANT_DOMAIN}`;
+    if (!env.TENANT_DOMAIN) {
+      throw new Error("TENANT_DOMAIN is required in production");
     }
 
-    return env.ADMIN_BASE_URL;
+    return `https://${subdomain}.${env.TENANT_DOMAIN}`;
   } catch (error) {
     console.error("[Auth] Error building admin URL:", error);
-    return env.NODE_ENV === "development"
-      ? "http://localhost:3000"
-      : env.ADMIN_BASE_URL;
+    throw error;
   }
 }
 

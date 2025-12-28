@@ -5,6 +5,7 @@ import { cors } from "hono/cors";
 import { auth } from "./lib/auth.js";
 import { api } from "./lib/api.js";
 import { env } from "./env.js";
+import { isOriginAllowed } from "./lib/corsPatterns.js";
 
 const app = new Hono();
 
@@ -13,22 +14,17 @@ app.use(
   cors({
     origin: (origin) => {
       if (!origin) return origin;
-      if (
-        origin.startsWith("http://localhost:") ||
-        origin.startsWith("http://127.0.0.1:") ||
-        /^http:\/\/[a-z0-9-]+\.localhost:\d+$/.test(origin)
-      ) {
+
+      if (isOriginAllowed(origin, env.ALLOWED_ORIGINS)) {
         return origin;
       }
-      if (env.ALLOWED_ORIGINS?.includes(origin)) {
-        return origin;
-      }
+
       return null;
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
-  }),
+  })
 );
 
 app.get("/", (c) => {
@@ -50,7 +46,7 @@ serve(
     fetch: app.fetch,
     port,
   },
-  () => {},
+  () => {}
 ).on("error", (error) => {
   console.error(`[Hono API] Failed to start server:`, error);
   process.exit(1);
