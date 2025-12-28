@@ -24,7 +24,12 @@ export function getAdminUrl(tenant: string): string {
   }
 
   const url = new URL(base);
-  return `${url.protocol}//${safeTenant}.${url.hostname}`;
+  const host = url.hostname;
+  if (host.endsWith(".vercel.app")) {
+    // Vercel Preview: use URL prefixes (<tenant>---<deployment>.vercel.app) because *.vercel.app TLS doesn't cover nested subdomains.
+    return `${url.protocol}//${safeTenant}---${host}`;
+  }
+  return `${url.protocol}//${safeTenant}.${host}`;
 }
 
 export function getApiUrl(): string {

@@ -17,9 +17,10 @@ export function getHostSubdomain(host: string | null): string | null {
   }
 
   if (hostname.endsWith(".vercel.app")) {
-    const withoutSuffix = hostname.replace(".vercel.app", "");
-    const parts = withoutSuffix.split(".");
-    return parts[0] || null;
+    // Vercel Preview: tenant is encoded as <tenant>---<deployment>.vercel.app (no nested subdomains due to *.vercel.app TLS scope).
+    const firstLabel = hostname.replace(".vercel.app", "").split(".")[0] || "";
+    const tenant = firstLabel.split("---")[0] || null;
+    return tenant;
   }
 
   if (tenantDomain && hostname.endsWith(`.${tenantDomain}`)) {
