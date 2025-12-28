@@ -18,12 +18,14 @@ export const env = createEnv({
   client: {
     PUBLIC_API_URL: z.string().url(),
     PUBLIC_TENANT_DOMAIN: z.string().optional(),
+    PUBLIC_ADMIN_URL: z.string().url(),
   },
   clientPrefix: "PUBLIC_",
   runtimeEnv: {
     NODE_ENV: import.meta.env.NODE_ENV,
     PUBLIC_API_URL: import.meta.env.PUBLIC_API_URL,
     PUBLIC_TENANT_DOMAIN: import.meta.env.PUBLIC_TENANT_DOMAIN,
+    PUBLIC_ADMIN_URL: import.meta.env.PUBLIC_ADMIN_URL,
   },
   skipValidation:
     !!import.meta.env.SKIP_ENV_VALIDATION ||
