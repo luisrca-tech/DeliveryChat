@@ -18,30 +18,25 @@ const baseURL = getAuthBaseURL(env);
 
 async function getUserAdminUrl(userId: string): Promise<string> {
   try {
-    const members = await db
-      .select()
+    const result = await db
+      .select({
+        slug: organizationSchema.slug,
+      })
       .from(member)
+      .innerJoin(
+        organizationSchema,
+        eq(member.organizationId, organizationSchema.id)
+      )
       .where(eq(member.userId, userId))
       .limit(1);
 
-    if (members.length === 0) {
-      throw new Error("User has no organization membership");
+    if (result.length === 0 || !result[0]?.slug) {
+      throw new Error(
+        "User has no organization membership or organization has no slug"
+      );
     }
 
-    const userMember = members[0];
-
-    const orgs = await db
-      .select()
-      .from(organizationSchema)
-      .where(eq(organizationSchema.id, userMember?.organizationId || ""))
-      .limit(1);
-
-    if (orgs.length === 0 || !orgs[0]?.slug) {
-      throw new Error("User's organization not found or has no slug");
-    }
-
-    const org = orgs[0];
-    const subdomain = org.slug;
+    const subdomain = result[0].slug;
 
     if (env.NODE_ENV === "development") {
       return `http://${subdomain}.localhost:3000`;
