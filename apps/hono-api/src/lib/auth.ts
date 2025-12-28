@@ -41,14 +41,21 @@ async function getUserAdminUrl(
 
     const subdomain = result[0].slug;
 
-    if (requestHost?.endsWith(".localhost") || env.NODE_ENV === "development") {
+    // Local development - always use localhost if requestHost is localhost or NODE_ENV is development
+    if (
+      requestHost?.endsWith(".localhost") ||
+      requestHost === "localhost" ||
+      env.NODE_ENV === "development"
+    ) {
       return `http://${subdomain}.localhost:3000`;
     }
 
+    // Preview - use request hostname
     if (requestHost?.endsWith(".vercel.app")) {
       return `https://${subdomain}.${requestHost}`;
     }
 
+    // Production
     if (!env.TENANT_DOMAIN) {
       throw new Error("TENANT_DOMAIN is required in production");
     }

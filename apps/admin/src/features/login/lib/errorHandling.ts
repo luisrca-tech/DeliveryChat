@@ -25,11 +25,7 @@ export function categorizeLoginError(error: Error): LoginErrorType {
 
 export function handleLoginError(
   error: unknown,
-  email: string,
-  setError: (
-    field: "email",
-    error: { type: "server"; message: string },
-  ) => void,
+  setError: (field: "email", error: { type: "server"; message: string }) => void
 ): void {
   console.error("Login error:", error);
 
@@ -45,7 +41,7 @@ export function handleLoginError(
 
   switch (errorType) {
     case "EMAIL_NOT_VERIFIED":
-      handleEmailNotVerifiedError(email);
+      handleEmailNotVerifiedError();
       break;
     case "EXPIRED":
       toast.error("Signup Expired", { description: message });

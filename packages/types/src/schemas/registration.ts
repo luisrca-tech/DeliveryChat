@@ -6,9 +6,19 @@ export const registrationSchema = z
     subdomain: z
       .string()
       .min(1, "Subdomain is required")
+      .toLowerCase()
+      .trim()
       .regex(
         /^[a-z0-9-]+$/,
-        "Only lowercase letters, numbers, and hyphens allowed",
+        "Only lowercase letters, numbers, and hyphens allowed"
+      )
+      .refine(
+        (val) => !val.startsWith("-") && !val.endsWith("-"),
+        "Subdomain cannot start or end with a hyphen"
+      )
+      .refine(
+        (val) => !val.includes("--"),
+        "Subdomain cannot contain consecutive hyphens"
       ),
     fullName: z.string().min(1, "Full name is required").trim(),
     email: z
