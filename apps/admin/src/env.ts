@@ -6,12 +6,11 @@ import { z } from "zod";
  * Variables are loaded from Infisical via native integration in Vercel.
  */
 export const env = createEnv({
-  server: {
+  server: {},
+  client: {
     NODE_ENV: z
       .enum(["development", "test", "staging", "production"])
       .default("development"),
-  },
-  client: {
     VITE_API_URL: z.string().url(),
     VITE_BETTER_AUTH_URL: z.string().url(),
     VITE_WEB_APP_URL: z.string().url(),
