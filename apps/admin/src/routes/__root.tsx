@@ -67,7 +67,6 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  // Check for subdomain requirement
   if (typeof window !== "undefined") {
     const subdomain = getSubdomain();
     if (!subdomain) {
