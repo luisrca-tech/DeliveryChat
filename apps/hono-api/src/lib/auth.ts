@@ -52,7 +52,7 @@ async function getUserAdminUrl(
 
     // Preview - use request hostname
     if (requestHost?.endsWith(".vercel.app")) {
-      return `https://${subdomain}.${requestHost}`;
+      return `https://${subdomain}---${requestHost}`;
     }
 
     // Production

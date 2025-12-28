@@ -24,7 +24,11 @@ export function getAdminUrl(tenant: string): string {
   }
 
   const url = new URL(base);
-  return `${url.protocol}//${safeTenant}.${url.hostname}`;
+  const host = url.hostname;
+  if (host.endsWith(".vercel.app")) {
+    return `${url.protocol}//${safeTenant}---${host}`;
+  }
+  return `${url.protocol}//${safeTenant}.${host}`;
 }
 
 export function getApiUrl(): string {

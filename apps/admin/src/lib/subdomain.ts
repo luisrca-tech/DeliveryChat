@@ -12,7 +12,8 @@ export function getSubdomain(hostname?: string): string | null {
   }
 
   if (h.endsWith(".vercel.app")) {
-    return h.split(".")[0] || null;
+    const firstLabel = h.split(".")[0] || "";
+    return firstLabel.split("---")[0] || null;
   }
 
   const tenantDomain = import.meta.env.VITE_TENANT_DOMAIN;
