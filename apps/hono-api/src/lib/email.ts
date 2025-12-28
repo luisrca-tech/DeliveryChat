@@ -10,6 +10,9 @@ import { env } from "../env.js";
 
 const resend = new Resend(env.RESEND_API_KEY);
 
+const getFromEmail = () =>
+  env.EMAIL_FROM || "Delivery Chat <noreply@deliverychat.online>";
+
 export interface SendVerificationOTPEmailParams {
   email: string;
   otp: string;
@@ -22,13 +25,18 @@ export interface SendResetPasswordEmailParams {
 }
 
 export async function sendVerificationOTPEmail(
-  params: SendVerificationOTPEmailParams,
+  params: SendVerificationOTPEmailParams
 ): Promise<void> {
   const { email, otp } = params;
 
+  if (process.env.VERCEL_ENV === "preview") {
+    console.info("[Email] Suppressed in preview environment");
+    return;
+  }
+
   try {
     const result = await resend.emails.send({
-      from: "Delivery Chat <onboarding@resend.dev>",
+      from: getFromEmail(),
       to: email,
       subject: "Verify your email address",
       html: `
@@ -61,13 +69,18 @@ export async function sendVerificationOTPEmail(
 }
 
 export async function sendResetPasswordEmail(
-  params: SendResetPasswordEmailParams,
+  params: SendResetPasswordEmailParams
 ): Promise<void> {
   const { email, url, userName } = params;
 
+  if (process.env.VERCEL_ENV === "preview") {
+    console.info("[Email] Suppressed in preview environment");
+    return;
+  }
+
   try {
     const result = await resend.emails.send({
-      from: "Delivery Chat <onboarding@resend.dev>",
+      from: getFromEmail(),
       to: email,
       subject: "Reset your password",
       html: `

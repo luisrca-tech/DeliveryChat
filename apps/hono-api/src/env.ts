@@ -21,7 +21,6 @@ export const env = createEnv({
       .transform((v) => (v ? JSON.parse(v) : []))
       .pipe(z.array(z.string())),
     EMAIL_FROM: z.string().optional(),
-    ADMIN_BASE_URL: z.string().url(),
     TENANT_DOMAIN: z.string().optional(),
   },
   client: {
@@ -37,7 +36,6 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
     EMAIL_FROM: process.env.EMAIL_FROM,
-    ADMIN_BASE_URL: process.env.ADMIN_BASE_URL,
     TENANT_DOMAIN: process.env.TENANT_DOMAIN,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

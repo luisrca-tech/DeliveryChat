@@ -11,21 +11,32 @@ export function isDevelopment(): boolean {
   );
 }
 
+function isPreview(): boolean {
+  if (typeof window === "undefined") return false;
+  return window.location.hostname.endsWith(".vercel.app");
+}
+
 export function getAdminUrl(subdomain: string): string {
   if (isDevelopment()) {
     return `http://${subdomain}.localhost:3000`;
   }
 
-  if (env.PUBLIC_TENANT_DOMAIN) {
-    return `https://${subdomain}.${env.PUBLIC_TENANT_DOMAIN}`;
+  if (isPreview()) {
+    const host = window.location.hostname;
+    const parts = host.split(".");
+    if (parts.length >= 2) {
+      const projectHost = parts.slice(-2).join(".");
+      return `https://${subdomain}.${projectHost}`;
+    }
+    return `https://${subdomain}.${host}`;
   }
 
-  const baseUrl = env.PUBLIC_ADMIN_BASE_URL.replace(/\/+$/, "");
-  if (baseUrl.includes("{subdomain}")) {
-    return baseUrl.replace("{subdomain}", subdomain);
+  const tenantDomain = env.PUBLIC_TENANT_DOMAIN;
+  if (!tenantDomain) {
+    throw new Error("PUBLIC_TENANT_DOMAIN is required in production");
   }
 
-  return baseUrl;
+  return `https://${subdomain}.${tenantDomain}`;
 }
 
 export function getApiUrl(): string {

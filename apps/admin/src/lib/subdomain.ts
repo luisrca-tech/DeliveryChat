@@ -6,18 +6,24 @@ export function getSubdomain(): string | null {
   const hostname = window.location.hostname.toLowerCase();
   if (!hostname) return null;
 
-  if (hostname === "localhost") return null;
-  if (hostname.endsWith(".localhost")) {
-    const parts = hostname.split(".");
-    return parts.length > 1 ? (parts[0] ?? null) : null;
+  const tenantDomain = env.VITE_TENANT_DOMAIN;
+  if (!tenantDomain && !hostname.endsWith(".vercel.app")) return null;
+  if (hostname === tenantDomain || hostname === "localhost") return null;
+
+  if (tenantDomain && hostname.endsWith(`.${tenantDomain}`)) {
+    const tenant = hostname.replace(`.${tenantDomain}`, "");
+    return tenant || null;
   }
 
-  if (
-    env.VITE_TENANT_DOMAIN &&
-    hostname.endsWith(`.${env.VITE_TENANT_DOMAIN}`)
-  ) {
-    const parts = hostname.split(".");
-    return parts.length > 2 ? (parts[0] ?? null) : null;
+  if (hostname.endsWith(".vercel.app")) {
+    const withoutSuffix = hostname.replace(".vercel.app", "");
+    const parts = withoutSuffix.split(".");
+    return parts[0] || null;
+  }
+
+  if (hostname.endsWith(".localhost")) {
+    const tenant = hostname.replace(".localhost", "");
+    return tenant || null;
   }
 
   return null;

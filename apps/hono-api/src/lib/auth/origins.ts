@@ -1,4 +1,5 @@
 import { env } from "../../env";
+import { isOriginAllowed } from "../corsPatterns.js";
 
 const devTrustedOrigins = [
   "http://localhost:3000",
@@ -27,13 +28,16 @@ export function createTrustedOrigins() {
   return (request: Request): string[] => {
     const origin = request.headers.get("origin");
 
-    const base: string[] = [...devTrustedOrigins, ...(allowedOrigins || [])];
-    if (
-      origin &&
-      isAllowedLocalhostOrigin(origin) &&
-      !(allowedOrigins || []).includes(origin)
-    ) {
-      (allowedOrigins || []).push(origin);
+    const base: string[] = [...devTrustedOrigins];
+
+    if (origin && isAllowedLocalhostOrigin(origin) && !base.includes(origin)) {
+      base.push(origin);
+    }
+
+    if (origin && isOriginAllowed(origin, allowedOrigins)) {
+      if (!base.includes(origin)) {
+        base.push(origin);
+      }
     }
 
     return base;
