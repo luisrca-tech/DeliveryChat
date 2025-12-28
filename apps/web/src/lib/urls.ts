@@ -22,13 +22,7 @@ export function getAdminUrl(subdomain: string): string {
   }
 
   if (isPreview()) {
-    const host = window.location.hostname;
-    const parts = host.split(".");
-    if (parts.length >= 2) {
-      const projectHost = parts.slice(-2).join(".");
-      return `https://${subdomain}.${projectHost}`;
-    }
-    return `https://${subdomain}.${host}`;
+    return `https://${subdomain}.${window.location.hostname}`;
   }
 
   const tenantDomain = env.PUBLIC_TENANT_DOMAIN;
