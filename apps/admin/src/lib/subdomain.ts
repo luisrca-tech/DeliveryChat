@@ -14,9 +14,7 @@ export function getSubdomain(): string | null {
   }
 
   if (hostname.endsWith(".vercel.app")) {
-    const withoutSuffix = hostname.replace(".vercel.app", "");
-    const parts = withoutSuffix.split(".");
-    return parts[0] || null;
+    return null;
   }
 
   if (hostname.endsWith(".localhost")) {
