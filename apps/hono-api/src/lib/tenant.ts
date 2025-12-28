@@ -17,6 +17,7 @@ export function getHostSubdomain(host: string | null): string | null {
   }
 
   if (hostname.endsWith(".vercel.app")) {
+    // Vercel Preview: tenant is encoded as <tenant>---<deployment>.vercel.app (no nested subdomains due to *.vercel.app TLS scope).
     const firstLabel = hostname.replace(".vercel.app", "").split(".")[0] || "";
     const tenant = firstLabel.split("---")[0] || null;
     return tenant;

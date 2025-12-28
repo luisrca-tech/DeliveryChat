@@ -52,6 +52,7 @@ async function getUserAdminUrl(
 
     // Preview - use request hostname
     if (requestHost?.endsWith(".vercel.app")) {
+      // Vercel Preview: use URL prefixes (<tenant>---<deployment>.vercel.app) because *.vercel.app TLS doesn't cover nested subdomains.
       return `https://${subdomain}---${requestHost}`;
     }
 
