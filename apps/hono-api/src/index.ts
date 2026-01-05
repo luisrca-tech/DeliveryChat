@@ -15,6 +15,15 @@ app.use(
     origin: (origin) => {
       if (!origin) return origin;
 
+      // Allow localhost origins in development
+      if (
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:") ||
+        /^http:\/\/[a-z0-9-]+\.localhost:\d+$/.test(origin)
+      ) {
+        return origin;
+      }
+
       if (isOriginAllowed(origin, env.ALLOWED_ORIGINS)) {
         return origin;
       }

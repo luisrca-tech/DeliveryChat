@@ -7,10 +7,10 @@ export const registerSchema = z.object({
   companyName: z.string().min(1).max(256),
   subdomain: z
     .string()
-    .min(1, "Subdomain is required")
-    .max(256, "Subdomain must be 256 characters or less")
     .toLowerCase()
     .trim()
+    .min(1, "Subdomain is required")
+    .max(256, "Subdomain must be 256 characters or less")
     .regex(
       /^[a-z0-9-]+$/,
       "Only lowercase letters, numbers, and hyphens allowed"
