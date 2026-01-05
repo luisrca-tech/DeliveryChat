@@ -7,6 +7,8 @@ export function getSubdomain(hostname?: string): string | null {
 
   const h = resolved.toLowerCase();
 
+  if (h === "localhost") return null;
+
   if (h.endsWith(".localhost")) {
     return h.replace(".localhost", "") || null;
   }

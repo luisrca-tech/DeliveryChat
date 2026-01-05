@@ -5,9 +5,9 @@ export const registrationSchema = z
     companyName: z.string().min(1, "Company name is required").trim(),
     subdomain: z
       .string()
-      .min(1, "Subdomain is required")
       .toLowerCase()
       .trim()
+      .min(1, "Subdomain is required")
       .regex(
         /^[a-z0-9-]+$/,
         "Only lowercase letters, numbers, and hyphens allowed"
