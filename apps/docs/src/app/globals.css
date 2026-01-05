@@ -1,0 +1,93 @@
+/* Import Tailwind CSS base first */
+@import "tailwindcss";
+
+/* Import Nextra theme styles after Tailwind base */
+@import "nextra-theme-docs/style.css";
+
+/* Import your custom UI styles last (for overrides) */
+@import "@repo/ui/styles.css";
+
+/* Nextra sidebar and content padding adjustments */
+@layer base {
+  /* Sidebar navigation padding */
+  nav[data-nextra-scrollbar],
+  [data-nextra-scrollbar] > nav {
+    padding-left: 1.5rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Sidebar list items */
+  nav[data-nextra-scrollbar] ul,
+  [data-nextra-scrollbar] nav ul {
+    padding-left: 0.75rem;
+  }
+
+  /* Sidebar container */
+  aside,
+  [class*="sidebar"] {
+    padding-left: 1.5rem;
+  }
+}
+
+/* Content area padding - using higher specificity and universal selectors */
+@layer utilities {
+  /* Custom wrapper class */
+  .nextra-content-wrapper {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  /* Main content wrapper - target the main content area */
+  main[class*="nextra-content"],
+  main > div[class*="nextra"],
+  main > article,
+  main article {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  /* Article content wrapper */
+  article[class*="nextra"],
+  article {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  /* Content divs inside main - exclude sidebar and navbar */
+  main
+    > div:not([class*="sidebar"]):not([class*="navbar"]):not(
+      [class*="banner"]
+    ) {
+    padding-left: 2.5rem !important;
+  }
+
+  /* Nextra content class */
+  [class*="nextra-content"] {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  /* Universal main content padding */
+  body main {
+    padding-left: 2.5rem !important;
+  }
+
+  /* Target the actual content wrapper that Nextra uses */
+  main > div:first-child:not([class*="sidebar"]):not([class*="navbar"]),
+  main > article:first-child {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+
+  /* More specific targeting for Nextra's layout structure */
+  body > div > main,
+  body > div > div > main {
+    padding-left: 2.5rem !important;
+  }
+
+  /* Target any direct children of main that contain content */
+  main > *:not(header):not(nav):not(aside) {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
+}
