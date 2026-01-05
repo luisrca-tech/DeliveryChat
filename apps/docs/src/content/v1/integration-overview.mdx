@@ -1,0 +1,66 @@
+# Integration Overview
+
+Delivery Chat provides multiple ways to integrate the chat support platform into your application. Choose the method that best fits your needs.
+
+## Integration Methods
+
+### 1. Iframe Integration
+
+The simplest way to embed Delivery Chat is using an iframe. This method requires minimal setup and works across all platforms.
+
+```html
+<iframe
+  src="https://your-domain.com/chat?appId=YOUR_APP_ID"
+  width="400"
+  height="600"
+  frameborder="0"
+></iframe>
+```
+
+### 2. JavaScript SDK
+
+For more control and customization, use our JavaScript SDK. This allows you to programmatically control the chat widget.
+
+```javascript
+import { DeliveryChat } from '@delivery-chat/sdk'
+
+const chat = new DeliveryChat({
+  appId: 'YOUR_APP_ID',
+  apiKey: 'YOUR_API_KEY',
+})
+
+chat.init()
+```
+
+### 3. REST API
+
+For server-side integrations or custom implementations, use our REST API to send and receive messages programmatically.
+
+```bash
+curl -X POST https://api.your-domain.com/v1/messages \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"message": "Hello, I need help"}'
+```
+
+## API Credentials
+
+To get started, you'll need to generate your API credentials from the admin dashboard:
+
+1. Log in to the admin dashboard
+2. Navigate to API Settings
+3. Generate a new `appId` and API key pair
+4. Store these credentials securely
+
+## Security
+
+All API keys are encrypted and stored securely. Make sure to:
+- Never expose API keys in client-side code
+- Use environment variables for API keys
+- Rotate keys regularly
+- Revoke unused keys
+
+## Next Steps
+
+- Learn more about [Getting Started](/v1)
+- Review the [Architecture Overview](/v1/architecture-overview)

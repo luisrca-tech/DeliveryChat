@@ -1,0 +1,70 @@
+# Architecture Overview
+
+This document provides an overview of the Delivery Chat platform architecture and how its components work together.
+
+## System Architecture
+
+Delivery Chat is built as a multi-tenant platform with the following key components:
+
+### Core Components
+
+1. **Admin Dashboard** - Management interface for administrators
+2. **Web Application** - Public-facing landing page and registration
+3. **Hono API** - Backend API service handling all business logic
+4. **Widget** - Embedded chat widget for customer-facing applications
+5. **Documentation** - This documentation platform
+
+### Multi-Tenant Architecture
+
+The platform uses a multi-tenant architecture where:
+
+- Each tenant has isolated data and configuration
+- Tenants can have custom domains
+- Secrets and credentials are managed per tenant
+- Authentication is handled through Better Auth
+
+### Integration Points
+
+#### Iframe Integration
+- Direct embedding via iframe
+- Simple and secure
+- Works across all platforms
+
+#### JavaScript SDK
+- Programmatic control
+- Event-driven architecture
+- Customizable UI components
+
+#### REST API
+- Server-side integration
+- Full control over implementation
+- Suitable for custom workflows
+
+## Data Flow
+
+1. **User Registration** - Users register through the web application
+2. **Tenant Creation** - New tenants are created with isolated resources
+3. **API Key Generation** - Administrators generate API credentials
+4. **Chat Integration** - Developers integrate using their preferred method
+5. **Message Handling** - Messages flow through the Hono API
+6. **Real-time Communication** - WebSocket connections for live chat
+
+## Security
+
+- All API keys are encrypted at rest
+- Multi-tenant isolation ensures data separation
+- Secrets management through Infisical
+- Secure authentication via Better Auth
+
+## Scalability
+
+The platform is designed to scale horizontally:
+- Stateless API design
+- Database connection pooling
+- Caching strategies
+- Load balancing support
+
+## Next Steps
+
+- Learn about [Getting Started](/v1)
+- Review the [Integration Overview](/v1/integration-overview)
