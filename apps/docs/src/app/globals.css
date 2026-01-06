@@ -1,67 +1,14 @@
-/* Import Tailwind CSS base first */
 @import "tailwindcss";
 
-/* Import Nextra theme styles after Tailwind base */
 @import "nextra-theme-docs/style.css";
 
-/* Import your custom UI styles last (for overrides) */
-@import "@repo/ui/styles.css";
+@variant dark (&:where(.dark *));
 
-/* Nextra sidebar and content padding adjustments */
-/* Using @layer components for higher specificity than base styles */
-@layer components {
-  /* Sidebar navigation padding - using attribute selectors for specificity */
-  body [data-nextra-scrollbar] nav,
-  body nav[data-nextra-scrollbar] {
-    padding-left: 1.5rem;
-    padding-right: 1rem;
-  }
+@source "../components/**/*.{tsx,ts,jsx,js}";
+@source "../content/**/*.{md,mdx}";
+@source "./**/*.{tsx,ts,jsx,js}";
+@source "../../../node_modules/nextra-theme-docs/**/*.{tsx,ts,jsx,js}";
 
-  /* Sidebar list items - more specific than base */
-  body [data-nextra-scrollbar] nav ul,
-  body nav[data-nextra-scrollbar] ul {
-    padding-left: 0.75rem;
-  }
-
-  /* Sidebar container - target aside elements within body */
-  body aside[class*="sidebar"],
-  body aside {
-    padding-left: 1.5rem;
-  }
-
-  /* Content wrapper - target our custom wrapper class with high specificity */
-  body .nextra-content-wrapper {
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
-  }
-
-  /* Main content area - chain selectors for higher specificity */
-  body > div > main > div.nextra-content-wrapper,
-  body
-    > div
-    > main
-    > div[class*="nextra-content"]:not([class*="sidebar"]):not(
-      [class*="navbar"]
-    ):not([class*="banner"]),
-  body > div > main > article[class*="nextra-content"],
-  body main article[class*="nextra-content"] {
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
-  }
-
-  /* Content wrapper inside Layout component */
-  body
-    main
-    > div:first-child:not([class*="sidebar"]):not([class*="navbar"]):not(
-      [class*="banner"]
-    ) {
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
-  }
-
-  /* Article elements within main content */
-  body main article:not([class*="sidebar"]) {
-    padding-left: 2.5rem;
-    padding-right: 2.5rem;
-  }
+:root {
+  --nextra-primary-hue: 200deg;
 }
