@@ -42,7 +42,7 @@ export function originMatchesPattern(origin: string, pattern: string): boolean {
 
 export function isOriginAllowed(
   origin: string | null,
-  allowedPatterns: string[] | undefined
+  allowedPatterns: string[] | undefined,
 ): boolean {
   if (!origin) return false;
   if (!allowedPatterns || allowedPatterns.length === 0) return false;

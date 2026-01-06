@@ -13,7 +13,7 @@ import { ComingSoon } from "./components/ComingSoon";
 import { ComparisonTable } from "./components/ComparisonTable";
 
 export function useMDXComponents(
-  components: MDXComponents = {}
+  components: MDXComponents = {},
 ): MDXComponents {
   const themeComponents = getThemeComponents(components);
   return {
