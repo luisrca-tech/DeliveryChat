@@ -8,6 +8,7 @@ export function DocsNavbar() {
           Delivery Chat
         </span>
       }
+      projectLink="https://github.com/luisrca-tech/DeliveryChat"
     />
   );
 }

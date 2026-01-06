@@ -1,4 +1,4 @@
-import { DocsHead } from "../components/Head";
+import { Head } from "nextra/components";
 import { DocsLayout } from "../components/DocsLayout";
 import "./globals.css";
 import type { Metadata } from "next";
@@ -22,7 +22,10 @@ export default async function RootLayout({
 }) {
   return (
     <html lang="en" dir="ltr" suppressHydrationWarning>
-      <DocsHead />
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <meta name="theme-color" content="#0ea5e9" />
+      </Head>
       <body>
         <DocsLayout>{children}</DocsLayout>
       </body>

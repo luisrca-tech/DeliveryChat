@@ -16,9 +16,9 @@ export async function DocsLayout({ children }: DocsLayoutProps) {
       pageMap={await getPageMap()}
       docsRepositoryBase="https://github.com/luisrca-tech/DeliveryChat/tree/main/apps/docs"
       footer={<DocsFooter />}
-      sidebar={{ autoCollapse: true }}
+      sidebar={{ defaultMenuCollapseLevel: 1, autoCollapse: true }}
     >
-      <div className="nextra-content-wrapper">{children}</div>
+      {children}
     </Layout>
   );
 }
