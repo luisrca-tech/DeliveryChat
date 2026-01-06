@@ -70,19 +70,56 @@ Choose the plan that fits your needs. All plans include a 14-day free trial with
 
 ## Plan Comparison
 
-| Feature | Starter | Professional | Enterprise |
-|---------|---------|--------------|------------|
-| **Monthly Visitors** | 1,000 | 10,000 | Unlimited |
-| **Applications** | 1 | 5 | Unlimited |
-| **Message History** | 7 days | 90 days | Unlimited |
-| **Rate Limiting** | 50 msg/hour | 200 msg/hour | Custom (up to 1,000) |
-| **Custom Domain** | ❌ | ✅ | ✅ |
-| **Analytics** | Basic | Advanced | Advanced + Custom |
-| **Support** | Email | Priority Email | 24/7 Phone + Email |
-| **Team Members** | Up to 3 | Up to 15 | Unlimited |
-| **White-label** | ❌ | ❌ | ✅ |
-| **SLA** | ❌ | ❌ | 99.9% uptime |
-| **Custom Integrations** | ❌ | ❌ | ✅ |
+<ComparisonTable
+  headers={["Starter", "Professional", "Enterprise"]}
+  highlightColumn={1}
+  rows={[
+    {
+      feature: "Monthly Visitors",
+      values: ["1,000", "10,000", "Unlimited"]
+    },
+    {
+      feature: "Applications",
+      values: ["1", "5", "Unlimited"]
+    },
+    {
+      feature: "Message History",
+      values: ["7 days", "90 days", "Unlimited"]
+    },
+    {
+      feature: "Rate Limiting",
+      values: ["50 msg/hour", "200 msg/hour", "Custom (up to 1,000)"]
+    },
+    {
+      feature: "Custom Domain",
+      values: ["❌", "✅", "✅"]
+    },
+    {
+      feature: "Analytics",
+      values: ["Basic", "Advanced", "Advanced + Custom"]
+    },
+    {
+      feature: "Support",
+      values: ["Email", "Priority Email", "24/7 Phone + Email"]
+    },
+    {
+      feature: "Team Members",
+      values: ["Up to 3", "Up to 15", "Unlimited"]
+    },
+    {
+      feature: "White-label",
+      values: ["❌", "❌", "✅"]
+    },
+    {
+      feature: "SLA",
+      values: ["❌", "❌", "99.9% uptime"]
+    },
+    {
+      feature: "Custom Integrations",
+      values: ["❌", "❌", "✅"]
+    }
+  ]}
+/>
 
 ## Rate Limiting Details
 
@@ -103,7 +140,9 @@ Rate limiting helps ensure fair usage and system stability. Limits are applied p
 - Can be adjusted based on needs
 - Example: High-traffic e-commerce during sales events
 
-**Note:** Rate limits can be temporarily increased for special events. Contact support for assistance.
+<Callout type="note">
+  Rate limits can be temporarily increased for special events. Contact support for assistance.
+</Callout>
 
 ## Visitor Limits
 
@@ -151,28 +190,38 @@ Each application is a separate chat widget instance with its own configuration.
 - No credit card required
 - Cancel anytime during trial
 
-## Frequently Asked Questions
-
-**Can I change plans later?**
-Yes, you can upgrade or downgrade at any time. Changes are prorated.
-
-**What happens if I exceed my visitor limit?**
-Your chat continues to work. You'll receive notifications to upgrade. No service interruption.
-
-**Do unused visitors roll over?**
-No, visitor limits reset monthly. Consider upgrading if you consistently exceed limits.
-
-**Can I have custom rate limits?**
-Enterprise plans include custom rate limiting. Professional plans can request temporary increases for events.
-
-**Is there a setup fee?**
-No setup fees. Only monthly subscription costs.
-
-**What payment methods do you accept?**
-Credit cards, debit cards, and for Enterprise plans, we can arrange invoicing.
-
-**Can I get a refund?**
-Yes, we offer a 30-day money-back guarantee on all paid plans.
+<FAQ
+  items={[
+    {
+      question: "Can I change plans later?",
+      answer: "Yes, you can upgrade or downgrade at any time. Changes are prorated."
+    },
+    {
+      question: "What happens if I exceed my visitor limit?",
+      answer: "Your chat continues to work. You'll receive notifications to upgrade. No service interruption."
+    },
+    {
+      question: "Do unused visitors roll over?",
+      answer: "No, visitor limits reset monthly. Consider upgrading if you consistently exceed limits."
+    },
+    {
+      question: "Can I have custom rate limits?",
+      answer: "Enterprise plans include custom rate limiting. Professional plans can request temporary increases for events."
+    },
+    {
+      question: "Is there a setup fee?",
+      answer: "No setup fees. Only monthly subscription costs."
+    },
+    {
+      question: "What payment methods do you accept?",
+      answer: "Credit cards, debit cards, and for Enterprise plans, we can arrange invoicing."
+    },
+    {
+      question: "Can I get a refund?",
+      answer: "Yes, we offer a 30-day money-back guarantee on all paid plans."
+    }
+  ]}
+/>
 
 ## Need Help Choosing?
 
