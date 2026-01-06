@@ -1,70 +1,273 @@
-# Architecture Overview
+# How Delivery Chat Works
 
-This document provides an overview of the Delivery Chat platform architecture and how its components work together.
+## What is Delivery Chat?
 
-## System Architecture
+Delivery Chat is a customer support chat platform that lets you add a fully customizable chat widget to your website or application. Your visitors can start conversations directly on your site, and your team manages all conversations from a centralized admin dashboard.
 
-Delivery Chat is built as a multi-tenant platform with the following key components:
+Think of it like having a support team available 24/7 on your website, but you control when they're available, how they look, and who can help your customers.
 
-### Core Components
+## Real-World Example: Nike
 
-1. **Admin Dashboard** - Management interface for administrators
-2. **Web Application** - Public-facing landing page and registration
-3. **Hono API** - Backend API service handling all business logic
-4. **Widget** - Embedded chat widget for customer-facing applications
-5. **Documentation** - This documentation platform
+Let's walk through how a company like Nike would use Delivery Chat:
 
-### Multi-Tenant Architecture
+### Step 1: Nike Signs Up
 
-The platform uses a multi-tenant architecture where:
+When Nike signs up for Delivery Chat:
+- They create an **Organization** called "Nike"
+- They get their own subdomain: `nike.deliverychat.com` (or they can use a custom domain)
+- They can start with a free plan and upgrade as they grow
 
-- Each tenant has isolated data and configuration
-- Tenants can have custom domains
-- Secrets and credentials are managed per tenant
-- Authentication is handled through Better Auth
+### Step 2: Nike Creates Multiple Apps
 
-### Integration Points
+Nike has different products and needs separate chat configurations:
+- **Nike Shoes App** (`nike-shoes.deliverychat.com`)
+  - Different business hours (9 AM - 6 PM EST)
+  - Specific auto-responses for shoe inquiries
+  - Custom rate limiting (100 messages/hour)
+  - Brand colors matching Nike Shoes branding
 
-#### Iframe Integration
-- Direct embedding via iframe
-- Simple and secure
-- Works across all platforms
+- **Nike Clothes App** (`nike-clothes.deliverychat.com`)
+  - Different business hours (8 AM - 8 PM EST)
+  - Different auto-responses for clothing questions
+  - Different rate limiting (150 messages/hour)
+  - Brand colors matching Nike Clothes branding
 
-#### JavaScript SDK
-- Programmatic control
-- Event-driven architecture
-- Customizable UI components
+- **Nike Accessories App** (`nike-accessories.deliverychat.com`)
+  - 24/7 availability
+  - Automated responses for common questions
+  - Higher rate limits for high traffic
+  - Custom widget position (bottom-right corner)
 
-#### REST API
-- Server-side integration
-- Full control over implementation
-- Suitable for custom workflows
+Each app operates independently with its own:
+- Domain/subdomain
+- Configuration settings
+- Rate limits
+- Business hours
+- Auto-responses
+- Widget appearance
 
-## Data Flow
+### Step 3: Nike Adds Team Members
 
-1. **User Registration** - Users register through the web application
-2. **Tenant Creation** - New tenants are created with isolated resources
-3. **API Key Generation** - Administrators generate API credentials
-4. **Chat Integration** - Developers integrate using their preferred method
-5. **Message Handling** - Messages flow through the Hono API
-6. **Real-time Communication** - WebSocket connections for live chat
+Nike can add team members to help manage conversations:
+- Support managers who configure settings and manage conversations
+- Support agents who respond to customer questions
+- Each team member can be assigned to specific apps or work across all of them
 
-## Security
+### Step 4: Nike Integrates the Chat Widget
 
-- All API keys are encrypted at rest
-- Multi-tenant isolation ensures data separation
-- Secrets management through Infisical
-- Secure authentication via Better Auth
+Nike can choose how to integrate the chat on their websites:
 
-## Scalability
+#### Option 1: Simple Iframe Embed (Nike Shoes Website)
 
-The platform is designed to scale horizontally:
-- Stateless API design
-- Database connection pooling
-- Caching strategies
-- Load balancing support
+```html
+<iframe
+  src="https://nike-shoes.deliverychat.com/chat?appId=NIKE_SHOES_APP_ID"
+  width="400"
+  height="600"
+  frameborder="0"
+></iframe>
+```
+
+**When to use**: Quick setup, minimal customization needed, works everywhere
+
+**Example scenario**: Nike Shoes website wants chat in a sidebar. They embed the iframe, and it automatically uses the Nike Shoes app configuration (business hours, auto-responses, branding).
+
+#### Option 2: TypeScript SDK (Nike Mobile App)
+
+```typescript
+import { DeliveryChat } from '@delivery-chat/sdk'
+
+const chat = new DeliveryChat({
+  appId: 'NIKE_CLOTHES_APP_ID',
+  apiKey: 'NIKE_CLOTHES_API_KEY',
+})
+
+// Customize widget appearance
+chat.setTheme({
+  primaryColor: '#FF6B35',
+  position: 'bottom-right',
+  logo: 'https://nike.com/logo.png'
+})
+
+// Listen to events
+chat.on('message', (message) => {
+  console.log('New message:', message)
+})
+
+chat.init()
+```
+
+**When to use**: Need programmatic control, custom UI, event handling, or integration with existing React/Vue apps
+
+**Example scenario**: Nike Clothes mobile app wants to show chat as a floating button that opens a custom modal. They use the SDK to control when it appears, customize the UI, and handle events.
+
+#### Option 3: REST API (Nike Custom Support System)
+
+```bash
+# Send a message
+curl -X POST https://api.deliverychat.com/v1/messages \
+  -H "Authorization: Bearer NIKE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appId": "NIKE_ACCESSORIES_APP_ID",
+    "visitorId": "visitor_123",
+    "message": "Hello, I need help with my order"
+  }'
+
+# Get conversation history
+curl -X GET https://api.deliverychat.com/v1/conversations/conv_123 \
+  -H "Authorization: Bearer NIKE_API_KEY"
+```
+
+**When to use**: Building a completely custom chat interface, server-side integration, or integrating with existing CRM/support systems
+
+**Example scenario**: Nike Accessories has an existing support system and wants to integrate Delivery Chat's backend. They use the REST API to send/receive messages through their own UI.
+
+### Step 5: Visitors Use the Chat
+
+When a customer visits Nike's website:
+
+1. **Visitor lands on nike.com/shoes**
+   - The chat widget loads (using Nike Shoes app configuration)
+   - Widget shows Nike Shoes branding (colors, logo)
+   - If it's outside business hours (9 AM - 6 PM EST), an auto-response is shown
+
+2. **Visitor clicks the chat widget**
+   - A conversation starts
+   - Visitor can type messages
+   - Messages appear in real-time in Nike's admin dashboard
+
+3. **Nike team member responds**
+   - Team member sees the conversation in their dashboard
+   - They respond through the admin interface
+   - Visitor sees the response immediately
+   - Conversation history is saved
+
+4. **Visitor returns later**
+   - Previous conversation is still available
+   - Visitor can continue where they left off
+   - Nike team can see full conversation history
+
+## Key Concepts
+
+### Organizations vs Applications
+
+**Organization** (Nike):
+- The company account
+- Contains multiple applications
+- Has team members
+- Billing and account management
+
+**Application** (Nike Shoes, Nike Clothes):
+- A specific chat widget instance
+- Has its own domain/subdomain
+- Has independent configuration
+- Has its own rate limits
+- Can have different settings than other apps in the same organization
+
+**Why this matters**: Nike can have one account but manage multiple chat widgets with different configurations, rate limits, and settings for different products or regions.
+
+### Configuration Per Application
+
+Each application (Nike Shoes, Nike Clothes, etc.) can have completely different settings:
+
+**Widget Appearance**:
+- Colors (primary, secondary, background)
+- Logo
+- Position (bottom-right, bottom-left, etc.)
+- Size and styling
+
+**Business Hours**:
+- Nike Shoes: 9 AM - 6 PM EST, Monday-Friday
+- Nike Clothes: 8 AM - 8 PM EST, Monday-Saturday
+- Nike Accessories: 24/7
+
+**Auto-Responses**:
+- Nike Shoes: "Thanks for contacting Nike Shoes! We're here to help with all your shoe questions."
+- Nike Clothes: "Welcome to Nike Clothes support! How can we help you today?"
+- Nike Accessories: Different message for each app
+
+**Rate Limiting**:
+- Nike Shoes: 100 messages per hour (moderate traffic)
+- Nike Clothes: 150 messages per hour (higher traffic)
+- Nike Accessories: 500 messages per hour (very high traffic)
+
+**Features**:
+- Some apps might have file uploads enabled
+- Some might have typing indicators
+- Some might have read receipts
+- Each app can enable/disable features independently
+
+## Edge Cases and Examples
+
+### Example 1: Multiple Brands Under One Organization
+
+**Scenario**: Nike owns Converse and wants to manage both brands separately.
+
+**Solution**: 
+- Create one Organization: "Nike Inc"
+- Create two Applications: "Nike" and "Converse"
+- Each app has its own domain, branding, and settings
+- Team can manage both from one dashboard
+- Team members can be assigned to specific apps or work across both
+
+### Example 2: Different Business Hours Per Region
+
+**Scenario**: Nike has global operations and needs different hours for US, Europe, and Asia.
+
+**Solution**:
+- Create three Applications: "Nike US", "Nike Europe", "Nike Asia"
+- Each app has different business hours matching their timezone
+- Auto-responses can be in different languages
+- Team members can be assigned to specific regions
+- All managed from one organization account
+
+### Example 3: Rate Limiting for High Traffic Events
+
+**Scenario**: Nike launches a new shoe and expects 10x normal traffic.
+
+**Solution**:
+- Temporarily increase rate limits for that specific app
+- Add more team members to handle the load
+- Configure auto-responses for common questions
+- Monitor traffic through the dashboard
+- Adjust settings in real-time without affecting other apps
+
+### Example 4: Gradual Rollout
+
+**Scenario**: Nike wants to test chat on one product before rolling out to all products.
+
+**Solution**:
+- Start with one Application (Nike Shoes)
+- Test with a small team
+- Once proven, create additional apps (Nike Clothes, Nike Accessories)
+- Copy successful configurations to new apps
+- Scale team as needed
+
+### Example 5: Custom Integration for Mobile App
+
+**Scenario**: Nike's mobile app needs chat but wants it to look native, not like a web widget.
+
+**Solution**:
+- Use the TypeScript SDK instead of iframe
+- Build custom UI components that match the app design
+- Use SDK events to integrate with app navigation
+- Maintain all Delivery Chat features (history, team management, etc.)
+- Still managed through the same admin dashboard
+
+## Data Isolation and Security
+
+Each organization's data is completely isolated:
+- Nike cannot see Adidas's conversations
+- Each app's data is separate
+- Team members can only access apps they're assigned to
+- All data is encrypted and secure
+- GDPR and compliance ready
 
 ## Next Steps
 
-- Learn about [Getting Started](/v1)
-- Review the [Integration Overview](/v1/integration-overview)
+Now that you understand how Delivery Chat works:
+
+- [Get Started](/v1) - Sign up and create your first app
+- [Integration Guide](/v1/integration-overview) - Learn how to embed the chat widget
+- [Plans & Pricing](/v1/plans) - See available plans and choose what's right for you
