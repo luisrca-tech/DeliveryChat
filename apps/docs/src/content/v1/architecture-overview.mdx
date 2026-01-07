@@ -30,13 +30,13 @@ Let's walk through how a company like Nike would use Delivery Chat:
       title: "Nike Creates Multiple Apps",
       content: (
         <>
-          <p>Nike has different products and needs separate chat configurations:</p>
+          <p>Nike has different products and needs separate chat configurations. Each application represents a chat widget that can be embedded on different websites:</p>
           <ul>
-            <li><strong>Nike Shoes App</strong> (<code>nike-shoes.deliverychat.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
-            <li><strong>Nike Clothes App</strong> (<code>nike-clothes.deliverychat.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
-            <li><strong>Nike Accessories App</strong> (<code>nike-accessories.deliverychat.com</code>) - 24/7 availability, automated responses, higher rate limits</li>
+            <li><strong>Nike Shoes App</strong> (domain: <code>nike-shoes.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
+            <li><strong>Nike Clothes App</strong> (domain: <code>nike-clothes.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
+            <li><strong>Nike Accessories App</strong> (domain: <code>nike-accessories.com</code>) - 24/7 availability, automated responses, higher rate limits</li>
           </ul>
-          <p>Each app operates independently with its own domain/subdomain, configuration settings, rate limits, business hours, auto-responses, and widget appearance.</p>
+          <p>Each app operates independently with its own website domain (where the widget is embedded), configuration settings, rate limits, business hours, auto-responses, and widget appearance. All apps are managed through the same organization subdomain (<code>nike.deliverychat.com</code>).</p>
         </>
       )
     },
@@ -57,15 +57,7 @@ Let's walk through how a company like Nike would use Delivery Chat:
       title: "Nike Integrates the Chat Widget",
       content: (
         <>
-          <p>Nike can choose how to integrate the chat on their websites (see integration options below).</p>
-        </>
-      )
-    },
-    {
-      title: "Nike Integrates the Chat Widget",
-      content: (
-        <>
-          <p>Nike can choose how to integrate the chat on their websites:</p>
+          <p>Nike can choose how to integrate the chat on their websites. The widget connects to their organization subdomain (<code>nike.deliverychat.com</code>) but is embedded on their own domains (e.g., <code>nike-shoes.com</code>, <code>nike-clothes.com</code>).</p>
         </>
       )
     }
@@ -76,7 +68,7 @@ Let's walk through how a company like Nike would use Delivery Chat:
 
 ```html
 <iframe
-  src="https://nike-shoes.deliverychat.com/chat?appId=NIKE_SHOES_APP_ID"
+  src="https://nike.deliverychat.com/chat?appId=NIKE_SHOES_APP_ID"
   width="400"
   height="600"
   frameborder="0"
@@ -85,7 +77,7 @@ Let's walk through how a company like Nike would use Delivery Chat:
 
 **When to use**: Quick setup, minimal customization needed, works everywhere
 
-**Example scenario**: Nike Shoes website wants chat in a sidebar. They embed the iframe, and it automatically uses the Nike Shoes app configuration (business hours, auto-responses, branding).
+**Example scenario**: Nike embeds the chat widget on their <code>nike-shoes.com</code> website. The iframe connects to their organization subdomain (<code>nike.deliverychat.com</code>) and uses the Nike Shoes app configuration (business hours, auto-responses, branding).
 
 #### Option 2: TypeScript SDK (Nike Mobile App)
 
@@ -195,6 +187,7 @@ curl -X GET https://api.deliverychat.com/v1/conversations/conv_123 \
     title: "Organization (Nike)",
     description: "The company account",
     features: [
+      "Gets one subdomain (e.g., nike.deliverychat.com)",
       "Contains multiple applications",
       "Has team members",
       "Billing and account management"
@@ -204,7 +197,7 @@ curl -X GET https://api.deliverychat.com/v1/conversations/conv_123 \
     title: "Application (Nike Shoes, Nike Clothes)",
     description: "A specific chat widget instance",
     features: [
-      "Has its own domain/subdomain",
+      "Has its own website domain (where widget is embedded)",
       "Has independent configuration",
       "Has its own rate limits",
       "Can have different settings than other apps in the same organization"
