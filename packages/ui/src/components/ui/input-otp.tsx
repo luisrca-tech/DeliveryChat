@@ -2,17 +2,17 @@ import * as React from "react";
 import { OTPInput, OTPInputContext, SlotProps } from "input-otp";
 import { Dot } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn } from "../../lib/utils";
 
 const InputOTP = React.forwardRef<
   React.ElementRef<typeof OTPInput>,
   React.ComponentPropsWithoutRef<typeof OTPInput>
->(({ className, containerClassName, ...props }, ref) => (
+>(({ containerClassName, ...props }, ref) => (
   <OTPInput
     ref={ref}
     containerClassName={cn(
       "relative flex items-center gap-2  has-[:disabled]:opacity-50",
-      containerClassName,
+      containerClassName
     )}
     {...props}
   />
@@ -43,7 +43,7 @@ const InputOTPSlot = React.forwardRef<
         "relative flex h-10 w-10 items-center  justify-center border border-input bg-background text-sm font-mono transition-all first:rounded-l-md last:rounded-r-md",
         "[&:not(:first-child)]:border-l-0",
         isActive && "z-10 ring-2 ring-ring ring-offset-background",
-        className,
+        className
       )}
       {...props}
     >

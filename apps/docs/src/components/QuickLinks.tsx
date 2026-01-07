@@ -1,5 +1,12 @@
 import Link from "next/link";
 import React from "react";
+import {
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
+import { cn } from "@repo/ui/lib/utils";
 
 interface QuickLink {
   title: string;
@@ -21,31 +28,31 @@ export function QuickLinks({ links, columns = 2 }: QuickLinksProps) {
   };
 
   return (
-    <div className={`grid ${gridCols[columns]} gap-4 my-6`}>
+    <div className={cn("grid", gridCols[columns], "gap-4 my-6")}>
       {links.map((link, index) => (
-        <Link
-          key={index}
-          href={link.href}
-          className="group block p-4 border border-gray-200 dark:border-gray-800 rounded-lg hover:border-blue-500 dark:hover:border-blue-500 hover:shadow-md transition-all"
-        >
-          <div className="flex items-start gap-3">
-            {link.icon && (
-              <span className="text-2xl shrink-0">{link.icon}</span>
-            )}
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                {link.title}
-              </h3>
-              {link.description && (
-                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                  {link.description}
-                </p>
-              )}
-            </div>
-            <span className="text-gray-400 group-hover:text-blue-500 transition-colors">
-              →
-            </span>
-          </div>
+        <Link key={index} href={link.href} className="group block">
+          <Card className="h-full transition-all hover:shadow-md hover:border-primary">
+            <CardHeader className="p-4">
+              <div className="flex items-start gap-3">
+                {link.icon && (
+                  <span className="text-2xl shrink-0">{link.icon}</span>
+                )}
+                <div className="flex-1">
+                  <CardTitle className="group-hover:text-primary transition-colors">
+                    {link.title}
+                  </CardTitle>
+                  {link.description && (
+                    <CardDescription className="mt-1">
+                      {link.description}
+                    </CardDescription>
+                  )}
+                </div>
+                <span className="text-muted-foreground group-hover:text-primary transition-colors shrink-0">
+                  →
+                </span>
+              </div>
+            </CardHeader>
+          </Card>
         </Link>
       ))}
     </div>

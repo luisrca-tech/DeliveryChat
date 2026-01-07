@@ -1,4 +1,13 @@
 import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
+import { cn } from "@repo/ui/lib/utils";
 
 interface PricingCardProps {
   title: string;
@@ -18,39 +27,38 @@ export function PricingCard({
   popular = false,
 }: PricingCardProps) {
   return (
-    <div
-      className={`border rounded-lg p-6 hover:shadow-lg transition-shadow ${
-        popular
-          ? "border-2 border-blue-500 dark:border-blue-400 relative"
-          : "border-gray-200 dark:border-gray-800"
-      }`}
+    <Card
+      className={cn(
+        "relative hover:shadow-lg transition-shadow",
+        popular && "border-2 border-blue-500 dark:border-blue-400"
+      )}
     >
       {popular && (
-        <div className="absolute top-4 right-4 bg-blue-500 text-white text-xs font-bold px-2 py-1 rounded">
+        <div className="absolute top-4 right-4 bg-primary text-primary-foreground border-2 border-primary-foreground/20 text-xs font-bold px-2 py-1 rounded">
           POPULAR
         </div>
       )}
-      <div className="mb-4">
-        <h3 className="text-2xl font-bold mb-2">{title}</h3>
-        <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">
-          {price}
-        </div>
-      </div>
-      <p className="text-gray-600 dark:text-gray-400 mb-6">{description}</p>
-      <ul className="space-y-4 mb-6">
-        {features.map((feature, index) => (
-          <li key={index} className="flex items-start">
-            <span className="text-green-500 mr-2">✓</span>
-            <span>{feature}</span>
-          </li>
-        ))}
-      </ul>
-      <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+      <CardHeader className="p-6 pb-4 flex flex-col">
+        <CardTitle className="text-xl mb-2 ">{title}</CardTitle>
+        <div className="text-2xl font-bold text-primary ">{price}</div>
+      </CardHeader>
+      <CardContent className="pt-0">
+        <CardDescription className="mb-6">{description}</CardDescription>
+        <ul className="space-y-4 mb-6">
+          {features.map((feature, index) => (
+            <li key={index} className="flex items-start">
+              <span className="text-primary mr-2">✓</span>
+              <span className="text-foreground">{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+      <CardFooter className="border-t pt-4 mt-0">
+        <p className="text-sm text-muted-foreground">
           <strong>Best for:</strong> {bestFor}
         </p>
-      </div>
-    </div>
+      </CardFooter>
+    </Card>
   );
 }
 
