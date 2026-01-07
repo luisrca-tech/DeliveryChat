@@ -57,7 +57,7 @@ const ERROR_MESSAGE_MAP: Record<LoginOutcome, string> = {
 
 export function resolveSignupAction(
   user: User | null,
-  pendingExpiresAt: string | null
+  pendingExpiresAt: string | null,
 ): SignupAction {
   if (!user) {
     return "ALLOW_NEW";

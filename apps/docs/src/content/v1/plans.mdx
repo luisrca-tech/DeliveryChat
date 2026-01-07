@@ -1,0 +1,257 @@
+# Plans & Pricing
+
+Choose the plan that fits your needs. All plans include a 14-day free trial with full access to all features.
+
+## Plans Overview
+
+<PricingGrid>
+  <PricingCard
+    title="Free"
+    price="$0/month"
+    description="Perfect for trying out our platform and small personal projects."
+    features={[
+      "Up to 500 monthly visitors",
+      "1 chat widget application",
+      "Organization subdomain (yourcompany.deliverychat.com)",
+      "Basic customization (colors, logo)",
+      "Community support",
+      "3-day message history",
+      "Basic auto-responses",
+      "Rate limiting: 20 messages/hour",
+    ]}
+    bestFor="Personal projects, testing, small websites"
+  />
+  <PricingCard
+    title="Basic"
+    price="$49/month"
+    description="Perfect for small businesses getting started with customer support chat."
+    features={[
+      "Up to 1,000 monthly visitors",
+      "1 chat widget application",
+      "Organization subdomain (yourcompany.deliverychat.com)",
+      "Basic customization (colors, logo, position)",
+      "Email support",
+      "7-day message history",
+      "Business hours configuration",
+      "Auto-responses",
+      "Rate limiting: 50 messages/hour",
+    ]}
+    bestFor="Small businesses, startups, personal projects"
+  />
+  <PricingCard
+    title="Premium"
+    price="$99/month"
+    description="For growing teams that need more power and flexibility."
+    features={[
+      "Up to 10,000 monthly visitors",
+      "5 chat widget applications",
+      "Advanced customization (full theme control)",
+      "Priority email support",
+      "90-day message history",
+      "Organization subdomain (yourcompany.deliverychat.com)",
+      "Use your own domain (chat.yourcompany.com)",
+      "Analytics dashboard",
+      "Business hours per application",
+      "Advanced auto-responses",
+      "Rate limiting: 200 messages/hour per app",
+      "Team member management",
+      "Conversation assignment",
+    ]}
+    bestFor="Growing businesses, multiple products, regional teams"
+    popular
+  />
+  <PricingCard
+    title="Enterprise"
+    price="Custom pricing"
+    description="For large organizations with specific needs and high-volume requirements."
+    features={[
+      "Unlimited monthly visitors",
+      "Unlimited chat widget applications",
+      "White-label solution",
+      "24/7 phone & email support",
+      "Unlimited message history",
+      "Organization subdomain (yourcompany.deliverychat.com)",
+      "Use your own domain (chat.yourcompany.com)",
+      "Advanced analytics & reporting",
+      "Custom business hours & rules",
+      "Advanced auto-responses & AI integration",
+      "Custom rate limiting (up to 1,000 messages/hour per app)",
+      "Advanced team management & roles",
+      "Custom integrations & API access",
+      "SLA guarantee (99.9% uptime)",
+      "Dedicated account manager",
+      "Onboarding & training",
+      "Custom feature development",
+    ]}
+    bestFor="Large enterprises, high-traffic websites, complex requirements"
+  />
+</PricingGrid>
+
+## Plan Comparison
+
+<ComparisonTable
+  headers={["Free", "Basic", "Premium", "Enterprise"]}
+  highlightColumn={2}
+  rows={[
+    {
+      feature: "Monthly Visitors",
+      values: ["500", "1,000", "10,000", "Unlimited"]
+    },
+    {
+      feature: "Applications",
+      values: ["1", "1", "5", "Unlimited"]
+    },
+    {
+      feature: "Message History",
+      values: ["3 days", "7 days", "90 days", "Unlimited"]
+    },
+    {
+      feature: "Rate Limiting",
+      values: ["20 msg/hour", "50 msg/hour", "200 msg/hour", "Custom (up to 1,000)"]
+    },
+    {
+      feature: "Organization Subdomain",
+      values: ["✅", "✅", "✅", "✅"]
+    },
+    {
+      feature: "Use Your Own Domain",
+      values: ["❌", "❌", "✅", "✅"]
+    },
+    {
+      feature: "Analytics",
+      values: ["❌", "Basic", "Advanced", "Advanced + Custom"]
+    },
+    {
+      feature: "Support",
+      values: ["Community", "Email", "Priority Email", "24/7 Phone + Email"]
+    },
+    {
+      feature: "Team Members",
+      values: ["1", "Up to 3", "Up to 15", "Unlimited"]
+    },
+    {
+      feature: "White-label",
+      values: ["❌", "❌", "❌", "✅"]
+    },
+    {
+      feature: "SLA",
+      values: ["❌", "❌", "❌", "99.9% uptime"]
+    },
+    {
+      feature: "Custom Integrations",
+      values: ["❌", "❌", "❌", "✅"]
+    }
+  ]}
+/>
+
+## Rate Limiting Details
+
+Rate limiting helps ensure fair usage and system stability. Limits are applied per application.
+
+**Free Plan:**
+- 20 messages per hour per application
+- Suitable for testing and very low traffic
+- Example: Personal blog or portfolio site
+
+**Basic Plan:**
+- 50 messages per hour per application
+- Suitable for low to moderate traffic
+- Example: Small e-commerce site with occasional customer questions
+
+**Premium Plan:**
+- 200 messages per hour per application
+- Suitable for moderate to high traffic
+- Example: Growing SaaS product with active user base
+
+**Enterprise Plan:**
+- Custom rate limits (typically 500-1,000 messages/hour per app)
+- Can be adjusted based on needs
+- Example: High-traffic e-commerce during sales events
+
+<Callout type="note">
+  Rate limits can be temporarily increased for special events. Contact support for assistance.
+</Callout>
+
+## Visitor Limits
+
+Monthly visitor limits are based on unique visitors who interact with your chat widget.
+
+**What counts as a visitor:**
+- A unique user who opens or interacts with your chat widget
+- Counted once per month, even if they return multiple times
+- Visitors who only view the widget but don't interact are not counted
+
+**What happens if you exceed limits:**
+- Free, Basic & Premium: Chat continues to work, but you'll be notified to upgrade
+- Enterprise: No limits, chat always available
+
+## Application Limits
+
+Each application is a separate chat widget instance with its own configuration. An application represents a chat widget that can be embedded on a specific website domain. Your organization gets one subdomain (e.g., `yourcompany.deliverychat.com`) that serves all your applications.
+
+**Free & Basic (1 application):**
+- One chat widget for your main website
+- Example: Embed widget on `yourcompany.com` (connects to `yourcompany.deliverychat.com`)
+
+**Premium (5 applications):**
+- Multiple chat widgets for different products, brands, or regions
+- Example: Embed widgets on `product1.com`, `product2.com`, `us.yourcompany.com`, `eu.yourcompany.com`, `support.yourcompany.com` (all connect to `yourcompany.deliverychat.com`)
+
+**Enterprise (Unlimited):**
+- As many applications as you need
+- Perfect for large organizations with multiple brands, products, or regions
+- Each application can be embedded on a different website domain
+
+## Upgrade & Downgrade
+
+**Upgrading:**
+- Upgrade anytime from your dashboard
+- Changes take effect immediately
+- Prorated billing for the current month
+
+**Downgrading:**
+- Downgrade at the end of your billing cycle
+- Your data is preserved
+- Features beyond your new plan are disabled but data remains accessible
+
+**Free Trial:**
+- 14 days full access to Professional plan features
+- No credit card required
+- Cancel anytime during trial
+
+<FAQ
+  items={[
+    {
+      question: "Can I change plans later?",
+      answer: "Yes, you can upgrade or downgrade at any time. Changes are prorated."
+    },
+    {
+      question: "What happens if I exceed my visitor limit?",
+      answer: "Your chat continues to work. You'll receive notifications to upgrade. No service interruption."
+    },
+    {
+      question: "Do unused visitors roll over?",
+      answer: "No, visitor limits reset monthly. Consider upgrading if you consistently exceed limits."
+    },
+    {
+      question: "Can I have custom rate limits?",
+      answer: "Enterprise plans include custom rate limiting. Premium plans can request temporary increases for events."
+    },
+    {
+      question: "Is there a setup fee?",
+      answer: "No setup fees. Only monthly subscription costs."
+    },
+    {
+      question: "What payment methods do you accept?",
+      answer: "Credit cards, debit cards, and for Enterprise plans, we can arrange invoicing."
+    },
+    {
+      question: "Can I get a refund?",
+      answer: "Yes, we offer a 30-day money-back guarantee on all paid plans."
+    }
+  ]}
+/>
+
+## Need Help Choosing?
+
+Not sure which plan is right for you? [Contact our sales team](/contact) and we'll help you find the perfect fit for your needs.

@@ -18,7 +18,7 @@ const baseURL = getAuthBaseURL(env);
 
 async function getUserAdminUrl(
   userId: string,
-  requestHost: string | null
+  requestHost: string | null,
 ): Promise<string> {
   try {
     const result = await db
@@ -28,14 +28,14 @@ async function getUserAdminUrl(
       .from(member)
       .innerJoin(
         organizationSchema,
-        eq(member.organizationId, organizationSchema.id)
+        eq(member.organizationId, organizationSchema.id),
       )
       .where(eq(member.userId, userId))
       .limit(1);
 
     if (result.length === 0 || !result[0]?.slug) {
       throw new Error(
-        "User has no organization membership or organization has no slug"
+        "User has no organization membership or organization has no slug",
       );
     }
 
