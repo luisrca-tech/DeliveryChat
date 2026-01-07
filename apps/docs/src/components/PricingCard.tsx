@@ -30,7 +30,7 @@ export function PricingCard({
     <Card
       className={cn(
         "relative hover:shadow-lg transition-shadow",
-        popular && "border-2 border-blue-500 dark:border-blue-400"
+        popular && "border-2 border-blue-500 dark:border-blue-400",
       )}
     >
       {popular && (

@@ -46,7 +46,7 @@ export function ExampleCard({
               <code
                 className={cn(
                   "text-sm",
-                  codeLanguage && `language-${codeLanguage}`
+                  codeLanguage && `language-${codeLanguage}`,
                 )}
               >
                 {code}
