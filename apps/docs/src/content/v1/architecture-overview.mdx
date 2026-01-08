@@ -1,0 +1,358 @@
+# How Delivery Chat Works
+
+## What is Delivery Chat?
+
+Delivery Chat is a customer support chat platform that lets you add a fully customizable chat widget to your website or application. Your visitors can start conversations directly on your site, and your team manages all conversations from a centralized admin dashboard.
+
+Think of it like having a support team available 24/7 on your website, but you control when they're available, how they look, and who can help your customers.
+
+## Real-World Example: Nike
+
+Let's walk through how a company like Nike would use Delivery Chat:
+
+<StepByStep
+  title="How Nike Uses Delivery Chat"
+  steps={[
+    {
+      title: "Nike Signs Up",
+      content: (
+        <>
+          <p>When Nike signs up for Delivery Chat:</p>
+          <ul>
+            <li>They create an <strong>Organization</strong> called "Nike"</li>
+            <li>They get their own subdomain: <code>nike.deliverychat.com</code> (or they can use a custom domain)</li>
+            <li>They can start with a free plan and upgrade as they grow</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      title: "Nike Creates Multiple Apps",
+      content: (
+        <>
+          <p>Nike has different products and needs separate chat configurations. Each application represents a chat widget that can be embedded on different websites:</p>
+          <ul>
+            <li><strong>Nike Shoes App</strong> (domain: <code>nike-shoes.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
+            <li><strong>Nike Clothes App</strong> (domain: <code>nike-clothes.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
+            <li><strong>Nike Accessories App</strong> (domain: <code>nike-accessories.com</code>) - 24/7 availability, automated responses, higher rate limits</li>
+          </ul>
+          <p>Each app operates independently with its own website domain (where the widget is embedded), configuration settings, rate limits, business hours, auto-responses, and widget appearance. All apps are managed through the same organization subdomain (<code>nike.deliverychat.com</code>).</p>
+        </>
+      )
+    },
+    {
+      title: "Nike Adds Team Members",
+      content: (
+        <>
+          <p>Nike can add team members to help manage conversations:</p>
+          <ul>
+            <li>Support managers who configure settings and manage conversations</li>
+            <li>Support agents who respond to customer questions</li>
+            <li>Each team member can be assigned to specific apps or work across all of them</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      title: "Nike Integrates the Chat Widget",
+      content: (
+        <>
+          <p>Nike can choose how to integrate the chat on their websites. The widget connects to their organization subdomain (<code>nike.deliverychat.com</code>) but is embedded on their own domains (e.g., <code>nike-shoes.com</code>, <code>nike-clothes.com</code>).</p>
+        </>
+      )
+    }
+  ]}
+/>
+
+#### Option 1: Simple Iframe Embed (Nike Shoes Website)
+
+```html
+<iframe
+  src="https://nike.deliverychat.com/chat?appId=NIKE_SHOES_APP_ID"
+  width="400"
+  height="600"
+  frameborder="0"
+></iframe>
+```
+
+**When to use**: Quick setup, minimal customization needed, works everywhere
+
+**Example scenario**: Nike embeds the chat widget on their <code>nike-shoes.com</code> website. The iframe connects to their organization subdomain (<code>nike.deliverychat.com</code>) and uses the Nike Shoes app configuration (business hours, auto-responses, branding).
+
+#### Option 2: TypeScript SDK (Nike Mobile App)
+
+```typescript
+import { DeliveryChat } from '@delivery-chat/sdk'
+
+const chat = new DeliveryChat({
+  appId: 'NIKE_CLOTHES_APP_ID',
+  apiKey: 'NIKE_CLOTHES_API_KEY',
+})
+
+// Customize widget appearance
+chat.setTheme({
+  primaryColor: '#FF6B35',
+  position: 'bottom-right',
+  logo: 'https://nike.com/logo.png'
+})
+
+// Listen to events
+chat.on('message', (message) => {
+  console.log('New message:', message)
+})
+
+chat.init()
+```
+
+**When to use**: Need programmatic control, custom UI, event handling, or integration with existing React/Vue apps
+
+**Example scenario**: Nike Clothes mobile app wants to show chat as a floating button that opens a custom modal. They use the SDK to control when it appears, customize the UI, and handle events.
+
+#### Option 3: REST API (Nike Custom Support System)
+
+```bash
+# Send a message
+curl -X POST https://api.deliverychat.com/v1/messages \
+  -H "Authorization: Bearer NIKE_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "appId": "NIKE_ACCESSORIES_APP_ID",
+    "visitorId": "visitor_123",
+    "message": "Hello, I need help with my order"
+  }'
+
+# Get conversation history
+curl -X GET https://api.deliverychat.com/v1/conversations/conv_123 \
+  -H "Authorization: Bearer NIKE_API_KEY"
+```
+
+**When to use**: Building a completely custom chat interface, server-side integration, or integrating with existing CRM/support systems
+
+**Example scenario**: Nike Accessories has an existing support system and wants to integrate Delivery Chat's backend. They use the REST API to send/receive messages through their own UI.
+
+<StepByStep
+  title="Visitors Use the Chat"
+  steps={[
+    {
+      title: "Visitor lands on nike.com/shoes",
+      content: (
+        <ul>
+          <li>The chat widget loads (using Nike Shoes app configuration)</li>
+          <li>Widget shows Nike Shoes branding (colors, logo)</li>
+          <li>If it's outside business hours (9 AM - 6 PM EST), an auto-response is shown</li>
+        </ul>
+      )
+    },
+    {
+      title: "Visitor clicks the chat widget",
+      content: (
+        <ul>
+          <li>A conversation starts</li>
+          <li>Visitor can type messages</li>
+          <li>Messages appear in real-time in Nike's admin dashboard</li>
+        </ul>
+      )
+    },
+    {
+      title: "Nike team member responds",
+      content: (
+        <ul>
+          <li>Team member sees the conversation in their dashboard</li>
+          <li>They respond through the admin interface</li>
+          <li>Visitor sees the response immediately</li>
+          <li>Conversation history is saved</li>
+        </ul>
+      )
+    },
+    {
+      title: "Visitor returns later",
+      content: (
+        <ul>
+          <li>Previous conversation is still available</li>
+          <li>Visitor can continue where they left off</li>
+          <li>Nike team can see full conversation history</li>
+        </ul>
+      )
+    }
+  ]}
+/>
+
+## Key Concepts
+
+### Organizations vs Applications
+
+<Comparison
+  title="Organizations vs Applications"
+  left={{
+    title: "Organization (Nike)",
+    description: "The company account",
+    features: [
+      "Gets one subdomain (e.g., nike.deliverychat.com)",
+      "Contains multiple applications",
+      "Has team members",
+      "Billing and account management"
+    ]
+  }}
+  right={{
+    title: "Application (Nike Shoes, Nike Clothes)",
+    description: "A specific chat widget instance",
+    features: [
+      "Has its own website domain (where widget is embedded)",
+      "Has independent configuration",
+      "Has its own rate limits",
+      "Can have different settings than other apps in the same organization"
+    ]
+  }}
+/>
+
+**Why this matters**: Nike can have one account but manage multiple chat widgets with different configurations, rate limits, and settings for different products or regions.
+
+### Configuration Per Application
+
+Each application (Nike Shoes, Nike Clothes, etc.) can have completely different settings:
+
+<FeatureList
+  title="Widget Appearance"
+  features={[
+    { name: "Colors", description: "primary, secondary, background" },
+    { name: "Logo" },
+    { name: "Position", description: "bottom-right, bottom-left, etc." },
+    { name: "Size and styling" }
+  ]}
+/>
+
+<FeatureList
+  title="Business Hours"
+  features={[
+    { name: "Nike Shoes", description: "9 AM - 6 PM EST, Monday-Friday" },
+    { name: "Nike Clothes", description: "8 AM - 8 PM EST, Monday-Saturday" },
+    { name: "Nike Accessories", description: "24/7" }
+  ]}
+/>
+
+<FeatureList
+  title="Auto-Responses"
+  features={[
+    { name: "Nike Shoes", description: '"Thanks for contacting Nike Shoes! We\'re here to help with all your shoe questions."' },
+    { name: "Nike Clothes", description: '"Welcome to Nike Clothes support! How can we help you today?"' },
+    { name: "Nike Accessories", description: "Different message for each app" }
+  ]}
+/>
+
+<FeatureList
+  title="Rate Limiting"
+  features={[
+    { name: "Nike Shoes", description: "100 messages per hour (moderate traffic)" },
+    { name: "Nike Clothes", description: "150 messages per hour (higher traffic)" },
+    { name: "Nike Accessories", description: "500 messages per hour (very high traffic)" }
+  ]}
+/>
+
+<FeatureList
+  title="Features"
+  features={[
+    { name: "File uploads", description: "Some apps might have file uploads enabled" },
+    { name: "Typing indicators", description: "Some might have typing indicators" },
+    { name: "Read receipts", description: "Some might have read receipts" },
+    { name: "Independent control", description: "Each app can enable/disable features independently" }
+  ]}
+/>
+
+## Edge Cases and Examples
+
+<ExampleCard
+  title="Example 1: Multiple Brands Under One Organization"
+  scenario="Nike owns Converse and wants to manage both brands separately."
+  solution={
+    <>
+      <ul className="list-disc list-inside space-y-2">
+        <li>Create one Organization: "Nike Inc"</li>
+        <li>Create two Applications: "Nike" and "Converse"</li>
+        <li>Each app has its own domain, branding, and settings</li>
+        <li>Team can manage both from one dashboard</li>
+        <li>Team members can be assigned to specific apps or work across both</li>
+      </ul>
+    </>
+  }
+/>
+
+<ExampleCard
+  title="Example 2: Different Business Hours Per Region"
+  scenario="Nike has global operations and needs different hours for US, Europe, and Asia."
+  solution={
+    <>
+      <ul className="list-disc list-inside space-y-2">
+        <li>Create three Applications: "Nike US", "Nike Europe", "Nike Asia"</li>
+        <li>Each app has different business hours matching their timezone</li>
+        <li>Auto-responses can be in different languages</li>
+        <li>Team members can be assigned to specific regions</li>
+        <li>All managed from one organization account</li>
+      </ul>
+    </>
+  }
+/>
+
+<ExampleCard
+  title="Example 3: Rate Limiting for High Traffic Events"
+  scenario="Nike launches a new shoe and expects 10x normal traffic."
+  solution={
+    <>
+      <ul className="list-disc list-inside space-y-2">
+        <li>Temporarily increase rate limits for that specific app</li>
+        <li>Add more team members to handle the load</li>
+        <li>Configure auto-responses for common questions</li>
+        <li>Monitor traffic through the dashboard</li>
+        <li>Adjust settings in real-time without affecting other apps</li>
+      </ul>
+    </>
+  }
+/>
+
+<ExampleCard
+  title="Example 4: Gradual Rollout"
+  scenario="Nike wants to test chat on one product before rolling out to all products."
+  solution={
+    <>
+      <ul className="list-disc list-inside space-y-2">
+        <li>Start with one Application (Nike Shoes)</li>
+        <li>Test with a small team</li>
+        <li>Once proven, create additional apps (Nike Clothes, Nike Accessories)</li>
+        <li>Copy successful configurations to new apps</li>
+        <li>Scale team as needed</li>
+      </ul>
+    </>
+  }
+/>
+
+<ExampleCard
+  title="Example 5: Custom Integration for Mobile App"
+  scenario="Nike's mobile app needs chat but wants it to look native, not like a web widget."
+  solution={
+    <>
+      <ul className="list-disc list-inside space-y-2">
+        <li>Use the TypeScript SDK instead of iframe</li>
+        <li>Build custom UI components that match the app design</li>
+        <li>Use SDK events to integrate with app navigation</li>
+        <li>Maintain all Delivery Chat features (history, team management, etc.)</li>
+        <li>Still managed through the same admin dashboard</li>
+      </ul>
+    </>
+  }
+/>
+
+## Data Isolation and Security
+
+Each organization's data is completely isolated:
+- Nike cannot see Adidas's conversations
+- Each app's data is separate
+- Team members can only access apps they're assigned to
+- All data is encrypted and secure
+- GDPR and compliance ready
+
+## Next Steps
+
+Now that you understand how Delivery Chat works:
+
+- [Get Started](/v1) - Sign up and create your first app
+- [Integration Guide](/v1/integration-overview) - Learn how to embed the chat widget
+- [Plans & Pricing](/v1/plans) - See available plans and choose what's right for you

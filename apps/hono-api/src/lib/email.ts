@@ -25,7 +25,7 @@ export interface SendResetPasswordEmailParams {
 }
 
 export async function sendVerificationOTPEmail(
-  params: SendVerificationOTPEmailParams
+  params: SendVerificationOTPEmailParams,
 ): Promise<void> {
   const { email, otp } = params;
 
@@ -69,7 +69,7 @@ export async function sendVerificationOTPEmail(
 }
 
 export async function sendResetPasswordEmail(
-  params: SendResetPasswordEmailParams
+  params: SendResetPasswordEmailParams,
 ): Promise<void> {
   const { email, url, userName } = params;
 

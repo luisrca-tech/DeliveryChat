@@ -27,5 +27,5 @@ export const organization = createTable(
   },
   (table) => ({
     slugLookupIdx: index("organization_slug_idx").on(table.slug),
-  })
+  }),
 );

@@ -25,7 +25,10 @@ export function categorizeLoginError(error: Error): LoginErrorType {
 
 export function handleLoginError(
   error: unknown,
-  setError: (field: "email", error: { type: "server"; message: string }) => void
+  setError: (
+    field: "email",
+    error: { type: "server"; message: string },
+  ) => void,
 ): void {
   console.error("Login error:", error);
 
