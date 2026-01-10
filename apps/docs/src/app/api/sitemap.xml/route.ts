@@ -15,7 +15,7 @@ function flattenPageMap(
     lastmod: string;
     changefreq: string;
     priority: string;
-  }> = [],
+  }> = []
 ): void {
   for (const item of pageMap) {
     if (item.kind === "Folder") {
@@ -41,7 +41,7 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : "https://docs.deliverychat.com");
+      : "https://delivery-chat-docs.vercel.app/");
 
   const pageMap = (await getPageMap()) as unknown as PageMapItem[];
   const urls: Array<{
@@ -69,7 +69,7 @@ ${urls
     <lastmod>${url.lastmod}</lastmod>
     <changefreq>${url.changefreq}</changefreq>
     <priority>${url.priority}</priority>
-  </url>`,
+  </url>`
   )
   .join("\n")}
 </urlset>`;
