@@ -4,11 +4,6 @@
 
 @variant dark (&:where(.dark *));
 
-@source "../components/**/*.{tsx,ts,jsx,js}";
-@source "../content/**/*.{md,mdx}";
-@source "./**/*.{tsx,ts,jsx,js}";
-@source "../../../node_modules/nextra-theme-docs/**/*.{tsx,ts,jsx,js}";
-
 :root {
   --nextra-primary-hue: 200deg;
 
