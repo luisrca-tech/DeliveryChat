@@ -5,7 +5,7 @@ export async function GET() {
     process.env.NEXT_PUBLIC_SITE_URL ||
     (process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
-      : "https://docs.deliverychat.com");
+      : "https://delivery-chat-docs.vercel.app/");
 
   const robotsTxt = `User-agent: *
 Allow: /
