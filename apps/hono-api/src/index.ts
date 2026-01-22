@@ -44,7 +44,7 @@ app.all("/api/auth/*", async (c) => {
   return auth.handler(c.req.raw);
 });
 
-app.route("/api", api);
+app.route("/v1", api);
 
 export type AppType = typeof app;
 

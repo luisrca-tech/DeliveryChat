@@ -20,7 +20,7 @@ export function getApiUrl(): string {
 
 export function getApiBaseUrl(): string {
   const baseUrl = getApiUrl();
-  return baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+  return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 }
 
 export function getSubdomainOrigin(): string {

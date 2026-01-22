@@ -64,7 +64,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
   const onSubmit = async (data: VerifyEmailFormData) => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/verify-email`, {
+      const response = await fetch(`${apiUrl}/v1/verify-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -123,7 +123,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
     setIsResending(true);
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/resend-otp`, {
+      const response = await fetch(`${apiUrl}/v1/resend-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
