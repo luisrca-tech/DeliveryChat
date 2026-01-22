@@ -1,103 +1,77 @@
-This is the "Hardened" version of the integration plan. It combines our high-level business logic with the advanced engineering principles (Idempotency, Atomicity, and Failure Recovery).
-
----
-
-# Delivery Chat: High-Reliability Stripe Integration (v1)
+#  Delivery Chat: High-Reliability Stripe Integration (v1)
 
 ## 1. Architectural Foundation & API v1 (✅ Complete)
 
-* **Versioning:** Wrap the entire Hono `apiRouter` in `app.route('/v1', apiRouter)`.
-* **Endpoint Sync:** Update `apps/web/src/lib/urls.ts` and `apps/admin/src/lib/urls.ts` to append `/v1` to the `BASE_URL`.
-* **Infrastructure:** All Stripe interactions must use the **Infisical** keys: `STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, etc.
+* **Versioning:** All Hono routes prefixed with `/v1`.
+* **Client Sync:** `BASE_URL` updated in Web and Admin apps.
 
 ## 2. Database Resilience (Drizzle + Postgres) (✅ Complete)
 
-To ensure we never process the same payment twice and maintain a perfect audit trail:
+* **Organization Schema:** Updated with `stripe_customer_id`, `plan_status`, etc.
+* **Idempotency:** `processed_events` table created to prevent duplicate webhook processing.
 
-### `organization` Table Updates
+## 3. Webhook Handler & Atomic Transactions (✅ Complete)
 
-Add billing metadata to `apps/hono-api/src/db/schema/organization.ts`:
+* **Endpoint:** `POST /v1/webhooks/stripe` implemented.
+* **Logic:** Signature verification, idempotency check, and database transactions for `invoice.paid`, `invoice.payment_failed`, and `subscription.deleted`.
 
-* `stripeCustomerId`: `varchar` (Unique)
-* `stripeSubscriptionId`: `varchar`
-* `planStatus`: `enum` ('active', 'trialing', 'past_due', 'canceled', 'unpaid', 'incomplete', 'paused')
-* `billingEmail`: `varchar`
-* `cancelAtPeriodEnd`: `boolean` (Default: false)
+---
 
-### Idempotency Table
+## 4. RBAC + Billing Middleware (NEXT STEP)
 
-Create a new table `processed_events`:
+Implement a Hono middleware `checkBillingStatus` to enforce business rules based on `planStatus` and `memberRoleEnum`.
 
-* `id`: `varchar` (Primary Key) - Stores the Stripe Event ID (`evt_...`).
-* `createdAt`: `timestamp` (Default: now).
+### Enforcement Rules:
 
-## 3. The "Hybrid" Enterprise Workflow
+* **Active / Trialing:** Full access for all roles.
+* **Past_due (Soft Block):**
+* **All Roles:** Allow `GET` (read-only). Block `POST/PUT/DELETE` (no new messages/actions).
+* **Super Admin UI:** Display "Fix Billing" button/banner.
+* **Others UI:** Display "Contact Super Admin" banner.
 
-* **Logic:** Enterprise does not use a standard checkout redirect.
-* **Trigger:** When `planType === 'enterprise'`, Hono triggers a **Resend** email to `luisrochacruzalves@gmail.com`.
-* **Payload:** Include Organization Name, Admin Email, and current member count.
-* **Response:** Return a `200` with `status: 'manual_review'` to the frontend to show a "Request Received" modal.
 
-## 4. Webhook Handler & Atomic Transactions (✅ Complete)
+* **Unpaid / Canceled (Hard Block):** * Redirect all roles to `/billing` or a blocked state.
+* Only `super_admin` can access the route to generate a Stripe Portal session.
 
-Located at `POST /v1/webhooks/stripe`. This must be a **database transaction** to ensure atomicity.
 
-```typescript
-// Pseudo-logic for Cursor
-db.transaction(async (tx) => {
-  // 1. Idempotency Check
-  await tx.insert(processedEvents).values({ id: event.id }); 
-  
-  // 2. Event Routing
-  switch (event.type) {
-    case 'invoice.paid': 
-      // definitively set status to 'active'
-    case 'invoice.payment_failed': 
-      // set status to 'past_due' (Soft Block)
-    case 'customer.subscription.updated':
-      // sync 'cancel_at_period_end' and 'plan_status'
-  }
-});
-```
 
-## 5. Edge Case Handling (Technical Specifications)
+---
 
-### A. The "Zombie Checkout" (SCA/3D Secure)
+## 5. The "Hybrid" Enterprise Workflow
 
-* Payments may be asynchronous. The frontend `/success` page must **poll** `GET /v1/billing/status` every 2 seconds.
-* Do not show the "Success" UI until `planStatus` in the DB shifts to `active` or `trialing`.
+* **Logic:** Enterprise tier bypasses Stripe Checkout.
+* **Trigger:** `planType === 'enterprise'` triggers **Resend** email via `RESEND_EMAIL_TO`.
+* **Payload:** Include Org Name, Admin Email, and Member Count.
+* **Destination:** `luisrochacruzalves@gmail.com`.
 
-### B. Soft vs. Hard Billing Blocks (Middleware)
+---
 
-Implement a Hono middleware `checkBillingStatus`:
+## 6. Edge Case Handling (Technical Specifications)
 
-* **Soft Block (`past_due`):** Allow `GET` (reading old chats), block `POST` (sending new messages).
-* **Hard Block (`unpaid`, `canceled`):** Block all dashboard access; redirect to `/billing`.
+* **A. The "Zombie Checkout":** Frontend `/success` page must **poll** `GET /v1/billing/status` every 2s until `planStatus` is updated by the webhook.
+* **B. Global Tax:** Enable `automatic_tax` and `billing_address_collection` in all Stripe Checkout sessions.
 
-### C. Global Tax & Compliance
+---
 
-In the `stripe.checkout.sessions.create` call, include:
+## 7. Admin Project: Recovery & UI Policy
 
-* `automatic_tax: { enabled: true }`
-* `customer_update: { address: 'auto' }`
-* `billing_address_collection: 'required'`
+* **Status Banners:** * If `past_due`, show a persistent `Alert`.
+* **Super Admin Only:** Show "Update Payment Method" button.
 
-## 6. Admin Project: Recovery & Management
 
-* **Status Banners:** If `past_due`, display a persistent `Alert` component using the `VITE_STRIPE_KEY` context.
-* **The "Fix Now" Portal:** Implement `POST /v1/billing/portal-session`. If the user is `past_due`, the portal must be configured to prioritize "Immediate payment of outstanding invoices."
+* **Portal Strategy:** `POST /v1/billing/portal-session` must verify `role === 'super_admin'` before creating a session.
 
 ---
 
 ### Instructions for Cursor:
 
-- **Hono API:** `STRIPE_SECRET_KEY`, `SIGNING_STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, `STRIPE_PREMIUM_PRICE_KEY`, `STRIPE_ENTERPRISE_PRODUCT_KEY`.
+**Environment Reference:**
 
-- **Web/Admin:** `PUBLIC_STRIPE_KEY` / `VITE_STRIPE_KEY`.
+* **Hono API:** `STRIPE_SECRET_KEY`, `SIGNING_STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, `STRIPE_PREMIUM_PRICE_KEY`, `STRIPE_ENTERPRISE_PRODUCT_KEY`, `RESEND_EMAIL_TO`.
+* **Web/Admin:** `PUBLIC_STRIPE_KEY` / `VITE_STRIPE_KEY`.
 
-1. **Step 1:** ✅ Refactor the Hono Router to `/v1` and update the URL constants in the Web/Admin apps. *(Complete)*
-2. **Step 2:** ✅ Apply the Drizzle migrations for `organization` and `processed_events`. *(Complete)*
-3. **Step 3:** ✅ Implement the Stripe Webhook with the **Atomic Transaction** pattern. *(Complete)*
-4. **Step 4:** Build the "Soft Block" middleware and apply it to the message-sending routes.
+**Action Items:**
 
-Once you run the Stripe CLI (`stripe listen --forward-to localhost:3000/v1/webhooks/stripe`), you will be able to simulate a "Success" payment and watch your `organization` table update in real-time.
+1. **Step 4:** Build the `checkBillingStatus` middleware. Use the `memberRoleEnum` to provide specific error messages ("Contact Super Admin" vs "Update Billing").
+2. **Step 5:** Implement the Enterprise email trigger logic in the billing router.
+3. **Step 6:** Update the Admin Dashboard UI to show/hide billing management buttons based on the user's role.
