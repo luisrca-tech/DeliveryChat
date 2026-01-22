@@ -1,8 +1,9 @@
-import { index, jsonb, text, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { tenantPlanEnum } from "./enums/tenantPlanEnum";
 import { statusEnum } from "./enums/statusEnum";
+import { planStatusEnum } from "./enums/planStatusEnum";
 import { timestampString, timestampStringNullable } from "./customTypes";
 
 export const organization = createTable(
@@ -24,8 +25,16 @@ export const organization = createTable(
     updatedAt: timestampString("updated_at")
       .default(sql`now()`)
       .notNull(),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+    planStatus: planStatusEnum("plan_status"),
+    billingEmail: varchar("billing_email", { length: 255 }),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
   },
   (table) => ({
     slugLookupIdx: index("organization_slug_idx").on(table.slug),
+    stripeCustomerIdUnique: uniqueIndex("organization_stripe_customer_id_unique").on(
+      table.stripeCustomerId,
+    ),
   }),
 );
