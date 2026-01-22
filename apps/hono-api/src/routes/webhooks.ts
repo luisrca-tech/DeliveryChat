@@ -2,7 +2,6 @@ import { Hono } from "hono";
 import Stripe from "stripe";
 import { db } from "../db/index.js";
 import { organization } from "../db/schema/organization.js";
-import { invoices } from "../db/schema/invoices.js";
 import { processedEvents } from "../db/schema/processedEvents.js";
 import { eq } from "drizzle-orm";
 import { env } from "../env.js";
@@ -85,23 +84,8 @@ export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
             })
             .where(eq(organization.id, org.id));
 
-          await tx.insert(invoices).values({
-            id: invoice.id,
-            organizationId: org.id,
-            amount: invoice.amount_paid || 0,
-            currency: invoice.currency || "brl",
-            status: "paid",
-            hostedInvoiceUrl: invoice.hosted_invoice_url || null,
-            periodStart: invoice.period_start
-              ? new Date(invoice.period_start * 1000).toISOString()
-              : null,
-            periodEnd: invoice.period_end
-              ? new Date(invoice.period_end * 1000).toISOString()
-              : null,
-          });
-
           console.info(
-            `[Webhook] invoice.paid: Updated org ${org.id} to active, logged invoice ${invoice.id}`,
+            `[Webhook] invoice.paid: Updated org ${org.id} to active`,
           );
           break;
         }

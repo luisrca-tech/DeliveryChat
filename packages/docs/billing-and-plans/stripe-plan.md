@@ -1,18 +1,22 @@
-To accommodate the **`invoices`** table for historical auditing and the **Hybrid Enterprise** logic, we need to restructure **Steps 2 through 6**. This ensures that the technical depth Cursor expects is maintained while adding the "Financial Source of Truth" we discussed.
+This is the "Hardened" version of the integration plan. It combines our high-level business logic with the advanced engineering principles (Idempotency, Atomicity, and Failure Recovery).
 
 ---
 
-#  Delivery Chat: High-Reliability Stripe Integration (v1)
+# Delivery Chat: High-Reliability Stripe Integration (v1)
 
 ## 1. Architectural Foundation & API v1 (✅ Complete)
 
-## 2. Database Resilience & Financial Audit (Drizzle + Postgres) (✅ Complete)
+* **Versioning:** Wrap the entire Hono `apiRouter` in `app.route('/v1', apiRouter)`.
+* **Endpoint Sync:** Update `apps/web/src/lib/urls.ts` and `apps/admin/src/lib/urls.ts` to append `/v1` to the `BASE_URL`.
+* **Infrastructure:** All Stripe interactions must use the **Infisical** keys: `STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, etc.
 
-To ensure we never process the same payment twice and maintain a perfect historical audit trail for our tenants:
+## 2. Database Resilience (Drizzle + Postgres) (✅ Complete)
+
+To ensure we never process the same payment twice and maintain a perfect audit trail:
 
 ### `organization` Table Updates
 
-**File:** `apps/hono-api/src/db/schema/organization.ts`
+Add billing metadata to `apps/hono-api/src/db/schema/organization.ts`:
 
 * `stripeCustomerId`: `varchar` (Unique)
 * `stripeSubscriptionId`: `varchar`
@@ -20,97 +24,80 @@ To ensure we never process the same payment twice and maintain a perfect histori
 * `billingEmail`: `varchar`
 * `cancelAtPeriodEnd`: `boolean` (Default: false)
 
-### `invoices` Table (NEW)
+### Idempotency Table
 
-**File:** `apps/hono-api/src/db/schema/invoices.ts`
+Create a new table `processed_events`:
 
-* `id`: `varchar` (Primary Key) - Stripe Invoice ID (`in_...`).
-* `organizationId`: `varchar` (FK to `organization.id`).
-* `amount`: `integer` (Amount in cents).
-* `currency`: `varchar` (Default: 'brl').
-* `status`: `enum` ('draft', 'open', 'paid', 'uncollectible', 'void').
-* `hostedInvoiceUrl`: `text` (URL to Stripe's hosted PDF receipt).
-* `periodStart`: `timestamp` (Billing period start date).
-* `periodEnd`: `timestamp` (Billing period end date).
+* `id`: `varchar` (Primary Key) - Stores the Stripe Event ID (`evt_...`).
 * `createdAt`: `timestamp` (Default: now).
-
-### `processed_events` Table (Idempotency)
-
-**File:** `apps/hono-api/src/db/schema/processed_events.ts`
-
-* `id`: `varchar` (Primary Key) - Stripe Event ID (`evt_...`).
-* `createdAt`: `timestamp` (Default: now).
-
----
 
 ## 3. The "Hybrid" Enterprise Workflow
 
 * **Logic:** Enterprise does not use a standard checkout redirect.
 * **Trigger:** When `planType === 'enterprise'`, Hono triggers a **Resend** email to `luisrochacruzalves@gmail.com`.
 * **Payload:** Include Organization Name, Admin Email, and current member count.
-* **Response:** Return a `200` with `status: 'manual_review'` to the frontend.
+* **Response:** Return a `200` with `status: 'manual_review'` to the frontend to show a "Request Received" modal.
 
----
+## 4. Webhook Handler & Atomic Transactions (✅ Complete)
 
-## 4. Webhook Handler & Atomic Transactions
-
-**Endpoint:** `POST /v1/webhooks/stripe`.
-**Requirement:** Use a **Database Transaction** to ensure synchronization across `processed_events`, `organization`, and `invoices`.
+Located at `POST /v1/webhooks/stripe`. This must be a **database transaction** to ensure atomicity.
 
 ```typescript
-// Core Logic for Webhook Handler
+// Pseudo-logic for Cursor
 db.transaction(async (tx) => {
-  // 1. Idempotency Guard
+  // 1. Idempotency Check
   await tx.insert(processedEvents).values({ id: event.id }); 
   
-  // 2. Event Handlers
-  if (event.type === 'invoice.paid') {
-     const invoice = event.data.object;
-     // Update Org Status
-     await tx.update(organization).set({ planStatus: 'active' }).where(...);
-     // Log History
-     await tx.insert(invoices).values({
-        id: invoice.id,
-        amount: invoice.amount_paid,
-        hostedInvoiceUrl: invoice.hosted_invoice_url,
-        status: 'paid'
-     });
+  // 2. Event Routing
+  switch (event.type) {
+    case 'invoice.paid': 
+      // definitively set status to 'active'
+    case 'invoice.payment_failed': 
+      // set status to 'past_due' (Soft Block)
+    case 'customer.subscription.updated':
+      // sync 'cancel_at_period_end' and 'plan_status'
   }
-  // Handle other events: invoice.payment_failed, customer.subscription.deleted, etc.
 });
-
 ```
-
----
 
 ## 5. Edge Case Handling (Technical Specifications)
 
-* **A. The "Zombie Checkout":** Frontend `/success` page must **poll** `GET /v1/billing/status` to check the `organization` table before showing success UI.
-* **B. Billing Blocks (Middleware):** * **Soft Block (`past_due`):** Allow `GET`, block `POST` (Chat messages).
-* **Hard Block (`unpaid`, `canceled`):** Redirect all routes to `/billing`.
+### A. The "Zombie Checkout" (SCA/3D Secure)
 
+* Payments may be asynchronous. The frontend `/success` page must **poll** `GET /v1/billing/status` every 2 seconds.
+* Do not show the "Success" UI until `planStatus` in the DB shifts to `active` or `trialing`.
 
-* **C. Compliance:** Enable `automatic_tax` and `billing_address_collection: 'required'` in Checkout Sessions.
+### B. Soft vs. Hard Billing Blocks (Middleware)
 
----
+Implement a Hono middleware `checkBillingStatus`:
 
-## 6. Admin Project: Recovery & History UI
+* **Soft Block (`past_due`):** Allow `GET` (reading old chats), block `POST` (sending new messages).
+* **Hard Block (`unpaid`, `canceled`):** Block all dashboard access; redirect to `/billing`.
 
-* **Status Banners:** Display `Alert` if `past_due`.
-* **Billing History (NEW):** Create a table in the Admin UI fetching from the `invoices` table. Display Date, Amount, and a "Download Receipt" link using `hostedInvoiceUrl`.
-* **The "Fix Now" Portal:** Implement `POST /v1/billing/portal-session`. Configure the portal to prioritize "Immediate payment of outstanding invoices."
+### C. Global Tax & Compliance
+
+In the `stripe.checkout.sessions.create` call, include:
+
+* `automatic_tax: { enabled: true }`
+* `customer_update: { address: 'auto' }`
+* `billing_address_collection: 'required'`
+
+## 6. Admin Project: Recovery & Management
+
+* **Status Banners:** If `past_due`, display a persistent `Alert` component using the `VITE_STRIPE_KEY` context.
+* **The "Fix Now" Portal:** Implement `POST /v1/billing/portal-session`. If the user is `past_due`, the portal must be configured to prioritize "Immediate payment of outstanding invoices."
 
 ---
 
 ### Instructions for Cursor:
 
-1. **Step 2:** ✅ Generate Drizzle migrations for `organization` updates, the new `invoices` table, and the `processed_events` table. *(Complete)*
-2. **Step 3:** Build the Stripe Webhook using the **Atomic Transaction** pattern described above.
-3. **Step 4:** Implement the `checkBillingStatus` middleware.
-4. **Step 5:** Create the Billing History UI in the Admin app using the new `invoices` data.
+- **Hono API:** `STRIPE_SECRET_KEY`, `SIGNING_STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, `STRIPE_PREMIUM_PRICE_KEY`, `STRIPE_ENTERPRISE_PRODUCT_KEY`.
 
-**Environment Reference:** `STRIPE_SECRET_KEY`, `SIGNING_STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, `STRIPE_PREMIUM_PRICE_KEY`, `STRIPE_ENTERPRISE_PRODUCT_KEY`, `RESEND_EMAIL_TO`.
+- **Web/Admin:** `PUBLIC_STRIPE_KEY` / `VITE_STRIPE_KEY`.
 
----
+1. **Step 1:** ✅ Refactor the Hono Router to `/v1` and update the URL constants in the Web/Admin apps. *(Complete)*
+2. **Step 2:** ✅ Apply the Drizzle migrations for `organization` and `processed_events`. *(Complete)*
+3. **Step 3:** ✅ Implement the Stripe Webhook with the **Atomic Transaction** pattern. *(Complete)*
+4. **Step 4:** Build the "Soft Block" middleware and apply it to the message-sending routes.
 
-**Luis, this version is perfect.** It gives Cursor a clear data model and explains exactly how the new `invoices` table interacts with the webhooks. You can now start Step 2 with full confidence!
+Once you run the Stripe CLI (`stripe listen --forward-to localhost:3000/v1/webhooks/stripe`), you will be able to simulate a "Success" payment and watch your `organization` table update in real-time.

@@ -55,7 +55,7 @@
       "idx": 10,
       "version": "7",
       "when": 1769121591004,
-      "tag": "0010_add_invoices_table",
+      "tag": "0010_drop_invoices_table",
       "breakpoints": true
     }
   ]
