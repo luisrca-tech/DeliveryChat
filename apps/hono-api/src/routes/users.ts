@@ -10,13 +10,16 @@ import {
   requireRole,
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
+import { checkBillingStatus } from "../lib/middleware/billing.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
-export const usersRoute = new Hono().get(
-  "/users",
-  zValidator("query", listUsersQuerySchema),
-  requireTenantAuth(),
-  requireRole("admin"),
+export const usersRoute = new Hono()
+  .use("*", requireTenantAuth())
+  .use("*", checkBillingStatus())
+  .get(
+    "/users",
+    zValidator("query", listUsersQuerySchema),
+    requireRole("admin"),
   async (c) => {
     try {
       const { organization } = getTenantAuth(c);

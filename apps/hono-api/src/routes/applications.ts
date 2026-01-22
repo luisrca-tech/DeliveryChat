@@ -12,10 +12,12 @@ import {
   requireRole,
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
+import { checkBillingStatus } from "../lib/middleware/billing.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const applicationsRoute = new Hono()
   .use("*", requireTenantAuth())
+  .use("*", checkBillingStatus())
   .get(
     "/applications",
     zValidator("query", listApplicationsQuerySchema),
