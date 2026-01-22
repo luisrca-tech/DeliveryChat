@@ -48,7 +48,8 @@
     "hono": "^4.10.6",
     "pg": "^8.16.3",
     "postgres": "^3.4.7",
-    "resend": "^6.6.0"
+    "resend": "^6.6.0",
+    "stripe": "^17.4.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.1.0",

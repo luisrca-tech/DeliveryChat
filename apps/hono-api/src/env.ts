@@ -22,6 +22,8 @@ export const env = createEnv({
       .pipe(z.array(z.string())),
     EMAIL_FROM: z.string().optional(),
     TENANT_DOMAIN: z.string().optional(),
+    STRIPE_SECRET_KEY: z.string().min(1),
+    SIGNING_STRIPE_SECRET_KEY: z.string().min(1),
   },
   client: {
     // Add client-side env vars here if needed
@@ -37,6 +39,8 @@ export const env = createEnv({
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
     EMAIL_FROM: process.env.EMAIL_FROM,
     TENANT_DOMAIN: process.env.TENANT_DOMAIN,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    SIGNING_STRIPE_SECRET_KEY: process.env.SIGNING_STRIPE_SECRET_KEY,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
