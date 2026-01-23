@@ -11,8 +11,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { useBillingStatusQuery } from "../hooks/useBillingStatus";
 import { useCreatePortalSessionMutation } from "../hooks/useBillingPortal";
-import { ENTERPRISE_CONTACT_EMAIL } from "../constants/billing.constants";
-
+import { env } from "@/env";
 export function BillingSettingsPage() {
   const { data: status } = useBillingStatusQuery();
   const portal = useCreatePortalSessionMutation();
@@ -69,9 +68,9 @@ export function BillingSettingsPage() {
                 Contact:{" "}
                 <a
                   className="text-primary hover:underline"
-                  href={`mailto:${ENTERPRISE_CONTACT_EMAIL}`}
+                  href={`mailto:${env.VITE_RESEND_EMAIL_TO}`}
                 >
-                  {ENTERPRISE_CONTACT_EMAIL}
+                  {env.VITE_RESEND_EMAIL_TO}
                 </a>
               </div>
             ) : (
