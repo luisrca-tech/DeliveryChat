@@ -34,40 +34,65 @@ Implement a Hono middleware `checkBillingStatus` to enforce business rules based
 
 ---
 
-## 5. The "Hybrid" Enterprise Workflow
+## 5. The "Hybrid" Enterprise Workflow (✅ Complete)
 
 - **Logic:** Enterprise tier bypasses Stripe Checkout.
 - **Trigger:** `planType === 'enterprise'` triggers **Resend** email via `RESEND_EMAIL_TO`.
 - **Payload:** Include Org Name, Admin Email, and Member Count.
-- **Destination:** `luisrochacruzalves@gmail.com`.
+- **Destination:** `RESEND_EMAIL_TO` (configured in Infisical).
 
 ---
 
-## 6. Edge Case Handling & Success Polling
+## 6. Trial Control + "Zombie Checkout" Polling (✅ Complete)
 
-- **A. The "Zombie Checkout" (Frontend/Backend Sync):**
-- **Backend:** Implement `GET /v1/billing/status` to return `{ planStatus: string, isReady: boolean }`.
-- **Frontend:** The `/success` page must **poll** this endpoint every 2s using a recursive fetch logic.
-- **Redirect:** Do not show the "Success" UI or redirect to the dashboard until `isReady` is true (status is `active` or `trialing`).
+### Backend support
+- **Trial persistence:** `organization.trial_ends_at` added (migration `0011_add_trial_ends_at.sql`) and exposed as `trialEndsAt`.
+- **Internal 14-day trial:** On organization creation we set:
+  - `organization.planStatus = "trialing"`
+  - `organization.trialEndsAt = now + 14 days`
+  - `organization.billingEmail = user.email`
+- **Stripe trial sync:** `customer.subscription.updated` persists Stripe `trial_end` into `trialEndsAt` when status is `trialing`.
+- **Enforcement:** If `planStatus === "trialing"` and `trialEndsAt` is in the past:
+  - Block access with `402 Payment Required`
+  - Allow `super_admin` recovery routes: `/billing/checkout` and `/billing/portal-session`
 
-- **B. Global Tax & Compliance:** \* In all `stripe.checkout.sessions.create` calls, include:
-- `automatic_tax: { enabled: true }`
-- `customer_update: { address: 'auto' }`
-- `billing_address_collection: 'required'`
+### Status endpoint (polling + banners)
+- **Hono API:** `GET /v1/billing/status` returns:
+  - `isReady` (true only when status is `active` or non-expired `trialing`)
+  - `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`
+
+### Polling UX ("Zombie Checkout")
+- **Admin success page:** `/billing/success` implements polling (2s interval) to `GET /v1/billing/status` until `isReady === true`, then redirects to the dashboard.
+- **Note:** We intentionally keep this flow in **Admin** (tenant subdomain context), not Web.
 
 ---
 
-## 7. Admin Project: RBAC & UI Policy
+## 7. Admin UI (RBAC + Billing Management) (✅ Complete)
 
-- **Status Banners:**
-- If `planStatus === 'past_due'`, show a persistent `Alert` banner in the `RootLayout`.
-- **Super Admin Logic:** Banner includes a "Fix Billing" button.
-- **Operator Logic:** Banner displays "Read-only mode: Contact Super Admin to resolve payment."
+### Feature-based structure + hooks (TanStack Query)
+- The Admin implementation follows a **feature-based** structure (`apps/admin/src/features/*`) with:
+  - `lib/` fetchers per feature
+  - `hooks/` per feature using TanStack Query (`useQuery`, `useMutation`)
+  - `routes/` are thin wrappers around feature components
 
-- **Billing Management Page:**
-- **RBAC:** Only `super_admin` can access the billing settings page.
-- **Portal Strategy:** `POST /v1/billing/portal-session` must verify `role === 'super_admin'` before generating a session.
-- **Enterprise UI:** If the organization is on an Enterprise plan, replace the "Manage" buttons with a message: _"Custom Plan: Contact luisrochacruzalves@gmail.com for changes."_
+### Global BillingAlert banner
+- Implemented in the `_system` layout using the billing status endpoint.
+- **past_due:** warning banner with:
+  - `super_admin`: "Fix billing" button
+  - others: "Contact Admin"
+- **trialing:** "Trial ends in X days" based on `trialEndsAt`
+- **trial ended:** shows a recovery CTA for `super_admin` to pick a plan
+
+### Billing settings page (super_admin only)
+- Route: `/settings/billing`
+- Shows plan + planStatus and:
+  - **Stripe portal:** “Manage subscription” → `POST /v1/billing/portal-session`
+  - **Enterprise:** hides portal and displays the contact email (`RESEND_EMAIL_TO`)
+
+### Plan selection (onboarding)
+- Route: `/onboarding/plans`
+- Basic/Premium: calls `POST /v1/billing/checkout` and redirects to the Stripe Checkout URL
+- Enterprise: calls `POST /v1/billing/checkout` and shows “manual review” success (Resend email is triggered)
 
 ---
 
@@ -76,12 +101,12 @@ Implement a Hono middleware `checkBillingStatus` to enforce business rules based
 **Environment Reference:**
 
 - **Hono API:** `STRIPE_SECRET_KEY`, `SIGNING_STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, `STRIPE_PREMIUM_PRICE_KEY`, `STRIPE_ENTERPRISE_PRODUCT_KEY`, `RESEND_EMAIL_TO`.
-- **Web/Admin:** `PUBLIC_STRIPE_KEY` / `VITE_STRIPE_KEY`.
+- **Admin:** `VITE_RESEND_EMAIL_TO` (exposed client-side for showing Enterprise contact email).
+- **Web/Admin:** `PUBLIC_STRIPE_KEY` / `VITE_STRIPE_KEY` (optional; not required when redirecting via Checkout URL).
 
 **Action Items:**
 
 1. **Step 4:** ✅ Build the `checkBillingStatus` middleware. Use the `memberRoleEnum` to provide specific error messages ("Contact Super Admin" vs "Update Billing"). _(Complete)_
-2. **Step 5:** Implement the Enterprise email trigger logic in the billing router.
-3. **Step 6:** Create the `GET /v1/billing/status` endpoint in Hono. Then, build the polling logic on the Web project's `/success` page to ensure the DB has synced before the user moves on.
-4. **Step 7:** Implement the Global Alert banner in the Admin project. Ensure the "Fix Billing" button only appears for the `super_admin` role.
-5. **Step 7.2:** Protect the Billing Settings route so only Super Admins can access it and trigger the Stripe Portal.
+2. **Step 5:** Implement the Enterprise email trigger logic in the billing router.  _(Complete)_
+3. **Step 6:** ✅ Add trial tracking (`trialEndsAt`), improve billing enforcement, and implement polling on Admin `/billing/success`. _(Complete)_
+4. **Step 7:** ✅ Implement Admin onboarding (`/onboarding/plans`), BillingAlert, and billing settings (`/settings/billing` super_admin only). _(Complete)_
