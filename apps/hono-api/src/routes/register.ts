@@ -225,6 +225,8 @@ export const registerRoute = new Hono().post(
         (existingOrg.status === "DELETED" || existingOrg.status === "EXPIRED");
 
       let orgId: string;
+      const trialEndsAt = new Date();
+      trialEndsAt.setDate(trialEndsAt.getDate() + 14);
 
       if (isReactivatingOrg) {
         orgId = existingOrg.id;
@@ -235,6 +237,9 @@ export const registerRoute = new Hono().post(
             name: companyName,
             status: "PENDING_VERIFICATION",
             expiredAt: null,
+            planStatus: "trialing",
+            trialEndsAt: trialEndsAt.toISOString(),
+            billingEmail: email,
             updatedAt: new Date().toISOString(),
           })
           .where(eq(organization.id, orgId));
@@ -282,6 +287,9 @@ export const registerRoute = new Hono().post(
               .update(organization)
               .set({
                 status: "PENDING_VERIFICATION",
+                planStatus: "trialing",
+                trialEndsAt: trialEndsAt.toISOString(),
+                billingEmail: email,
               })
               .where(eq(organization.id, orgId));
           } else {

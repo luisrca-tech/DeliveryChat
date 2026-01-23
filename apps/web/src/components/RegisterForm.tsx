@@ -83,7 +83,7 @@ export default function RegisterForm() {
 
     const adminUrl = getAdminUrl(data.subdomain);
     setTimeout(() => {
-      window.location.href = adminUrl;
+      window.location.href = `${adminUrl}/onboarding/plans`;
     }, 1500);
   };
 

@@ -93,7 +93,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
       if (result.organizationSlug) {
         const adminUrl = getAdminUrl(result.organizationSlug);
         setTimeout(() => {
-          window.location.href = adminUrl;
+          window.location.href = `${adminUrl}/onboarding/plans`;
         }, 1500);
       } else {
         toast.error("Redirect Failed", {
