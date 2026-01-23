@@ -1,0 +1,1 @@
+ALTER TABLE "delivery_chat_organization" ADD COLUMN "trial_ends_at" timestamp;

@@ -28,6 +28,7 @@ export const organization = createTable(
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
     stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
     planStatus: planStatusEnum("plan_status"),
+    trialEndsAt: timestampStringNullable("trial_ends_at"),
     billingEmail: varchar("billing_email", { length: 255 }),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
   },
