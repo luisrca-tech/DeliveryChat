@@ -1,6 +1,7 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
 import { authClient } from "../lib/authClient";
 import { getSubdomain } from "../lib/subdomain";
+import { AppShell } from "@/features/layout/components/AppShell";
 
 export const Route = createFileRoute("/_system")({
   beforeLoad: async () => {
@@ -11,6 +12,11 @@ export const Route = createFileRoute("/_system")({
     if (!session?.data?.session) {
       throw redirect({
         to: "/login",
+        search: {
+          redirect: window.location.pathname + window.location.search,
+          error: undefined,
+          message: undefined,
+        },
       });
     }
 
@@ -49,8 +55,8 @@ export const Route = createFileRoute("/_system")({
 
 function SystemLayout() {
   return (
-    <div className="min-h-screen bg-background">
+    <AppShell>
       <Outlet />
-    </div>
+    </AppShell>
   );
 }
