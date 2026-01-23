@@ -37,4 +37,3 @@ export function AppShell(props: { children: ReactNode }) {
     </div>
   );
 }
-

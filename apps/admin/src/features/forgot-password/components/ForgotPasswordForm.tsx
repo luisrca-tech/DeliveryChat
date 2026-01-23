@@ -44,8 +44,8 @@ export function ForgotPasswordForm() {
           <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border/50">
             <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground leading-relaxed">
-              If an account exists with that email, you&apos;ll receive instructions
-              to reset your password shortly.
+              If an account exists with that email, you&apos;ll receive
+              instructions to reset your password shortly.
             </p>
           </div>
           <Link

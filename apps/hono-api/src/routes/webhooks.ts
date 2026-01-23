@@ -46,7 +46,10 @@ export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
       await db.insert(processedEvents).values({ id: event.id });
     } catch {
       console.info(`[Webhook] Event ${event.id} already processed, skipping`);
-      return c.json({ received: true, message: "Event already processed" }, 200);
+      return c.json(
+        { received: true, message: "Event already processed" },
+        200,
+      );
     }
 
     await db.transaction(async (tx) => {
@@ -92,7 +95,9 @@ export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
           const customerId = invoice.customer as string;
 
           if (!customerId) {
-            console.error("[Webhook] invoice.payment_failed: Missing customer ID");
+            console.error(
+              "[Webhook] invoice.payment_failed: Missing customer ID",
+            );
             return;
           }
 

@@ -63,4 +63,3 @@ export async function createCheckout(
   }
   return await parseJson<CheckoutResponse>(res);
 }
-

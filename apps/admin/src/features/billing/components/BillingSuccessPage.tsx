@@ -14,7 +14,8 @@ export function BillingSuccessPage() {
   const navigate = useNavigate();
   const attemptsRef = useRef(0);
 
-  const { data, isError, error, dataUpdatedAt } = useBillingStatusPollingQuery();
+  const { data, isError, error, dataUpdatedAt } =
+    useBillingStatusPollingQuery();
 
   useEffect(() => {
     if (dataUpdatedAt) attemptsRef.current += 1;
@@ -76,4 +77,3 @@ export function BillingSuccessPage() {
     </div>
   );
 }
-

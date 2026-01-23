@@ -7,4 +7,3 @@ export function useCreateCheckoutMutation() {
     mutationFn: (plan: CheckoutPlan) => createCheckout({ plan }),
   });
 }
-

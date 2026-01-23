@@ -30,4 +30,3 @@ export type CheckoutResponse =
 export type PortalSessionResponse = {
   url: string;
 };
-

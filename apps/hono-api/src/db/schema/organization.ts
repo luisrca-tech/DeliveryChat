@@ -1,4 +1,11 @@
-import { boolean, index, jsonb, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  jsonb,
+  text,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { tenantPlanEnum } from "./enums/tenantPlanEnum";
@@ -34,8 +41,8 @@ export const organization = createTable(
   },
   (table) => ({
     slugLookupIdx: index("organization_slug_idx").on(table.slug),
-    stripeCustomerIdUnique: uniqueIndex("organization_stripe_customer_id_unique").on(
-      table.stripeCustomerId,
-    ),
+    stripeCustomerIdUnique: uniqueIndex(
+      "organization_stripe_customer_id_unique",
+    ).on(table.stripeCustomerId),
   }),
 );

@@ -15,7 +15,7 @@ function flattenPageMap(
     lastmod: string;
     changefreq: string;
     priority: string;
-  }> = []
+  }> = [],
 ): void {
   for (const item of pageMap) {
     if (item.kind === "Folder") {
@@ -69,7 +69,7 @@ ${urls
     <lastmod>${url.lastmod}</lastmod>
     <changefreq>${url.changefreq}</changefreq>
     <priority>${url.priority}</priority>
-  </url>`
+  </url>`,
   )
   .join("\n")}
 </urlset>`;

@@ -40,7 +40,8 @@ export const billingRoute = new Hono()
         trialEndsAt,
         role: membership.role,
         isReady:
-          (planStatus === "active" || planStatus === "trialing") && !trialExpired,
+          (planStatus === "active" || planStatus === "trialing") &&
+          !trialExpired,
       });
     } catch (error) {
       console.error("Error fetching billing status:", error);
@@ -177,4 +178,3 @@ export const billingRoute = new Hono()
       );
     }
   });
-
