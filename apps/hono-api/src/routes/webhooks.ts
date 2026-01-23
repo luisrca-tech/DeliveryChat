@@ -1,15 +1,12 @@
 import { Hono } from "hono";
-import Stripe from "stripe";
+import type Stripe from "stripe";
 import { db } from "../db/index.js";
 import { organization } from "../db/schema/organization.js";
 import { processedEvents } from "../db/schema/processedEvents.js";
 import { eq } from "drizzle-orm";
 import { env } from "../env.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: "2025-02-24.acacia",
-});
+import { stripe } from "../lib/stripe.js";
 
 export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
   try {
@@ -227,6 +224,7 @@ export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
           const customerId = session.customer as string;
           const subscriptionId = session.subscription as string;
           const clientReferenceId = session.client_reference_id;
+          const selectedPlan = session.metadata?.plan ?? null;
 
           if (!customerId) {
             console.error(
@@ -267,6 +265,11 @@ export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
               stripeCustomerId: customerId,
               stripeSubscriptionId: subscriptionId || null,
               planStatus: "trialing",
+              ...(selectedPlan === "BASIC" ||
+              selectedPlan === "PREMIUM" ||
+              selectedPlan === "ENTERPRISE"
+                ? { plan: selectedPlan }
+                : {}),
               updatedAt: new Date().toISOString(),
             })
             .where(eq(organization.id, org.id));

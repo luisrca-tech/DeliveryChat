@@ -24,6 +24,12 @@ export interface SendResetPasswordEmailParams {
   userName?: string;
 }
 
+export interface SendEnterprisePlanRequestEmailParams {
+  organizationName: string;
+  adminEmail: string;
+  memberCount: number;
+}
+
 export async function sendVerificationOTPEmail(
   params: SendVerificationOTPEmailParams,
 ): Promise<void> {
@@ -117,6 +123,47 @@ export async function sendResetPasswordEmail(
     }
   } catch (error) {
     console.error("[Email] Failed to send reset password email:", error);
+    throw error;
+  }
+}
+
+export async function sendEnterprisePlanRequestEmail(
+  params: SendEnterprisePlanRequestEmailParams,
+): Promise<void> {
+  const { organizationName, adminEmail, memberCount } = params;
+
+  if (process.env.VERCEL_ENV === "preview") {
+    console.info("[Email] Suppressed in preview environment");
+    return;
+  }
+
+  try {
+    const result = await resend.emails.send({
+      from: getFromEmail(),
+      to: env.RESEND_EMAIL_TO,
+      subject: "Enterprise plan request",
+      html: `
+        <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h1 style="color: #1a1a1a; margin-bottom: 24px;">Enterprise plan request</h1>
+          <p style="color: #4a4a4a; font-size: 16px; line-height: 24px; margin-bottom: 16px;">
+            A new Enterprise plan request has been submitted.
+          </p>
+          <ul style="color: #1a1a1a; font-size: 14px; line-height: 22px;">
+            <li><strong>Organization</strong>: ${organizationName}</li>
+            <li><strong>Admin email</strong>: ${adminEmail}</li>
+            <li><strong>Member count</strong>: ${memberCount}</li>
+          </ul>
+        </div>
+      `,
+      text: `Enterprise plan request\n\nOrganization: ${organizationName}\nAdmin email: ${adminEmail}\nMember count: ${memberCount}\n`,
+    });
+
+    if (result.error) {
+      console.error("[Email] Resend API error:", result.error);
+      throw new Error(result.error.message || "Failed to send email");
+    }
+  } catch (error) {
+    console.error("[Email] Failed to send enterprise request email:", error);
     throw error;
   }
 }

@@ -16,7 +16,7 @@ import { sendVerificationOTPEmail, sendResetPasswordEmail } from "./email.js";
 const trustedOrigins = createTrustedOrigins();
 const baseURL = getAuthBaseURL(env);
 
-async function getUserAdminUrl(
+export async function getUserAdminUrl(
   userId: string,
   requestHost: string | null,
 ): Promise<string> {
