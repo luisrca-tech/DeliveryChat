@@ -8,7 +8,7 @@
 console.log("\n🔍 [BUILD] Checking environment variables during build...\n");
 
 const requiredVars = ["VITE_API_URL"];
-const allEnvKeys = Object.keys(process.env).sort();
+const allEnvKeys = Object.keys(globalThis.process.env).sort();
 const viteKeys = allEnvKeys.filter((k) => k.startsWith("VITE_"));
 
 console.log("📋 Environment Check Results:");
@@ -17,7 +17,7 @@ console.log("━━━━━━━━━━━━━━━━━━━━━━�
 // Check required variables
 let allPresent = true;
 requiredVars.forEach((varName) => {
-  const value = process.env[varName];
+  const value = globalThis.process.env[varName];
   const isSet = !!value;
   const status = isSet ? "✅ SET" : "❌ NOT SET";
   const preview = isSet
@@ -34,15 +34,15 @@ console.log("━━━━━━━━━━━━━━━━━━━━━━�
 
 // Show Vercel-specific env vars
 console.log("\n🌐 Vercel Environment:");
-console.log(`   VERCEL: ${process.env.VERCEL || "❌ Not set"}`);
-console.log(`   VERCEL_ENV: ${process.env.VERCEL_ENV || "❌ Not set"}`);
-console.log(`   VERCEL_URL: ${process.env.VERCEL_URL || "❌ Not set"}`);
+console.log(`   VERCEL: ${globalThis.process.env.VERCEL || "❌ Not set"}`);
+console.log(`   VERCEL_ENV: ${globalThis.process.env.VERCEL_ENV || "❌ Not set"}`);
+console.log(`   VERCEL_URL: ${globalThis.process.env.VERCEL_URL || "❌ Not set"}`);
 
 // Show all VITE_ prefixed vars
 console.log(`\n🔑 All VITE_* variables (${viteKeys.length}):`);
 if (viteKeys.length > 0) {
   viteKeys.forEach((key) => {
-    const value = process.env[key];
+    const value = globalThis.process.env[key];
     const preview =
       value && value.length > 40 ? `${value.substring(0, 40)}...` : value;
     console.log(`   ${key} = ${preview || "(empty)"}`);
@@ -82,7 +82,7 @@ if (!allPresent) {
   console.error("      - Ensure variables are synced for BUILD time");
   console.error("      - You may need to set the variable directly in Vercel");
   console.error("        for build-time access\n");
-  process.exit(1);
+  globalThis.process.exit(1);
 } else {
   console.log("\n✅ All required environment variables are present!\n");
 }

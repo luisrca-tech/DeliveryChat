@@ -14,6 +14,7 @@ export const env = createEnv({
     VITE_API_URL: z.string().url(),
     VITE_BETTER_AUTH_URL: z.string().url(),
     VITE_TENANT_DOMAIN: z.string().optional(),
+    RESEND_EMAIL_TO: z.string().email(),
   },
   clientPrefix: "",
   runtimeEnv: {
@@ -21,6 +22,7 @@ export const env = createEnv({
     VITE_API_URL: import.meta.env.VITE_API_URL,
     VITE_BETTER_AUTH_URL: import.meta.env.VITE_BETTER_AUTH_URL,
     VITE_TENANT_DOMAIN: import.meta.env.VITE_TENANT_DOMAIN,
+    RESEND_EMAIL_TO: import.meta.env.VITE_RESEND_EMAIL_TO,
   },
   skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
 });
