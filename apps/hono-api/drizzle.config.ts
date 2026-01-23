@@ -21,7 +21,7 @@ try {
     "[Drizzle Config] Database name:",
     url.pathname.split("/").pop(),
   );
-} catch (error) {
+} catch {
   console.warn("[Drizzle Config] Could not parse DATABASE_URL");
 }
 

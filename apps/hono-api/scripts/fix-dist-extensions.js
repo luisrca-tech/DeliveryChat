@@ -18,7 +18,7 @@ const rewriteFile = (filePath) => {
 
   if (replaced !== original) {
     writeFileSync(filePath, replaced, "utf8");
-    console.info("[fix-dist-extensions] patched", filePath);
+    globalThis.console.info("[fix-dist-extensions] patched", filePath);
   }
 };
 
@@ -34,6 +34,6 @@ const walk = (dir) => {
   }
 };
 
-const distDir = new URL("../dist", import.meta.url).pathname;
+const distDir = new globalThis.URL("../dist", import.meta.url).pathname;
 walk(distDir);
 
