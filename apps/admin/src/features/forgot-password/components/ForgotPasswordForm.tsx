@@ -35,7 +35,7 @@ export function ForgotPasswordForm() {
                 Check Your Email
               </CardTitle>
               <CardDescription className="text-sm text-muted-foreground mt-1">
-                We've sent a password reset link to your email address
+                We&apos;ve sent a password reset link to your email address
               </CardDescription>
             </div>
           </div>
@@ -44,7 +44,7 @@ export function ForgotPasswordForm() {
           <div className="flex items-start gap-3 p-4 rounded-lg bg-muted/50 border border-border/50">
             <CheckCircle2 className="w-5 h-5 text-primary mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground leading-relaxed">
-              If an account exists with that email, you'll receive instructions
+              If an account exists with that email, you&apos;ll receive instructions
               to reset your password shortly.
             </p>
           </div>
@@ -82,7 +82,7 @@ export function ForgotPasswordForm() {
               Forgot Password
             </CardTitle>
             <CardDescription className="text-sm text-muted-foreground mt-1">
-              Enter your email address and we'll send you a reset link
+              Enter your email address and we&apos;ll send you a reset link
             </CardDescription>
           </div>
         </div>
