@@ -32,7 +32,7 @@ export function useLogin({ redirectPath = "/" }: UseLoginOptions = {}) {
 
       handleLoginSuccess(redirectPath);
     } catch (error) {
-      handleLoginError(error, data.email, form.setError);
+      handleLoginError(error, form.setError);
     }
   };
 

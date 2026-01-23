@@ -24,11 +24,23 @@ export const billingRoute = new Hono()
   .use("*", requireTenantAuth())
   .get("/billing/status", async (c) => {
     try {
-      const { organization } = getTenantAuth(c);
+      const { organization, membership } = getTenantAuth(c);
+      const planStatus = organization.planStatus;
+      const trialEndsAt = organization.trialEndsAt;
+
+      const trialExpired =
+        planStatus === "trialing" &&
+        !!trialEndsAt &&
+        Date.now() > new Date(trialEndsAt).getTime();
+
       return c.json({
         plan: organization.plan,
-        planStatus: organization.planStatus,
+        planStatus,
         cancelAtPeriodEnd: organization.cancelAtPeriodEnd,
+        trialEndsAt,
+        role: membership.role,
+        isReady:
+          (planStatus === "active" || planStatus === "trialing") && !trialExpired,
       });
     } catch (error) {
       console.error("Error fetching billing status:", error);
