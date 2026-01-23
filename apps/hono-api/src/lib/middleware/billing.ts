@@ -32,7 +32,7 @@ export function checkBillingStatus(): MiddlewareHandler {
       const message =
         membership.role === "super_admin"
           ? "Please update your payment method to continue."
-          : "Your organization's payment failed. Please contact your Super Admin.";
+          : "Your organization's payment failed. Please contact your Admin.";
 
       return jsonError(
         c,
