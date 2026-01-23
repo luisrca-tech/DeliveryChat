@@ -2,11 +2,11 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Toaster as SonnerToaster } from "sonner";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 import "@repo/ui/styles.css";
 import { getSubdomain } from "../lib/subdomain";
+import { getQueryClient } from "../lib/queryClient";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -69,7 +69,7 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const [queryClient] = useState(() => new QueryClient());
+  const queryClient = getQueryClient();
 
   if (typeof window !== "undefined") {
     const subdomain = getSubdomain();
