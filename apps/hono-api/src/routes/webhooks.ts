@@ -203,12 +203,18 @@ export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
                           ? "paused"
                           : null;
 
+          const trialEndsAt =
+            planStatus === "trialing" && subscription.trial_end
+              ? new Date(subscription.trial_end * 1000).toISOString()
+              : null;
+
           await tx
             .update(organization)
             .set({
               planStatus,
               stripeSubscriptionId: subscription.id,
               cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
+              trialEndsAt,
               updatedAt: new Date().toISOString(),
             })
             .where(eq(organization.id, org.id));
