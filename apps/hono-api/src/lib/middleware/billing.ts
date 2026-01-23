@@ -25,7 +25,7 @@ export function checkBillingStatus(): MiddlewareHandler {
     }
 
     if (planStatus === "past_due") {
-      if (isReadOnly) {
+      if (isReadOnly || method === "DELETE") {
         return await next();
       }
 
