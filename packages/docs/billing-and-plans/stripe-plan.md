@@ -17,7 +17,7 @@
 
 ---
 
-## 4. RBAC + Billing Middleware (NEXT STEP)
+## 4. RBAC + Billing Middleware (✅ Complete)
 
 Implement a Hono middleware `checkBillingStatus` to enforce business rules based on `planStatus` and `memberRoleEnum`.
 
@@ -25,7 +25,7 @@ Implement a Hono middleware `checkBillingStatus` to enforce business rules based
 
 * **Active / Trialing:** Full access for all roles.
 * **Past_due (Soft Block):**
-* **All Roles:** Allow `GET` (read-only). Block `POST/PUT/DELETE` (no new messages/actions).
+* **All Roles:** Allow `GET` (read-only) and `DELETE` (cost management). Block `POST/PUT` (no new messages/actions).
 * **Super Admin UI:** Display "Fix Billing" button/banner.
 * **Others UI:** Display "Contact Super Admin" banner.
 
@@ -72,6 +72,6 @@ Implement a Hono middleware `checkBillingStatus` to enforce business rules based
 
 **Action Items:**
 
-1. **Step 4:** Build the `checkBillingStatus` middleware. Use the `memberRoleEnum` to provide specific error messages ("Contact Super Admin" vs "Update Billing").
+1. **Step 4:** ✅ Build the `checkBillingStatus` middleware. Use the `memberRoleEnum` to provide specific error messages ("Contact Super Admin" vs "Update Billing"). *(Complete)*
 2. **Step 5:** Implement the Enterprise email trigger logic in the billing router.
 3. **Step 6:** Update the Admin Dashboard UI to show/hide billing management buttons based on the user's role.
