@@ -5,9 +5,14 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 import { nitro } from "nitro/vite";
+import { apiProxyPlugin } from "./vite/apiProxy";
 
 const config = defineConfig({
   plugins: [
+    apiProxyPlugin({
+      target:
+        process.env.VITE_API_URL?.replace(/\/+$/, "") || "http://localhost:8000",
+    }),
     devtools(),
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
@@ -17,14 +22,6 @@ const config = defineConfig({
     viteReact(),
     nitro(),
   ],
-  server: {
-    proxy: {
-      "/v1": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
-    },
-  },
   envPrefix: ["VITE_", "PUBLIC_"],
 });
 
