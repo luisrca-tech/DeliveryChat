@@ -92,8 +92,14 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
 
       if (result.organizationSlug) {
         const adminUrl = getAdminUrl(result.organizationSlug);
+        const loginUrl = new URL(`${adminUrl}/login`);
+        loginUrl.searchParams.set("redirect", "/onboarding/plans");
+        loginUrl.searchParams.set(
+          "message",
+          "Email verified. Please sign in to continue.",
+        );
         setTimeout(() => {
-          window.location.href = `${adminUrl}/onboarding/plans`;
+          window.location.href = loginUrl.toString();
         }, 1500);
       } else {
         toast.error("Redirect Failed", {
