@@ -7,11 +7,7 @@
 
 console.log("\n🔍 [BUILD] Checking environment variables during build...\n");
 
-const requiredVars = [
-  "VITE_API_URL",
-  "VITE_BETTER_AUTH_URL",
-  "VITE_RESEND_EMAIL_TO",
-];
+const requiredVars = ["HONO_API_UPSTREAM", "VITE_API_URL", "VITE_RESEND_EMAIL_TO"];
 const allEnvKeys = Object.keys(globalThis.process.env).sort();
 const viteKeys = allEnvKeys.filter((k) => k.startsWith("VITE_"));
 
@@ -39,8 +35,12 @@ console.log("━━━━━━━━━━━━━━━━━━━━━━�
 // Show Vercel-specific env vars
 console.log("\n🌐 Vercel Environment:");
 console.log(`   VERCEL: ${globalThis.process.env.VERCEL || "❌ Not set"}`);
-console.log(`   VERCEL_ENV: ${globalThis.process.env.VERCEL_ENV || "❌ Not set"}`);
-console.log(`   VERCEL_URL: ${globalThis.process.env.VERCEL_URL || "❌ Not set"}`);
+console.log(
+  `   VERCEL_ENV: ${globalThis.process.env.VERCEL_ENV || "❌ Not set"}`,
+);
+console.log(
+  `   VERCEL_URL: ${globalThis.process.env.VERCEL_URL || "❌ Not set"}`,
+);
 
 // Show all VITE_ prefixed vars
 console.log(`\n🔑 All VITE_* variables (${viteKeys.length}):`);
@@ -74,8 +74,12 @@ console.log("\n━━━━━━━━━━━━━━━━━━━━━�
 if (!allPresent) {
   console.error("\n❌ ERROR: Required environment variables are missing!");
   console.error("\n💡 How to fix:");
-  console.error("   1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables");
-  console.error("   2. Find the missing VITE_* variable(s) and ensure it's checked for:");
+  console.error(
+    "   1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables",
+  );
+  console.error(
+    "   2. Find the missing VITE_* variable(s) and ensure it's checked for:",
+  );
   console.error("      ✅ Production");
   console.error("      ✅ Preview");
   console.error("      ✅ Development");
