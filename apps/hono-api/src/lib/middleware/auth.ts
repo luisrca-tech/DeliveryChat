@@ -74,7 +74,8 @@ export function requireTenantAuth(): MiddlewareHandler {
       );
     }
 
-    const host = c.req.header("host") ?? null;
+    const forwardedHost = c.req.header("x-forwarded-host") ?? null;
+    const host = forwardedHost ?? c.req.header("host") ?? null;
     const subdomain = getHostSubdomain(host);
 
     if (!subdomain) {

@@ -86,7 +86,10 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     async sendResetPassword({ user, token }, request) {
       try {
-        const host = request?.headers.get("host") ?? null;
+        const host =
+          request?.headers.get("x-forwarded-host") ??
+          request?.headers.get("host") ??
+          null;
         const adminBaseUrl = await getUserAdminUrl(user.id, host);
         const resetUrl = `${adminBaseUrl}/reset-password?token=${token}`;
 
