@@ -14,22 +14,27 @@ export function isDevelopment(): boolean {
 export function getAdminUrl(tenant: string): string {
   const safeTenant = tenant.toLowerCase().trim();
 
-  if (isDevelopment()) {
+  if (typeof window === "undefined") {
+    if (!env.PUBLIC_TENANT_DOMAIN) {
+      throw new Error("PUBLIC_TENANT_DOMAIN is required to build admin URL");
+    }
+    return `https://${safeTenant}.${env.PUBLIC_TENANT_DOMAIN}`;
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.endsWith(".localhost")
+  ) {
     return `http://${safeTenant}.localhost:3000`;
   }
 
-  const base = env.PUBLIC_ADMIN_URL;
-  if (!base) {
-    throw new Error("PUBLIC_ADMIN_URL is required (admin root without tenant)");
+  if (!env.PUBLIC_TENANT_DOMAIN) {
+    throw new Error("PUBLIC_TENANT_DOMAIN is required to build admin URL");
   }
-
-  const url = new URL(base);
-  const host = url.hostname;
-  if (host.endsWith(".vercel.app")) {
-    // Vercel Preview: use URL prefixes (<tenant>---<deployment>.vercel.app) because *.vercel.app TLS doesn't cover nested subdomains.
-    return `${url.protocol}//${safeTenant}---${host}`;
-  }
-  return `${url.protocol}//${safeTenant}.${host}`;
+  return `https://${safeTenant}.${env.PUBLIC_TENANT_DOMAIN}`;
 }
 
 export function getApiUrl(): string {
