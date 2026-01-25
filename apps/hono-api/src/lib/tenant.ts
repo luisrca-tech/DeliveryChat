@@ -5,19 +5,25 @@ import { env } from "../env.js";
 
 export function getHostSubdomain(host: string | null): string | null {
   if (!host) return null;
-  const hostname = host.split(":")[0]?.toLowerCase();
+  const raw = host.split(",")[0]?.trim() ?? "";
+  if (!raw) return null;
+
+  const withoutPort = raw.startsWith("[")
+    ? raw.replace(/^\[([^\]]+)\](?::\d+)?$/, "$1")
+    : raw.split(":")[0] ?? "";
+
+  const hostname = withoutPort.toLowerCase();
   if (!hostname) return null;
 
   const tenantDomain = env.TENANT_DOMAIN;
-  if (!tenantDomain && !hostname.endsWith(".vercel.app")) return null;
-  if (hostname === tenantDomain || hostname === "localhost") return null;
+  if (hostname === "localhost") return null;
+  if (tenantDomain && hostname === tenantDomain) return null;
 
   if (hostname.endsWith(".localhost")) {
     return hostname.replace(".localhost", "") || null;
   }
 
   if (hostname.endsWith(".vercel.app")) {
-    // Vercel Preview: tenant is encoded as <tenant>---<deployment>.vercel.app (no nested subdomains due to *.vercel.app TLS scope).
     const firstLabel = hostname.replace(".vercel.app", "").split(".")[0] || "";
     const tenant = firstLabel.split("---")[0] || null;
     return tenant;
