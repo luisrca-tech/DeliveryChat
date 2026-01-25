@@ -103,7 +103,10 @@ export const billingRoute = new Hono()
             ? env.STRIPE_BASIC_PRICE_KEY
             : env.STRIPE_PREMIUM_PRICE_KEY;
 
-        const host = c.req.header("host") ?? null;
+        const host =
+          (c.req.header("x-forwarded-host") ??
+            c.req.header("host") ??
+            null) as string | null;
         const adminBaseUrl = await getUserAdminUrl(auth.user.id, host);
 
         const session = await stripe.checkout.sessions.create({
@@ -159,7 +162,10 @@ export const billingRoute = new Hono()
         );
       }
 
-      const host = c.req.header("host") ?? null;
+      const host =
+        (c.req.header("x-forwarded-host") ??
+          c.req.header("host") ??
+          null) as string | null;
       const adminBaseUrl = await getUserAdminUrl(auth.user.id, host);
 
       const session = await stripe.billingPortal.sessions.create({
