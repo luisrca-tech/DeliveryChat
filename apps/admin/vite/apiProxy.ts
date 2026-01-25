@@ -70,7 +70,22 @@ function forwardSetCookie(upstream: Headers, res: ConnectResponse) {
 }
 
 export function apiProxyPlugin(options: { target: string }) {
-  const target = options.target.replace(/\/+$/, "");
+  const remoteTarget = options.target.replace(/\/+$/, "");
+  const localTarget = "http://localhost:8000";
+
+  function isLocalHost(hostname: string): boolean {
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname.endsWith(".localhost")
+    );
+  }
+
+  function pickTarget(originalHostHeader: string | undefined): string {
+    if (!originalHostHeader) return remoteTarget;
+    const hostname = originalHostHeader.split(":")[0]?.toLowerCase() ?? "";
+    return isLocalHost(hostname) ? localTarget : remoteTarget;
+  }
 
   return {
     name: "local-api-proxy",
@@ -99,7 +114,8 @@ export function apiProxyPlugin(options: { target: string }) {
           const originalHost = getSingleHeader(req.headers?.host);
 
           try {
-            const upstreamUrl = new URL(toUpstreamPath(url), target);
+            const upstreamBase = pickTarget(originalHost);
+            const upstreamUrl = new URL(toUpstreamPath(url), upstreamBase);
 
             const headers = copyRequestHeaders(req);
             if (originalHost) headers.set("x-forwarded-host", originalHost);

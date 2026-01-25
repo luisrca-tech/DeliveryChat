@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { eq, sql } from "drizzle-orm";
+import type Stripe from "stripe";
 import { db } from "../db/index.js";
 import { member } from "../db/schema/member.js";
 import { user as userTable } from "../db/schema/users.js";
@@ -109,13 +110,12 @@ export const billingRoute = new Hono()
             null) as string | null;
         const adminBaseUrl = await getUserAdminUrl(auth.user.id, host);
 
-        const session = await stripe.checkout.sessions.create({
+        const baseParams: Stripe.Checkout.SessionCreateParams = {
           mode: "subscription",
           line_items: [{ price, quantity: 1 }],
           client_reference_id: organization.id,
           success_url: `${adminBaseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${adminBaseUrl}/billing`,
-          automatic_tax: { enabled: true },
           billing_address_collection: "required",
           metadata: { plan: planUpper },
           subscription_data: {
@@ -125,7 +125,29 @@ export const billingRoute = new Hono()
           ...(organization.stripeCustomerId
             ? { customer: organization.stripeCustomerId }
             : { customer_email: dbUser.email }),
-        });
+        };
+
+        const shouldEnableAutomaticTax = env.STRIPE_AUTOMATIC_TAX_ENABLED === true;
+
+        let session: Stripe.Response<Stripe.Checkout.Session>;
+        try {
+          session = await stripe.checkout.sessions.create(
+            shouldEnableAutomaticTax
+              ? { ...baseParams, automatic_tax: { enabled: true } }
+              : baseParams,
+          );
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "";
+          const isUnsupportedTax =
+            message.includes("Stripe Tax is not supported for your account country") ||
+            message.includes("Stripe Tax is not supported");
+
+          if (shouldEnableAutomaticTax && isUnsupportedTax) {
+            session = await stripe.checkout.sessions.create(baseParams);
+          } else {
+            throw error;
+          }
+        }
 
         if (!session.url) {
           return jsonError(

@@ -28,6 +28,10 @@ export const env = createEnv({
     STRIPE_BASIC_PRICE_KEY: z.string().min(1),
     STRIPE_PREMIUM_PRICE_KEY: z.string().min(1),
     STRIPE_ENTERPRISE_PRODUCT_KEY: z.string().min(1),
+    STRIPE_AUTOMATIC_TAX_ENABLED: z
+      .enum(["true", "false"])
+      .optional()
+      .transform((v) => v === "true"),
   },
   client: {
     // Add client-side env vars here if needed
@@ -49,6 +53,7 @@ export const env = createEnv({
     STRIPE_BASIC_PRICE_KEY: process.env.STRIPE_BASIC_PRICE_KEY,
     STRIPE_PREMIUM_PRICE_KEY: process.env.STRIPE_PREMIUM_PRICE_KEY,
     STRIPE_ENTERPRISE_PRODUCT_KEY: process.env.STRIPE_ENTERPRISE_PRODUCT_KEY,
+    STRIPE_AUTOMATIC_TAX_ENABLED: process.env.STRIPE_AUTOMATIC_TAX_ENABLED,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,
