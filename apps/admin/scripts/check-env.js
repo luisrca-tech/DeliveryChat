@@ -7,7 +7,11 @@
 
 console.log("\n🔍 [BUILD] Checking environment variables during build...\n");
 
-const requiredVars = ["VITE_API_URL"];
+const requiredVars = [
+  "VITE_API_URL",
+  "VITE_BETTER_AUTH_URL",
+  "VITE_RESEND_EMAIL_TO",
+];
 const allEnvKeys = Object.keys(globalThis.process.env).sort();
 const viteKeys = allEnvKeys.filter((k) => k.startsWith("VITE_"));
 
@@ -71,7 +75,7 @@ if (!allPresent) {
   console.error("\n❌ ERROR: Required environment variables are missing!");
   console.error("\n💡 How to fix:");
   console.error("   1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables");
-  console.error("   2. Find VITE_API_URL and ensure it's checked for:");
+  console.error("   2. Find the missing VITE_* variable(s) and ensure it's checked for:");
   console.error("      ✅ Production");
   console.error("      ✅ Preview");
   console.error("      ✅ Development");
