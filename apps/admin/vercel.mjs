@@ -1,18 +1,12 @@
 import process from "node:process";
 
-function requireEnv(name) {
-  const value = process.env[name];
-  if (!value) {
-    throw new Error(`[vercel config] Missing required env var: ${name}`);
-  }
-  return value;
-}
-
 function normalizeOrigin(url) {
   return url.replace(/\/+$/, "");
 }
 
-const upstream = normalizeOrigin(requireEnv("HONO_API_UPSTREAM"));
+const upstream = process.env.HONO_API_UPSTREAM
+  ? normalizeOrigin(process.env.HONO_API_UPSTREAM)
+  : "http://placeholder-upstream";
 
 /** @type {import('@vercel/config').VercelConfig} */
 export const config = {
