@@ -146,4 +146,3 @@ After deployment:
 - The upstream URL (Render) is not a secret by itself.
 - Secrets remain in Infisical/Vercel env vars (database URLs, auth secrets, API keys).
 - Avoid caching auth endpoints. Do **not** add CDN caching for `/api/auth/*`.
-

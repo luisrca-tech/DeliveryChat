@@ -18,33 +18,29 @@ import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 export const applicationsRoute = new Hono()
   .use("*", requireTenantAuth())
   .use("*", checkBillingStatus())
-  .get(
-    "/",
-    zValidator("query", listApplicationsQuerySchema),
-    async (c) => {
-      try {
-        const { organization } = getTenantAuth(c);
+  .get("/", zValidator("query", listApplicationsQuerySchema), async (c) => {
+    try {
+      const { organization } = getTenantAuth(c);
 
-        const { limit, offset } = c.req.valid("query");
-        const result = await db
-          .select()
-          .from(applications)
-          .where(eq(applications.organizationId, organization.id))
-          .limit(limit)
-          .offset(offset);
+      const { limit, offset } = c.req.valid("query");
+      const result = await db
+        .select()
+        .from(applications)
+        .where(eq(applications.organizationId, organization.id))
+        .limit(limit)
+        .offset(offset);
 
-        return c.json({ applications: result, limit, offset });
-      } catch (error) {
-        console.error("Error fetching applications:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          error instanceof Error ? error.message : "Unknown error",
-        );
-      }
-    },
-  )
+      return c.json({ applications: result, limit, offset });
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      return jsonError(
+        c,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+        error instanceof Error ? error.message : "Unknown error",
+      );
+    }
+  })
   .post(
     "/",
     zValidator("json", createApplicationSchema),

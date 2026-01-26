@@ -13,4 +13,3 @@ export type ConnectResponse = {
 };
 
 export type ConnectNext = () => void;
-
