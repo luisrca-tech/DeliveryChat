@@ -7,7 +7,7 @@
 
 console.log("\n🔍 [BUILD] Checking environment variables during build...\n");
 
-const requiredVars = ["HONO_API_UPSTREAM", "VITE_API_URL", "VITE_RESEND_EMAIL_TO"];
+const requiredVars = ["VITE_API_URL", "VITE_RESEND_EMAIL_TO"];
 const allEnvKeys = Object.keys(globalThis.process.env).sort();
 const viteKeys = allEnvKeys.filter((k) => k.startsWith("VITE_"));
 
