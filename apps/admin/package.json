@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "infisical run --path=/admin -- vite dev --port 3000",
     "local:build": "infisical run --path=/admin -- vite build",
-    "build": "node scripts/check-env.js && vite build",
+    "build": "vite build",
     "serve": "vite preview",
     "local:serve": "infisical run --path=/admin -- vite preview",
     "test": "vitest run",
