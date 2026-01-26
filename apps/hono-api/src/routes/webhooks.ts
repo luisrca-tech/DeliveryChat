@@ -8,7 +8,7 @@ import { env } from "../env.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import { stripe } from "../lib/stripe.js";
 
-export const webhooksRoute = new Hono().post("/webhooks/stripe", async (c) => {
+export const webhooksRoute = new Hono().post("/stripe", async (c) => {
   try {
     const signature = c.req.header("stripe-signature");
     if (!signature) {
