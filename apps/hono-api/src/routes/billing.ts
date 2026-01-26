@@ -5,6 +5,7 @@ import { eq, sql } from "drizzle-orm";
 import type Stripe from "stripe";
 import { db } from "../db/index.js";
 import { member } from "../db/schema/member.js";
+import { organization as organizationTable } from "../db/schema/organization.js";
 import { user as userTable } from "../db/schema/users.js";
 import { env } from "../env.js";
 import {
@@ -16,14 +17,16 @@ import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import { getUserAdminUrl } from "../lib/auth.js";
 import { stripe } from "../lib/stripe.js";
 import { sendEnterprisePlanRequestEmail } from "../lib/email.js";
+import { enterpriseDetailsSchema } from "./schemas/enterpriseDetails.js";
 
 const checkoutBodySchema = z.object({
   plan: z.enum(["basic", "premium", "enterprise"]),
+  enterpriseDetails: enterpriseDetailsSchema.optional(),
 });
 
 export const billingRoute = new Hono()
   .use("*", requireTenantAuth())
-  .get("/billing/status", async (c) => {
+  .get("/status", async (c) => {
     try {
       const { organization, membership } = getTenantAuth(c);
       const planStatus = organization.planStatus;
@@ -55,12 +58,12 @@ export const billingRoute = new Hono()
     }
   })
   .post(
-    "/billing/checkout",
+    "/checkout",
     zValidator("json", checkoutBodySchema),
     requireRole("super_admin"),
     async (c) => {
       try {
-        const { plan } = c.req.valid("json");
+        const { plan, enterpriseDetails } = c.req.valid("json");
         const auth = getTenantAuth(c);
         const { organization } = auth;
 
@@ -90,6 +93,7 @@ export const billingRoute = new Hono()
             organizationName: organization.name,
             adminEmail: dbUser.email,
             memberCount,
+            enterpriseDetails: enterpriseDetails ?? null,
           });
 
           return c.json({
@@ -104,10 +108,9 @@ export const billingRoute = new Hono()
             ? env.STRIPE_BASIC_PRICE_KEY
             : env.STRIPE_PREMIUM_PRICE_KEY;
 
-        const host =
-          (c.req.header("x-forwarded-host") ??
-            c.req.header("host") ??
-            null) as string | null;
+        const host = (c.req.header("x-forwarded-host") ??
+          c.req.header("host") ??
+          null) as string | null;
         const adminBaseUrl = await getUserAdminUrl(auth.user.id, host);
 
         const baseParams: Stripe.Checkout.SessionCreateParams = {
@@ -127,7 +130,8 @@ export const billingRoute = new Hono()
             : { customer_email: dbUser.email }),
         };
 
-        const shouldEnableAutomaticTax = env.STRIPE_AUTOMATIC_TAX_ENABLED === true;
+        const shouldEnableAutomaticTax =
+          env.STRIPE_AUTOMATIC_TAX_ENABLED === true;
 
         let session: Stripe.Response<Stripe.Checkout.Session>;
         try {
@@ -139,8 +143,9 @@ export const billingRoute = new Hono()
         } catch (error) {
           const message = error instanceof Error ? error.message : "";
           const isUnsupportedTax =
-            message.includes("Stripe Tax is not supported for your account country") ||
-            message.includes("Stripe Tax is not supported");
+            message.includes(
+              "Stripe Tax is not supported for your account country",
+            ) || message.includes("Stripe Tax is not supported");
 
           if (shouldEnableAutomaticTax && isUnsupportedTax) {
             session = await stripe.checkout.sessions.create(baseParams);
@@ -170,28 +175,56 @@ export const billingRoute = new Hono()
       }
     },
   )
-  .post("/billing/portal-session", requireRole("super_admin"), async (c) => {
+  .post("/portal-session", requireRole("super_admin"), async (c) => {
     try {
       const auth = getTenantAuth(c);
       const { organization } = auth;
 
-      if (!organization.stripeCustomerId) {
-        return jsonError(
-          c,
-          HTTP_STATUS.BAD_REQUEST,
-          ERROR_MESSAGES.BAD_REQUEST,
-          "Organization does not have a Stripe customer",
-        );
+      let stripeCustomerId = organization.stripeCustomerId ?? null;
+
+      if (!stripeCustomerId) {
+        const [dbUser] = await db
+          .select({ email: userTable.email, name: userTable.name })
+          .from(userTable)
+          .where(eq(userTable.id, auth.user.id))
+          .limit(1);
+
+        if (!dbUser) {
+          return jsonError(
+            c,
+            HTTP_STATUS.UNAUTHORIZED,
+            ERROR_MESSAGES.UNAUTHORIZED,
+          );
+        }
+
+        const customer = await stripe.customers.create({
+          email: organization.billingEmail ?? dbUser.email,
+          name: organization.name,
+          metadata: {
+            organizationId: organization.id,
+            organizationSlug: organization.slug,
+          },
+        });
+
+        stripeCustomerId = customer.id;
+
+        await db
+          .update(organizationTable)
+          .set({
+            stripeCustomerId,
+            billingEmail: organization.billingEmail ?? dbUser.email,
+            updatedAt: new Date().toISOString(),
+          })
+          .where(eq(organizationTable.id, organization.id));
       }
 
-      const host =
-        (c.req.header("x-forwarded-host") ??
-          c.req.header("host") ??
-          null) as string | null;
+      const host = (c.req.header("x-forwarded-host") ??
+        c.req.header("host") ??
+        null) as string | null;
       const adminBaseUrl = await getUserAdminUrl(auth.user.id, host);
 
       const session = await stripe.billingPortal.sessions.create({
-        customer: organization.stripeCustomerId,
+        customer: stripeCustomerId,
         return_url: `${adminBaseUrl}/billing`,
       });
 

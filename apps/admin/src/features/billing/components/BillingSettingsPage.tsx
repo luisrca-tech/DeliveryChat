@@ -73,6 +73,15 @@ export function BillingSettingsPage() {
                   {env.VITE_RESEND_EMAIL_TO}
                 </a>
               </div>
+            ) : status?.plan === "FREE" ? (
+              <Button
+                onClick={() => {
+                  window.location.href = "/onboarding/plans";
+                }}
+                variant="default"
+              >
+                Choose a plan
+              </Button>
             ) : (
               <Button onClick={openPortal} disabled={portal.isPending}>
                 {portal.isPending ? "Opening..." : "Manage subscription"}

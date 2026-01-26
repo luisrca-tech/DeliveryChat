@@ -19,8 +19,17 @@ export type BillingStatusResponse = {
 
 export type CheckoutPlan = "basic" | "premium" | "enterprise";
 
+export type EnterpriseRequestDetails = {
+  fullName: string;
+  email: string;
+  phone?: string;
+  teamSize?: number;
+  notes?: string;
+};
+
 export type CheckoutRequest = {
   plan: CheckoutPlan;
+  enterpriseDetails?: EnterpriseRequestDetails;
 };
 
 export type CheckoutResponse =
