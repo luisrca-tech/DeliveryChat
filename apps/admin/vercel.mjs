@@ -4,9 +4,9 @@ function normalizeOrigin(url) {
   return url.replace(/\/+$/, "");
 }
 
-const upstream = process.env.HONO_API_UPSTREAM
-  ? normalizeOrigin(process.env.HONO_API_UPSTREAM)
-  : "http://placeholder-upstream";
+const upstream = process.env.VITE_HONO_API_UPSTREAM
+  ? normalizeOrigin(process.env.VITE_HONO_API_UPSTREAM)
+  : "http://localhost:8000";
 
 /** @type {import('@vercel/config').VercelConfig} */
 export const config = {

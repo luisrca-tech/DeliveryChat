@@ -37,8 +37,8 @@ This keeps cookies first-party.
 
 Vercel rewrites forward:
 
-- `/api/v1/:path*` → `${HONO_API_UPSTREAM}/v1/:path*`
-- `/api/auth/:path*` → `${HONO_API_UPSTREAM}/api/auth/:path*`
+- `/api/v1/:path*` → `${VITE_HONO_API_UPSTREAM}/v1/:path*`
+- `/api/auth/:path*` → `${VITE_HONO_API_UPSTREAM}/api/auth/:path*`
 
 The upstream is a public Hono API deployment, typically on Render.
 
@@ -46,7 +46,7 @@ The upstream is a public Hono API deployment, typically on Render.
 
 ### Required on Vercel/Infisical (server-side, build/deploy time)
 
-- `HONO_API_UPSTREAM`
+- `VITE_HONO_API_UPSTREAM`
   - **Production**: `https://deliverychat-production.onrender.com`
   - **Preview/Dev deploy**: `https://deliverychat-development.onrender.com`
 
@@ -67,7 +67,7 @@ This is the only value the rewrite layer needs in production.
 ```js
 import process from "node:process";
 
-const upstream = process.env.HONO_API_UPSTREAM;
+const upstream = process.env.VITE_HONO_API_UPSTREAM;
 // rewrites: /api/v1/* -> upstream/v1/*, /api/auth/* -> upstream/api/auth/*
 ```
 
