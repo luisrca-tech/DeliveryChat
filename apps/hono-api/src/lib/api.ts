@@ -16,10 +16,10 @@ const app = new Hono()
   .route("/", registerRoute)
   .route("/", verifyEmailRoute)
   .route("/", resendOtpRoute)
-  .route("/", usersRoute)
-  .route("/", applicationsRoute)
-  .route("/", billingRoute)
-  .route("/", webhooksRoute);
+  .route("/users", usersRoute)
+  .route("/applications", applicationsRoute)
+  .route("/billing", billingRoute)
+  .route("/webhooks", webhooksRoute);
 
 export const api = app;
 export type APIType = typeof app;

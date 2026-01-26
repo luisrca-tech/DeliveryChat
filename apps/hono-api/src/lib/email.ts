@@ -28,6 +28,13 @@ export interface SendEnterprisePlanRequestEmailParams {
   organizationName: string;
   adminEmail: string;
   memberCount: number;
+  enterpriseDetails?: {
+    fullName: string;
+    email: string;
+    phone?: string;
+    teamSize?: number;
+    notes?: string;
+  } | null;
 }
 
 export async function sendVerificationOTPEmail(
@@ -130,7 +137,7 @@ export async function sendResetPasswordEmail(
 export async function sendEnterprisePlanRequestEmail(
   params: SendEnterprisePlanRequestEmailParams,
 ): Promise<void> {
-  const { organizationName, adminEmail, memberCount } = params;
+  const { organizationName, adminEmail, memberCount, enterpriseDetails } = params;
 
   if (process.env.VERCEL_ENV === "preview") {
     console.info("[Email] Suppressed in preview environment");
@@ -152,10 +159,31 @@ export async function sendEnterprisePlanRequestEmail(
             <li><strong>Organization</strong>: ${organizationName}</li>
             <li><strong>Admin email</strong>: ${adminEmail}</li>
             <li><strong>Member count</strong>: ${memberCount}</li>
+            ${
+              enterpriseDetails
+                ? `
+            <li><strong>Contact name</strong>: ${enterpriseDetails.fullName}</li>
+            <li><strong>Contact email</strong>: ${enterpriseDetails.email}</li>
+            ${enterpriseDetails.phone ? `<li><strong>Phone</strong>: ${enterpriseDetails.phone}</li>` : ""}
+            ${typeof enterpriseDetails.teamSize === "number" ? `<li><strong>Team size</strong>: ${enterpriseDetails.teamSize}</li>` : ""}
+            ${enterpriseDetails.notes ? `<li><strong>Notes</strong>: ${enterpriseDetails.notes}</li>` : ""}
+            `
+                : ""
+            }
           </ul>
         </div>
       `,
-      text: `Enterprise plan request\n\nOrganization: ${organizationName}\nAdmin email: ${adminEmail}\nMember count: ${memberCount}\n`,
+      text: `Enterprise plan request\n\nOrganization: ${organizationName}\nAdmin email: ${adminEmail}\nMember count: ${memberCount}\n${
+        enterpriseDetails
+          ? `\nContact name: ${enterpriseDetails.fullName}\nContact email: ${enterpriseDetails.email}${
+              enterpriseDetails.phone ? `\nPhone: ${enterpriseDetails.phone}` : ""
+            }${
+              typeof enterpriseDetails.teamSize === "number"
+                ? `\nTeam size: ${enterpriseDetails.teamSize}`
+                : ""
+            }${enterpriseDetails.notes ? `\nNotes: ${enterpriseDetails.notes}` : ""}\n`
+          : ""
+      }`,
     });
 
     if (result.error) {

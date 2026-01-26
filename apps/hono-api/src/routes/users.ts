@@ -17,7 +17,7 @@ export const usersRoute = new Hono()
   .use("*", requireTenantAuth())
   .use("*", checkBillingStatus())
   .get(
-    "/users",
+    "/",
     zValidator("query", listUsersQuerySchema),
     requireRole("admin"),
     async (c) => {

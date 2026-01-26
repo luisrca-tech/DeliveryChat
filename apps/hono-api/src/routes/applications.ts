@@ -19,7 +19,7 @@ export const applicationsRoute = new Hono()
   .use("*", requireTenantAuth())
   .use("*", checkBillingStatus())
   .get(
-    "/applications",
+    "/",
     zValidator("query", listApplicationsQuerySchema),
     async (c) => {
       try {
@@ -46,7 +46,7 @@ export const applicationsRoute = new Hono()
     },
   )
   .post(
-    "/applications",
+    "/",
     zValidator("json", createApplicationSchema),
     requireRole("admin"),
     async (c) => {
