@@ -11,18 +11,29 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { useCreateCheckoutMutation } from "@/features/billing/hooks/useBillingCheckout";
-import type { CheckoutPlan } from "@/features/billing/types/billing.types";
+import type {
+  CheckoutPlan,
+  EnterpriseRequestDetails,
+} from "@/features/billing/types/billing.types";
 import { PLAN_CARDS } from "../constants/plans.constants";
+import { EnterpriseRequestDialog } from "@/features/billing/components/EnterpriseRequestDialog";
 
 export function PlansOnboardingPage() {
   const navigate = useNavigate();
   const checkout = useCreateCheckoutMutation();
   const [loadingPlan, setLoadingPlan] = useState<CheckoutPlan | null>(null);
+  const [enterpriseOpen, setEnterpriseOpen] = useState(false);
 
-  const startCheckout = async (plan: CheckoutPlan) => {
+  const startCheckout = async (
+    plan: CheckoutPlan,
+    enterpriseDetails?: EnterpriseRequestDetails,
+  ) => {
     setLoadingPlan(plan);
     try {
-      const data = await checkout.mutateAsync(plan);
+      const data = await checkout.mutateAsync({
+        plan,
+        ...(enterpriseDetails ? { enterpriseDetails } : {}),
+      });
 
       if ("url" in data && data.url) {
         window.location.href = data.url;
@@ -47,6 +58,8 @@ export function PlansOnboardingPage() {
       setLoadingPlan(null);
     }
   };
+
+  const openEnterprise = () => setEnterpriseOpen(true);
 
   return (
     <div className="min-h-[calc(100vh-2rem)] px-4 py-12">
@@ -109,7 +122,11 @@ export function PlansOnboardingPage() {
                   className="w-full"
                   variant={plan.popular ? "default" : "outline"}
                   disabled={!!loadingPlan || checkout.isPending}
-                  onClick={() => startCheckout(plan.key)}
+                  onClick={() =>
+                    plan.key === "enterprise"
+                      ? openEnterprise()
+                      : startCheckout(plan.key)
+                  }
                 >
                   {loadingPlan === plan.key ? (
                     <>
@@ -125,6 +142,16 @@ export function PlansOnboardingPage() {
           ))}
         </div>
       </div>
+
+      <EnterpriseRequestDialog
+        open={enterpriseOpen}
+        onOpenChange={setEnterpriseOpen}
+        submitting={loadingPlan === "enterprise" || checkout.isPending}
+        onSubmit={async (details) => {
+          await startCheckout("enterprise", details);
+          setEnterpriseOpen(false);
+        }}
+      />
     </div>
   );
 }
