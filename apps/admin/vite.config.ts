@@ -6,12 +6,12 @@ import { defineConfig } from "vite";
 import viteTsConfigPaths from "vite-tsconfig-paths";
 import { nitro } from "nitro/vite";
 import { apiProxyPlugin } from "./vite/apiProxy";
+import { env } from "@/env";
 
 const config = defineConfig({
   plugins: [
     apiProxyPlugin({
-      target:
-        process.env.VITE_API_URL?.replace(/\/+$/, "") || "http://localhost:8000",
+      target: env.VITE_API_URL?.replace(/\/+$/, "") || "http://localhost:8000",
     }),
     devtools(),
     viteTsConfigPaths({
