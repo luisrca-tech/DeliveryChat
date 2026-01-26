@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@source "./**/*.{ts,tsx}";
+@source "../../../apps/**/*.{ts,tsx,mdx,html}";
+@source "../../../packages/**/*.{ts,tsx}";
+
 @theme {
   /* Light Mode Colors */
   --color-background: hsl(0 0% 100%);
