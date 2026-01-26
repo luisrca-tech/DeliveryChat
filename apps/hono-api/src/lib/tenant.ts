@@ -10,7 +10,7 @@ export function getHostSubdomain(host: string | null): string | null {
 
   const withoutPort = raw.startsWith("[")
     ? raw.replace(/^\[([^\]]+)\](?::\d+)?$/, "$1")
-    : raw.split(":")[0] ?? "";
+    : (raw.split(":")[0] ?? "");
 
   const hostname = withoutPort.toLowerCase();
   if (!hostname) return null;
