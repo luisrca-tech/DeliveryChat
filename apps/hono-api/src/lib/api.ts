@@ -6,6 +6,7 @@ import { verifyEmailRoute } from "../routes/verify-email.js";
 import { resendOtpRoute } from "../routes/resend-otp.js";
 import { webhooksRoute } from "../routes/webhooks.js";
 import { billingRoute } from "../routes/billing.js";
+import { tenantsRoute } from "../routes/tenants.js";
 
 /**
  * Shared Hono instance for API routes
@@ -16,6 +17,7 @@ const app = new Hono()
   .route("/", registerRoute)
   .route("/", verifyEmailRoute)
   .route("/", resendOtpRoute)
+  .route("/", tenantsRoute)
   .route("/users", usersRoute)
   .route("/applications", applicationsRoute)
   .route("/billing", billingRoute)

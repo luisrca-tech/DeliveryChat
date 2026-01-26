@@ -137,7 +137,8 @@ export async function sendResetPasswordEmail(
 export async function sendEnterprisePlanRequestEmail(
   params: SendEnterprisePlanRequestEmailParams,
 ): Promise<void> {
-  const { organizationName, adminEmail, memberCount, enterpriseDetails } = params;
+  const { organizationName, adminEmail, memberCount, enterpriseDetails } =
+    params;
 
   if (process.env.VERCEL_ENV === "preview") {
     console.info("[Email] Suppressed in preview environment");
@@ -176,7 +177,9 @@ export async function sendEnterprisePlanRequestEmail(
       text: `Enterprise plan request\n\nOrganization: ${organizationName}\nAdmin email: ${adminEmail}\nMember count: ${memberCount}\n${
         enterpriseDetails
           ? `\nContact name: ${enterpriseDetails.fullName}\nContact email: ${enterpriseDetails.email}${
-              enterpriseDetails.phone ? `\nPhone: ${enterpriseDetails.phone}` : ""
+              enterpriseDetails.phone
+                ? `\nPhone: ${enterpriseDetails.phone}`
+                : ""
             }${
               typeof enterpriseDetails.teamSize === "number"
                 ? `\nTeam size: ${enterpriseDetails.teamSize}`

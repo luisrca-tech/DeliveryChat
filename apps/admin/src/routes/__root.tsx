@@ -7,6 +7,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import "@repo/ui/styles.css";
 import { getSubdomain } from "../lib/subdomain";
 import { getQueryClient } from "../lib/queryClient";
+import { SubdomainForm } from "../features/subdomain";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -80,22 +81,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             <HeadContent />
           </head>
           <body className="antialiased">
-            <div className="flex min-h-screen items-center justify-center">
-              <div className="text-center max-w-md mx-auto px-4">
-                <h1 className="text-4xl font-bold mb-4">Subdomain Required</h1>
-                <p className="text-muted-foreground mb-2">
-                  This application requires a tenant subdomain (e.g.,
-                  tenant.localhost:3000)
-                </p>
-                <p className="text-sm text-muted-foreground mt-4">
-                  Please access this application using a subdomain, for example:
-                  <br />
-                  <code className="text-xs bg-muted px-2 py-1 rounded mt-2 inline-block">
-                    tenant.localhost:3000
-                  </code>
-                </p>
-              </div>
-            </div>
+            <SubdomainForm />
           </body>
         </html>
       );
