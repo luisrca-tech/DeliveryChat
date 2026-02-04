@@ -3,6 +3,10 @@ function normalizeIsoInstant(input: string): string {
 
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T00:00:00Z`;
 
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}(\.\d+)?$/.test(s)) {
+    return `${s.replace(" ", "T")}Z`;
+  }
+
   const hasTimezone = /([zZ]|[+-]\d{2}:\d{2})$/.test(s);
   if (s.includes("T") && !hasTimezone) return `${s}Z`;
 

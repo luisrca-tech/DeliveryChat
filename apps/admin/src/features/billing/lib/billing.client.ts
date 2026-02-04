@@ -20,7 +20,7 @@ export async function getBillingStatus(): Promise<BillingStatusResponse> {
       message?: string;
     } | null;
     throw new Error(
-      err?.message || err?.error || `Request failed (${res.status})`,
+      err?.message || err?.error || `Request failed (${res.status})`
     );
   }
   return await parseJson<BillingStatusResponse>(res);
@@ -37,14 +37,14 @@ export async function createPortalSession(): Promise<PortalSessionResponse> {
       message?: string;
     } | null;
     throw new Error(
-      err?.message || err?.error || `Request failed (${res.status})`,
+      err?.message || err?.error || `Request failed (${res.status})`
     );
   }
   return await parseJson<PortalSessionResponse>(res);
 }
 
 export async function createCheckout(
-  body: CheckoutRequest,
+  body: CheckoutRequest
 ): Promise<CheckoutResponse> {
   const res = await fetch(`${getApiBaseUrl()}/billing/checkout`, {
     method: "POST",
@@ -58,7 +58,7 @@ export async function createCheckout(
       message?: string;
     } | null;
     throw new Error(
-      err?.message || err?.error || `Request failed (${res.status})`,
+      err?.message || err?.error || `Request failed (${res.status})`
     );
   }
   return await parseJson<CheckoutResponse>(res);
