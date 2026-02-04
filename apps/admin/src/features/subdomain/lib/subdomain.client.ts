@@ -1,7 +1,10 @@
+import { getApiBaseUrl } from "@/lib/urls";
+
 export async function checkTenantExists(subdomain: string): Promise<boolean> {
   try {
+    const apiBase = getApiBaseUrl();
     const response = await fetch(
-      `/api/v1/tenants/check?subdomain=${encodeURIComponent(subdomain)}`,
+      `${apiBase}/tenants/check?subdomain=${encodeURIComponent(subdomain)}`,
       {
         method: "GET",
         credentials: "include",

@@ -7,28 +7,23 @@ export function getSubdomain(hostname?: string): string | null {
 
   const h = resolved.toLowerCase();
 
-  if (h === "localhost") return null;
+  if (h === "localhost" || h === "127.0.0.1") return null;
 
   if (h.endsWith(".localhost")) {
     return h.replace(".localhost", "") || null;
   }
 
   if (h.endsWith(".vercel.app")) {
-    // Vercel Preview: tenant is encoded as <tenant>---<deployment>.vercel.app (no nested subdomains due to *.vercel.app TLS scope).
     const firstLabel = h.split(".")[0] || "";
     return firstLabel.split("---")[0] || null;
   }
 
-  const tenantDomain = import.meta.env.VITE_TENANT_DOMAIN;
-  if (!tenantDomain) {
-    throw new Error("VITE_TENANT_DOMAIN is required in production");
-  }
+  const labels = h.split(".").filter(Boolean);
+  if (labels.length <= 2) return null;
 
-  if (h === tenantDomain) return null;
+  const first = labels[0] ?? "";
+  if (!first) return null;
+  if (first === "api" || first === "api-dev" || first === "www") return null;
 
-  if (h.endsWith(`.${tenantDomain}`)) {
-    return h.replace(`.${tenantDomain}`, "") || null;
-  }
-
-  return null;
+  return first;
 }
