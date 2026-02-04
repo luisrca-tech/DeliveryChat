@@ -11,16 +11,18 @@ export function BillingAlert() {
   const banner = useMemo(() => {
     if (!status?.planStatus) return null;
 
+    const isSuperAdmin = status.role === "super_admin";
+
     if (status.planStatus === "past_due") {
       return {
         tone: "warning" as const,
         title: "Payment failed",
         description:
-          status.role === "super_admin"
+          isSuperAdmin
             ? "Please update your payment method to restore full access."
             : "Your organization’s payment failed. Please contact your Admin.",
         action:
-          status.role === "super_admin" ? (
+          isSuperAdmin ? (
             <Link to="/settings/billing" className="shrink-0">
               <Button size="sm" variant="default">
                 Fix billing
@@ -38,11 +40,11 @@ export function BillingAlert() {
             tone: "warning" as const,
             title: "Trial ended",
             description:
-              status.role === "super_admin"
+              isSuperAdmin
                 ? "Choose a plan to continue."
                 : "Your trial ended. Please contact your Admin to choose a plan.",
             action:
-              status.role === "super_admin" ? (
+              isSuperAdmin ? (
                 <Link to="/onboarding/plans" className="shrink-0">
                   <Button size="sm" variant="default">
                     Choose plan
@@ -57,7 +59,7 @@ export function BillingAlert() {
           title: "Trial active",
           description: `Trial ends in ${days} day${days === 1 ? "" : "s"}.`,
           action:
-            status.role === "super_admin" ? (
+            isSuperAdmin ? (
               <Link to="/settings/billing" className="shrink-0">
                 <Button size="sm" variant="outline">
                   Manage billing
