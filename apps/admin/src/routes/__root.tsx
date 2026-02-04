@@ -3,6 +3,7 @@ import { createRootRoute, HeadContent, Scripts } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { Toaster as SonnerToaster } from "sonner";
 import { QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 
 import "@repo/ui/styles.css";
 import { getSubdomain } from "../lib/subdomain";
@@ -70,7 +71,7 @@ export const Route = createRootRoute({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-  const queryClient = getQueryClient();
+  const [queryClient] = useState(() => getQueryClient());
 
   if (typeof window !== "undefined") {
     const subdomain = getSubdomain();
