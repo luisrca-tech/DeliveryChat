@@ -38,8 +38,5 @@ export function getAdminUrl(tenant: string): string {
 }
 
 export function getApiUrl(): string {
-  if (isDevelopment()) {
-    return "http://localhost:8000";
-  }
   return env.PUBLIC_API_URL.replace(/\/+$/, "");
 }
