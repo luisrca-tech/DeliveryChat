@@ -5,6 +5,7 @@
  * - Wildcard subdomains: "https://*.vercel.app"
  * - Port wildcards: "http://localhost:*"
  * - Exact matches: "https://deliverychat.online"
+ * - Regex: "re:^https://[a-z0-9-]+---.+\\.vercel\\.app$"
  */
 
 function hostnameMatches(hostname: string, pattern: string): boolean {
@@ -48,6 +49,16 @@ export function isOriginAllowed(
   if (!allowedPatterns || allowedPatterns.length === 0) return false;
 
   for (const pattern of allowedPatterns) {
+    if (pattern.startsWith("re:")) {
+      try {
+        const re = new RegExp(pattern.slice(3));
+        if (re.test(origin)) return true;
+      } catch {
+        // ignore invalid regex patterns
+      }
+      continue;
+    }
+
     if (originMatchesPattern(origin, pattern)) {
       return true;
     }
