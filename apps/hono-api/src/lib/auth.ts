@@ -11,6 +11,10 @@ import { ac, super_admin, admin, operator } from "./permissions.js";
 import { createTrustedOrigins } from "./auth/origins.js";
 import { getAuthBaseURL } from "./auth/baseUrl.js";
 import { getAdvancedOptions } from "./auth/advanced.js";
+import {
+  getUiHostFromHeaders,
+  getUiOriginFromHeaders,
+} from "./requestContext.js";
 import { sendVerificationOTPEmail, sendResetPasswordEmail } from "./email.js";
 
 const trustedOrigins = createTrustedOrigins();
@@ -18,7 +22,7 @@ const baseURL = getAuthBaseURL(env);
 
 export async function getUserAdminUrl(
   userId: string,
-  requestHost: string | null,
+  headers: Headers,
 ): Promise<string> {
   try {
     const result = await db
@@ -41,27 +45,56 @@ export async function getUserAdminUrl(
 
     const subdomain = result[0].slug;
 
-    // Local development - always use localhost if requestHost is localhost or NODE_ENV is development
+    const uiOrigin = getUiOriginFromHeaders(headers);
+    const uiHost = getUiHostFromHeaders(headers);
+
+    const protocol = (() => {
+      if (uiOrigin) {
+        try {
+          return new URL(uiOrigin).protocol;
+        } catch {
+          return null;
+        }
+      }
+      if (
+        uiHost === "localhost" ||
+        uiHost?.startsWith("localhost:") ||
+        uiHost?.endsWith(".localhost") ||
+        uiHost?.includes(".localhost:")
+      ) {
+        return "http:";
+      }
+      return "https:";
+    })();
+
     if (
-      requestHost?.endsWith(".localhost") ||
-      requestHost === "localhost" ||
-      env.NODE_ENV === "development"
+      uiHost === "localhost" ||
+      uiHost?.startsWith("localhost:") ||
+      uiHost?.endsWith(".localhost") ||
+      uiHost?.includes(".localhost:")
     ) {
       return `http://${subdomain}.localhost:3000`;
     }
 
-    // Preview - use request hostname
-    if (requestHost?.endsWith(".vercel.app")) {
-      // Vercel Preview: use URL prefixes (<tenant>---<deployment>.vercel.app) because *.vercel.app TLS doesn't cover nested subdomains.
-      return `https://${subdomain}---${requestHost}`;
+    if (uiHost?.endsWith(".vercel.app")) {
+      const hostname = uiHost.split(":")[0]?.toLowerCase() ?? "";
+      const labels = hostname.split(".").filter(Boolean);
+      const first = labels[0] ?? "";
+      const rest = labels.slice(1).join(".");
+
+      if (first.includes("---")) {
+        const suffix = first.split("---").slice(1).join("---");
+        const deploymentHost = `${suffix}.${rest}`;
+        return `${protocol}//${subdomain}---${deploymentHost}`;
+      }
+
+      return `${protocol}//${subdomain}---${hostname}`;
     }
 
-    // Production
-    if (!env.TENANT_DOMAIN) {
-      throw new Error("TENANT_DOMAIN is required in production");
-    }
-
-    return `https://${subdomain}.${env.TENANT_DOMAIN}`;
+    const hostname = (uiHost ?? "").split(":")[0]?.toLowerCase() ?? "";
+    const parts = hostname.split(".").filter(Boolean);
+    const baseDomain = parts.length <= 2 ? hostname : parts.slice(1).join(".");
+    return `${protocol}//${subdomain}.${baseDomain}`;
   } catch (error) {
     console.error("[Auth] Error building admin URL:", error);
     throw error;
@@ -86,11 +119,8 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     async sendResetPassword({ user, token }, request) {
       try {
-        const host =
-          request?.headers.get("x-forwarded-host") ??
-          request?.headers.get("host") ??
-          null;
-        const adminBaseUrl = await getUserAdminUrl(user.id, host);
+        const headers = request?.headers ?? new Headers();
+        const adminBaseUrl = await getUserAdminUrl(user.id, headers);
         const resetUrl = `${adminBaseUrl}/reset-password?token=${token}`;
 
         await sendResetPasswordEmail({
@@ -167,7 +197,7 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL,
   trustedOrigins,
-  advanced: getAdvancedOptions(env),
+  advanced: getAdvancedOptions(env, baseURL),
 });
 
 export type Session = typeof auth.$Infer.Session;

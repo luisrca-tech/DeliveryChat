@@ -6,6 +6,7 @@ import { member } from "../../db/schema/member.js";
 import { user } from "../../db/schema/users.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 import { getHostSubdomain, resolveOrganizationBySubdomain } from "../tenant.js";
+import { getTenantSlugFromHeaders } from "../requestContext.js";
 import {
   resolveLoginOutcome,
   getStatusSpecificErrorMessage,
@@ -74,9 +75,9 @@ export function requireTenantAuth(): MiddlewareHandler {
       );
     }
 
-    const forwardedHost = c.req.header("x-forwarded-host") ?? null;
-    const host = forwardedHost ?? c.req.header("host") ?? null;
-    const subdomain = getHostSubdomain(host);
+    const subdomain =
+      getTenantSlugFromHeaders(c.req.raw.headers) ??
+      getHostSubdomain(c.req.header("host") ?? null);
 
     if (!subdomain) {
       return jsonError(
