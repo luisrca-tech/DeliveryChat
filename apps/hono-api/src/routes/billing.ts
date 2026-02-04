@@ -108,10 +108,10 @@ export const billingRoute = new Hono()
             ? env.STRIPE_BASIC_PRICE_KEY
             : env.STRIPE_PREMIUM_PRICE_KEY;
 
-        const host = (c.req.header("x-forwarded-host") ??
-          c.req.header("host") ??
-          null) as string | null;
-        const adminBaseUrl = await getUserAdminUrl(auth.user.id, host);
+        const adminBaseUrl = await getUserAdminUrl(
+          auth.user.id,
+          c.req.raw.headers,
+        );
 
         const baseParams: Stripe.Checkout.SessionCreateParams = {
           mode: "subscription",
@@ -218,10 +218,10 @@ export const billingRoute = new Hono()
           .where(eq(organizationTable.id, organization.id));
       }
 
-      const host = (c.req.header("x-forwarded-host") ??
-        c.req.header("host") ??
-        null) as string | null;
-      const adminBaseUrl = await getUserAdminUrl(auth.user.id, host);
+      const adminBaseUrl = await getUserAdminUrl(
+        auth.user.id,
+        c.req.raw.headers,
+      );
 
       const session = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,
