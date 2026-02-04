@@ -11,6 +11,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { useBillingStatusQuery } from "../hooks/useBillingStatus";
 import { useCreatePortalSessionMutation } from "../hooks/useBillingPortal";
+import { daysUntil } from "../utils/billing.utils";
 import { env } from "@/env";
 export function BillingSettingsPage() {
   const { data: status } = useBillingStatusQuery();
@@ -18,8 +19,7 @@ export function BillingSettingsPage() {
 
   const trialDaysLeft = useMemo(() => {
     if (!status?.trialEndsAt) return null;
-    const ms = new Date(status.trialEndsAt).getTime() - Date.now();
-    return Math.ceil(ms / (1000 * 60 * 60 * 24));
+    return daysUntil(status.trialEndsAt);
   }, [status?.trialEndsAt]);
 
   const openPortal = async () => {
