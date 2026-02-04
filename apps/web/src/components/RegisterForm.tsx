@@ -82,8 +82,14 @@ export default function RegisterForm() {
     });
 
     const adminUrl = getAdminUrl(data.subdomain);
+    const loginUrl = new URL(`${adminUrl}/login`);
+    loginUrl.searchParams.set("redirect", "/onboarding/plans");
+    loginUrl.searchParams.set(
+      "message",
+      "Account created. Please sign in to continue.",
+    );
     setTimeout(() => {
-      window.location.href = adminUrl;
+      window.location.href = loginUrl.toString();
     }, 1500);
   };
 

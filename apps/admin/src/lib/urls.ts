@@ -1,3 +1,5 @@
+import { getSubdomain } from "./subdomain";
+
 export function isDevelopment(): boolean {
   if (typeof window === "undefined") return false;
 
@@ -9,18 +11,62 @@ export function isDevelopment(): boolean {
   );
 }
 
+function normalizeApiTemplate(raw: string): string {
+  return raw.replace(/\/+$/, "");
+}
+
+function applyTenantToApiTemplate(template: string, tenant: string): string {
+  const normalized = normalizeApiTemplate(template);
+
+  if (normalized.includes("[tenant]")) {
+    return normalized.replaceAll("[tenant]", tenant);
+  }
+  if (normalized.includes("<tenant>")) {
+    return normalized.replaceAll("<tenant>", tenant);
+  }
+
+  return normalized;
+}
+
 export function getApiUrl(): string {
-  if (isDevelopment()) {
+  const rawTemplate = import.meta.env.VITE_API_URL as string | undefined;
+  if (!rawTemplate) {
+    throw new Error("VITE_API_URL is required");
+  }
+
+  if (typeof window === "undefined") {
+    return normalizeApiTemplate(rawTemplate);
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.endsWith(".localhost")
+  ) {
     return "http://localhost:8000";
   }
-  return (
-    import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "http://localhost:8000"
-  );
+
+  const tenant = getSubdomain(hostname);
+  if (!tenant) {
+    throw new Error("Tenant subdomain is required to build Admin API URL");
+  }
+
+  if (hostname.endsWith(".vercel.app")) {
+    const devTemplate = normalizeApiTemplate(rawTemplate).replace(
+      ".api.deliverychat.online",
+      ".api-dev.deliverychat.online",
+    );
+    return applyTenantToApiTemplate(devTemplate, tenant);
+  }
+
+  return applyTenantToApiTemplate(rawTemplate, tenant);
 }
 
 export function getApiBaseUrl(): string {
   const baseUrl = getApiUrl();
-  return baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+  return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 }
 
 export function getSubdomainOrigin(): string {

@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/* Tailwind v4 (monorepo): ensure class scanning includes workspace sources */
+@source "./**/*.ts";
+@source "./**/*.tsx";
+@source "../../../apps/**/*.ts";
+@source "../../../apps/**/*.tsx";
+@source "../../../apps/**/*.mdx";
+@source "../../../apps/**/*.html";
+@source "../../../packages/**/*.ts";
+@source "../../../packages/**/*.tsx";
+
 @theme {
   /* Light Mode Colors */
   --color-background: hsl(0 0% 100%);

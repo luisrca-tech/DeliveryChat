@@ -15,13 +15,22 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.string().url(),
     RESEND_API_KEY: z.string().min(1),
+    RESEND_EMAIL_TO: z.string().email(),
     ALLOWED_ORIGINS: z
       .string()
       .optional()
       .transform((v) => (v ? JSON.parse(v) : []))
       .pipe(z.array(z.string())),
     EMAIL_FROM: z.string().optional(),
-    TENANT_DOMAIN: z.string().optional(),
+    STRIPE_SECRET_KEY: z.string().min(1),
+    SIGNING_STRIPE_SECRET_KEY: z.string().min(1),
+    STRIPE_BASIC_PRICE_KEY: z.string().min(1),
+    STRIPE_PREMIUM_PRICE_KEY: z.string().min(1),
+    STRIPE_ENTERPRISE_PRODUCT_KEY: z.string().min(1),
+    STRIPE_AUTOMATIC_TAX_ENABLED: z
+      .enum(["true", "false"])
+      .optional()
+      .transform((v) => v === "true"),
   },
   client: {
     // Add client-side env vars here if needed
@@ -34,9 +43,15 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
     RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_EMAIL_TO: process.env.RESEND_EMAIL_TO,
     ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS,
     EMAIL_FROM: process.env.EMAIL_FROM,
-    TENANT_DOMAIN: process.env.TENANT_DOMAIN,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    SIGNING_STRIPE_SECRET_KEY: process.env.SIGNING_STRIPE_SECRET_KEY,
+    STRIPE_BASIC_PRICE_KEY: process.env.STRIPE_BASIC_PRICE_KEY,
+    STRIPE_PREMIUM_PRICE_KEY: process.env.STRIPE_PREMIUM_PRICE_KEY,
+    STRIPE_ENTERPRISE_PRODUCT_KEY: process.env.STRIPE_ENTERPRISE_PRODUCT_KEY,
+    STRIPE_AUTOMATIC_TAX_ENABLED: process.env.STRIPE_AUTOMATIC_TAX_ENABLED,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

@@ -64,7 +64,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
   const onSubmit = async (data: VerifyEmailFormData) => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/verify-email`, {
+      const response = await fetch(`${apiUrl}/v1/verify-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -92,8 +92,14 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
 
       if (result.organizationSlug) {
         const adminUrl = getAdminUrl(result.organizationSlug);
+        const loginUrl = new URL(`${adminUrl}/login`);
+        loginUrl.searchParams.set("redirect", "/onboarding/plans");
+        loginUrl.searchParams.set(
+          "message",
+          "Email verified. Please sign in to continue.",
+        );
         setTimeout(() => {
-          window.location.href = adminUrl;
+          window.location.href = loginUrl.toString();
         }, 1500);
       } else {
         toast.error("Redirect Failed", {
@@ -123,7 +129,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
     setIsResending(true);
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/resend-otp`, {
+      const response = await fetch(`${apiUrl}/v1/resend-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

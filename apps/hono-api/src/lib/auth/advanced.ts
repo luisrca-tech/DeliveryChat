@@ -1,14 +1,47 @@
 import type { env as envType } from "../../env.js";
 
-export function getAdvancedOptions(env: typeof envType) {
+function deriveCrossSubdomainCookieDomain(
+  nodeEnv: string,
+  betterAuthBaseUrl: string,
+): string | undefined {
+  try {
+    const hostname = new URL(betterAuthBaseUrl).hostname.toLowerCase();
+
+    if (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1" ||
+      hostname.endsWith(".localhost")
+    ) {
+      return undefined;
+    }
+
+    if (nodeEnv === "production" && hostname.startsWith("api.")) {
+      return `.${hostname.slice("api.".length)}`;
+    }
+
+    if (nodeEnv === "development" && hostname.startsWith("api-dev.")) {
+      return `.${hostname}`;
+    }
+
+    return `.${hostname}`;
+  } catch {
+    return undefined;
+  }
+}
+
+export function getAdvancedOptions(env: typeof envType, baseURL: string) {
+  const domain = deriveCrossSubdomainCookieDomain(env.NODE_ENV, baseURL);
+
   return {
     cookiePrefix: "better-auth",
-    ...(env.NODE_ENV === "production" &&
-      env.TENANT_DOMAIN && {
-        crossSubDomainCookies: {
-          enabled: true,
-          domain: `.${env.TENANT_DOMAIN}`,
-        },
-      }),
+    ...(domain
+      ? {
+          crossSubDomainCookies: {
+            enabled: true,
+            domain,
+          },
+        }
+      : {}),
   };
 }

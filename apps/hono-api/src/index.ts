@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { logger } from "hono/logger";
 import { cors } from "hono/cors";
 import { auth } from "./lib/auth.js";
 import { api } from "./lib/api.js";
@@ -8,6 +9,8 @@ import { env } from "./env.js";
 import { isOriginAllowed } from "./lib/corsPatterns.js";
 
 const app = new Hono();
+
+app.use("*", logger());
 
 app.use(
   "*",
@@ -44,7 +47,7 @@ app.all("/api/auth/*", async (c) => {
   return auth.handler(c.req.raw);
 });
 
-app.route("/api", api);
+app.route("/v1", api);
 
 export type AppType = typeof app;
 
@@ -55,7 +58,11 @@ serve(
     fetch: app.fetch,
     port,
   },
-  () => {},
+  (info) => {
+    console.log(
+      `[Hono API] 🚀 Server running on http://localhost:${info.port}`,
+    );
+  },
 ).on("error", (error) => {
   console.error(`[Hono API] Failed to start server:`, error);
   process.exit(1);

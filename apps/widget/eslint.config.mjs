@@ -4,7 +4,7 @@ import { config } from "@repo/eslint-config/react-internal";
 export default [
   ...config,
   {
-    ignores: [".react-router/**"],
+    ignores: [".react-router/**", "build/**"],
   },
   {
     rules: {
@@ -18,4 +18,3 @@ export default [
     },
   },
 ];
-
