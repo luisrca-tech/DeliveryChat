@@ -34,6 +34,10 @@ export function getApiUrl(): string {
     throw new Error("VITE_API_URL is required");
   }
 
+  if (import.meta.env.DEV) {
+    return "http://localhost:8000";
+  }
+
   if (typeof window === "undefined") {
     return normalizeApiTemplate(rawTemplate);
   }
@@ -56,7 +60,7 @@ export function getApiUrl(): string {
   if (hostname.endsWith(".vercel.app")) {
     const devTemplate = normalizeApiTemplate(rawTemplate).replace(
       ".api.deliverychat.online",
-      ".api-dev.deliverychat.online",
+      ".api-dev.deliverychat.online"
     );
     return applyTenantToApiTemplate(devTemplate, tenant);
   }
