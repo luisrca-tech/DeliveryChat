@@ -8,17 +8,13 @@ import { z } from "zod";
 export const env = createEnv({
   server: {},
   client: {
-    VITE_API_URL: z.string().url(),
-    VITE_TENANT_DOMAIN: z.string().optional(),
     VITE_RESEND_EMAIL_TO: z.string().email(),
-    VITE_HONO_API_UPSTREAM: z.string().url(),
+    VITE_API_URL: z.string().url(),
   },
   clientPrefix: "VITE_",
   runtimeEnv: {
-    VITE_API_URL: import.meta.env.VITE_API_URL,
-    VITE_TENANT_DOMAIN: import.meta.env.VITE_TENANT_DOMAIN,
     VITE_RESEND_EMAIL_TO: import.meta.env.VITE_RESEND_EMAIL_TO,
-    VITE_HONO_API_UPSTREAM: import.meta.env.VITE_HONO_API_UPSTREAM,
+    VITE_API_URL: import.meta.env.VITE_API_URL,
   },
   skipValidation: !!import.meta.env.SKIP_ENV_VALIDATION,
 });
