@@ -35,7 +35,16 @@ export function getApiUrl(): string {
   }
 
   if (import.meta.env.DEV) {
-    return "http://localhost:8000";
+    const devApiUrl = (() => {
+      if (typeof window === "undefined") return "http://localhost:8000";
+      const hostname = window.location.hostname.toLowerCase();
+      if (hostname.endsWith(".localhost") && hostname !== "localhost") {
+        return `http://${hostname}:8000`;
+      }
+      return "http://localhost:8000";
+    })();
+
+    return devApiUrl;
   }
 
   if (typeof window === "undefined") {
