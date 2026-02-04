@@ -3,6 +3,10 @@
   "workspaces": {
     "": {
       "name": "my-turborepo",
+      "dependencies": {
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
+      },
       "devDependencies": {
         "prettier": "^3.6.2",
         "turbo": "^2.6.1",
@@ -65,8 +69,8 @@
         "next": "^15.1.0",
         "nextra": "4.6.1",
         "nextra-theme-docs": "4.6.1",
-        "react": "^19.0.0",
-        "react-dom": "^19.0.0",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
         "tailwind-merge": "^2.6.0",
       },
       "devDependencies": {
@@ -142,8 +146,8 @@
         "@react-router/serve": "^7.9.2",
         "@t3-oss/env-core": "^0.13.8",
         "isbot": "^5.1.31",
-        "react": "^19.1.1",
-        "react-dom": "^19.1.1",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
         "react-router": "^7.9.2",
         "zod": "^3.23.8",
       },
@@ -245,8 +249,6 @@
         "input-otp": "^1.4.2",
         "lucide-react": "^0.469.0",
         "next-themes": "^0.4.6",
-        "react": "^19.2.0",
-        "react-dom": "^19.2.0",
         "react-hook-form": "^7.53.2",
         "sonner": "^2.0.7",
         "tailwind-merge": "^2.6.0",
@@ -259,8 +261,14 @@
         "@types/react": "19.2.2",
         "@types/react-dom": "19.2.2",
         "eslint": "^9.39.1",
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
         "tailwindcss": "^4.1.13",
         "typescript": "5.9.2",
+      },
+      "peerDependencies": {
+        "react": "^19.2.0",
+        "react-dom": "^19.2.0",
       },
     },
   },

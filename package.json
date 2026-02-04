@@ -1,6 +1,10 @@
 {
   "name": "my-turborepo",
   "private": true,
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev --filter='./apps/*' --output-logs=full",
