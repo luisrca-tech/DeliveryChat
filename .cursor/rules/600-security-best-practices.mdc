@@ -1,0 +1,12 @@
+---
+description: Global security standards to prevent common vulnerabilities.
+globs: \*_/_
+alwaysApply: true
+---
+
+# Security Guardrails
+
+- **Sanitization:** Always sanitize and validate user input to prevent Injection attacks (SQL, XSS, Command Injection).
+- **Secrets Management:** Never hardcode API keys, passwords, or secrets. Use environment variables or a secret manager.
+- **Least Privilege:** When writing code that interacts with databases or external APIs, only request the minimum permissions/scopes required.
+- **Dependency Safety:** Favor well-maintained, official libraries over obscure packages. Check for vulnerabilities if a tool is available.

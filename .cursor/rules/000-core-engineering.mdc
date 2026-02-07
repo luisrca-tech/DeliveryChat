@@ -1,0 +1,20 @@
+---
+description: Global standards for SOLID, Clean Code, and readability.
+globs: \*_/_
+alwaysApply: true
+---
+
+# Core Engineering Principles
+
+- **SOLID Principles:**
+  - **Single Responsibility (SRP):** Each module/class/function must have one reason to change.
+  - **Open/Closed:** Prefer extending behavior via interfaces/composition rather than modifying existing code.
+  - **Liskov Substitution:** Ensure subclasses/implementations are replaceable for their base types.
+  - **Interface Segregation:** Don't force dependencies on methods they don't use.
+  - **Dependency Inversion:** Depend on abstractions. Use Dependency Injection where the framework allows.
+
+- **Clean Code:**
+  - **Early Returns:** Use guard clauses to handle edge cases immediately. Avoid nested `if/else`.
+  - **Self-Documenting:** Naming must reveal intent (e.g., `calculateMonthlyRevenue` vs `calcRev`).
+  - **Dry & Kiss:** Avoid repetition, but prioritize simplicity over clever abstractions.
+  - **File Size:** Keep files focused. If a file exceeds 200 lines, evaluate for splitting.

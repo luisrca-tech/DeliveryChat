@@ -1,0 +1,24 @@
+---
+description: Mandatory rule to enforce test creation and verification across any language or framework.
+globs: \*_/_
+alwaysApply: true
+---
+
+# Universal Test Enforcement
+
+- **Automatic Framework Detection:** - Before writing tests, search the workspace for configuration files (e.g., `vitest.config.ts`, `pytest.ini`, `jest.config.js`, `go.mod`).
+  - Use the established patterns, naming conventions (e.g., `*.test.ts` vs `test_*.py`), and mocking libraries found in the codebase.
+
+- **The "Test-First" Workflow:**
+  1. **Identify Change:** For every new feature or logic modification, identify the impacted code paths.
+  2. **Generate Tests:** Create or update Unit and Integration tests _before_ or alongside the implementation.
+  3. **Verify Failure:** If possible, run the tests to ensure they fail for the right reasons (Red phase).
+  4. **Verify Success:** After implementation, run the specific test command (e.g., `npx vitest run [file]`, `pytest [file]`) in the terminal.
+  5. **Auto-Fix:** If tests fail, read the error output, fix the code/test, and re-run until 100% pass.
+
+- **Quality Standards:**
+  - **No Placeholders:** Prohibit `expect(true).toBe(true)`. Tests must verify actual business logic.
+  - **Coverage:** Ensure coverage for the Happy Path, Edge Cases (nulls, empty strings, limits), and Error Handling.
+  - **Determinism:** Tests must not depend on external APIs, system time, or random values. Use mocks/spies found in the existing project.
+
+- **Completion Criteria:** A feature is only complete when the test command has been executed in the terminal and all relevant tests pass.

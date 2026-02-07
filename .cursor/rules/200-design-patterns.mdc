@@ -1,0 +1,20 @@
+---
+description: Rules for Design Patterns (Factory) and Feature-Based Folder Structures.
+globs: \*_/_
+alwaysApply: true
+---
+
+# Design Patterns & Architecture
+
+- **Feature-Based Structure:**
+  - Organize code by **domain/feature** (e.g., `/features/auth`, `/features/billing`) rather than technical type (e.g., `/controllers`, `/models`).
+  - Each feature folder should be self-contained, containing its own logic, components, and types.
+  - Only truly shared utilities should live in a global `/shared` or `/common` directory.
+
+- **Factory Pattern:**
+  - Use Factories to encapsulate object creation logic, especially when the implementation depends on configuration or environment (e.g., `PaymentProcessorFactory`).
+  - Avoid using `new` or direct constructors for complex entities inside business services.
+
+- **Separation of Concerns:**
+  - **Business Logic:** Must be isolated from UI and Infrastructure layers.
+  - **Infrastructure:** Keep external API calls and Database logic in dedicated adapters/repositories.

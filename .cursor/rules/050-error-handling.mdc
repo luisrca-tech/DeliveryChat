@@ -1,0 +1,13 @@
+---
+description: Universal standards for robust error handling and resilience.
+globs: \*_/_
+alwaysApply: true
+---
+
+# Error Handling & Resilience
+
+- **No Silent Failures:** Never use empty `catch` blocks or suppress errors. Every error must be logged or propagated.
+- **Custom Exceptions:** Create domain-specific error types (e.g., `ValidationError`, `NotFoundError`) instead of throwing generic strings or base Errors.
+- **Fail Fast:** Validate inputs at the boundary (top of the function). If data is invalid, throw/return an error immediately.
+- **Recovery:** For external integrations (APIs/DB), always implement a retry strategy or a fallback mechanism.
+- **Contextual Errors:** When re-throwing or wrapping errors, add context (e.g., "Failed to fetch user: [original error]") to make debugging easier.

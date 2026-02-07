@@ -1,0 +1,14 @@
+---
+description: Apply when defining API endpoints, creating data schemas (Zod/Pydantic), or establishing contracts between services.
+globs: **/dto/**, **/schemas/**, **/types/**, **/*contract*, **/routes/**
+alwaysApply: false
+---
+
+# API & Data Contracts
+
+- **Schema Validation:** Use a validation library (Zod, Pydantic, Marshmallow) for all incoming data from external sources (HTTP requests, CLI inputs).
+- **Contract First:** Define the data shape (Interfaces/Types/Classes) before implementing the logic.
+- **Consistency:** - Follow RESTful or RPC naming conventions consistently.
+  - Return standardized response envelopes (e.g., `{ success: boolean, data: T, error: string }`).
+- **Version Control:** If modifying an existing public API, ensure backward compatibility or explicitly version the change.
+- **Immutability:** Treat data received from APIs as immutable. Do not modify request objects directly.
