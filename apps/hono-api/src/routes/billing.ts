@@ -118,7 +118,7 @@ export const billingRoute = new Hono()
           line_items: [{ price, quantity: 1 }],
           client_reference_id: organization.id,
           success_url: `${adminBaseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-          cancel_url: `${adminBaseUrl}/billing`,
+          cancel_url: `${adminBaseUrl}/settings/billing`,
           billing_address_collection: "required",
           metadata: { plan: planUpper },
           subscription_data: {
@@ -225,7 +225,7 @@ export const billingRoute = new Hono()
 
       const session = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,
-        return_url: `${adminBaseUrl}/billing`,
+        return_url: `${adminBaseUrl}/settings/billing`,
       });
 
       return c.json({ url: session.url });
