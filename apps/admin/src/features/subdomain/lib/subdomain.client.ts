@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from "@/lib/urls";
 import { getSubdomain } from "@/lib/subdomain";
+import { getBearerToken } from "@/lib/bearerToken";
 
 export async function checkTenantExists(subdomain: string): Promise<boolean> {
   try {
@@ -8,10 +9,13 @@ export async function checkTenantExists(subdomain: string): Promise<boolean> {
       `${apiBase}/tenants/check?subdomain=${encodeURIComponent(subdomain)}`,
       {
         method: "GET",
-        credentials: "include",
         headers: (() => {
           const tenant = getSubdomain();
-          return tenant ? { "X-Tenant-Slug": tenant } : undefined;
+          const token = getBearerToken();
+          const headers: Record<string, string> = {};
+          if (tenant) headers["X-Tenant-Slug"] = tenant;
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+          return Object.keys(headers).length ? headers : undefined;
         })(),
       },
     );

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/authClient";
+import { clearBearerToken } from "../../lib/bearerToken";
 import { getSubdomainUrl } from "../../lib/urls";
 
 export const Route = createFileRoute("/_system/")({
@@ -34,11 +35,8 @@ function Dashboard() {
           onClick={async () => {
             setIsLoggingOut(true);
             try {
-              await authClient.signOut({
-                fetchOptions: {
-                  credentials: "include",
-                },
-              });
+              await authClient.signOut();
+              clearBearerToken();
               window.location.href = getSubdomainUrl("/login");
             } catch (error) {
               console.error("Logout error:", error);
