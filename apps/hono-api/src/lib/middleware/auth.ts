@@ -6,7 +6,10 @@ import { member } from "../../db/schema/member.js";
 import { user } from "../../db/schema/users.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 import { getHostSubdomain, resolveOrganizationBySubdomain } from "../tenant.js";
-import { getTenantSlugFromHeaders } from "../requestContext.js";
+import {
+  getTenantSlugFromExplicitHeader,
+  getTenantSlugFromHeaders,
+} from "../requestContext.js";
 import {
   resolveLoginOutcome,
   getStatusSpecificErrorMessage,
@@ -75,9 +78,21 @@ export function requireTenantAuth(): MiddlewareHandler {
       );
     }
 
-    const subdomain =
+    const explicitTenant = getTenantSlugFromExplicitHeader(c.req.raw.headers);
+    const derivedTenant =
       getTenantSlugFromHeaders(c.req.raw.headers) ??
       getHostSubdomain(c.req.header("host") ?? null);
+
+    if (explicitTenant && derivedTenant && explicitTenant !== derivedTenant) {
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        ERROR_MESSAGES.FORBIDDEN,
+        "Tenant header does not match request origin"
+      );
+    }
+
+    const subdomain = explicitTenant ?? derivedTenant;
 
     if (!subdomain) {
       return jsonError(

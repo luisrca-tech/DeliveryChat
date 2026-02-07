@@ -1,5 +1,3 @@
-import { getSubdomain } from "./subdomain";
-
 export function isDevelopment(): boolean {
   if (typeof window === "undefined") return false;
 
@@ -11,44 +9,29 @@ export function isDevelopment(): boolean {
   );
 }
 
-function normalizeApiTemplate(raw: string): string {
+function normalizeApiUrl(raw: string): string {
   return raw.replace(/\/+$/, "");
 }
 
-function applyTenantToApiTemplate(template: string, tenant: string): string {
-  const normalized = normalizeApiTemplate(template);
-
-  if (normalized.includes("[tenant]")) {
-    return normalized.replaceAll("[tenant]", tenant);
-  }
-  if (normalized.includes("<tenant>")) {
-    return normalized.replaceAll("<tenant>", tenant);
-  }
-
-  return normalized;
-}
-
 export function getApiUrl(): string {
-  const rawTemplate = import.meta.env.VITE_API_URL as string | undefined;
-  if (!rawTemplate) {
+  const raw = import.meta.env.VITE_API_URL as string | undefined;
+  if (!raw) {
     throw new Error("VITE_API_URL is required");
   }
 
   if (import.meta.env.DEV) {
-    const devApiUrl = (() => {
-      if (typeof window === "undefined") return "http://localhost:8000";
-      const hostname = window.location.hostname.toLowerCase();
-      if (hostname.endsWith(".localhost") && hostname !== "localhost") {
-        return `http://${hostname}:8000`;
-      }
-      return "http://localhost:8000";
-    })();
+    if (typeof window === "undefined") return "http://localhost:8000";
 
-    return devApiUrl;
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname.endsWith(".localhost") && hostname !== "localhost") {
+      return `http://${hostname}:8000`;
+    }
+
+    return "http://localhost:8000";
   }
 
   if (typeof window === "undefined") {
-    return normalizeApiTemplate(rawTemplate);
+    return normalizeApiUrl(raw);
   }
 
   const hostname = window.location.hostname.toLowerCase();
@@ -61,20 +44,7 @@ export function getApiUrl(): string {
     return "http://localhost:8000";
   }
 
-  const tenant = getSubdomain(hostname);
-  if (!tenant) {
-    throw new Error("Tenant subdomain is required to build Admin API URL");
-  }
-
-  if (hostname.endsWith(".vercel.app")) {
-    const devTemplate = normalizeApiTemplate(rawTemplate).replace(
-      ".api.deliverychat.online",
-      ".api-dev.deliverychat.online"
-    );
-    return applyTenantToApiTemplate(devTemplate, tenant);
-  }
-
-  return applyTenantToApiTemplate(rawTemplate, tenant);
+  return normalizeApiUrl(raw);
 }
 
 export function getApiBaseUrl(): string {

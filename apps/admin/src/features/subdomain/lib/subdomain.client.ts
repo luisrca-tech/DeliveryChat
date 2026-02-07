@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from "@/lib/urls";
+import { getSubdomain } from "@/lib/subdomain";
 
 export async function checkTenantExists(subdomain: string): Promise<boolean> {
   try {
@@ -8,6 +9,10 @@ export async function checkTenantExists(subdomain: string): Promise<boolean> {
       {
         method: "GET",
         credentials: "include",
+        headers: (() => {
+          const tenant = getSubdomain();
+          return tenant ? { "X-Tenant-Slug": tenant } : undefined;
+        })(),
       },
     );
 

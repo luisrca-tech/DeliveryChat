@@ -18,7 +18,6 @@ app.use(
     origin: (origin) => {
       if (!origin) return origin;
 
-      // Allow localhost origins in development
       if (
         origin.startsWith("http://localhost:") ||
         origin.startsWith("http://127.0.0.1:") ||
@@ -34,7 +33,7 @@ app.use(
       return null;
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Tenant-Slug"],
     credentials: true,
   }),
 );
