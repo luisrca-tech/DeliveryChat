@@ -1,0 +1,41 @@
+{
+  "name": "@repo/emails",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "XDG_CONFIG_HOME=.react-email-config email dev --dir src/templates --port 3004",
+    "build": "tsc -p tsconfig.build.json",
+    "check-types": "tsc --noEmit",
+    "test": "vitest run --reporter verbose",
+    "test:watch": "vitest",
+    "preview:build": "XDG_CONFIG_HOME=.react-email-config email build --dir src/templates",
+    "preview:export": "XDG_CONFIG_HOME=.react-email-config email export --dir src/templates"
+  },
+  "dependencies": {
+    "@react-email/components": "1.0.7",
+    "react-dom": "^19.0.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@react-email/preview-server": "5.2.8",
+    "@react-email/render": "^2.0.4",
+    "@repo/typescript-config": "*",
+    "@types/react": "^19.0.1",
+    "@types/react-dom": "^19.0.1",
+    "react-email": "5.2.8",
+    "typescript": "5.9.2",
+    "vitest": "^4.0.18"
+  }
+}
