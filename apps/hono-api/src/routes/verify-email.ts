@@ -10,6 +10,7 @@ import { member } from "../db/schema/member.js";
 import { eq } from "drizzle-orm";
 import { verifyEmailSchema } from "./schemas/verify-email.js";
 import { mapToHttpStatus } from "./utils/httpStatus.js";
+import { sendEmailVerifiedWelcomeEmail } from "../lib/email.js";
 
 export const verifyEmailRoute = new Hono().post(
   "/verify-email",
@@ -146,6 +147,16 @@ export const verifyEmailRoute = new Hono().post(
           updatedAt: now,
         })
         .where(eq(organization.id, userMember.organizationId));
+
+      try {
+        await sendEmailVerifiedWelcomeEmail({
+          email: existingUser.email,
+          userName: existingUser.name ?? undefined,
+          organizationName: org.name,
+        });
+      } catch (emailError) {
+        console.error("[Verify Email] Failed to send welcome email:", emailError);
+      }
 
       return c.json({
         success: true,

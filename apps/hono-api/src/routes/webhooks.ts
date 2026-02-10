@@ -7,6 +7,24 @@ import { eq } from "drizzle-orm";
 import { env } from "../env.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import { stripe } from "../lib/stripe.js";
+import {
+  sendInvoiceReceiptEmail,
+  sendPaymentFailedEmail,
+  sendPlanUpgradedEmail,
+  sendSubscriptionCanceledEmail,
+  sendTrialStartedEmail,
+} from "../lib/email.js";
+
+function formatDate(input: Date): string {
+  return input.toISOString().slice(0, 10);
+}
+
+function formatMoney(amountMinor: number | null | undefined): string | null {
+  if (typeof amountMinor !== "number" || !Number.isFinite(amountMinor)) {
+    return null;
+  }
+  return (amountMinor / 100).toFixed(2);
+}
 
 export const webhooksRoute = new Hono().post("/stripe", async (c) => {
   try {
@@ -24,12 +42,14 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
     const body = await c.req.text();
 
     let event: Stripe.Event;
+    let eventId: string | null = null;
     try {
       event = stripe.webhooks.constructEvent(
         body,
         signature,
         env.SIGNING_STRIPE_SECRET_KEY,
       );
+      eventId = event.id;
     } catch (error) {
       console.error("[Webhook] Signature verification failed:", error);
       return jsonError(
@@ -42,8 +62,10 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
 
     console.info(`[Webhook] Received event: ${event.type} (${event.id})`);
 
+    let processed = false;
     try {
       await db.insert(processedEvents).values({ id: event.id });
+      processed = true;
     } catch {
       console.info(`[Webhook] Event ${event.id} already processed, skipping`);
       return c.json(
@@ -52,11 +74,14 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
       );
     }
 
-    await db.transaction(async (tx) => {
-      switch (event.type) {
-        case "invoice.paid": {
-          const invoice = event.data.object as Stripe.Invoice;
-          const customerId = invoice.customer as string;
+    const emailTasks: Array<() => Promise<void>> = [];
+
+    try {
+      await db.transaction(async (tx) => {
+        switch (event.type) {
+          case "invoice.paid": {
+            const invoice = event.data.object as Stripe.Invoice;
+            const customerId = invoice.customer as string;
 
           if (!customerId) {
             console.error("[Webhook] invoice.paid: Missing customer ID");
@@ -76,6 +101,41 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             return;
           }
 
+          const billingEmail = org.billingEmail;
+          if (billingEmail) {
+            const amountPaid = formatMoney(
+              typeof invoice.amount_paid === "number" ? invoice.amount_paid : null,
+            );
+            const interval =
+              invoice.lines?.data?.[0]?.price?.recurring?.interval ?? null;
+
+            emailTasks.push(async () => {
+              await sendInvoiceReceiptEmail({
+                email: billingEmail,
+                amountPaid,
+                currency: invoice.currency ?? null,
+                interval,
+                nextBillingDate: null,
+                invoiceUrl: invoice.hosted_invoice_url ?? null,
+                invoicePdfUrl: invoice.invoice_pdf ?? null,
+                organizationName: org.name,
+              });
+            });
+
+            const wasInactive = org.planStatus !== "active";
+            if (wasInactive && (org.plan === "BASIC" || org.plan === "PREMIUM")) {
+              const plan = org.plan;
+              emailTasks.push(async () => {
+                await sendPlanUpgradedEmail({
+                  email: billingEmail,
+                  plan,
+                  organizationName: org.name,
+                  nextBillingDate: null,
+                });
+              });
+            }
+          }
+
           await tx
             .update(organization)
             .set({
@@ -87,12 +147,12 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
           console.info(
             `[Webhook] invoice.paid: Updated org ${org.id} to active`,
           );
-          break;
-        }
+            break;
+          }
 
-        case "invoice.payment_failed": {
-          const invoice = event.data.object as Stripe.Invoice;
-          const customerId = invoice.customer as string;
+          case "invoice.payment_failed": {
+            const invoice = event.data.object as Stripe.Invoice;
+            const customerId = invoice.customer as string;
 
           if (!customerId) {
             console.error(
@@ -114,6 +174,27 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             return;
           }
 
+          const billingEmail = org.billingEmail;
+          if (billingEmail) {
+            const amountDue = formatMoney(
+              typeof invoice.amount_due === "number" ? invoice.amount_due : null,
+            );
+            const nextRetryAt =
+              typeof invoice.next_payment_attempt === "number"
+                ? formatDate(new Date(invoice.next_payment_attempt * 1000))
+                : null;
+
+            emailTasks.push(async () => {
+              await sendPaymentFailedEmail({
+                email: billingEmail,
+                amount: amountDue,
+                currency: invoice.currency ?? null,
+                nextRetryAt,
+                organizationName: org.name,
+              });
+            });
+          }
+
           await tx
             .update(organization)
             .set({
@@ -125,12 +206,12 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
           console.info(
             `[Webhook] invoice.payment_failed: Updated org ${org.id} to past_due`,
           );
-          break;
-        }
+            break;
+          }
 
-        case "customer.subscription.deleted": {
-          const subscription = event.data.object as Stripe.Subscription;
-          const customerId = subscription.customer as string;
+          case "customer.subscription.deleted": {
+            const subscription = event.data.object as Stripe.Subscription;
+            const customerId = subscription.customer as string;
 
           if (!customerId) {
             console.error(
@@ -152,6 +233,18 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             return;
           }
 
+          const billingEmail = org.billingEmail;
+          if (billingEmail) {
+            emailTasks.push(async () => {
+              await sendSubscriptionCanceledEmail({
+                email: billingEmail,
+                cancelAtPeriodEnd: false,
+                effectiveAt: formatDate(new Date()),
+                organizationName: org.name,
+              });
+            });
+          }
+
           await tx
             .update(organization)
             .set({
@@ -164,12 +257,12 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
           console.info(
             `[Webhook] customer.subscription.deleted: Updated org ${org.id} to canceled`,
           );
-          break;
-        }
+            break;
+          }
 
-        case "customer.subscription.updated": {
-          const subscription = event.data.object as Stripe.Subscription;
-          const customerId = subscription.customer as string;
+          case "customer.subscription.updated": {
+            const subscription = event.data.object as Stripe.Subscription;
+            const customerId = subscription.customer as string;
 
           if (!customerId) {
             console.error(
@@ -213,6 +306,46 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
               ? new Date(subscription.trial_end * 1000).toISOString()
               : null;
 
+          const billingEmail = org.billingEmail;
+          if (billingEmail) {
+            const isTrialingWithDate = planStatus === "trialing" && !!trialEndsAt;
+            const trialWasNotSet = !org.trialEndsAt;
+            if (
+              isTrialingWithDate &&
+              trialWasNotSet &&
+              (org.plan === "BASIC" ||
+                org.plan === "PREMIUM" ||
+                org.plan === "ENTERPRISE")
+            ) {
+              const plan = org.plan;
+              emailTasks.push(async () => {
+                await sendTrialStartedEmail({
+                  email: billingEmail,
+                  plan,
+                  trialEndsAt: formatDate(new Date(trialEndsAt!)),
+                  organizationName: org.name,
+                });
+              });
+            }
+
+            const cancelFlippedOn =
+              !!subscription.cancel_at_period_end && !org.cancelAtPeriodEnd;
+            if (cancelFlippedOn) {
+              const effectiveAt =
+                typeof subscription.current_period_end === "number"
+                  ? formatDate(new Date(subscription.current_period_end * 1000))
+                  : formatDate(new Date());
+              emailTasks.push(async () => {
+                await sendSubscriptionCanceledEmail({
+                  email: billingEmail,
+                  cancelAtPeriodEnd: true,
+                  effectiveAt,
+                  organizationName: org.name,
+                });
+              });
+            }
+          }
+
           await tx
             .update(organization)
             .set({
@@ -227,15 +360,15 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
           console.info(
             `[Webhook] customer.subscription.updated: Synced org ${org.id} status to ${planStatus}`,
           );
-          break;
-        }
+            break;
+          }
 
-        case "checkout.session.completed": {
-          const session = event.data.object as Stripe.Checkout.Session;
-          const customerId = session.customer as string;
-          const subscriptionId = session.subscription as string;
-          const clientReferenceId = session.client_reference_id;
-          const selectedPlan = session.metadata?.plan ?? null;
+          case "checkout.session.completed": {
+            const session = event.data.object as Stripe.Checkout.Session;
+            const customerId = session.customer as string;
+            const subscriptionId = session.subscription as string;
+            const clientReferenceId = session.client_reference_id;
+            const selectedPlan = session.metadata?.plan ?? null;
 
           if (!customerId) {
             console.error(
@@ -288,13 +421,28 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
           console.info(
             `[Webhook] checkout.session.completed: Updated org ${org.id} with Stripe IDs, set to trialing`,
           );
-          break;
-        }
+            break;
+          }
 
-        default:
-          console.info(`[Webhook] Unhandled event type: ${event.type}`);
+          default:
+            console.info(`[Webhook] Unhandled event type: ${event.type}`);
+        }
+      });
+
+      for (const task of emailTasks) {
+        await task();
       }
-    });
+    } catch (error) {
+      console.error("[Webhook] Billing webhook processing failed:", error);
+      if (processed && eventId) {
+        try {
+          await db.delete(processedEvents).where(eq(processedEvents.id, eventId));
+        } catch (deleteError) {
+          console.error("[Webhook] Failed to rollback processed event id:", deleteError);
+        }
+      }
+      throw error;
+    }
 
     return c.json({ received: true }, 200);
   } catch (error) {
