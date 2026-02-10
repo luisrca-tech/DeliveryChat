@@ -15,7 +15,11 @@ import {
   getUiHostFromHeaders,
   getUiOriginFromHeaders,
 } from "./requestContext.js";
-import { sendVerificationOTPEmail, sendResetPasswordEmail } from "./email.js";
+import {
+  sendPasswordChangedEmail,
+  sendResetPasswordEmail,
+  sendVerificationOTPEmail,
+} from "./email.js";
 
 const trustedOrigins = createTrustedOrigins();
 const baseURL = getAuthBaseURL(env);
@@ -135,6 +139,14 @@ export const auth = betterAuth({
     },
     async onPasswordReset({ user }) {
       console.info("[Auth] Password reset successfully for user:", user.email);
+      try {
+        await sendPasswordChangedEmail({
+          email: user.email,
+          occurredAt: new Date().toISOString(),
+        });
+      } catch (error) {
+        console.error("[Auth] Failed to send password changed email:", error);
+      }
     },
   },
   plugins: [
