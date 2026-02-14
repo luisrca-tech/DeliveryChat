@@ -1,0 +1,15 @@
+---
+description: Apply when working on UI components, React hooks, or frontend state management to ensure modern best practices.
+globs: **/*.{tsx,jsx,ts,js}, **/components/**, **/hooks/**, **/app/**, **/pages/**
+alwaysApply: false
+---
+
+# Frontend & UI Standards
+
+- **Avoid useEffect:** Do not use `useEffect` for data fetching or state synchronization.
+  - Use **Server State Libraries** (like TanStack Query) for API calls.
+  - Use **URL Search Params** (via `nuqs` or native APIs) for UI state like filters, tabs, or modals.
+- **UI Style Guide:**
+  - Maintain visual consistency by following existing project patterns (border-radius, shadows, spacing).
+  - Use the project's atomic UI components (Button, Input) instead of raw HTML.
+- **State Management:** Keep state as local as possible. Only lift state up when shared across multiple sibling features.

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryState, parseAsString } from "nuqs";
@@ -29,8 +29,17 @@ interface VerifyEmailFormProps {
   email?: string;
 }
 
+const RESEND_COOLDOWN_SECONDS = 60;
+
 function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
   const [isResending, setIsResending] = useState(false);
+  const [cooldownSeconds, setCooldownSeconds] = useState(0);
+
+  useEffect(() => {
+    if (cooldownSeconds <= 0) return;
+    const id = setInterval(() => setCooldownSeconds((s) => s - 1), 1000);
+    return () => clearInterval(id);
+  }, [cooldownSeconds]);
 
   const [emailFromUrl] = useQueryState(
     "email",
@@ -64,7 +73,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
   const onSubmit = async (data: VerifyEmailFormData) => {
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/verify-email`, {
+      const response = await fetch(`${apiUrl}/v1/verify-email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -92,8 +101,14 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
 
       if (result.organizationSlug) {
         const adminUrl = getAdminUrl(result.organizationSlug);
+        const loginUrl = new URL(`${adminUrl}/login`);
+        loginUrl.searchParams.set("redirect", "/onboarding/plans");
+        loginUrl.searchParams.set(
+          "message",
+          "Email verified. Please sign in to continue.",
+        );
         setTimeout(() => {
-          window.location.href = adminUrl;
+          window.location.href = loginUrl.toString();
         }, 1500);
       } else {
         toast.error("Redirect Failed", {
@@ -123,7 +138,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
     setIsResending(true);
     try {
       const apiUrl = getApiUrl();
-      const response = await fetch(`${apiUrl}/api/resend-otp`, {
+      const response = await fetch(`${apiUrl}/v1/resend-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -149,6 +164,7 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
       toast.success("Verification Code Resent", {
         description: "Please check your email for the new verification code.",
       });
+      setCooldownSeconds(RESEND_COOLDOWN_SECONDS);
     } catch (error) {
       console.error("Resend error:", error);
       toast.error("Resend Failed", {
@@ -276,11 +292,16 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
                   )}
                 </Button>
 
-                <div className="text-center">
+                <div className="text-center flex items-center justify-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={handleResend}
-                    disabled={!formEmail || !currentEmail || isResending}
+                    disabled={
+                      !formEmail ||
+                      !currentEmail ||
+                      isResending ||
+                      cooldownSeconds > 0
+                    }
                     className="text-sm text-primary hover:text-primary/80 hover:underline font-medium cursor-pointer transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     {isResending ? (
@@ -292,6 +313,11 @@ function VerifyEmailFormContent({ email: initialEmail }: VerifyEmailFormProps) {
                       "Resend Verification Code"
                     )}
                   </button>
+                  {cooldownSeconds > 0 && (
+                    <span className="text-sm text-muted-foreground">
+                      Resend in {cooldownSeconds}s
+                    </span>
+                  )}
                 </div>
               </form>
             </CardContent>

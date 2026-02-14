@@ -15,6 +15,10 @@ import { Route as SystemIndexRouteImport } from './routes/_system/index'
 import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
+import { Route as SystemSettingsIndexRouteImport } from './routes/_system/settings/index'
+import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
+import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
+import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
 
 const SystemRoute = SystemRouteImport.update({
   id: '/_system',
@@ -44,18 +48,46 @@ const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => PublicRoute,
 } as any)
+const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
+  id: '/settings/',
+  path: '/settings/',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemSettingsBillingRoute = SystemSettingsBillingRouteImport.update({
+  id: '/settings/billing',
+  path: '/settings/billing',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemOnboardingPlansRoute = SystemOnboardingPlansRouteImport.update({
+  id: '/onboarding/plans',
+  path: '/onboarding/plans',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemBillingSuccessRoute = SystemBillingSuccessRouteImport.update({
+  id: '/billing/success',
+  path: '/billing/success',
+  getParentRoute: () => SystemRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/': typeof SystemIndexRoute
+  '/billing/success': typeof SystemBillingSuccessRoute
+  '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/billing': typeof SystemSettingsBillingRoute
+  '/settings': typeof SystemSettingsIndexRoute
 }
 export interface FileRoutesByTo {
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/': typeof SystemIndexRoute
+  '/billing/success': typeof SystemBillingSuccessRoute
+  '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/billing': typeof SystemSettingsBillingRoute
+  '/settings': typeof SystemSettingsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -65,12 +97,32 @@ export interface FileRoutesById {
   '/_public/login': typeof PublicLoginRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
   '/_system/': typeof SystemIndexRoute
+  '/_system/billing/success': typeof SystemBillingSuccessRoute
+  '/_system/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/_system/settings/billing': typeof SystemSettingsBillingRoute
+  '/_system/settings/': typeof SystemSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/forgot-password' | '/login' | '/reset-password' | '/'
+  fullPaths:
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/'
+    | '/billing/success'
+    | '/onboarding/plans'
+    | '/settings/billing'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
-  to: '/forgot-password' | '/login' | '/reset-password' | '/'
+  to:
+    | '/forgot-password'
+    | '/login'
+    | '/reset-password'
+    | '/'
+    | '/billing/success'
+    | '/onboarding/plans'
+    | '/settings/billing'
+    | '/settings'
   id:
     | '__root__'
     | '/_public'
@@ -79,6 +131,10 @@ export interface FileRouteTypes {
     | '/_public/login'
     | '/_public/reset-password'
     | '/_system/'
+    | '/_system/billing/success'
+    | '/_system/onboarding/plans'
+    | '/_system/settings/billing'
+    | '/_system/settings/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -130,6 +186,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicForgotPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_system/settings/': {
+      id: '/_system/settings/'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SystemSettingsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/_system/settings/billing': {
+      id: '/_system/settings/billing'
+      path: '/settings/billing'
+      fullPath: '/settings/billing'
+      preLoaderRoute: typeof SystemSettingsBillingRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/_system/onboarding/plans': {
+      id: '/_system/onboarding/plans'
+      path: '/onboarding/plans'
+      fullPath: '/onboarding/plans'
+      preLoaderRoute: typeof SystemOnboardingPlansRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/_system/billing/success': {
+      id: '/_system/billing/success'
+      path: '/billing/success'
+      fullPath: '/billing/success'
+      preLoaderRoute: typeof SystemBillingSuccessRouteImport
+      parentRoute: typeof SystemRoute
+    }
   }
 }
 
@@ -150,10 +234,18 @@ const PublicRouteWithChildren =
 
 interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
+  SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
+  SystemOnboardingPlansRoute: typeof SystemOnboardingPlansRoute
+  SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute
+  SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
 }
 
 const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
+  SystemBillingSuccessRoute: SystemBillingSuccessRoute,
+  SystemOnboardingPlansRoute: SystemOnboardingPlansRoute,
+  SystemSettingsBillingRoute: SystemSettingsBillingRoute,
+  SystemSettingsIndexRoute: SystemSettingsIndexRoute,
 }
 
 const SystemRouteWithChildren =

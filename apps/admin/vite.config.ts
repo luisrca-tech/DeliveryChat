@@ -8,7 +8,11 @@ import { nitro } from "nitro/vite";
 
 const config = defineConfig({
   plugins: [
-    devtools(),
+    devtools({
+      eventBusConfig: {
+        enabled: false,
+      },
+    }),
     viteTsConfigPaths({
       projects: ["./tsconfig.json"],
     }),
@@ -17,13 +21,8 @@ const config = defineConfig({
     viteReact(),
     nitro(),
   ],
-  server: {
-    proxy: {
-      "/api": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-      },
-    },
+  resolve: {
+    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
   },
   envPrefix: ["VITE_", "PUBLIC_"],
 });

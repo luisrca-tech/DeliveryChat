@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization, emailOTP } from "better-auth/plugins";
+import { bearer, organization, emailOTP } from "better-auth/plugins";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { member } from "../db/schema/member.js";
@@ -11,14 +11,22 @@ import { ac, super_admin, admin, operator } from "./permissions.js";
 import { createTrustedOrigins } from "./auth/origins.js";
 import { getAuthBaseURL } from "./auth/baseUrl.js";
 import { getAdvancedOptions } from "./auth/advanced.js";
-import { sendVerificationOTPEmail, sendResetPasswordEmail } from "./email.js";
+import {
+  getUiHostFromHeaders,
+  getUiOriginFromHeaders,
+} from "./requestContext.js";
+import {
+  sendPasswordChangedEmail,
+  sendResetPasswordEmail,
+  sendVerificationOTPEmail,
+} from "./email/index.js";
 
 const trustedOrigins = createTrustedOrigins();
 const baseURL = getAuthBaseURL(env);
 
-async function getUserAdminUrl(
+export async function getUserAdminUrl(
   userId: string,
-  requestHost: string | null,
+  headers: Headers,
 ): Promise<string> {
   try {
     const result = await db
@@ -41,27 +49,56 @@ async function getUserAdminUrl(
 
     const subdomain = result[0].slug;
 
-    // Local development - always use localhost if requestHost is localhost or NODE_ENV is development
+    const uiOrigin = getUiOriginFromHeaders(headers);
+    const uiHost = getUiHostFromHeaders(headers);
+
+    const protocol = (() => {
+      if (uiOrigin) {
+        try {
+          return new URL(uiOrigin).protocol;
+        } catch {
+          return null;
+        }
+      }
+      if (
+        uiHost === "localhost" ||
+        uiHost?.startsWith("localhost:") ||
+        uiHost?.endsWith(".localhost") ||
+        uiHost?.includes(".localhost:")
+      ) {
+        return "http:";
+      }
+      return "https:";
+    })();
+
     if (
-      requestHost?.endsWith(".localhost") ||
-      requestHost === "localhost" ||
-      env.NODE_ENV === "development"
+      uiHost === "localhost" ||
+      uiHost?.startsWith("localhost:") ||
+      uiHost?.endsWith(".localhost") ||
+      uiHost?.includes(".localhost:")
     ) {
       return `http://${subdomain}.localhost:3000`;
     }
 
-    // Preview - use request hostname
-    if (requestHost?.endsWith(".vercel.app")) {
-      // Vercel Preview: use URL prefixes (<tenant>---<deployment>.vercel.app) because *.vercel.app TLS doesn't cover nested subdomains.
-      return `https://${subdomain}---${requestHost}`;
+    if (uiHost?.endsWith(".vercel.app")) {
+      const hostname = uiHost.split(":")[0]?.toLowerCase() ?? "";
+      const labels = hostname.split(".").filter(Boolean);
+      const first = labels[0] ?? "";
+      const rest = labels.slice(1).join(".");
+
+      if (first.includes("---")) {
+        const suffix = first.split("---").slice(1).join("---");
+        const deploymentHost = `${suffix}.${rest}`;
+        return `${protocol}//${subdomain}---${deploymentHost}`;
+      }
+
+      return `${protocol}//${subdomain}---${hostname}`;
     }
 
-    // Production
-    if (!env.TENANT_DOMAIN) {
-      throw new Error("TENANT_DOMAIN is required in production");
-    }
-
-    return `https://${subdomain}.${env.TENANT_DOMAIN}`;
+    const hostname = (uiHost ?? "").split(":")[0]?.toLowerCase() ?? "";
+    const parts = hostname.split(".").filter(Boolean);
+    const baseDomain = parts.length <= 2 ? hostname : parts.slice(1).join(".");
+    return `${protocol}//${subdomain}.${baseDomain}`;
   } catch (error) {
     console.error("[Auth] Error building admin URL:", error);
     throw error;
@@ -86,8 +123,8 @@ export const auth = betterAuth({
     requireEmailVerification: false,
     async sendResetPassword({ user, token }, request) {
       try {
-        const host = request?.headers.get("host") ?? null;
-        const adminBaseUrl = await getUserAdminUrl(user.id, host);
+        const headers = request?.headers ?? new Headers();
+        const adminBaseUrl = await getUserAdminUrl(user.id, headers);
         const resetUrl = `${adminBaseUrl}/reset-password?token=${token}`;
 
         await sendResetPasswordEmail({
@@ -100,11 +137,22 @@ export const auth = betterAuth({
         throw error;
       }
     },
-    async onPasswordReset({ user }) {
+    async onPasswordReset({ user }, request) {
       console.info("[Auth] Password reset successfully for user:", user.email);
+      const tz = request?.headers?.get("X-Timezone")?.trim();
+      try {
+        await sendPasswordChangedEmail({
+          email: user.email,
+          occurredAt: new Date().toISOString(),
+          timeZone: tz || undefined,
+        });
+      } catch (error) {
+        console.error("[Auth] Failed to send password changed email:", error);
+      }
     },
   },
   plugins: [
+    bearer({ requireSignature: true }),
     emailOTP({
       overrideDefaultEmailVerification: true,
       sendVerificationOnSignUp: false,
@@ -164,7 +212,7 @@ export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL,
   trustedOrigins,
-  advanced: getAdvancedOptions(env),
+  advanced: getAdvancedOptions(env, baseURL),
 });
 
 export type Session = typeof auth.$Infer.Session;

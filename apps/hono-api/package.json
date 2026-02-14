@@ -33,11 +33,15 @@
     "db:push": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit push",
     "db:studio": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit studio",
     "db:drop": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop",
-    "test:cleanup": "infisical run --path=/hono-api -- tsx scripts/test-cleanup.ts"
+    "test:cleanup": "infisical run --path=/hono-api -- tsx scripts/test-cleanup.ts",
+    "cron:trial-ending": "tsx scripts/cron-trial-ending.ts",
+    "cron:cleanup": "tsx scripts/cron-cleanup.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
     "@hono/zod-validator": "^0.7.5",
+    "@react-email/render": "^2.0.4",
+    "@repo/emails": "*",
     "@repo/types": "*",
     "@repo/ui": "*",
     "@t3-oss/env-core": "^0.13.8",
@@ -48,7 +52,11 @@
     "hono": "^4.10.6",
     "pg": "^8.16.3",
     "postgres": "^3.4.7",
-    "resend": "^6.6.0"
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "resend": "^6.6.0",
+    "stripe": "^17.4.0",
+    "tsx": "^4.20.6"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.1.0",
@@ -58,7 +66,6 @@
     "@types/node": "^20.11.17",
     "@types/pg": "^8.15.6",
     "drizzle-kit": "^0.31.7",
-    "tsx": "^4.20.6",
     "typescript": "^5.8.3"
   }
 }

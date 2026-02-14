@@ -1,0 +1,20 @@
+---
+description: Mandatory rule for isolated feature-level documentation and technical decision logging.
+globs: \*_/_
+alwaysApply: true
+---
+
+# Feature-Level Documentation Enforcement
+
+- **Anti-Pattern (Code Comments):** Avoid heavy inline comments for business logic or architectural choices. The code should be self-documenting through clean naming.
+- **Documentation Isolation:**
+  - For every new feature or non-trivial change, create or update a `docs/` or `documentation/` folder inside the feature directory (e.g., `features/billing/docs/`).
+  - Use `.md` files to document:
+    - **Business Rules:** Plain-language explanation of why the logic exists.
+    - **Technical Decisions:** Why a specific library, pattern (e.g., Factory), or algorithm was chosen.
+    - **Architecture:** High-level diagrams or flow descriptions (if applicable).
+- **Factory Documentation:**
+  - When creating a Factory, a `factory.md` must be created in that feature's doc folder explaining the supported types and how to extend it.
+- **Cursor Integration:**
+  - Before finalizing any feature, Cursor must verify that the corresponding documentation files exist and are up to date.
+  - If a rule or decision is complex, Cursor should offer to "Extract this explanation to the feature docs" instead of writing a long comment in the code.

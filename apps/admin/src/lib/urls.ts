@@ -9,18 +9,40 @@ export function isDevelopment(): boolean {
   );
 }
 
+function normalizeApiUrl(raw: string): string {
+  return raw.replace(/\/+$/, "");
+}
+
 export function getApiUrl(): string {
-  if (isDevelopment()) {
+  const raw = import.meta.env.VITE_API_URL as string | undefined;
+  if (!raw) {
+    throw new Error("VITE_API_URL is required");
+  }
+
+  if (import.meta.env.DEV) {
     return "http://localhost:8000";
   }
-  return (
-    import.meta.env.VITE_API_URL?.replace(/\/+$/, "") || "http://localhost:8000"
-  );
+
+  if (typeof window === "undefined") {
+    return normalizeApiUrl(raw);
+  }
+
+  const hostname = window.location.hostname.toLowerCase();
+
+  if (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname.endsWith(".localhost")
+  ) {
+    return "http://localhost:8000";
+  }
+
+  return normalizeApiUrl(raw);
 }
 
 export function getApiBaseUrl(): string {
   const baseUrl = getApiUrl();
-  return baseUrl.endsWith("/api") ? baseUrl : `${baseUrl}/api`;
+  return baseUrl.endsWith("/v1") ? baseUrl : `${baseUrl}/v1`;
 }
 
 export function getSubdomainOrigin(): string {

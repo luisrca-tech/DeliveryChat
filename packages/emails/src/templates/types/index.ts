@@ -1,0 +1,12 @@
+export type { VerificationOtpEmailProps } from "./verification-otp";
+export type { ResetPasswordEmailProps } from "./reset-password";
+export type { EnterprisePlanRequestEmailProps } from "./enterprise-plan-request";
+export type { PlanUpgradedEmailProps } from "./plan-upgraded";
+export type { TrialStartedEmailProps } from "./trial-started";
+export type { TrialEndingSoonEmailProps } from "./trial-ending-soon";
+export type { PaymentFailedEmailProps } from "./payment-failed";
+export type { SubscriptionCanceledEmailProps } from "./subscription-canceled";
+export type { InvoiceReceiptEmailProps } from "./invoice-receipt";
+export type { EmailVerifiedWelcomeEmailProps } from "./email-verified-welcome";
+export type { PasswordChangedEmailProps } from "./password-changed";
+export type { NewSignInAlertEmailProps } from "./new-sign-in-alert";

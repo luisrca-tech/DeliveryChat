@@ -10,6 +10,7 @@ import { member } from "../db/schema/member.js";
 import { eq } from "drizzle-orm";
 import { verifyEmailSchema } from "./schemas/verify-email.js";
 import { mapToHttpStatus } from "./utils/httpStatus.js";
+import { sendEmailVerifiedWelcomeEmail } from "../lib/email/index.js";
 
 export const verifyEmailRoute = new Hono().post(
   "/verify-email",
@@ -30,7 +31,7 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.NOT_FOUND,
           ERROR_MESSAGES.NOT_FOUND,
-          "User not found",
+          "User not found"
         );
       }
 
@@ -39,16 +40,22 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.BAD_REQUEST,
           ERROR_MESSAGES.BAD_REQUEST,
-          "Email already verified or invalid status",
+          "Email already verified or invalid status"
         );
       }
 
       try {
-        const baseUrl = c.req.url.split("/api")[0] || "http://localhost:8000";
-        const verifyUrl = `${baseUrl}/api/auth/email-otp/verify-email`;
+        const requestOrigin = (() => {
+          try {
+            return new URL(c.req.url).origin;
+          } catch {
+            return "http://localhost:8000";
+          }
+        })();
+        const verifyUrl = `${requestOrigin}/api/auth/email-otp/verify-email`;
 
         const origin =
-          c.req.header("origin") || c.req.header("referer") || baseUrl;
+          c.req.header("origin") || c.req.header("referer") || requestOrigin;
 
         const verifyRequest = new Request(verifyUrl, {
           method: "POST",
@@ -68,7 +75,7 @@ export const verifyEmailRoute = new Hono().post(
             c,
             mapToHttpStatus(verifyResponse.status),
             "Verification failed",
-            errorData.message || "Invalid OTP code",
+            errorData.message || "Invalid OTP code"
           );
         }
       } catch (error) {
@@ -77,14 +84,14 @@ export const verifyEmailRoute = new Hono().post(
             c,
             mapToHttpStatus(error.status),
             "Verification failed",
-            error.message,
+            error.message
           );
         }
         return jsonError(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          error instanceof Error ? error.message : "Unknown error",
+          error instanceof Error ? error.message : "Unknown error"
         );
       }
 
@@ -100,7 +107,7 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "Organization membership not found",
+          "Organization membership not found"
         );
       }
 
@@ -116,7 +123,7 @@ export const verifyEmailRoute = new Hono().post(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          "Organization not found",
+          "Organization not found"
         );
       }
 
@@ -141,6 +148,16 @@ export const verifyEmailRoute = new Hono().post(
         })
         .where(eq(organization.id, userMember.organizationId));
 
+      try {
+        await sendEmailVerifiedWelcomeEmail({
+          email: existingUser.email,
+          userName: existingUser.name ?? undefined,
+          organizationName: org.name,
+        });
+      } catch (emailError) {
+        console.error("[Verify Email] Failed to send welcome email:", emailError);
+      }
+
       return c.json({
         success: true,
         organizationSlug: org.slug,
@@ -150,8 +167,8 @@ export const verifyEmailRoute = new Hono().post(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        error instanceof Error ? error.message : "Unknown error",
+        error instanceof Error ? error.message : "Unknown error"
       );
     }
-  },
+  }
 );

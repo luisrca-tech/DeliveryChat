@@ -16,7 +16,6 @@ import { Eye, EyeOff, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
 import { registrationSchema, type RegistrationFormData } from "@repo/types";
 import { registerUser } from "../lib/registration";
 import { getAdminUrl } from "../lib/urls";
-import { env } from "../env";
 
 export default function RegisterForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -82,8 +81,14 @@ export default function RegisterForm() {
     });
 
     const adminUrl = getAdminUrl(data.subdomain);
+    const loginUrl = new URL(`${adminUrl}/login`);
+    loginUrl.searchParams.set("redirect", "/onboarding/plans");
+    loginUrl.searchParams.set(
+      "message",
+      "Account created. Please sign in to continue."
+    );
     setTimeout(() => {
-      window.location.href = adminUrl;
+      window.location.href = loginUrl.toString();
     }, 1500);
   };
 
@@ -166,9 +171,7 @@ export default function RegisterForm() {
                         className={errors.subdomain ? "border-destructive" : ""}
                       />
                       <span className="text-sm text-muted-foreground whitespace-nowrap">
-                        {env.PUBLIC_TENANT_DOMAIN
-                          ? `.${env.PUBLIC_TENANT_DOMAIN}`
-                          : ".your-domain.com"}
+                        .deliverychat.online
                       </span>
                     </div>
                     {errors.subdomain ? (

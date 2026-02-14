@@ -43,6 +43,27 @@
       "when": 1766873674862,
       "tag": "0008_add_partial_unique_indexes",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1769120297226,
+      "tag": "0009_add_stripe_billing_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1769121591004,
+      "tag": "0010_drop_invoices_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1769172203853,
+      "tag": "0011_add_trial_ends_at",
+      "breakpoints": true
     }
   ]
 }

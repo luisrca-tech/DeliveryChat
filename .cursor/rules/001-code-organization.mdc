@@ -1,0 +1,11 @@
+---
+description: Rules for file structure, Separation of Concerns, and modularity.
+globs: \*_/_
+alwaysApply: true
+---
+
+# Separation of Concerns (SoC)
+
+- **Feature-Based Structure:** Group files by feature (e.g., `features/auth/`, `features/billing/`) rather than by technical type (`services/`, `components/`).
+- **File Splitting:** If a file handles both UI and heavy business logic, split the logic into a separate `use[Feature].ts` hook or a `[feature].service.ts`.
+- **Private Components:** Create a `components/` folder inside each feature for feature-specific UI. Only put truly universal components in the root `src/components`.

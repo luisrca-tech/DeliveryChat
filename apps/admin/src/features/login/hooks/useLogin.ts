@@ -1,6 +1,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@/lib/authClient";
+import { setBearerToken } from "@/lib/bearerToken";
 import { loginSchema } from "@/schemas/auth";
 import type { LoginFormData } from "@/types/auth";
 import { handleLoginSuccess } from "../lib/success";
@@ -30,9 +31,15 @@ export function useLogin({ redirectPath = "/" }: UseLoginOptions = {}) {
         throw new Error(result.error?.message || "Failed to sign in");
       }
 
+      const authToken =
+        (result as unknown as { response?: Response }).response?.headers?.get?.(
+          "set-auth-token",
+        ) ?? null;
+      if (authToken) setBearerToken(authToken);
+
       handleLoginSuccess(redirectPath);
     } catch (error) {
-      handleLoginError(error, data.email, form.setError);
+      handleLoginError(error, form.setError);
     }
   };
 
