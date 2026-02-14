@@ -23,6 +23,7 @@
   ],
   "scripts": {
     "dev": "infisical run --path=/hono-api -- tsx watch src/index.ts",
+    "prebuild": "cd ../.. && bun run --filter=@repo/emails build",
     "build": "tsc && node scripts/fix-dist-extensions.js",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "lint": "eslint . --max-warnings 0",
