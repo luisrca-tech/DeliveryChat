@@ -1,19 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { organization } from "../db/schema/organization.js";
-import { sendTrialEndingSoonEmail } from "../lib/email.js";
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
-function daysUntil(isoDate: string, now: Date): number | null {
-  const target = new Date(isoDate);
-  if (Number.isNaN(target.getTime())) return null;
-  return Math.ceil((target.getTime() - now.getTime()) / MS_PER_DAY);
-}
-
-function formatDate(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
+import { sendTrialEndingSoonEmail } from "../lib/email/index.js";
+import { formatDate, daysUntil } from "../utils/date.js";
 
 export async function sendTrialEndingSoonReminders(): Promise<{
   scanned: number;

@@ -13,11 +13,8 @@ import {
   sendPlanUpgradedEmail,
   sendSubscriptionCanceledEmail,
   sendTrialStartedEmail,
-} from "../lib/email.js";
-
-function formatDate(input: Date): string {
-  return input.toISOString().slice(0, 10);
-}
+} from "../lib/email/index.js";
+import { formatDate } from "../utils/date.js";
 
 function formatMoney(amountMinor: number | null | undefined): string | null {
   if (typeof amountMinor !== "number" || !Number.isFinite(amountMinor)) {

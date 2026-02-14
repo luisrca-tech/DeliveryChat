@@ -16,7 +16,7 @@ import {
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import { getUserAdminUrl } from "../lib/auth.js";
 import { stripe } from "../lib/stripe.js";
-import { sendEnterprisePlanRequestEmail } from "../lib/email.js";
+import { sendEnterprisePlanRequestEmail } from "../lib/email/index.js";
 import { enterpriseDetailsSchema } from "./schemas/enterpriseDetails.js";
 
 const checkoutBodySchema = z.object({

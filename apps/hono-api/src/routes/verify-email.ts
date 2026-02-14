@@ -10,7 +10,7 @@ import { member } from "../db/schema/member.js";
 import { eq } from "drizzle-orm";
 import { verifyEmailSchema } from "./schemas/verify-email.js";
 import { mapToHttpStatus } from "./utils/httpStatus.js";
-import { sendEmailVerifiedWelcomeEmail } from "../lib/email.js";
+import { sendEmailVerifiedWelcomeEmail } from "../lib/email/index.js";
 
 export const verifyEmailRoute = new Hono().post(
   "/verify-email",

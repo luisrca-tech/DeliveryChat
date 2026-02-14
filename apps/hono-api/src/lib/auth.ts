@@ -19,7 +19,7 @@ import {
   sendPasswordChangedEmail,
   sendResetPasswordEmail,
   sendVerificationOTPEmail,
-} from "./email.js";
+} from "./email/index.js";
 
 const trustedOrigins = createTrustedOrigins();
 const baseURL = getAuthBaseURL(env);
