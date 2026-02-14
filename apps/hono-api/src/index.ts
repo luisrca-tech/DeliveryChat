@@ -33,7 +33,12 @@ app.use(
       return null;
     },
     allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Tenant-Slug"],
+    allowHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Tenant-Slug",
+      "X-Timezone",
+    ],
     exposeHeaders: ["set-auth-token", "set-auth-jwt"],
     credentials: true,
   }),
