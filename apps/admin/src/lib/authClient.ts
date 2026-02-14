@@ -12,8 +12,13 @@ export const authClient = createAuthClient({
       token: () => getBearerToken() || "",
     },
     headers: (() => {
-      const tenant = typeof window !== "undefined" ? getSubdomain() : null;
-      return tenant ? { "X-Tenant-Slug": tenant } : undefined;
+      if (typeof window === "undefined") return undefined;
+      const headers: Record<string, string> = {};
+      const tenant = getSubdomain();
+      if (tenant) headers["X-Tenant-Slug"] = tenant;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (timezone) headers["X-Timezone"] = timezone;
+      return Object.keys(headers).length > 0 ? headers : undefined;
     })(),
     onSuccess: (ctx: { response: Response }) => {
       const authToken = ctx.response.headers.get("set-auth-token");

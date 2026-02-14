@@ -137,12 +137,14 @@ export const auth = betterAuth({
         throw error;
       }
     },
-    async onPasswordReset({ user }) {
+    async onPasswordReset({ user }, request) {
       console.info("[Auth] Password reset successfully for user:", user.email);
+      const tz = request?.headers?.get("X-Timezone")?.trim();
       try {
         await sendPasswordChangedEmail({
           email: user.email,
           occurredAt: new Date().toISOString(),
+          timeZone: tz || undefined,
         });
       } catch (error) {
         console.error("[Auth] Failed to send password changed email:", error);

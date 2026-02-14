@@ -1,9 +1,11 @@
 import { Section, Text } from "@react-email/components";
 import { EmailLayout } from "./_components/EmailLayout";
+import { formatDateForEmail } from "./_utils/formatDate";
 import type { NewSignInAlertEmailProps } from "./types/new-sign-in-alert";
 
 export default function NewSignInAlertEmail(props: NewSignInAlertEmailProps) {
   const { occurredAt, ip, userAgent, location } = props;
+  const formattedTime = formatDateForEmail(occurredAt);
 
   return (
     <EmailLayout
@@ -25,7 +27,7 @@ export default function NewSignInAlertEmail(props: NewSignInAlertEmailProps) {
       >
         <Text style={{ margin: "0 0 8px 0", color: "#111827" }}>
           <span style={{ color: "#6b7280" }}>Time: </span>
-          <span style={{ fontWeight: 700 }}>{occurredAt}</span>
+          <span style={{ fontWeight: 700 }}>{formattedTime}</span>
         </Text>
         {ip ? (
           <Text style={{ margin: "0 0 8px 0", color: "#111827" }}>
@@ -56,7 +58,7 @@ export default function NewSignInAlertEmail(props: NewSignInAlertEmailProps) {
 }
 
 NewSignInAlertEmail.PreviewProps = {
-  occurredAt: "2026-02-07 18:20 UTC",
+  occurredAt: "2026-02-07T18:20:00.000Z",
   ip: "203.0.113.42",
   location: "Sao Paulo, BR",
   userAgent: "Chrome on macOS",

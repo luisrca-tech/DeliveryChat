@@ -106,12 +106,17 @@ describe("email templates", () => {
     expect(toPlainText(welcome)).toContain("verified");
 
     const pwd = await render(
-      React.createElement(PasswordChangedEmail, { occurredAt: "2026-02-07" }),
+      React.createElement(PasswordChangedEmail, {
+        occurredAt: "2026-02-07T18:20:00.000Z",
+      }),
     );
-    expect(toPlainText(pwd)).toContain("2026-02-07");
+    expect(toPlainText(pwd)).toContain("February 7, 2026");
+    expect(toPlainText(pwd)).toContain("UTC");
 
     const signIn = await render(
-      React.createElement(NewSignInAlertEmail, { occurredAt: "2026-02-07" }),
+      React.createElement(NewSignInAlertEmail, {
+        occurredAt: "2026-02-07T18:20:00.000Z",
+      }),
     );
     expect(toPlainText(signIn).toLowerCase()).toContain("new sign-in");
   });

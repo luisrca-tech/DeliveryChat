@@ -69,12 +69,14 @@ export async function sendEmailVerifiedWelcomeEmail(params: {
 export async function sendPasswordChangedEmail(params: {
   email: string;
   occurredAt: string;
+  timeZone?: string;
 }): Promise<void> {
   await sendEmail({
     to: params.email,
     subject: "Password changed",
     template: React.createElement(PasswordChangedEmail, {
       occurredAt: params.occurredAt,
+      timeZone: params.timeZone,
     }),
   });
 }

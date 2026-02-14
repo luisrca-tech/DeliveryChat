@@ -1,9 +1,11 @@
 import { Section, Text } from "@react-email/components";
 import { EmailLayout } from "./_components/EmailLayout";
+import { formatDateForEmail } from "./_utils/formatDate";
 import type { PasswordChangedEmailProps } from "./types/password-changed";
 
 export default function PasswordChangedEmail(props: PasswordChangedEmailProps) {
-  const { occurredAt } = props;
+  const { occurredAt, timeZone } = props;
+  const formattedTime = formatDateForEmail(occurredAt, timeZone);
 
   return (
     <EmailLayout
@@ -25,7 +27,7 @@ export default function PasswordChangedEmail(props: PasswordChangedEmailProps) {
       >
         <Text style={{ margin: "0 0 8px 0", color: "#111827" }}>
           <span style={{ color: "#6b7280" }}>Time: </span>
-          <span style={{ fontWeight: 700 }}>{occurredAt}</span>
+          <span style={{ fontWeight: 700 }}>{formattedTime}</span>
         </Text>
       </Section>
 
@@ -38,5 +40,6 @@ export default function PasswordChangedEmail(props: PasswordChangedEmailProps) {
 }
 
 PasswordChangedEmail.PreviewProps = {
-  occurredAt: "2026-02-07 18:20 UTC",
+  occurredAt: "2026-02-07T18:20:00.000Z",
+  timeZone: "America/Sao_Paulo",
 } satisfies PasswordChangedEmailProps;
