@@ -22,10 +22,17 @@ export function useResetPassword({ token }: UseResetPasswordOptions) {
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     try {
-      const result = await authClient.resetPassword({
-        token,
-        newPassword: data.password,
-      });
+      const result = await authClient.resetPassword(
+        {
+          token,
+          newPassword: data.password,
+        },
+        {
+          headers: {
+            "X-Timezone": Intl.DateTimeFormat().resolvedOptions().timeZone,
+          },
+        },
+      );
 
       if (!result.data) {
         throw new Error(result.error?.message || "Failed to reset password");
