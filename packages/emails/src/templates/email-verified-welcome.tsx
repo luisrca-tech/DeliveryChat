@@ -52,4 +52,3 @@ EmailVerifiedWelcomeEmail.PreviewProps = {
   userName: "Alex",
   organizationName: "Delivery Chat HQ",
 } satisfies EmailVerifiedWelcomeEmailProps;
-

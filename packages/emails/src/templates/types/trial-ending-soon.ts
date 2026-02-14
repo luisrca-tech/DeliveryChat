@@ -4,4 +4,3 @@ export type TrialEndingSoonEmailProps = Readonly<{
   daysLeft: number;
   organizationName?: string;
 }>;
-

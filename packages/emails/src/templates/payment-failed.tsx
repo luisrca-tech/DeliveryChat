@@ -54,4 +54,3 @@ PaymentFailedEmail.PreviewProps = {
   nextRetryAt: "2026-02-08",
   organizationName: "Delivery Chat HQ",
 } satisfies PaymentFailedEmailProps;
-

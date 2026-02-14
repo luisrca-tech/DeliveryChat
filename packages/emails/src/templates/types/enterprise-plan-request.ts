@@ -10,4 +10,3 @@ export type EnterprisePlanRequestEmailProps = Readonly<{
     notes?: string;
   } | null;
 }>;
-

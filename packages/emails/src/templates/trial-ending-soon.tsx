@@ -43,4 +43,3 @@ TrialEndingSoonEmail.PreviewProps = {
   daysLeft: 3,
   organizationName: "Delivery Chat HQ",
 } satisfies TrialEndingSoonEmailProps;
-

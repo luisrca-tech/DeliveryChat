@@ -20,7 +20,8 @@ export default function InvoiceReceiptEmail(props: InvoiceReceiptEmailProps) {
       footerHint="Thanks for your business."
     >
       <Text style={{ margin: "0 0 14px 0", color: "#374151" }}>
-        Your payment was received{organizationName ? ` for ${organizationName}` : ""}.
+        Your payment was received
+        {organizationName ? ` for ${organizationName}` : ""}.
       </Text>
 
       <Section
@@ -93,4 +94,3 @@ InvoiceReceiptEmail.PreviewProps = {
   invoicePdfUrl: "https://pay.stripe.com/invoice/acct_123/pdf",
   organizationName: "Delivery Chat HQ",
 } satisfies InvoiceReceiptEmailProps;
-

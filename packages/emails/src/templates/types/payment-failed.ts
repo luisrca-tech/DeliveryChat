@@ -4,4 +4,3 @@ export type PaymentFailedEmailProps = Readonly<{
   nextRetryAt?: string | null;
   organizationName?: string;
 }>;
-

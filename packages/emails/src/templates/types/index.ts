@@ -10,4 +10,3 @@ export type { InvoiceReceiptEmailProps } from "./invoice-receipt";
 export type { EmailVerifiedWelcomeEmailProps } from "./email-verified-welcome";
 export type { PasswordChangedEmailProps } from "./password-changed";
 export type { NewSignInAlertEmailProps } from "./new-sign-in-alert";
-

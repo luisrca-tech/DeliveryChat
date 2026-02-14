@@ -7,4 +7,3 @@ export type InvoiceReceiptEmailProps = Readonly<{
   invoicePdfUrl?: string | null;
   organizationName?: string;
 }>;
-

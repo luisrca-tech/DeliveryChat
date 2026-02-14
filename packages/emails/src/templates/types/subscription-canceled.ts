@@ -3,4 +3,3 @@ export type SubscriptionCanceledEmailProps = Readonly<{
   cancelAtPeriodEnd: boolean;
   organizationName?: string;
 }>;
-

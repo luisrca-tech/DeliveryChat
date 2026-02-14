@@ -33,4 +33,3 @@ export type { PasswordChangedEmailProps } from "./templates/types/password-chang
 
 export { default as NewSignInAlertEmail } from "./templates/new-sign-in-alert";
 export type { NewSignInAlertEmailProps } from "./templates/types/new-sign-in-alert";
-

@@ -55,4 +55,3 @@ ResetPasswordEmail.PreviewProps = {
   userName: "Alex",
   url: "https://example.com/reset-password?token=abc123",
 } satisfies ResetPasswordEmailProps;
-

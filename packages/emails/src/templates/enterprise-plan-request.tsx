@@ -15,7 +15,8 @@ function FieldRow(props: Readonly<{ label: string; value: React.ReactNode }>) {
 export default function EnterprisePlanRequestEmail(
   props: EnterprisePlanRequestEmailProps,
 ) {
-  const { organizationName, adminEmail, memberCount, enterpriseDetails } = props;
+  const { organizationName, adminEmail, memberCount, enterpriseDetails } =
+    props;
 
   return (
     <EmailLayout
@@ -71,7 +72,9 @@ export default function EnterprisePlanRequestEmail(
                 }}
               >
                 <span style={{ color: "#6b7280" }}>Notes: </span>
-                <span style={{ fontWeight: 600 }}>{enterpriseDetails.notes}</span>
+                <span style={{ fontWeight: 600 }}>
+                  {enterpriseDetails.notes}
+                </span>
               </Text>
             ) : null}
           </Section>
@@ -93,4 +96,3 @@ EnterprisePlanRequestEmail.PreviewProps = {
     notes: "Looking for SSO + custom SLAs. Would like a demo next week.",
   },
 } satisfies EnterprisePlanRequestEmailProps;
-

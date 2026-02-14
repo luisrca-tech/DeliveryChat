@@ -61,4 +61,3 @@ NewSignInAlertEmail.PreviewProps = {
   location: "Sao Paulo, BR",
   userAgent: "Chrome on macOS",
 } satisfies NewSignInAlertEmailProps;
-

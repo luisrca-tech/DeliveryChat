@@ -116,4 +116,3 @@ describe("email templates", () => {
     expect(toPlainText(signIn).toLowerCase()).toContain("new sign-in");
   });
 });
-

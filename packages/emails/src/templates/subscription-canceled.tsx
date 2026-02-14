@@ -52,4 +52,3 @@ SubscriptionCanceledEmail.PreviewProps = {
   cancelAtPeriodEnd: true,
   organizationName: "Delivery Chat HQ",
 } satisfies SubscriptionCanceledEmailProps;
-

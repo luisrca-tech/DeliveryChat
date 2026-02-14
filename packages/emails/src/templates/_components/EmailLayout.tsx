@@ -75,4 +75,3 @@ export function EmailLayout(props: EmailLayoutProps) {
     </Html>
   );
 }
-

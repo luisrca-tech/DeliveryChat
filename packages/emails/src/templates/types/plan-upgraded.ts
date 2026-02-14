@@ -3,4 +3,3 @@ export type PlanUpgradedEmailProps = Readonly<{
   organizationName?: string;
   nextBillingDate?: string | null;
 }>;
-

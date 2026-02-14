@@ -4,4 +4,3 @@ export type NewSignInAlertEmailProps = Readonly<{
   userAgent?: string | null;
   location?: string | null;
 }>;
-

@@ -40,4 +40,3 @@ export default function PasswordChangedEmail(props: PasswordChangedEmailProps) {
 PasswordChangedEmail.PreviewProps = {
   occurredAt: "2026-02-07 18:20 UTC",
 } satisfies PasswordChangedEmailProps;
-
