@@ -39,14 +39,12 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
     const body = await c.req.text();
 
     let event: Stripe.Event;
-    let eventId: string | null = null;
     try {
       event = stripe.webhooks.constructEvent(
         body,
         signature,
         env.SIGNING_STRIPE_SECRET_KEY,
       );
-      eventId = event.id;
     } catch (error) {
       console.error("[Webhook] Signature verification failed:", error);
       return jsonError(
@@ -59,10 +57,8 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
 
     console.info(`[Webhook] Received event: ${event.type} (${event.id})`);
 
-    let processed = false;
     try {
       await db.insert(processedEvents).values({ id: event.id });
-      processed = true;
     } catch {
       console.info(`[Webhook] Event ${event.id} already processed, skipping`);
       return c.json(
@@ -425,20 +421,22 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             console.info(`[Webhook] Unhandled event type: ${event.type}`);
         }
       });
-
-      for (const task of emailTasks) {
-        await task();
-      }
     } catch (error) {
       console.error("[Webhook] Billing webhook processing failed:", error);
-      if (processed && eventId) {
-        try {
-          await db.delete(processedEvents).where(eq(processedEvents.id, eventId));
-        } catch (deleteError) {
-          console.error("[Webhook] Failed to rollback processed event id:", deleteError);
-        }
+      try {
+        await db.delete(processedEvents).where(eq(processedEvents.id, event.id));
+      } catch (deleteError) {
+        console.error("[Webhook] Failed to rollback processed event id:", deleteError);
       }
       throw error;
+    }
+
+    for (const task of emailTasks) {
+      try {
+        await task();
+      } catch (emailError) {
+        console.error("[Webhook] Failed to send notification email:", emailError);
+      }
     }
 
     return c.json({ received: true }, 200);
