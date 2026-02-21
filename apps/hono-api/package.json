@@ -35,8 +35,8 @@
     "db:studio": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit studio",
     "db:drop": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop",
     "test:cleanup": "infisical run --path=/hono-api -- tsx scripts/test-cleanup.ts",
-    "cron:trial-ending": "infisical run --path=/hono-api -- tsx scripts/cron-trial-ending.ts",
-    "cron:cleanup": "infisical run --path=/hono-api -- tsx scripts/cron-cleanup.ts"
+    "cron:trial-ending": "tsx scripts/cron-trial-ending.ts",
+    "cron:cleanup": "tsx scripts/cron-cleanup.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",
