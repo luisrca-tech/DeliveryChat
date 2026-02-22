@@ -1,4 +1,4 @@
-import { Settings, CreditCard, Package, Key } from "lucide-react";
+import { Settings, CreditCard, Package, Key, AppWindow } from "lucide-react";
 import { SettingsLinkCard } from "./SettingsLinkCard";
 
 export function SettingsIndexPage() {
@@ -24,6 +24,12 @@ export function SettingsIndexPage() {
           title="Billing"
           description="Manage billing, payment methods, and invoices."
           icon={<CreditCard className="h-5 w-5" />}
+        />
+        <SettingsLinkCard
+          to="/settings/applications"
+          title="Applications"
+          description="Create and manage your applications."
+          icon={<AppWindow className="h-5 w-5" />}
         />
         <SettingsLinkCard
           to="/settings/api-keys"
