@@ -7,4 +7,5 @@ export * from "./verification";
 export * from "./member";
 export * from "./invitation";
 export * from "./processedEvents";
+export * from "./apiKeys";
 export * from "./enums/statusEnum";

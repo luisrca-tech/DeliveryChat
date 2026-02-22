@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { usersRoute } from "../routes/users.js";
 import { applicationsRoute } from "../routes/applications.js";
+import { apiKeysRoute } from "../routes/api-keys.js";
 import { registerRoute } from "../routes/register.js";
 import { verifyEmailRoute } from "../routes/verify-email.js";
 import { resendOtpRoute } from "../routes/resend-otp.js";
@@ -20,6 +21,7 @@ const app = new Hono()
   .route("/", tenantsRoute)
   .route("/users", usersRoute)
   .route("/applications", applicationsRoute)
+  .route("/api-keys", apiKeysRoute)
   .route("/billing", billingRoute)
   .route("/webhooks", webhooksRoute);
 

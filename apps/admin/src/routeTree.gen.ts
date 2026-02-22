@@ -17,6 +17,7 @@ import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as SystemSettingsIndexRouteImport } from './routes/_system/settings/index'
 import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
+import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/settings/api-keys'
 import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
 import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
 
@@ -58,6 +59,11 @@ const SystemSettingsBillingRoute = SystemSettingsBillingRouteImport.update({
   path: '/settings/billing',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemSettingsApiKeysRoute = SystemSettingsApiKeysRouteImport.update({
+  id: '/settings/api-keys',
+  path: '/settings/api-keys',
+  getParentRoute: () => SystemRoute,
+} as any)
 const SystemOnboardingPlansRoute = SystemOnboardingPlansRouteImport.update({
   id: '/onboarding/plans',
   path: '/onboarding/plans',
@@ -76,6 +82,7 @@ export interface FileRoutesByFullPath {
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
   '/settings': typeof SystemSettingsIndexRoute
 }
@@ -86,6 +93,7 @@ export interface FileRoutesByTo {
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
   '/settings': typeof SystemSettingsIndexRoute
 }
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   '/_system/': typeof SystemIndexRoute
   '/_system/billing/success': typeof SystemBillingSuccessRoute
   '/_system/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/_system/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/_system/settings/billing': typeof SystemSettingsBillingRoute
   '/_system/settings/': typeof SystemSettingsIndexRoute
 }
@@ -111,6 +120,7 @@ export interface FileRouteTypes {
     | '/'
     | '/billing/success'
     | '/onboarding/plans'
+    | '/settings/api-keys'
     | '/settings/billing'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/'
     | '/billing/success'
     | '/onboarding/plans'
+    | '/settings/api-keys'
     | '/settings/billing'
     | '/settings'
   id:
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/_system/'
     | '/_system/billing/success'
     | '/_system/onboarding/plans'
+    | '/_system/settings/api-keys'
     | '/_system/settings/billing'
     | '/_system/settings/'
   fileRoutesById: FileRoutesById
@@ -200,6 +212,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemSettingsBillingRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/_system/settings/api-keys': {
+      id: '/_system/settings/api-keys'
+      path: '/settings/api-keys'
+      fullPath: '/settings/api-keys'
+      preLoaderRoute: typeof SystemSettingsApiKeysRouteImport
+      parentRoute: typeof SystemRoute
+    }
     '/_system/onboarding/plans': {
       id: '/_system/onboarding/plans'
       path: '/onboarding/plans'
@@ -236,6 +255,7 @@ interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
   SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
   SystemOnboardingPlansRoute: typeof SystemOnboardingPlansRoute
+  SystemSettingsApiKeysRoute: typeof SystemSettingsApiKeysRoute
   SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute
   SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
 }
@@ -244,6 +264,7 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
   SystemBillingSuccessRoute: SystemBillingSuccessRoute,
   SystemOnboardingPlansRoute: SystemOnboardingPlansRoute,
+  SystemSettingsApiKeysRoute: SystemSettingsApiKeysRoute,
   SystemSettingsBillingRoute: SystemSettingsBillingRoute,
   SystemSettingsIndexRoute: SystemSettingsIndexRoute,
 }
