@@ -38,6 +38,7 @@ app.use(
       "Authorization",
       "X-Tenant-Slug",
       "X-Timezone",
+      "X-App-Id",
     ],
     exposeHeaders: ["set-auth-token", "set-auth-jwt"],
     credentials: true,
