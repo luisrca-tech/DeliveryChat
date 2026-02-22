@@ -64,6 +64,13 @@
       "when": 1769172203853,
       "tag": "0011_add_trial_ends_at",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1771774607412,
+      "tag": "0012_add_api_keys_table",
+      "breakpoints": true
     }
   ]
 }
