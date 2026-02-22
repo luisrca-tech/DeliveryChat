@@ -6,8 +6,10 @@ import type {
   ApiKeyCreatedResponse,
   CreateApiKeyRequest,
   RegenerateApiKeyRequest,
-  ApplicationsListResponse,
 } from "../types/api-keys.types";
+import { listApplications } from "@/features/applications/lib/applications.client";
+
+export { listApplications };
 
 const HTTP_NOT_FOUND = 404;
 const HTTP_TOO_MANY_REQUESTS = 429;
@@ -60,18 +62,6 @@ export class ApiKeyLimitError extends Error {
 }
 
 const base = () => getApiBaseUrl();
-
-export async function listApplications(
-  limit = 100,
-  offset = 0,
-): Promise<ApplicationsListResponse> {
-  const res = await fetch(
-    `${base()}/applications?limit=${limit}&offset=${offset}`,
-    { headers: getTenantHeaders() },
-  );
-  if (!res.ok) throw await handleError(res);
-  return parseJson<ApplicationsListResponse>(res);
-}
 
 export async function listApiKeys(
   applicationId: string,
