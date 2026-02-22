@@ -11,10 +11,16 @@ export const createApplicationSchema = z.object({
     .string()
     .min(1)
     .max(255)
-    .regex(/^[a-z0-9-]+$/, {
+    .regex(/^(\*\.)?[a-z0-9][a-z0-9.-]*$/, {
       message:
-        "Domain must contain only lowercase letters, numbers, and hyphens",
+        "Domain must be a valid hostname (e.g. app.example.com or *.example.com)",
     }),
   description: z.string().optional(),
-  settings: z.record(z.any()).optional().default({}),
+  settings: z.record(z.string(), z.unknown()).optional().default({}),
+});
+
+export const updateApplicationSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().optional(),
+  settings: z.record(z.string(), z.unknown()).optional(),
 });
