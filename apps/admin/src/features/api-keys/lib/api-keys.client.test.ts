@@ -8,6 +8,7 @@ import {
   ApiKeyNotFoundError,
   ApiKeyLimitError,
 } from "./api-keys.client";
+import { ApplicationNotFoundError } from "@/features/applications/lib/applications.client";
 
 vi.mock("@/lib/urls", () => ({
   getApiBaseUrl: () => "http://test/v1",
@@ -57,7 +58,9 @@ describe("api-keys.client", () => {
         json: () => Promise.resolve({ message: "Not found" }),
       } as Response);
 
-      await expect(listApplications()).rejects.toThrow(ApiKeyNotFoundError);
+      await expect(listApplications()).rejects.toThrow(
+        ApplicationNotFoundError,
+      );
     });
   });
 

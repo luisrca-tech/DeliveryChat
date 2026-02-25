@@ -1,0 +1,130 @@
+# API Keys
+
+API keys are credentials that let your application connect to Delivery Chat when using the SDK or REST API. They are generated per application and scoped to that application only.
+
+## What are API Keys?
+
+API keys authenticate your app when it talks to Delivery Chat. You need them when:
+
+- **Using the JavaScript/TypeScript SDK** — To control the widget programmatically
+- **Using the REST API** — To send messages, create visitors, or fetch conversations from your backend
+
+You do **not** need an API key for the simple iframe embed—the iframe uses only your application ID (appId), which is public.
+
+## When Do You Need Them?
+
+| Integration | API Key Required? |
+|-------------|-------------------|
+| **iframe** | No — use appId only |
+| **SDK** | Yes |
+| **REST API** | Yes |
+
+## Plan Limits
+
+Each plan allows a certain number of API keys per application:
+
+<ComparisonTable
+  headers={["Free", "Basic", "Premium", "Enterprise"]}
+  rows={[
+    {
+      feature: "API Keys per Application",
+      values: ["3", "5", "10", "1,000"]
+    }
+  ]}
+/>
+
+## How to Generate Keys
+
+<StepByStep
+  title="Generate your first API key"
+  steps={[
+    {
+      title: "Open your application",
+      content: (
+        <>
+          <p>Go to your dashboard → <strong>Applications</strong> → select the application you want to create a key for.</p>
+        </>
+      )
+    },
+    {
+      title: "Go to API Keys",
+      content: (
+        <>
+          <p>Open the <strong>API Keys</strong> section for that application.</p>
+        </>
+      )
+    },
+    {
+      title: "Create a key",
+      content: (
+        <>
+          <p>Click <strong>Create API Key</strong>. Give it a name (e.g., "Production Website") and choose the environment (live or test).</p>
+        </>
+      )
+    },
+    {
+      title: "Copy the key immediately",
+      content: (
+        <>
+          <p>The full key is shown <strong>only once</strong> at creation. Copy it and store it securely. You will not be able to see it again—only a masked version (e.g., <code>dk_live_abc1****</code>) will appear in the list.</p>
+        </>
+      )
+    }
+  ]}
+/>
+
+<Callout type="warning" title="Important">
+  Store your API key securely. Never expose it in client-side code or public repositories. Use environment variables or a secret manager on your server.
+</Callout>
+
+## Revoke vs Regenerate
+
+**Revoke** — Use when a key is compromised or no longer needed. The key stops working immediately. There is no replacement.
+
+**Regenerate** — Use when you want to rotate keys (e.g., for security). The old key is invalidated and a new one is created. The new key is shown once—copy it before closing.
+
+## Using Your Keys
+
+For **iframe**, you only need the application ID (appId). No API key is used.
+
+For **SDK or REST API**, include the key in your requests. Example:
+
+```typescript
+// SDK or REST API call
+const response = await fetch("https://api.yourcompany.deliverychat.com/v1/public/visitors", {
+  headers: {
+    "Authorization": `Bearer ${apiKey}`,
+    "X-App-Id": appId,
+    "Content-Type": "application/json",
+  },
+});
+```
+
+The key goes in the `Authorization` header, and the application ID goes in `X-App-Id`.
+
+## Optional: Temporary Keys
+
+When creating a key, you can set an expiration date. The key will stop working after that date. Useful for short-lived integrations or testing.
+
+## Next Steps
+
+<QuickLinks
+  links={[
+    {
+      title: "Applications",
+      href: "/v1/applications",
+      description: "Learn how to create and manage applications"
+    },
+    {
+      title: "Integration Overview",
+      href: "/v1/integration-overview",
+      description: "Choose your integration method (iframe, SDK, REST)"
+    },
+    {
+      title: "How Delivery Chat Works",
+      href: "/v1/architecture-overview",
+      description: "Understand the architecture and concepts"
+    }
+  ]}
+  columns={3}
+/>

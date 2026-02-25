@@ -224,7 +224,7 @@ export function ApiKeysPage() {
         <KeyRevealDialog
           open={!!revealKey}
           onOpenChange={(open) => !open && setRevealKey(null)}
-          key={revealKey.key}
+          apiKey={revealKey.key}
           keyPrefix={revealKey.keyPrefix}
         />
       )}

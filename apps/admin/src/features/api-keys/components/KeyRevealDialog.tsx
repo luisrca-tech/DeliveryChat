@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Dialog,
@@ -7,23 +8,37 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@repo/ui/components/ui/dialog";
-import { Copy, AlertTriangle } from "lucide-react";
+import { Input } from "@repo/ui/components/ui/input";
+import { Copy, AlertTriangle, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 
 export type KeyRevealDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  key: string;
+  apiKey: string;
   keyPrefix: string;
 };
+
+function maskKey(key: string | undefined, prefix: string | undefined): string {
+  const k = key ?? "";
+  const p = prefix ?? "";
+  let visibleLen = Math.min(p.length, k.length);
+  if (k.length > 0 && visibleLen === k.length) {
+    visibleLen = Math.max(0, k.length - 4);
+  }
+  return `${k.slice(0, visibleLen)}${"•".repeat(Math.max(0, k.length - visibleLen))}`;
+}
 
 export function KeyRevealDialog({
   open,
   onOpenChange,
-  key: fullKey,
+  apiKey: fullKey,
+  keyPrefix,
 }: KeyRevealDialogProps) {
+  const [visible, setVisible] = useState(true);
+
   const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(fullKey);
+    await navigator.clipboard.writeText(fullKey ?? "");
     toast.success("API key copied to clipboard");
   };
 
@@ -41,8 +56,25 @@ export function KeyRevealDialog({
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="flex items-center gap-2 rounded-md border bg-muted/50 p-3 font-mono text-sm break-all">
-            <code className="flex-1">{fullKey}</code>
+          <div className="flex items-center gap-2">
+            <Input
+              readOnly
+              value={visible ? (fullKey ?? "") : maskKey(fullKey, keyPrefix)}
+              className="font-mono text-sm bg-muted/50 border-input text-foreground"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={() => setVisible((v) => !v)}
+              aria-label={visible ? "Hide key" : "Show key"}
+            >
+              {visible ? (
+                <EyeOff className="h-4 w-4" />
+              ) : (
+                <Eye className="h-4 w-4" />
+              )}
+            </Button>
             <Button
               type="button"
               variant="outline"

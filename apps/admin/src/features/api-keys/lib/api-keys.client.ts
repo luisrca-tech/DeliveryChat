@@ -1,3 +1,4 @@
+import { HTTP_STATUS } from "@repo/types";
 import { getApiBaseUrl } from "@/lib/urls";
 import { getSubdomain } from "@/lib/subdomain";
 import { getBearerToken } from "@/lib/bearerToken";
@@ -6,11 +7,10 @@ import type {
   ApiKeyCreatedResponse,
   CreateApiKeyRequest,
   RegenerateApiKeyRequest,
-  ApplicationsListResponse,
 } from "../types/api-keys.types";
+import { listApplications } from "@/features/applications/lib/applications.client";
 
-const HTTP_NOT_FOUND = 404;
-const HTTP_TOO_MANY_REQUESTS = 429;
+export { listApplications };
 
 function getTenantHeaders(): HeadersInit {
   const tenant = getSubdomain();
@@ -35,10 +35,10 @@ async function handleError(res: Response): Promise<never> {
   const message =
     err?.message ?? err?.error ?? `Request failed (${res.status})`;
 
-  if (res.status === HTTP_NOT_FOUND) {
+  if (res.status === HTTP_STATUS.NOT_FOUND) {
     throw new ApiKeyNotFoundError(message);
   }
-  if (res.status === HTTP_TOO_MANY_REQUESTS) {
+  if (res.status === HTTP_STATUS.TOO_MANY_REQUESTS) {
     throw new ApiKeyLimitError(message);
   }
 
@@ -60,18 +60,6 @@ export class ApiKeyLimitError extends Error {
 }
 
 const base = () => getApiBaseUrl();
-
-export async function listApplications(
-  limit = 100,
-  offset = 0,
-): Promise<ApplicationsListResponse> {
-  const res = await fetch(
-    `${base()}/applications?limit=${limit}&offset=${offset}`,
-    { headers: getTenantHeaders() },
-  );
-  if (!res.ok) throw await handleError(res);
-  return parseJson<ApplicationsListResponse>(res);
-}
 
 export async function listApiKeys(
   applicationId: string,

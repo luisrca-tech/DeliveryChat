@@ -1,5 +1,7 @@
 import { useMemo } from "react";
 import { useForm } from "react-hook-form";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogCancel,
@@ -10,13 +12,25 @@ import {
   AlertDialogTitle,
 } from "@repo/ui/components/ui/alert-dialog";
 import { Button } from "@repo/ui/components/ui/button";
+import { Calendar } from "@repo/ui/components/ui/calendar";
+import { Checkbox } from "@repo/ui/components/ui/checkbox";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/ui/popover";
+import { cn } from "@repo/ui/lib/utils";
 import type { RegenerateApiKeyRequest } from "../types/api-keys.types";
 
-export type RegenerateApiKeyFormValues = RegenerateApiKeyRequest & {
+export type RegenerateApiKeyFormValues = Omit<
+  RegenerateApiKeyRequest,
+  "expiresAt"
+> & {
   name?: string;
-  expiresAt?: string;
+  expiresAt?: Date;
+  neverExpire?: boolean;
 };
 
 export type RegenerateApiKeyDialogProps = {
@@ -39,16 +53,22 @@ export function RegenerateApiKeyDialog({
   const form = useForm<RegenerateApiKeyFormValues>({
     defaultValues: {
       name: "",
-      expiresAt: "",
+      expiresAt: undefined,
+      neverExpire: true,
     },
   });
 
   const disabled = useMemo(() => !!regenerating, [regenerating]);
   const label = keyName || keyPrefix || "this key";
+  const neverExpire = form.watch("neverExpire");
 
   const handleOpenChange = (next: boolean) => {
     if (next) {
-      form.reset({ name: "", expiresAt: "" });
+      form.reset({
+        name: "",
+        expiresAt: undefined,
+        neverExpire: true,
+      });
     }
     onOpenChange(next);
   };
@@ -56,9 +76,10 @@ export function RegenerateApiKeyDialog({
   const submit = form.handleSubmit(async (values) => {
     await onConfirm({
       name: values.name?.trim() || undefined,
-      expiresAt: values.expiresAt?.trim()
-        ? new Date(values.expiresAt).toISOString()
-        : undefined,
+      expiresAt:
+        values.neverExpire || !values.expiresAt
+          ? undefined
+          : values.expiresAt.toISOString(),
     });
   });
 
@@ -85,14 +106,58 @@ export function RegenerateApiKeyDialog({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="regen_key_expiresAt">
-                New expires at (optional)
-              </Label>
-              <Input
-                id="regen_key_expiresAt"
-                type="datetime-local"
-                {...form.register("expiresAt")}
-              />
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="regen_key_neverExpire"
+                  checked={neverExpire}
+                  onCheckedChange={(checked) => {
+                    form.setValue("neverExpire", !!checked);
+                    if (checked) form.setValue("expiresAt", undefined);
+                  }}
+                />
+                <Label
+                  htmlFor="regen_key_neverExpire"
+                  className="cursor-pointer font-normal"
+                >
+                  Never expire
+                </Label>
+              </div>
+
+              {!neverExpire && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      data-empty={!form.watch("expiresAt")}
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !form.watch("expiresAt") && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {form.watch("expiresAt")
+                        ? format(form.watch("expiresAt") as Date, "PPP")
+                        : "Pick expiry date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={form.watch("expiresAt") as Date | undefined}
+                      onSelect={(date) =>
+                        form.setValue("expiresAt", date ?? undefined)
+                      }
+                      disabled={(date) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const compareDate = new Date(date);
+                      compareDate.setHours(0, 0, 0, 0);
+                      return compareDate < today;
+                    }}
+                    />
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </div>
 

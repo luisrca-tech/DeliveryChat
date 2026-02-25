@@ -10,7 +10,7 @@ import {
 import { Input } from "@repo/ui/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@repo/ui/components/ui/radio-group";
 import { Label } from "@repo/ui/components/ui/label";
-import { formatRelative } from "../lib/formatRelative";
+import { formatRelative } from "@/lib/formatRelative";
 import type {
   ApiKeyEnvironment,
   ApiKeyListItem,

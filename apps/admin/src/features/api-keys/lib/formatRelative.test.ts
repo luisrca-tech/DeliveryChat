@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { formatRelative } from "./formatRelative";
+import { formatRelative } from "@/lib/formatRelative";
 
 describe("formatRelative", () => {
   beforeEach(() => {

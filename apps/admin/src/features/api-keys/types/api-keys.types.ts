@@ -38,19 +38,7 @@ export type ApiKeyCreatedResponse = {
   createdAt: string;
 };
 
-export type Application = {
-  id: string;
-  name: string;
-  domain: string;
-  description: string | null;
-  organizationId: string;
-  settings: Record<string, unknown>;
-  createdAt: string;
-  updatedAt: string;
-};
-
-export type ApplicationsListResponse = {
-  applications: Application[];
-  limit: number;
-  offset: number;
-};
+export type {
+  Application,
+  ApplicationsListResponse,
+} from "@/features/applications/types/applications.types";
