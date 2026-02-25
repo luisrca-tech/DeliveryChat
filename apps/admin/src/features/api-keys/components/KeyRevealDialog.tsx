@@ -22,7 +22,10 @@ export type KeyRevealDialogProps = {
 function maskKey(key: string | undefined, prefix: string | undefined): string {
   const k = key ?? "";
   const p = prefix ?? "";
-  const visibleLen = Math.min(p.length, k.length);
+  let visibleLen = Math.min(p.length, k.length);
+  if (k.length > 0 && visibleLen === k.length) {
+    visibleLen = Math.max(0, k.length - 4);
+  }
   return `${k.slice(0, visibleLen)}${"•".repeat(Math.max(0, k.length - visibleLen))}`;
 }
 
