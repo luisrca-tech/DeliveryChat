@@ -115,6 +115,7 @@
         "@types/pg": "^8.15.6",
         "drizzle-kit": "^0.31.7",
         "typescript": "^5.8.3",
+        "vitest": "^4.0.18",
       },
     },
     "apps/web": {
