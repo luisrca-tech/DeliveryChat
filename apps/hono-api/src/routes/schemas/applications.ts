@@ -1,5 +1,7 @@
 import { z } from "zod";
-import { DOMAIN_REGEX } from "@repo/types";
+
+const DOMAIN_REGEX =
+  /^(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
 
 export const listApplicationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(10),
