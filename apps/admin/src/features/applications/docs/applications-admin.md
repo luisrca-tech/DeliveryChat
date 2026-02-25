@@ -3,7 +3,7 @@
 ## Business Rules
 
 - Only users with `admin` or `super_admin` role can access the applications page.
-- Applications are scoped per organization (tenant). Each application has a unique domain across the system.
+- Applications are scoped per organization (tenant). Each application has a domain that is **globally unique across all organizations** (once any org uses a domain, no other org can use it).
 - Domain is immutable after creation to avoid breaking existing API keys.
 - Deleting an application performs a soft delete (`deletedAt`) and cascades to revoke all active API keys for that application.
 - Soft-deleted applications are excluded from list and detail queries.

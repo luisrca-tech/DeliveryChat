@@ -1,3 +1,4 @@
+import { HTTP_STATUS } from "@repo/types";
 import { getApiBaseUrl } from "@/lib/urls";
 import { getSubdomain } from "@/lib/subdomain";
 import { getBearerToken } from "@/lib/bearerToken";
@@ -8,9 +9,6 @@ import type {
   CreateApplicationRequest,
   UpdateApplicationRequest,
 } from "../types/applications.types";
-
-const HTTP_NOT_FOUND = 404;
-const HTTP_CONFLICT = 409;
 
 function getTenantHeaders(): HeadersInit {
   const tenant = getSubdomain();
@@ -35,10 +33,10 @@ async function handleError(res: Response): Promise<never> {
   const message =
     err?.message ?? err?.error ?? `Request failed (${res.status})`;
 
-  if (res.status === HTTP_NOT_FOUND) {
+  if (res.status === HTTP_STATUS.NOT_FOUND) {
     throw new ApplicationNotFoundError(message);
   }
-  if (res.status === HTTP_CONFLICT) {
+  if (res.status === HTTP_STATUS.CONFLICT) {
     throw new ApplicationDomainConflictError(message);
   }
 

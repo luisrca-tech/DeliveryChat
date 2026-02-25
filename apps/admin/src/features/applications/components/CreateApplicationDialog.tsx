@@ -12,10 +12,9 @@ import {
 } from "@repo/ui/components/ui/dialog";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
+import { DOMAIN_REGEX } from "@repo/types";
 import { parseDomainFromInput } from "../lib/parseDomainFromInput";
 import type { CreateApplicationRequest } from "../types/applications.types";
-
-const domainRegex = /^(\*\.)?[a-z0-9][a-z0-9.-]*$/;
 
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255),
@@ -25,7 +24,7 @@ const schema = z.object({
     .max(255)
     .transform((val) => parseDomainFromInput(val))
     .refine((val) => val.length > 0, "Enter a valid domain or URL")
-    .refine((val) => domainRegex.test(val), {
+    .refine((val) => DOMAIN_REGEX.test(val), {
       message: "Domain must be a valid hostname (e.g. app.example.com)",
     }),
   description: z.string().optional(),
