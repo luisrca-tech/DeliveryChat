@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DOMAIN_REGEX } from "@repo/types";
 
 export const listApplicationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(10),
@@ -11,7 +12,7 @@ export const createApplicationSchema = z.object({
     .string()
     .min(1)
     .max(255)
-    .regex(/^(\*\.)?[a-z0-9][a-z0-9.-]*$/, {
+    .regex(DOMAIN_REGEX, {
       message:
         "Domain must be a valid hostname (e.g. app.example.com or *.example.com)",
     }),

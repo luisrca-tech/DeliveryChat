@@ -110,6 +110,7 @@ export async function deleteApplication(
         and(
           eq(applications.id, id),
           eq(applications.organizationId, organizationId),
+          isNull(applications.deletedAt),
         ),
       )
       .returning({ id: applications.id });

@@ -19,7 +19,6 @@ import {
   updateApplication,
   deleteApplication,
   countActiveApiKeys,
-  ApplicationDomainConflictError,
   isUniqueViolation,
 } from "../features/applications/application.service.js";
 import { getApiKeyLimitByPlan } from "../lib/plan-limits.js";
@@ -81,10 +80,7 @@ export const applicationsRoute = new Hono()
           .returning();
         return c.json({ application: newApp }, 201);
       } catch (error) {
-        if (
-          error instanceof ApplicationDomainConflictError ||
-          isUniqueViolation(error)
-        ) {
+        if (isUniqueViolation(error)) {
           return jsonError(
             c,
             HTTP_STATUS.CONFLICT,
