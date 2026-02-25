@@ -1,0 +1,93 @@
+# Applications
+
+An application is a single chat widget instance. Each application has its own configuration, domain, and API keys. Your organization has one subdomain (e.g., `yourcompany.deliverychat.com`) that serves all your applications.
+
+## What is an Application?
+
+Think of an application as one chat widget you can embed on a website. If you have multiple products, brands, or regions, you create multiple applications—each with its own:
+
+- **Domain** — The website where the widget can be embedded
+- **Configuration** — Colors, logo, business hours, auto-responses
+- **API keys** — Credentials for SDK or REST API integration
+
+All applications in your organization are managed from the same dashboard and share your team members and billing.
+
+## How to Create an Application
+
+<StepByStep
+  title="Create your first application"
+  steps={[
+    {
+      title: "Go to your dashboard",
+      content: (
+        <>
+          <p>Log in and open your organization dashboard (e.g., <code>yourcompany.deliverychat.com</code>).</p>
+        </>
+      )
+    },
+    {
+      title: "Open Applications",
+      content: (
+        <>
+          <p>Click <strong>Applications</strong> in the sidebar to see your existing apps.</p>
+        </>
+      )
+    },
+    {
+      title: "Click Create Application",
+      content: (
+        <>
+          <p>Click the <strong>Create Application</strong> button and fill in:</p>
+          <ul>
+            <li><strong>Name</strong> — A label for your team (e.g., "Main Website", "Product Support")</li>
+            <li><strong>Domain</strong> — The domain where you will embed the widget (e.g., <code>mywebsite.com</code>)</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      title: "Save",
+      content: (
+        <>
+          <p>Click <strong>Create</strong>. Your application is ready. You can now generate API keys and embed the widget.</p>
+        </>
+      )
+    }
+  ]}
+/>
+
+## Domain Format
+
+The domain identifies where your chat widget can be embedded. Use a simple identifier:
+
+- **Lowercase letters, numbers, and hyphens only**
+- Examples: <code>mywebsite.com</code>, <code>app-product</code>, <code>support-acme</code>
+
+<Callout type="tip" title="Domain tip">
+  The domain is used to validate where your widget loads. Use the main domain or subdomain of the site where you will embed the chat.
+</Callout>
+
+## Next Steps
+
+After creating an application:
+
+<QuickLinks
+  links={[
+    {
+      title: "Generate API Keys",
+      href: "/v1/api-keys",
+      description: "Create keys for SDK or REST API integration"
+    },
+    {
+      title: "Integration Overview",
+      href: "/v1/integration-overview",
+      description: "Learn how to embed the widget (iframe, SDK, REST)"
+    },
+    {
+      title: "Plans & Pricing",
+      href: "/v1/plans",
+      description: "See application limits by plan"
+    }
+  ]}
+  columns={3}
+/>
