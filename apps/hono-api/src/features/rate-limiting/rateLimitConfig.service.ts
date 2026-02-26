@@ -4,7 +4,7 @@ import { tenantRateLimits } from "../../db/schema/tenantRateLimits.js";
 import {
   getRateLimitsByPlan,
   type RateLimitConfig,
-} from "../../lib/plan-limits.js";
+} from "../../lib/planLimits.js";
 
 export async function getRateLimitsForTenant(
   orgId: string,
