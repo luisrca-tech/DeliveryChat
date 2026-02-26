@@ -1,4 +1,4 @@
-import { Settings, CreditCard, Package, Key, AppWindow } from "lucide-react";
+import { Settings, CreditCard, Package, Key, AppWindow, Gauge } from "lucide-react";
 import { SettingsLinkCard } from "./SettingsLinkCard";
 
 export function SettingsIndexPage() {
@@ -36,6 +36,12 @@ export function SettingsIndexPage() {
           title="API Keys"
           description="Create and manage API keys for your applications."
           icon={<Key className="h-5 w-5" />}
+        />
+        <SettingsLinkCard
+          to="/settings/rate-limits"
+          title="Rate Limits"
+          description="View and configure API rate limits per tenant."
+          icon={<Gauge className="h-5 w-5" />}
         />
       </div>
     </div>
