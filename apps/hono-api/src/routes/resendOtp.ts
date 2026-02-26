@@ -6,8 +6,9 @@ import { APIError } from "better-auth/api";
 import { db } from "../db/index.js";
 import { user } from "../db/schema/users.js";
 import { eq } from "drizzle-orm";
-import { resendOtpSchema } from "./schemas/resend-otp.js";
+import { resendOtpSchema } from "./schemas/resendOtp.js";
 import { mapToHttpStatus } from "./utils/httpStatus.js";
+import { checkResendOtpRateLimit } from "../features/rate-limiting/resendOtpRateLimit.js";
 
 export const resendOtpRoute = new Hono().post(
   "/resend-otp",
@@ -15,6 +16,17 @@ export const resendOtpRoute = new Hono().post(
   async (c) => {
     try {
       const { email } = c.req.valid("json");
+
+      const rateLimit = checkResendOtpRateLimit(email);
+      if (!rateLimit.allowed) {
+        c.header("Retry-After", String(rateLimit.retryAfterSeconds ?? 60));
+        return jsonError(
+          c,
+          HTTP_STATUS.TOO_MANY_REQUESTS,
+          ERROR_MESSAGES.TOO_MANY_REQUESTS,
+          "Too many resend attempts. Please try again later.",
+        );
+      }
 
       const users = await db
         .select()
@@ -61,11 +73,6 @@ export const resendOtpRoute = new Hono().post(
           "Verification period has expired",
         );
       }
-
-      // TODO: Implement rate limiting for resend OTP
-      // - Limit to once every 60 seconds per email
-      // - Max 5 attempts per hour per email
-      // - Max 10 attempts per day per email
 
       try {
         await auth.api.sendVerificationOTP({

@@ -8,6 +8,7 @@ import { resendOtpRoute } from "../routes/resend-otp.js";
 import { webhooksRoute } from "../routes/webhooks.js";
 import { billingRoute } from "../routes/billing.js";
 import { tenantsRoute } from "../routes/tenants.js";
+import { rateLimitsRoute } from "../routes/rate-limits.js";
 
 /**
  * Shared Hono instance for API routes
@@ -23,6 +24,7 @@ const app = new Hono()
   .route("/applications", applicationsRoute)
   .route("/api-keys", apiKeysRoute)
   .route("/billing", billingRoute)
+  .route("/rate-limits", rateLimitsRoute)
   .route("/webhooks", webhooksRoute);
 
 export const api = app;
