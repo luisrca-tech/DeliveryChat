@@ -23,6 +23,7 @@ import { Label } from "@repo/ui/components/ui/label";
 import { getRateLimits, updateRateLimits } from "../lib/rateLimits.client";
 import { useRateLimitsForm } from "../hooks/useRateLimitsForm";
 import { RateLimitsResponse } from "../types/rateLimits.types";
+
 export function RateLimitsPage() {
   const queryClient = useQueryClient();
   const { data } = useSuspenseQuery({
@@ -45,11 +46,9 @@ export function RateLimitsPage() {
 
   const form = useRateLimitsForm({
     initialValues: {
-      requestsPerSecond:
-        data.overrides?.requestsPerSecond ?? data.limits.perSecond,
-      requestsPerMinute:
-        data.overrides?.requestsPerMinute ?? data.limits.perMinute,
-      requestsPerHour: data.overrides?.requestsPerHour ?? data.limits.perHour,
+      requestsPerSecond: data.overrides?.requestsPerSecond ?? null,
+      requestsPerMinute: data.overrides?.requestsPerMinute ?? null,
+      requestsPerHour: data.overrides?.requestsPerHour ?? null,
     },
     onSubmit: (values) => {
       updateMutation.mutate({
@@ -111,6 +110,7 @@ export function RateLimitsPage() {
                     type="number"
                     min={1}
                     value={form.values.requestsPerSecond ?? ""}
+                    placeholder={`${data.limits.perSecond}`}
                     onChange={(e) =>
                       form.setFieldValue(
                         "requestsPerSecond",
@@ -126,6 +126,7 @@ export function RateLimitsPage() {
                     type="number"
                     min={1}
                     value={form.values.requestsPerMinute ?? ""}
+                    placeholder={`${data.limits.perMinute}`}
                     onChange={(e) =>
                       form.setFieldValue(
                         "requestsPerMinute",
@@ -141,6 +142,7 @@ export function RateLimitsPage() {
                     type="number"
                     min={1}
                     value={form.values.requestsPerHour ?? ""}
+                    placeholder={`${data.limits.perHour}`}
                     onChange={(e) =>
                       form.setFieldValue(
                         "requestsPerHour",

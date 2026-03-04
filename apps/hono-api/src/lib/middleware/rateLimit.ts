@@ -24,6 +24,27 @@ const WINDOWS = [
   },
 ] as const;
 
+const STORES = WINDOWS.map(() => new MemoryStore());
+
+async function getCachedTenantLimits(
+  c: Parameters<MiddlewareHandler>[0],
+  auth: NonNullable<ReturnType<typeof getTenantAuth>>,
+): Promise<RateLimitConfig> {
+  const ctx = c as {
+    get: (key: string) => unknown;
+    set: (key: string, value: unknown) => void;
+  };
+  const cached = ctx.get("tenantRateLimits") as RateLimitConfig | undefined;
+  if (cached) return cached;
+
+  const limits = await getRateLimitsForTenant(
+    auth.organization.id,
+    auth.organization.plan,
+  );
+  ctx.set("tenantRateLimits", limits);
+  return limits;
+}
+
 function create429Response(
   retryAfter: number,
   currentLimit: number,
@@ -36,18 +57,13 @@ function create429Response(
 }
 
 export function createTenantRateLimitMiddleware(): MiddlewareHandler {
-  const stores = WINDOWS.map(() => new MemoryStore());
-
   const middlewares = WINDOWS.map((w, i) =>
     rateLimiter({
       windowMs: w.windowMs,
       limit: async (c) => {
         const auth = getTenantAuth(c);
         if (!auth) return 999_999;
-        const limits = await getRateLimitsForTenant(
-          auth.organization.id,
-          auth.organization.plan,
-        );
+        const limits = await getCachedTenantLimits(c, auth);
         return w.getLimit(limits);
       },
       keyGenerator: async (c) => {
@@ -55,14 +71,11 @@ export function createTenantRateLimitMiddleware(): MiddlewareHandler {
         const orgId = auth?.organization.id ?? "unknown";
         return `tenant:${orgId}:${w.name}`;
       },
-      store: stores[i],
+      store: STORES[i],
       standardHeaders: "draft-6",
       message: async (c) => {
         const auth = getTenantAuth(c);
-        const limits = await getRateLimitsForTenant(
-          auth.organization.id,
-          auth.organization.plan,
-        );
+        const limits = await getCachedTenantLimits(c, auth);
         const limit = w.getLimit(limits);
         const retryAfter = Math.ceil(w.windowMs / 1000);
         return create429Response(retryAfter, limit);
@@ -71,10 +84,7 @@ export function createTenantRateLimitMiddleware(): MiddlewareHandler {
         const auth = getTenantAuth(c);
         let limit = 100;
         if (auth) {
-          const limits = await getRateLimitsForTenant(
-            auth.organization.id,
-            auth.organization.plan,
-          );
+          const limits = await getCachedTenantLimits(c, auth);
           limit = w.getLimit(limits);
           const info = (c as { get: (k: string) => unknown }).get(
             "rateLimit",

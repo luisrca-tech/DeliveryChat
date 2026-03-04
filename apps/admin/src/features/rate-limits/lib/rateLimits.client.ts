@@ -1,25 +1,13 @@
 import { getApiBaseUrl } from "@/lib/urls";
-import { getSubdomain } from "@/lib/subdomain";
-import { getBearerToken } from "@/lib/bearerToken";
+import { getTenantHeaders } from "@/lib/tenantHeaders";
 import type {
   RateLimitsResponse,
   UpdateRateLimitsRequest,
 } from "../types/rateLimits.types";
 
-function getTenantHeaders(): HeadersInit {
-  const tenant = getSubdomain();
-  const token = getBearerToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (tenant) headers["X-Tenant-Slug"] = tenant;
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
-
 export async function getRateLimits(): Promise<RateLimitsResponse> {
   const res = await fetch(`${getApiBaseUrl()}/rate-limits`, {
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders({ json: true }),
   });
   if (!res.ok) {
     const err = (await res.json().catch(() => null)) as {
@@ -38,7 +26,7 @@ export async function updateRateLimits(
 ): Promise<{ success: boolean; limits: RateLimitsResponse["limits"] }> {
   const res = await fetch(`${getApiBaseUrl()}/rate-limits`, {
     method: "PUT",
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders({ json: true }),
     body: JSON.stringify(body),
   });
   if (!res.ok) {
