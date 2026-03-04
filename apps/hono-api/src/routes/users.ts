@@ -11,11 +11,13 @@ import {
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
+import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const usersRoute = new Hono()
   .use("*", requireTenantAuth())
   .use("*", checkBillingStatus())
+  .use("*", createTenantRateLimitMiddleware())
   .get(
     "/",
     zValidator("query", listUsersQuerySchema),

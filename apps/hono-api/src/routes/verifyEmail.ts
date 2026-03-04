@@ -8,7 +8,7 @@ import { user } from "../db/schema/users.js";
 import { organization } from "../db/schema/organization.js";
 import { member } from "../db/schema/member.js";
 import { eq } from "drizzle-orm";
-import { verifyEmailSchema } from "./schemas/verify-email.js";
+import { verifyEmailSchema } from "./schemas/verifyEmail.js";
 import { mapToHttpStatus } from "./utils/httpStatus.js";
 import { sendEmailVerifiedWelcomeEmail } from "../lib/email/index.js";
 

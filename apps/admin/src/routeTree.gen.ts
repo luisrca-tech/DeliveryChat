@@ -16,6 +16,7 @@ import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as SystemSettingsIndexRouteImport } from './routes/_system/settings/index'
+import { Route as SystemSettingsRateLimitsRouteImport } from './routes/_system/settings/rate-limits'
 import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
 import { Route as SystemSettingsApplicationsRouteImport } from './routes/_system/settings/applications'
 import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/settings/api-keys'
@@ -55,6 +56,12 @@ const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemSettingsRateLimitsRoute =
+  SystemSettingsRateLimitsRouteImport.update({
+    id: '/settings/rate-limits',
+    path: '/settings/rate-limits',
+    getParentRoute: () => SystemRoute,
+  } as any)
 const SystemSettingsBillingRoute = SystemSettingsBillingRouteImport.update({
   id: '/settings/billing',
   path: '/settings/billing',
@@ -92,6 +99,7 @@ export interface FileRoutesByFullPath {
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
+  '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -104,6 +112,7 @@ export interface FileRoutesByTo {
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
+  '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -119,6 +128,7 @@ export interface FileRoutesById {
   '/_system/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/_system/settings/applications': typeof SystemSettingsApplicationsRoute
   '/_system/settings/billing': typeof SystemSettingsBillingRoute
+  '/_system/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/_system/settings/': typeof SystemSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
+    | '/settings/rate-limits'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
+    | '/settings/rate-limits'
     | '/settings'
   id:
     | '__root__'
@@ -159,6 +171,7 @@ export interface FileRouteTypes {
     | '/_system/settings/api-keys'
     | '/_system/settings/applications'
     | '/_system/settings/billing'
+    | '/_system/settings/rate-limits'
     | '/_system/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -216,6 +229,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SystemSettingsIndexRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/_system/settings/rate-limits': {
+      id: '/_system/settings/rate-limits'
+      path: '/settings/rate-limits'
+      fullPath: '/settings/rate-limits'
+      preLoaderRoute: typeof SystemSettingsRateLimitsRouteImport
       parentRoute: typeof SystemRoute
     }
     '/_system/settings/billing': {
@@ -278,6 +298,7 @@ interface SystemRouteChildren {
   SystemSettingsApiKeysRoute: typeof SystemSettingsApiKeysRoute
   SystemSettingsApplicationsRoute: typeof SystemSettingsApplicationsRoute
   SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute
+  SystemSettingsRateLimitsRoute: typeof SystemSettingsRateLimitsRoute
   SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
 }
 
@@ -288,6 +309,7 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemSettingsApiKeysRoute: SystemSettingsApiKeysRoute,
   SystemSettingsApplicationsRoute: SystemSettingsApplicationsRoute,
   SystemSettingsBillingRoute: SystemSettingsBillingRoute,
+  SystemSettingsRateLimitsRoute: SystemSettingsRateLimitsRoute,
   SystemSettingsIndexRoute: SystemSettingsIndexRoute,
 }
 
