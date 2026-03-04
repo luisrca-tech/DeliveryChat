@@ -104,7 +104,7 @@ This Turborepo contains 4 main applications:
 - **companies** - Tenant companies with subdomain
 - **users_companies** - Many-to-many relationship (users can belong to multiple companies)
 - **visitors** - End users who interact with chat widgets
-- **company_settings** - Per-company configuration (widget config, business hours, features)
+- **applications.settings** - Per-application configuration (widget config, colors, logo, position)
 
 ## 🚀 Getting Started
 

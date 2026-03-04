@@ -1,5 +1,6 @@
-import { useMemo } from "react";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Copy, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -28,6 +29,15 @@ export function ApplicationListTable({
   onDelete,
   isLoading,
 }: ApplicationListTableProps) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyAppId = async (id: string) => {
+    await navigator.clipboard.writeText(id);
+    toast.success("App ID copied to clipboard");
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
   const filtered = useMemo(() => {
     if (!searchQuery.trim()) return applications;
     const q = searchQuery.toLowerCase().trim();
@@ -84,6 +94,9 @@ export function ApplicationListTable({
             <tr className="border-b bg-muted/50">
               <th className="px-4 py-3 text-left text-sm font-medium">Name</th>
               <th className="px-4 py-3 text-left text-sm font-medium">
+                App ID
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium">
                 Domain
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium">
@@ -92,7 +105,7 @@ export function ApplicationListTable({
               <th className="px-4 py-3 text-left text-sm font-medium">
                 Created
               </th>
-              <th className="px-4 py-3 text-right text-sm font-medium">
+              <th className="w-20 shrink-0 px-4 py-3 pr-6 text-right text-sm font-medium">
                 Actions
               </th>
             </tr>
@@ -101,6 +114,24 @@ export function ApplicationListTable({
             {filtered.map((app) => (
               <tr key={app.id} className="border-b last:border-b-0">
                 <td className="px-4 py-3 text-sm font-medium">{app.name}</td>
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <code className="font-mono text-xs truncate max-w-[140px] block">
+                      {app.id}
+                    </code>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7 shrink-0"
+                      onClick={() => copyAppId(app.id)}
+                      aria-label="Copy app ID"
+                    >
+                      <Copy
+                        className={`h-3.5 w-3.5 ${copiedId === app.id ? "text-green-600" : ""}`}
+                      />
+                    </Button>
+                  </div>
+                </td>
                 <td className="px-4 py-3 font-mono text-sm">{app.domain}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                   {app.description || "—"}
@@ -108,7 +139,7 @@ export function ApplicationListTable({
                 <td className="px-4 py-3 text-sm text-muted-foreground">
                   {formatRelative(app.createdAt)}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="w-20 shrink-0 px-4 py-3 pr-6 text-right">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" aria-label="Actions">
@@ -116,6 +147,10 @@ export function ApplicationListTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => copyAppId(app.id)}>
+                        <Copy className="mr-2 h-4 w-4" />
+                        Copy App ID
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(app)}>
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
