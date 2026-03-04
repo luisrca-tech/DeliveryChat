@@ -2,7 +2,7 @@
 
 ## Overview
 
-The visitors system is a core component of our multi-tenant chat service architecture. It enables end users (visitors) to interact with companies through an embeddable chat widget, while maintaining proper tenant isolation and data organization.
+The visitors system is a core component of our multi-tenant chat service architecture. It enables end users (visitors) to interact with organizations through an embeddable chat widget, while maintaining proper tenant isolation and data organization.
 
 ## Architecture
 
@@ -14,30 +14,25 @@ The `visitors` table tracks end users who interact with the embed chat widget:
 
 - **id** (uuid, primary key) - Unique identifier for each visitor
 - **name** (varchar, nullable) - Optional name provided by the visitor
-- **company_id** (uuid, foreign key) - Links visitor to the company whose chat they're using
+- **application_id** (uuid, foreign key) - Links visitor to the application whose chat widget they're using
 - **created_at** (timestamp) - When the visitor record was created
 - **updated_at** (timestamp) - Last update timestamp
 
-#### Company Settings Table
+#### Application Settings
 
-The `company_settings` table stores per-company configuration for chat widget appearance and behavior:
+Widget configuration is stored in `applications.settings` (JSONB) — application-level, not a separate table:
 
-- **id** (uuid, primary key) - Unique identifier
-- **company_id** (uuid, foreign key, unique) - One-to-one relationship with companies
-- **widget_config** (jsonb) - Chat widget appearance settings (colors, logo, position, etc.)
-- **business_hours** (jsonb, nullable) - Operating hours configuration
-- **auto_responses** (jsonb, nullable) - Automated response rules
-- **features** (jsonb, nullable) - Enabled/disabled features per company
-- **created_at** (timestamp) - Creation timestamp
-- **updated_at** (timestamp) - Last update timestamp
+- **applications.settings** (jsonb) - Chat widget appearance and behavior (colors, logo, position, font, etc.)
+- Each application has its own settings; defaults are merged with per-application overrides
+- No separate `company_settings` table — settings live in the `applications` table
 
 ### Relationships
 
 ```
-visitors (many) ──→ companies (one)
-company_settings (one) ──→ companies (one)
-users_companies (many-to-many) ──→ companies (one)
-users_companies (many-to-many) ──→ users (one)
+visitors (many) ──→ applications (one)
+applications (many) ──→ organizations (one)
+members (many-to-many) ──→ organizations (one)
+members (many-to-many) ──→ users (one)
 ```
 
 ## How It Works
@@ -45,18 +40,18 @@ users_companies (many-to-many) ──→ users (one)
 ### Visitor Creation Flow
 
 1. **End User Accesses Embed Chat**
-   - A visitor lands on a company's website (e.g., codewiser.com)
-   - The embed chat widget loads, configured with the company's subdomain
+   - A visitor lands on a customer's website (e.g., codewiser.com)
+   - The embed chat widget loads, configured with the application's appId
 
-2. **Company Identification**
-   - The embed widget identifies the company using the subdomain from the URL or configuration
-   - The subdomain maps to a company record in the database
+2. **Application Identification**
+   - The embed widget identifies the application using the appId passed to `DeliveryChat.init()`
+   - The appId maps to an application record; settings are fetched from `applications.settings`
 
 3. **Visitor Record Creation**
    - When a visitor first interacts with the chat (opens widget, sends message, etc.)
    - A new visitor record is created with:
      - Generated UUID
-     - Company ID (from subdomain lookup)
+     - Application ID (from widget appId)
      - Optional name (if provided)
      - Timestamps
 
@@ -69,19 +64,19 @@ users_companies (many-to-many) ──→ users (one)
 
 #### Tenant Isolation
 
-Each company operates as an independent tenant:
+Each organization operates as an independent tenant:
 
-- **Subdomain-based routing**: Companies are identified by their unique subdomain
-- **Data isolation**: All visitor records are scoped to a specific company_id
-- **Custom configuration**: Each company has its own settings via company_settings
+- **Subdomain-based routing**: Organizations are identified by their unique subdomain
+- **Data isolation**: All visitor records are scoped to a specific application_id
+- **Custom configuration**: Each application has its own settings via `applications.settings`
 
 #### Custom Domain Support
 
-The `companies.subdomain` field serves dual purposes:
+The `applications.domain` field serves dual purposes:
 
 - **Development/Testing**: Uses subdomain format (e.g., `codewiser.deliverychat.com`)
 - **Production**: Can be configured as custom domain (e.g., `codewiser.com`)
-- The subdomain field uniquely identifies each tenant regardless of domain format
+- The domain field uniquely identifies each application regardless of domain format
 
 ### Integration with Embed Chat Widget
 
@@ -89,14 +84,12 @@ The `companies.subdomain` field serves dual purposes:
 
 ```typescript
 // Pseudo-code example
-const company = await getCompanyBySubdomain(subdomain);
-const settings = await getCompanySettings(company.id);
+const settings = await fetch(`/v1/widget/settings/${appId}`);
 
-// Widget loads with company-specific configuration
+// Widget loads with application-specific configuration
 loadChatWidget({
-  companyId: company.id,
-  widgetConfig: settings.widget_config,
-  businessHours: settings.business_hours,
+  appId: application.id,
+  settings: settings, // from applications.settings
 });
 ```
 
@@ -107,18 +100,18 @@ When a visitor interacts:
 1. Widget checks for existing visitor session/cookie
 2. If new visitor, creates visitor record via API
 3. Visitor ID is stored in session/cookie for future interactions
-4. All chat messages are associated with visitor_id and company_id
+4. All chat messages are associated with visitor_id and application_id
 
 ### Integration with Admin Dashboard
 
 #### Support Team View
 
-Company users (admins/support) can:
+Organization users (admins/support) can:
 
-- View all visitors for their company
+- View all visitors for their applications
 - See visitor information (name, creation date)
 - Access conversation history per visitor
-- Manage company settings that affect widget behavior
+- Manage application settings that affect widget behavior
 
 #### Data Flow
 
@@ -131,8 +124,8 @@ Admin Dashboard ←── API ←── Database
 Both embed and admin interact with the same database, but:
 
 - Embed creates/updates visitor records
-- Admin views visitor data and manages company settings
-- Data is isolated by company_id for security
+- Admin views visitor data and manages application settings
+- Data is isolated by application_id for security
 
 ## Use Cases
 
@@ -140,8 +133,8 @@ Both embed and admin interact with the same database, but:
 
 **Scenario**: A first-time visitor opens the chat widget on codewiser.com
 
-1. Widget loads, identifies company by subdomain
-2. Visitor record created with company_id = codewiser's ID
+1. Widget loads, identifies application by appId
+2. Visitor record created with application_id
 3. Visitor can start chatting
 4. Messages are associated with visitor_id
 
@@ -154,12 +147,12 @@ Both embed and admin interact with the same database, but:
 3. Previous conversation history can be displayed
 4. New messages continue the conversation thread
 
-### 3. Company Configuration
+### 3. Application Configuration
 
-**Scenario**: Company admin wants to customize widget appearance
+**Scenario**: Admin wants to customize widget appearance
 
 1. Admin accesses admin dashboard
-2. Updates company_settings.widget_config
+2. Updates `applications.settings` for the application
 3. Changes are reflected in embed widget for all visitors
 4. No visitor records need to be modified
 
@@ -167,15 +160,15 @@ Both embed and admin interact with the same database, but:
 
 ### Tenant Isolation
 
-- All queries must filter by company_id
-- Visitors can only be created/accessed within their company context
-- API endpoints validate company ownership before data access
+- All queries must filter by application_id (and organization via application)
+- Visitors can only be created/accessed within their application context
+- API endpoints validate application ownership before data access
 
 ### Data Privacy
 
 - Visitor names are optional and provided voluntarily
 - No PII beyond name is stored in visitor table
-- Company settings are company-specific and not shared
+- Application settings are application-specific and not shared
 
 ## Future Enhancements
 
@@ -189,30 +182,21 @@ While not in the initial implementation, future considerations include:
 ## Database Schema Summary
 
 ```sql
--- Visitors table
+-- Visitors table (when implemented)
 CREATE TABLE delivery_chat_visitors (
   id UUID PRIMARY KEY,
   name VARCHAR(255),
-  company_id UUID NOT NULL REFERENCES delivery_chat_companies(id),
+  application_id UUID NOT NULL REFERENCES delivery_chat_applications(id),
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
--- Company Settings table
-CREATE TABLE delivery_chat_company_settings (
-  id UUID PRIMARY KEY,
-  company_id UUID NOT NULL UNIQUE REFERENCES delivery_chat_companies(id),
-  widget_config JSONB NOT NULL,
-  business_hours JSONB,
-  auto_responses JSONB,
-  features JSONB,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMP NOT NULL DEFAULT NOW()
-);
+-- Application settings: stored in applications table (JSONB), not a separate table
+-- applications.settings contains: colors, font, position, header, launcher, behavior, etc.
 ```
 
 ## Related Components
 
-- **@embed**: The embeddable chat widget that creates and interacts with visitors
-- **@admin**: The admin dashboard for viewing visitors and managing company settings
-- **@hono-api**: The API layer that handles visitor CRUD operations and company settings management
+- **@widget**: The embeddable chat widget that creates and interacts with visitors
+- **@admin**: The admin dashboard for viewing visitors and managing application settings
+- **@hono-api**: The API layer that handles visitor CRUD operations and application settings
