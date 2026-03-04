@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   getApplication,
+  getApplicationSettings,
   updateApplication,
   deleteApplication,
   countActiveApiKeys,
@@ -42,6 +43,51 @@ describe("isUniqueViolation", () => {
     expect(isUniqueViolation(null)).toBe(false);
     expect(isUniqueViolation(undefined)).toBe(false);
     expect(isUniqueViolation("error")).toBe(false);
+  });
+});
+
+describe("getApplicationSettings", () => {
+  beforeEach(() => {
+    vi.mocked(db.select).mockReset();
+  });
+
+  it("returns null when no app found", async () => {
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    } as never);
+
+    const result = await getApplicationSettings("app-123");
+    expect(result).toBeNull();
+  });
+
+  it("returns null when app is deleted", async () => {
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]),
+        }),
+      }),
+    } as never);
+
+    const result = await getApplicationSettings("deleted-app");
+    expect(result).toBeNull();
+  });
+
+  it("returns settings when app found", async () => {
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ settings: { colors: { primary: "#ff0000" } } }]),
+        }),
+      }),
+    } as never);
+
+    const result = await getApplicationSettings("app-123");
+    expect(result).toEqual({ colors: { primary: "#ff0000" } });
   });
 });
 
