@@ -1,6 +1,5 @@
 import { getApiBaseUrl } from "@/lib/urls";
-import { getSubdomain } from "@/lib/subdomain";
-import { getBearerToken } from "@/lib/bearerToken";
+import { getTenantHeaders } from "@/lib/tenantHeaders";
 import type {
   BillingStatusResponse,
   CheckoutRequest,
@@ -10,15 +9,6 @@ import type {
 
 async function parseJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
-}
-
-function getTenantHeaders(): HeadersInit | undefined {
-  const tenant = getSubdomain();
-  const token = getBearerToken();
-  const headers: Record<string, string> = {};
-  if (tenant) headers["X-Tenant-Slug"] = tenant;
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return Object.keys(headers).length ? headers : undefined;
 }
 
 export async function getBillingStatus(): Promise<BillingStatusResponse> {
@@ -59,10 +49,7 @@ export async function createCheckout(
 ): Promise<CheckoutResponse> {
   const res = await fetch(`${getApiBaseUrl()}/billing/checkout`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...(getTenantHeaders() ?? {}),
-    },
+    headers: getTenantHeaders({ json: true }),
     body: JSON.stringify(body),
   });
   if (!res.ok) {
