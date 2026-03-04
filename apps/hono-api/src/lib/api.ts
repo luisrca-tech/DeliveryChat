@@ -25,9 +25,9 @@ const app = new Hono()
   .route("/applications", applicationsRoute)
   .route("/api-keys", apiKeysRoute)
   .route("/billing", billingRoute)
+  .route("/rate-limits", rateLimitsRoute)
   .route("/webhooks", webhooksRoute)
-  .route("/widget", widgetRoute)
-  .route("/rate-limits", rateLimitsRoute);
+  .route("/widget", widgetRoute);
 
 export const api = app;
 export type APIType = typeof app;
