@@ -18,7 +18,7 @@ Choose the plan that fits your needs. All plans include a 14-day free trial with
       "Community support",
       "3-day message history",
       "Basic auto-responses",
-      "Rate limiting: 20 messages/hour",
+      "Rate limiting: 5/sec, 50/min, 500/hour",
     ]}
     bestFor="Personal projects, testing, small websites"
   />
@@ -36,7 +36,7 @@ Choose the plan that fits your needs. All plans include a 14-day free trial with
       "7-day message history",
       "Business hours configuration",
       "Auto-responses",
-      "Rate limiting: 50 messages/hour",
+      "Rate limiting: 10/sec, 100/min, 1,000/hour",
     ]}
     bestFor="Small businesses, startups, personal projects"
   />
@@ -56,7 +56,7 @@ Choose the plan that fits your needs. All plans include a 14-day free trial with
       "Analytics dashboard",
       "Business hours per application",
       "Advanced auto-responses",
-      "Rate limiting: 200 messages/hour per app",
+      "Rate limiting: 25/sec, 500/min, 5,000/hour",
       "Team member management",
       "Conversation assignment",
     ]}
@@ -79,7 +79,7 @@ Choose the plan that fits your needs. All plans include a 14-day free trial with
       "Advanced analytics & reporting",
       "Custom business hours & rules",
       "Advanced auto-responses & AI integration",
-      "Custom rate limiting (up to 1,000 messages/hour per app)",
+      "Custom rate limiting (default 50/sec, 1,000/min, 10,000/hour)",
       "Advanced team management & roles",
       "Custom integrations & API access",
       "SLA guarantee (99.9% uptime)",
@@ -115,7 +115,7 @@ Choose the plan that fits your needs. All plans include a 14-day free trial with
     },
     {
       feature: "Rate Limiting",
-      values: ["20 msg/hour", "50 msg/hour", "200 msg/hour", "Custom (up to 1,000)"]
+      values: ["500/hour", "1,000/hour", "5,000/hour", "10,000/hour (custom)"]
     },
     {
       feature: "Organization Subdomain",
@@ -154,30 +154,30 @@ Choose the plan that fits your needs. All plans include a 14-day free trial with
 
 ## Rate Limiting Details
 
-Rate limiting helps ensure fair usage and system stability. Limits are applied per application.
+Rate limiting helps ensure fair usage and system stability. Limits are applied per organization (tenant) across all API requests (REST, SDK, widget).
 
 **Free Plan:**
-- 20 messages per hour per application
+- 5 requests/sec, 50/min, 500/hour
 - Suitable for testing and very low traffic
 - Example: Personal blog or portfolio site
 
 **Basic Plan:**
-- 50 messages per hour per application
+- 10 requests/sec, 100/min, 1,000/hour
 - Suitable for low to moderate traffic
 - Example: Small e-commerce site with occasional customer questions
 
 **Premium Plan:**
-- 200 messages per hour per application
+- 25 requests/sec, 500/min, 5,000/hour
 - Suitable for moderate to high traffic
 - Example: Growing SaaS product with active user base
 
 **Enterprise Plan:**
-- Custom rate limits (typically 500-1,000 messages/hour per app)
-- Can be adjusted based on needs
+- Default: 50 requests/sec, 1,000/min, 10,000/hour
+- Custom limits configurable via admin dashboard
 - Example: High-traffic e-commerce during sales events
 
 <Callout type="note">
-  Rate limits can be temporarily increased for special events. Contact support for assistance.
+  Enterprise plans can configure custom rate limits in Settings → Rate Limits. Premium plans can request temporary increases for special events.
 </Callout>
 
 ## Visitor Limits
@@ -243,7 +243,7 @@ Each application is a separate chat widget instance with its own configuration. 
     },
     {
       question: "Can I have custom rate limits?",
-      answer: "Enterprise plans include custom rate limiting. Premium plans can request temporary increases for events."
+      answer: "Enterprise plans include custom rate limiting configurable in the admin dashboard (Settings → Rate Limits). Premium plans can request temporary increases for events."
     },
     {
       question: "Is there a setup fee?",

@@ -8,4 +8,7 @@ export * from "./member";
 export * from "./invitation";
 export * from "./processedEvents";
 export * from "./apiKeys";
+export * from "./tenantRateLimits";
+export * from "./rateLimitEvents";
+export * from "./rateLimitAlertsSent";
 export * from "./enums/statusEnum";

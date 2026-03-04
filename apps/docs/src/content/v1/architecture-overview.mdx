@@ -32,11 +32,11 @@ Let's walk through how a company like Nike would use Delivery Chat:
         <>
           <p>Nike has different products and needs separate chat configurations. Each application represents a chat widget that can be embedded on different websites:</p>
           <ul>
-            <li><strong>Nike Shoes App</strong> (domain: <code>nike-shoes.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
-            <li><strong>Nike Clothes App</strong> (domain: <code>nike-clothes.com</code>) - Different business hours, auto-responses, rate limiting, and brand colors</li>
-            <li><strong>Nike Accessories App</strong> (domain: <code>nike-accessories.com</code>) - 24/7 availability, automated responses, higher rate limits</li>
+            <li><strong>Nike Shoes App</strong> (domain: <code>nike-shoes.com</code>) - Different business hours, auto-responses, and brand colors</li>
+            <li><strong>Nike Clothes App</strong> (domain: <code>nike-clothes.com</code>) - Different business hours, auto-responses, and brand colors</li>
+            <li><strong>Nike Accessories App</strong> (domain: <code>nike-accessories.com</code>) - 24/7 availability, automated responses</li>
           </ul>
-          <p>Each app operates independently with its own website domain (where the widget is embedded), configuration settings, rate limits, business hours, auto-responses, and widget appearance. All apps are managed through the same organization subdomain (<code>nike.deliverychat.com</code>).</p>
+          <p>Each app operates independently with its own website domain (where the widget is embedded), configuration settings, business hours, auto-responses, and widget appearance. Rate limits apply per organization. All apps are managed through the same organization subdomain (<code>nike.deliverychat.com</code>).</p>
         </>
       )
     },
@@ -199,13 +199,13 @@ curl -X GET https://api.deliverychat.com/v1/conversations/conv_123 \
     features: [
       "Has its own website domain (where widget is embedded)",
       "Has independent configuration",
-      "Has its own rate limits",
+      "Shares org rate limits",
       "Can have different settings than other apps in the same organization"
     ]
   }}
 />
 
-**Why this matters**: Nike can have one account but manage multiple chat widgets with different configurations, rate limits, and settings for different products or regions.
+**Why this matters**: Nike can have one account but manage multiple chat widgets with different configurations and settings for different products or regions.
 
 ### Configuration Per Application
 
@@ -242,9 +242,8 @@ Each application (Nike Shoes, Nike Clothes, etc.) can have completely different 
 <FeatureList
   title="Rate Limiting"
   features={[
-    { name: "Nike Shoes", description: "100 messages per hour (moderate traffic)" },
-    { name: "Nike Clothes", description: "150 messages per hour (higher traffic)" },
-    { name: "Nike Accessories", description: "500 messages per hour (very high traffic)" }
+    { name: "Per organization", description: "Limits apply across all apps (5–50 req/sec, 500–10,000/hour by plan)" },
+    { name: "ENTERPRISE", description: "Custom limits configurable in Settings → Rate Limits" }
   ]}
 />
 
@@ -298,7 +297,7 @@ Each application (Nike Shoes, Nike Clothes, etc.) can have completely different 
   solution={
     <>
       <ul className="list-disc list-inside space-y-2">
-        <li>Temporarily increase rate limits for that specific app</li>
+        <li>Configure custom rate limits in Settings → Rate Limits (ENTERPRISE)</li>
         <li>Add more team members to handle the load</li>
         <li>Configure auto-responses for common questions</li>
         <li>Monitor traffic through the dashboard</li>

@@ -33,3 +33,6 @@ export type { PasswordChangedEmailProps } from "./templates/types/password-chang
 
 export { default as NewSignInAlertEmail } from "./templates/new-sign-in-alert";
 export type { NewSignInAlertEmailProps } from "./templates/types/new-sign-in-alert";
+
+export { default as RateLimitAlertEmail } from "./templates/rate-limit-alert";
+export type { RateLimitAlertEmailProps } from "./templates/types/rate-limit-alert";

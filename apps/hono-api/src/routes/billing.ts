@@ -13,6 +13,7 @@ import {
   requireRole,
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
+import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import { getUserAdminUrl } from "../lib/auth.js";
 import { stripe } from "../lib/stripe.js";
@@ -26,6 +27,7 @@ const checkoutBodySchema = z.object({
 
 export const billingRoute = new Hono()
   .use("*", requireTenantAuth())
+  .use("*", createTenantRateLimitMiddleware())
   .get("/status", async (c) => {
     try {
       const { organization, membership } = getTenantAuth(c);

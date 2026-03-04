@@ -2,6 +2,7 @@
   "name": "my-turborepo",
   "private": true,
   "dependencies": {
+    "hono-rate-limiter": "^0.5.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },

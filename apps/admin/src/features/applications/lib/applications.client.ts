@@ -1,7 +1,6 @@
 import { HTTP_STATUS } from "@repo/types";
 import { getApiBaseUrl } from "@/lib/urls";
-import { getSubdomain } from "@/lib/subdomain";
-import { getBearerToken } from "@/lib/bearerToken";
+import { getTenantHeaders } from "@/lib/tenantHeaders";
 import type {
   Application,
   ApplicationsListResponse,
@@ -9,17 +8,6 @@ import type {
   CreateApplicationRequest,
   UpdateApplicationRequest,
 } from "../types/applications.types";
-
-function getTenantHeaders(): HeadersInit {
-  const tenant = getSubdomain();
-  const token = getBearerToken();
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (tenant) headers["X-Tenant-Slug"] = tenant;
-  if (token) headers["Authorization"] = `Bearer ${token}`;
-  return headers;
-}
 
 async function parseJson<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
@@ -65,7 +53,7 @@ export async function listApplications(
 ): Promise<ApplicationsListResponse> {
   const res = await fetch(
     `${base()}/applications?limit=${limit}&offset=${offset}`,
-    { headers: getTenantHeaders() },
+    { headers: getTenantHeaders({ json: true }) },
   );
   if (!res.ok) throw await handleError(res);
   return parseJson<ApplicationsListResponse>(res);
@@ -75,7 +63,7 @@ export async function getApplication(
   id: string,
 ): Promise<ApplicationDetailResponse> {
   const res = await fetch(`${base()}/applications/${id}`, {
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders({ json: true }),
   });
   if (!res.ok) throw await handleError(res);
   return parseJson<ApplicationDetailResponse>(res);
@@ -86,7 +74,7 @@ export async function createApplication(
 ): Promise<{ application: Application }> {
   const res = await fetch(`${base()}/applications`, {
     method: "POST",
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders({ json: true }),
     body: JSON.stringify(body),
   });
   if (!res.ok) throw await handleError(res);
@@ -99,7 +87,7 @@ export async function updateApplication(
 ): Promise<{ application: Application }> {
   const res = await fetch(`${base()}/applications/${id}`, {
     method: "PATCH",
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders({ json: true }),
     body: JSON.stringify(body),
   });
   if (!res.ok) throw await handleError(res);
@@ -109,7 +97,7 @@ export async function updateApplication(
 export async function deleteApplication(id: string): Promise<void> {
   const res = await fetch(`${base()}/applications/${id}`, {
     method: "DELETE",
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders({ json: true }),
   });
   if (!res.ok) throw await handleError(res);
 }

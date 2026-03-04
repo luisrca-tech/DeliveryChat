@@ -8,7 +8,7 @@ import {
   listApplicationsQuerySchema,
   updateApplicationSchema,
 } from "./schemas/applications.js";
-import { createApiKeySchema } from "./schemas/api-keys.js";
+import { createApiKeySchema } from "./schemas/apiKeys.js";
 import {
   createApiKey,
   listApiKeys,
@@ -21,18 +21,20 @@ import {
   countActiveApiKeys,
   isUniqueViolation,
 } from "../features/applications/application.service.js";
-import { getApiKeyLimitByPlan } from "../lib/plan-limits.js";
+import { getApiKeyLimitByPlan } from "../lib/planLimits.js";
 import {
   getTenantAuth,
   requireRole,
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
+import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const applicationsRoute = new Hono()
   .use("*", requireTenantAuth())
   .use("*", checkBillingStatus())
+  .use("*", createTenantRateLimitMiddleware())
   .get("/", zValidator("query", listApplicationsQuerySchema), async (c) => {
     try {
       const { organization } = getTenantAuth(c);
