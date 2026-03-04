@@ -22,7 +22,12 @@ const config = defineConfig({
     nitro(),
   ],
   resolve: {
-    dedupe: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
+    dedupe: [
+      "react",
+      "react-dom",
+      "react/jsx-runtime",
+      "react/jsx-dev-runtime",
+    ],
   },
   envPrefix: ["VITE_", "PUBLIC_"],
 });
