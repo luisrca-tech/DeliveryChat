@@ -71,6 +71,13 @@
       "when": 1771774607412,
       "tag": "0012_add_api_keys_table",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1771850000000,
+      "tag": "0013_add_tenant_rate_limits",
+      "breakpoints": true
     }
   ]
 }

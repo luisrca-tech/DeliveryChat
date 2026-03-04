@@ -8,18 +8,20 @@ import {
   revokeApiKey,
   regenerateApiKey,
 } from "../features/api-keys/api-key.service.js";
-import { regenerateApiKeySchema } from "./schemas/api-keys.js";
+import { regenerateApiKeySchema } from "./schemas/apiKeys.js";
 import {
   getTenantAuth,
   requireRole,
   requireTenantAuth,
 } from "../lib/middleware/auth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
+import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const apiKeysRoute = new Hono()
   .use("*", requireTenantAuth())
   .use("*", checkBillingStatus())
+  .use("*", createTenantRateLimitMiddleware())
   .use("*", requireRole("admin"))
   .delete("/:keyId", async (c) => {
     try {
