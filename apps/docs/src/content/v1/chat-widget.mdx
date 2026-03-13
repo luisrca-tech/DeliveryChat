@@ -11,7 +11,6 @@ Add the script tag and call `DeliveryChat.init()` with your application ID:
 <script>
   DeliveryChat.init({
     appId: "your-app-uuid",
-    apiBaseUrl: "https://api.yourcompany.deliverychat.com",
     position: "bottom-right",
   });
 </script>
@@ -26,7 +25,6 @@ Add the script tag and call `DeliveryChat.init()` with your application ID:
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `appId` | `string` | Yes | Your application UUID from the dashboard |
-| `apiBaseUrl` | `string` | No | API base URL (e.g. `https://api.yourcompany.deliverychat.com`). Defaults to current origin |
 | `position` | `"bottom-left" \| "bottom-right"` | No | Launcher position. Default: `"bottom-right"` |
 | `autoOpen` | `boolean` | No | Open chat automatically on load. Default: `false` |
 | `autoOpenDelay` | `number` | No | Delay in ms before auto-open. Default: `5000` |
@@ -37,7 +35,6 @@ Add the script tag and call `DeliveryChat.init()` with your application ID:
 ```javascript
 DeliveryChat.init({
   appId: "app_abc123",
-  apiBaseUrl: "https://api.yourcompany.deliverychat.com",
   position: "bottom-left",
   autoOpen: true,
   autoOpenDelay: 3000,
@@ -59,7 +56,6 @@ You can load the script asynchronously. The widget uses a queue pattern—calls 
   // Safe to call immediately—will run when script loads
   DeliveryChat.init({
     appId: "your-app-uuid",
-    apiBaseUrl: "https://api.yourcompany.deliverychat.com",
   });
 </script>
 ```
@@ -76,10 +72,10 @@ This cleans up event listeners, removes the DOM, and resets state. You can call 
 
 ## Settings from the API
 
-When `apiBaseUrl` is provided, the widget fetches configuration from:
+The widget fetches configuration from the API (URL set via `VITE_API_BASE_URL` at build time):
 
 ```
-GET {apiBaseUrl}/v1/widget/settings/:appId
+GET {baseUrl}/v1/widget/settings/:appId
 ```
 
 This endpoint is **public** (no auth). It returns JSON:

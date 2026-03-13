@@ -46,10 +46,31 @@ export function ApiKeyListTable({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const copyKeyId = async (id: string) => {
-    await navigator.clipboard.writeText(id);
-    toast.success("Key ID copied to clipboard");
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = id;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!successful) {
+          throw new Error("Fallback copy command was unsuccessful");
+        }
+      }
+
+      toast.success("Key ID copied to clipboard");
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy key ID to clipboard", error);
+      toast.error("Failed to copy key ID to clipboard");
+    }
   };
 
   const filteredKeys = useMemo(() => {

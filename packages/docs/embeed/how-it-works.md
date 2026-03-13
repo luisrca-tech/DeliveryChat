@@ -13,7 +13,6 @@ To add chat to their website, customers include a script tag and call `DeliveryC
 <script>
   DeliveryChat.init({
     appId: "your-app-uuid",
-    apiBaseUrl: "https://api.yourdomain.com",
     position: "bottom-right",
   });
 </script>
@@ -130,6 +129,7 @@ Customer Website          Your API              Database
 
 ```typescript
 export const widgetRoute = new Hono().get("/settings/:appId", async (c) => {
+  const appId = c.req.param("appId");
   const settings = await getApplicationSettings(appId);
   return c.json(
     { settings },

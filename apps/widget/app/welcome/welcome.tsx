@@ -33,7 +33,6 @@ export function Welcome() {
 <script>
   DeliveryChat.init({
     appId: "your-app-uuid",
-    apiBaseUrl: "https://api.yourdomain.com",
     position: "bottom-right",
   });
 </script>`}

@@ -1,5 +1,4 @@
 import { Welcome } from "../welcome/welcome";
-import { ChatWidgetEmbed } from "../components/ChatWidgetEmbed";
 import type { Route } from "./+types/home";
 
 export function meta(_args: Route.MetaArgs) {
@@ -10,10 +9,5 @@ export function meta(_args: Route.MetaArgs) {
 }
 
 export default function Home() {
-  return (
-    <>
-      <Welcome />
-      <ChatWidgetEmbed />
-    </>
-  );
+  return <Welcome />;
 }

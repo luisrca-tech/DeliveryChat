@@ -1,25 +1,21 @@
 import { useEffect } from "react";
 
-const API_BASE = "http://localhost:8000";
-const APP_ID = "550e8400-e29b-41d4-a716-446655440000";
+const APP_ID = "e2af1739-f35d-4a50-a4f8-d787e92924d6";
 
-declare global {
-  interface Window {
-    DeliveryChat?: { init: (opts: unknown) => void };
-  }
-}
+const getDeliveryChat = () =>
+  (window as unknown as { DeliveryChat?: { init: (opts: unknown) => void } })
+    .DeliveryChat;
 
 export function ChatWidgetEmbed() {
   useEffect(() => {
     const init = () => {
-      window.DeliveryChat?.init({
+      getDeliveryChat()?.init({
         appId: APP_ID,
-        apiBaseUrl: API_BASE,
         position: "bottom-right",
       });
     };
 
-    if (window.DeliveryChat?.init) {
+    if (getDeliveryChat()?.init) {
       init();
     } else {
       const script = document.createElement("script");

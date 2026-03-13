@@ -88,8 +88,8 @@ const settings = await fetch(`/v1/widget/settings/${appId}`);
 
 // Widget loads with application-specific configuration
 loadChatWidget({
-  appId: application.id,
-  settings: settings, // from applications.settings
+  appId, // the same appId used in the settings request
+  settings, // from applications.settings
 });
 ```
 

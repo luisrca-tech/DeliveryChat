@@ -29,6 +29,7 @@ import {
 } from "./components/ChatWindow.js";
 import { getState, setState } from "./state.js";
 import { fetchSettings } from "./api.js";
+import { getApiBaseUrl } from "./config.js";
 
 import styles from "./styles/main.css?inline";
 
@@ -196,11 +197,7 @@ async function init(opts: InitOptions): Promise<void> {
   const existing = document.getElementById(HOST_ID);
   if (existing) existing.remove();
 
-  const apiBaseUrl =
-    opts.apiBaseUrl ??
-    (typeof window !== "undefined"
-      ? `${window.location.origin.replace(/\/$/, "")}`
-      : "");
+  const apiBaseUrl = getApiBaseUrl();
   let apiSettings: Partial<WidgetSettings> = {};
   if (apiBaseUrl) {
     try {

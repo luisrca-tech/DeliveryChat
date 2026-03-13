@@ -1,7 +1,5 @@
-import type { WidgetSettings } from "../types.js";
-
 export function createMessageList(
-  messages: Array<{ id: string; text: string; role: "user" | "visitor" }>
+  messages: Array<{ id: string; text: string; role: "user" | "visitor" }>,
 ): HTMLElement {
   const list = document.createElement("div");
   list.className = "message-list";
@@ -23,7 +21,7 @@ export function createMessageList(
 
 export function appendMessage(
   list: HTMLElement,
-  message: { id: string; text: string; role: "user" | "visitor" }
+  message: { id: string; text: string; role: "user" | "visitor" },
 ): void {
   const bubble = document.createElement("div");
   bubble.className = `message-bubble message-${message.role}`;

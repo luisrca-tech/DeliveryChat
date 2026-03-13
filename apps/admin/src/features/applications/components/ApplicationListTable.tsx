@@ -32,10 +32,34 @@ export function ApplicationListTable({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const copyAppId = async (id: string) => {
-    await navigator.clipboard.writeText(id);
-    toast.success("App ID copied to clipboard");
-    setCopiedId(id);
-    setTimeout(() => setCopiedId(null), 2000);
+    try {
+      if (
+        typeof navigator !== "undefined" &&
+        navigator.clipboard?.writeText
+      ) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = id;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textArea);
+        if (!successful) {
+          throw new Error("Fallback copy command was unsuccessful");
+        }
+      }
+
+      toast.success("App ID copied to clipboard");
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Failed to copy App ID to clipboard", error);
+      toast.error("Failed to copy App ID to clipboard");
+    }
   };
 
   const filtered = useMemo(() => {

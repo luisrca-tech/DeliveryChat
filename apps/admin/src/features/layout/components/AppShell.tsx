@@ -3,9 +3,13 @@ import { Link } from "@tanstack/react-router";
 import { Settings } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { BillingAlert } from "@/features/billing/components/BillingAlert";
+import { ChatWidgetTest } from "@/features/applications/components/ChatWidgetTest";
+import { useApplicationsQuery } from "@/features/applications/hooks/useApplicationsQuery";
 
 export function AppShell(props: { children: ReactNode }) {
   const { children } = props;
+  const { data: appsData } = useApplicationsQuery();
+  const firstAppId = appsData?.applications?.[0]?.id;
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -32,6 +36,7 @@ export function AppShell(props: { children: ReactNode }) {
       </aside>
       <main className="flex-1 min-w-0">
         <BillingAlert />
+        {firstAppId && <ChatWidgetTest appId={firstAppId} />}
         <div className="p-6">{children}</div>
       </main>
     </div>

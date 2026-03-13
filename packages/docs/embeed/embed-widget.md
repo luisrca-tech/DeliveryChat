@@ -9,7 +9,6 @@ Vanilla JS chat widget with Shadow DOM, CSS variables, and public settings API.
 <script>
   DeliveryChat.init({
     appId: "550e8400-e29b-41d4-a716-446655440000",
-    apiBaseUrl: "https://api.yourdomain.com",
     position: "bottom-right",
     autoOpen: false,
     autoOpenDelay: 5000,
@@ -19,13 +18,12 @@ Vanilla JS chat widget with Shadow DOM, CSS variables, and public settings API.
 
 ## Init Options
 
-| Option        | Type                            | Required | Description                         |
-| ------------- | ------------------------------- | -------- | ----------------------------------- |
-| appId         | string                          | Yes      | Application UUID                    |
-| apiBaseUrl    | string                          | No       | API base URL (default: same origin) |
-| position      | "bottom-left" \| "bottom-right" | No       | Override API settings               |
-| autoOpen      | boolean                         | No       | Override API settings               |
-| autoOpenDelay | number                          | No       | Override API settings (ms)          |
+| Option        | Type                            | Required | Description           |
+| ------------- | ------------------------------- | -------- | --------------------- |
+| appId         | string                          | Yes      | Application UUID      |
+| position      | "bottom-left" \| "bottom-right" | No       | Override API settings |
+| autoOpen      | boolean                         | No       | Override API settings |
+| autoOpenDelay | number                          | No       | Override API settings (ms) |
 
 ## Async Load
 
@@ -43,7 +41,7 @@ If the script is loaded async, add a stub before it:
 </script>
 <script src="https://your-cdn.com/widget.js" async></script>
 <script>
-  DeliveryChat.init({ appId: "x", apiBaseUrl: "https://api.example.com" });
+  DeliveryChat.init({ appId: "x" });
 </script>
 ```
 
@@ -54,6 +52,8 @@ DeliveryChat.destroy();
 ```
 
 ## Build
+
+Set `VITE_API_BASE_URL` in `.env` before building (see `apps/widget/.env.example`).
 
 ```bash
 bun run build:embed

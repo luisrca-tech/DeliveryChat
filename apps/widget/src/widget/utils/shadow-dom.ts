@@ -1,5 +1,7 @@
 const HOST_ID = "delivery-chat-root";
 
+const shadowRoots = new WeakMap<HTMLElement, ShadowRoot>();
+
 export function createShadowHost(): HTMLElement {
   const existing = document.getElementById(HOST_ID);
   if (existing) {
@@ -15,10 +17,14 @@ export function createShadowHost(): HTMLElement {
 }
 
 export function createShadowRoot(host: HTMLElement): ShadowRoot {
-  if (host.shadowRoot) {
-    return host.shadowRoot;
+  const existing = shadowRoots.get(host);
+  if (existing) {
+    return existing;
   }
-  return host.attachShadow({ mode: "closed" });
+
+  const root = host.attachShadow({ mode: "closed" });
+  shadowRoots.set(host, root);
+  return root;
 }
 
 export function destroyHost(): void {
