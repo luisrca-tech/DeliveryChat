@@ -1,0 +1,148 @@
+# Chat Widget Integration
+
+The Delivery Chat widget is a vanilla JavaScript embed that adds a chat launcher and chat window to any website. No framework required—works with React, Vue, plain HTML, or any stack.
+
+## Quick Start
+
+Add the script tag and call `DeliveryChat.init()` with your application ID:
+
+```html
+<script src="https://your-cdn.com/widget.js"></script>
+<script>
+  DeliveryChat.init({
+    appId: "your-app-uuid",
+    position: "bottom-right",
+  });
+</script>
+```
+
+<Callout type="tip" title="Get your app ID">
+  Create an application in your dashboard to get the <code>appId</code>. See <a href="/v1/applications">Applications</a> for details.
+</Callout>
+
+## Init Options
+
+| Option | Type | Required | Description |
+|--------|------|----------|-------------|
+| `appId` | `string` | Yes | Your application UUID from the dashboard |
+| `position` | `"bottom-left" \| "bottom-right"` | No | Launcher position. Default: `"bottom-right"` |
+| `autoOpen` | `boolean` | No | Open chat automatically on load. Default: `false` |
+| `autoOpenDelay` | `number` | No | Delay in ms before auto-open. Default: `5000` |
+| `colors` | `object` | No | Override specific colors (e.g. `{ primary: "#6366f1" }`) |
+
+### Example with all options
+
+```javascript
+DeliveryChat.init({
+  appId: "app_abc123",
+  position: "bottom-left",
+  autoOpen: true,
+  autoOpenDelay: 3000,
+  colors: {
+    primary: "#6366f1",
+    background: "#ffffff",
+    text: "#0f172a",
+  },
+});
+```
+
+## Async Loading
+
+You can load the script asynchronously. The widget uses a queue pattern—calls to `DeliveryChat.init()` before the script finishes loading are queued and processed when ready:
+
+```html
+<script async src="https://your-cdn.com/widget.js"></script>
+<script>
+  // Safe to call immediately—will run when script loads
+  DeliveryChat.init({
+    appId: "your-app-uuid",
+  });
+</script>
+```
+
+## Destroying the Widget
+
+To remove the widget (e.g. on SPA route change or logout):
+
+```javascript
+DeliveryChat.destroy();
+```
+
+This cleans up event listeners, removes the DOM, and resets state. You can call `DeliveryChat.init()` again afterward to re-initialize.
+
+## Settings from the API
+
+The widget fetches configuration from the API (URL set via `VITE_API_BASE_URL` at build time):
+
+```
+GET {baseUrl}/v1/widget/settings/:appId
+```
+
+This endpoint is **public** (no auth). It returns JSON:
+
+```json
+{
+  "settings": {
+    "colors": { "primary": "#0ea5e9", "background": "#ffffff", ... },
+    "font": { "family": "system-ui", "size": "14px" },
+    "position": { "corner": "bottom-right", "offset": "16px" },
+    "header": { "title": "Chat with us", "subtitle": "...", "showLogo": true, "logoUrl": "..." },
+    "launcher": { "icon": "chat", "label": "Open chat" },
+    "behavior": { "autoOpen": false, "autoOpenDelay": 5000 }
+  }
+}
+```
+
+Settings are stored in `applications.settings` (JSONB) and managed from your dashboard. Init options override API settings—e.g. `position: "bottom-left"` in `init()` overrides the API `position.corner`.
+
+## Customization
+
+### Dashboard settings
+
+Configure colors, fonts, header, launcher, and behavior in your application settings. These are fetched automatically when the widget loads.
+
+### Init overrides
+
+Override any setting at init time. Useful for A/B tests or per-page behavior:
+
+```javascript
+DeliveryChat.init({
+  appId: "app_abc123",
+  position: "bottom-left",
+  autoOpen: true,
+  colors: { primary: "#ff0000" },
+});
+```
+
+### Launcher icons
+
+The launcher supports three icon types: `"chat"`, `"question"`, and `"message"`. Set via `applications.settings.launcher.icon`.
+
+## How It Works
+
+- **Shadow DOM** — Styles are isolated. Your site CSS does not affect the widget, and widget CSS does not leak out.
+- **Vanilla JS** — No React, Vue, or other framework required. Works on any website.
+- **CDN-ready** — The bundle is self-contained (~12KB gzipped) and can be served from any CDN.
+
+## Next Steps
+
+<QuickLinks
+  links={[
+    {
+      title: "Applications",
+      href: "/v1/applications",
+      description: "Create and configure your application"
+    },
+    {
+      title: "API Keys",
+      href: "/v1/api-keys",
+      description: "For SDK or REST API integration"
+    },
+    {
+      title: "Architecture Overview",
+      href: "/v1/architecture-overview",
+      description: "Understand the system architecture"
+    }
+  ]}
+  columns={3}
+/>

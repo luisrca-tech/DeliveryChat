@@ -19,7 +19,7 @@ function Dashboard() {
       : null;
 
   return (
-    <div className="max-w-5xl">
+    <div className="max-w-full">
       <div className="mb-8 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-4xl font-bold mb-2">Dashboard</h1>

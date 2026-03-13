@@ -15,7 +15,11 @@ app.use("*", logger());
 app.use(
   "*",
   cors({
-    origin: (origin) => {
+    origin: (origin, c) => {
+      if (c.req.path.startsWith("/v1/widget/")) {
+        return origin ?? "*";
+      }
+
       if (!origin) return origin;
 
       if (

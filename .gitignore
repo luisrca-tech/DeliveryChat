@@ -27,6 +27,7 @@ coverage
 out/
 build
 dist
+apps/widget/dist-embed/
 
 # TypeScript
 *.tsbuildinfo

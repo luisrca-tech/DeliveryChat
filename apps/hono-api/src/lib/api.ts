@@ -8,6 +8,7 @@ import { resendOtpRoute } from "../routes/resendOtp.js";
 import { webhooksRoute } from "../routes/webhooks.js";
 import { billingRoute } from "../routes/billing.js";
 import { tenantsRoute } from "../routes/tenants.js";
+import { widgetRoute } from "../routes/widget.js";
 import { rateLimitsRoute } from "../routes/rateLimits.js";
 
 /**
@@ -25,7 +26,8 @@ const app = new Hono()
   .route("/api-keys", apiKeysRoute)
   .route("/billing", billingRoute)
   .route("/rate-limits", rateLimitsRoute)
-  .route("/webhooks", webhooksRoute);
+  .route("/webhooks", webhooksRoute)
+  .route("/widget", widgetRoute);
 
 export const api = app;
 export type APIType = typeof app;
