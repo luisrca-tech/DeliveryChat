@@ -9,13 +9,13 @@ API keys authenticate your app when it talks to Delivery Chat. You need them whe
 - **Using the JavaScript/TypeScript SDK** — To control the widget programmatically
 - **Using the REST API** — To send messages, create visitors, or fetch conversations from your backend
 
-You do **not** need an API key for the simple iframe embed—the iframe uses only your application ID (appId), which is public.
+You do **not** need an API key for the chat widget embed—the widget uses only your application ID (appId), which is public.
 
 ## When Do You Need Them?
 
 | Integration | API Key Required? |
 |-------------|-------------------|
-| **iframe** | No — use appId only |
+| **Chat Widget** | No — use appId only |
 | **SDK** | Yes |
 | **REST API** | Yes |
 
@@ -85,7 +85,7 @@ Each plan allows a certain number of API keys per application:
 
 ## Using Your Keys
 
-For **iframe**, you only need the application ID (appId). No API key is used.
+For **chat widget**, you only need the application ID (appId). No API key is used.
 
 For **SDK or REST API**, include the key in your requests. Example:
 
@@ -116,9 +116,9 @@ When creating a key, you can set an expiration date. The key will stop working a
       description: "Learn how to create and manage applications"
     },
     {
-      title: "Integration Overview",
-      href: "/v1/integration-overview",
-      description: "Choose your integration method (iframe, SDK, REST)"
+      title: "Chat Widget Integration",
+      href: "/v1/chat-widget",
+      description: "Embed the chat widget on your website"
     },
     {
       title: "How Delivery Chat Works",

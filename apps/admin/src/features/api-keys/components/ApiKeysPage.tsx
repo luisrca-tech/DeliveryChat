@@ -126,7 +126,7 @@ export function ApiKeysPage() {
   );
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="max-w-full space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <Key className="h-5 w-5 text-primary" />

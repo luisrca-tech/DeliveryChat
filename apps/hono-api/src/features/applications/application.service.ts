@@ -32,6 +32,19 @@ export type UpdateApplicationInput = {
   settings?: Record<string, unknown>;
 };
 
+export async function getApplicationSettings(
+  id: string,
+): Promise<Record<string, unknown> | null> {
+  const [row] = await db
+    .select({ settings: applications.settings })
+    .from(applications)
+    .where(
+      and(eq(applications.id, id), isNull(applications.deletedAt)),
+    )
+    .limit(1);
+  return row ? (row.settings as Record<string, unknown>) : null;
+}
+
 export async function getApplication(
   id: string,
   organizationId: string,

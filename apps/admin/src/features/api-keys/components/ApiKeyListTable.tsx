@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
+import { Copy, MoreHorizontal, RotateCcw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -42,6 +43,35 @@ export function ApiKeyListTable({
   onCreateClick,
 }: ApiKeyListTableProps) {
   const [searchInput, setSearchInput] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const copyKeyId = async (id: string) => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(id);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = id;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const successful = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        if (!successful) {
+          throw new Error("Fallback copy command was unsuccessful");
+        }
+      }
+
+      toast.success("Key ID copied to clipboard");
+      setCopiedId(id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (error) {
+      console.error("Failed to copy key ID to clipboard", error);
+      toast.error("Failed to copy key ID to clipboard");
+    }
+  };
 
   const filteredKeys = useMemo(() => {
     let result = keys;
@@ -65,6 +95,7 @@ export function ApiKeyListTable({
               <div key={i} className="flex items-center gap-4 p-4">
                 <div className="h-4 w-32 rounded bg-muted animate-pulse" />
                 <div className="h-4 w-40 rounded bg-muted animate-pulse" />
+                <div className="h-4 w-32 rounded bg-muted animate-pulse" />
                 <div className="h-4 w-24 rounded bg-muted animate-pulse" />
                 <div className="ml-auto h-8 w-8 rounded bg-muted animate-pulse" />
               </div>
@@ -128,12 +159,15 @@ export function ApiKeyListTable({
             <tr className="border-b bg-muted/50">
               <th className="px-4 py-3 text-left text-sm font-medium">Name</th>
               <th className="px-4 py-3 text-left text-sm font-medium">
+                Key ID
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium">
                 Prefix
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium">
                 Created
               </th>
-              <th className="px-4 py-3 text-right text-sm font-medium">
+              <th className="w-20 shrink-0 px-4 py-3 pr-6 text-right text-sm font-medium">
                 Actions
               </th>
             </tr>
@@ -157,13 +191,31 @@ export function ApiKeyListTable({
                       {key.name || "—"}
                     </span>
                   </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <code className="font-mono text-xs truncate max-w-[140px] block">
+                        {key.id}
+                      </code>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 shrink-0"
+                        onClick={() => copyKeyId(key.id)}
+                        aria-label="Copy key ID"
+                      >
+                        <Copy
+                          className={`h-3.5 w-3.5 ${copiedId === key.id ? "text-green-600" : ""}`}
+                        />
+                      </Button>
+                    </div>
+                  </td>
                   <td className="px-4 py-3 font-mono text-sm">
                     {key.keyPrefix}
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {formatRelative(key.createdAt)}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="w-20 shrink-0 px-4 py-3 pr-6 text-right">
                     {!isRevoked && (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -176,6 +228,10 @@ export function ApiKeyListTable({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => copyKeyId(key.id)}>
+                            <Copy className="mr-2 h-4 w-4" />
+                            Copy Key ID
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => onRegenerate(key)}>
                             <RotateCcw className="mr-2 h-4 w-4" />
                             Regenerate
