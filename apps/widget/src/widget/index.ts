@@ -37,10 +37,15 @@ const HOST_ID = "delivery-chat-root";
 const MAX_MESSAGES = 100;
 
 let cleanupFns: Array<() => void> = [];
+let autoOpenTimeout: ReturnType<typeof setTimeout> | null = null;
 
 function runCleanup(): void {
   for (const fn of cleanupFns) fn();
   cleanupFns = [];
+  if (autoOpenTimeout !== null) {
+    clearTimeout(autoOpenTimeout);
+    autoOpenTimeout = null;
+  }
 }
 
 function mergeSettings(
@@ -101,10 +106,14 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     icon: settings.launcher.icon,
   });
 
+  // eslint-disable-next-line prefer-const
   let chatWindowEl: HTMLElement;
   const onSend = (text: string) => {
     const id = crypto.randomUUID();
-    const next = [...getState("messages"), { id, text, role: "user" }];
+    const next = [
+      ...getState("messages"),
+      { id, text, role: "user" as const },
+    ];
     const trimmed = next.slice(-MAX_MESSAGES);
     setState("messages", trimmed);
     const listEl = getMessageListEl(chatWindowEl);
@@ -227,7 +236,11 @@ async function init(opts: InitOptions): Promise<void> {
   render(shadow, settings);
 
   if (settings.behavior.autoOpen) {
-    setTimeout(() => {
+    if (autoOpenTimeout !== null) {
+      clearTimeout(autoOpenTimeout);
+    }
+
+    autoOpenTimeout = setTimeout(() => {
       setState("isOpen", true);
       const chatWindow = shadow.querySelector(".chat-window") as HTMLElement;
       const launcher = shadow.querySelector(".launcher") as HTMLElement;
