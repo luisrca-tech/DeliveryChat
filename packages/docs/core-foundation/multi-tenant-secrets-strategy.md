@@ -464,7 +464,7 @@ company_secrets
 
 - [Auth Integration Guide](./auth/auth-integration.md) - Better Auth setup with email verification
 - [Better Auth Multi-Tenant Study Guide](./auth/better-auth-multi-tenant-study-guide.md) - Account lifecycle and authentication flows
-- [Database Schema](../hono-api/src/db/schema/) - Database structure
+- [Visitors Implementation](./visitors-implementation.md) - Database schema and multi-tenant isolation
 
 ## Email Service Configuration
 

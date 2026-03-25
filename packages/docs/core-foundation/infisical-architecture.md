@@ -162,35 +162,35 @@ Your code just uses `process.env.DATABASE_URL` - no SDK calls needed for local d
    - Click **Create Service Token**
 
    **Configuration options:**
-   - **Service Token Name**: Pode ser qualquer nome descritivo (ex: `production-deploy`, `ci-cd-token`, `vercel-production`). O nome é apenas para identificação.
-   - **Environment**: Selecione os ambientes que o token terá acesso. Você pode:
-     - ✅ **Opção 1 (Recomendada)**: Criar um único token com acesso a `development`, `staging`, e `production` - mais simples de gerenciar
-     - ✅ **Opção 2**: Criar tokens separados para cada ambiente (mais seguro, princípio de menor privilégio)
+   - **Service Token Name**: Any descriptive name (e.g., `production-deploy`, `ci-cd-token`, `vercel-production`). The name is for identification only.
+   - **Environment**: Select the environments the token will have access to:
+     - ✅ **Option 1 (Recommended)**: Single token with access to `development`, `staging`, and `production` — simpler to manage
+     - ✅ **Option 2**: Separate tokens per environment (more secure, least privilege)
    - **Secrets Path**:
-     - ❌ Não use `/` (isso dá acesso a TODOS os paths do projeto - muito perigoso)
-     - **Opção A (Recomendada para monorepo)**: Adicione múltiplos paths para todos os apps:
+     - ❌ Do not use `/` (grants access to ALL paths — too dangerous)
+     - **Option A (Recommended for monorepo)**: Add multiple paths for all apps:
        - `/hono-api`
        - `/admin`
        - `/web`
        - `/widget`
-       - Isso permite que o mesmo token acesse secrets de todos os apps
-     - **Opção B (Mais seguro)**: Crie tokens separados, um por app:
-       - Token 1: apenas `/hono-api`
-       - Token 2: apenas `/admin`
-       - Token 3: apenas `/web`
-       - Token 4: apenas `/widget`
-       - Configure tokens diferentes na Vercel para cada app/projeto
-   - **Expiration**: `Never` é ok para tokens de deployment (ou defina uma data longa)
+       - This allows the same token to access secrets from all apps
+     - **Option B (More secure)**: Create separate tokens, one per app:
+       - Token 1: `/hono-api` only
+       - Token 2: `/admin` only
+       - Token 3: `/web` only
+       - Token 4: `/widget` only
+       - Configure different tokens in Vercel for each app/project
+   - **Expiration**: `Never` is acceptable for deployment tokens (or set a long expiration)
    - **Permissions**:
-     - ✅ **Read** é suficiente para deployments (CI/CD só precisa ler secrets, não escrever)
-     - ❌ **Write** só se você precisar que o deployment possa criar/atualizar secrets (raro, não recomendado)
+     - ✅ **Read** is sufficient for deployments (CI/CD only needs to read secrets, not write)
+     - ❌ **Write** only if the deployment needs to create/update secrets (rare, not recommended)
    - Copy the generated token (you'll only see it once!)
    - Store token securely in your CI/CD platform (GitHub Secrets, Vercel Environment Variables, Railway, etc.)
 
 2. **In CI/CD Pipeline or Deployment Platform**:
    - **Add as environment variable** in your deployment platform (GitHub Actions, Vercel, Railway, etc.):
      - Variable name: `INFISICAL_TOKEN`
-     - Variable value: `seu-service-token-copiado`
+     - Variable value: `your-copied-service-token`
    - No need to add it in your code or `.env` files (never commit tokens!)
 
    ```bash
@@ -234,26 +234,26 @@ const dbUrl = secrets.DATABASE_URL;
   **Option A: Service Token (Recommended - Simplest) ✅**
   - `INFISICAL_TOKEN` - Service token from Infisical dashboard
   - **How to get**:
-    1. Go to **Project Settings** > **Service Tokens** (no nível do projeto)
+    1. Go to **Project Settings** > **Service Tokens** (project level)
     2. Click **Create Service Token**
-    3. Copy the token generated
-  - **Advantage**: Mais simples, apenas um token, criado direto no projeto
-  - **Use case**: Deployments automatizados, CI/CD, serverless
+    3. Copy the generated token
+  - **Advantage**: Simplest approach — single token, created directly in the project
+  - **Use case**: Automated deployments, CI/CD, serverless
 
   **Option B: Universal Auth (Machine Identity)**
   - `INFISICAL_CLIENT_ID` - Client ID from Machine Identity
   - `INFISICAL_CLIENT_SECRET` - Client Secret from Machine Identity
   - **How to get**:
-    1. Go to **Organization Settings** > **Access Control** > **Identities** (no nível da organização)
+    1. Go to **Organization Settings** > **Access Control** > **Identities** (organization level)
     2. Click **Create Identity** and select **Universal Auth**
     3. Generate **Client Secret** and copy `Client ID` and `Client Secret`
     4. Add the identity to your project: **Project Settings** > **Access Control** > **Machine Identities**
-  - **Use case**: Quando precisa de mais controle e auditoria granular
+  - **Use case**: When you need more granular control and auditing
 
   **Local Development (`infisical login`):**
-  - Para desenvolvimento local, você usa `infisical login` no terminal
-  - Isso autentica você pessoalmente e o SDK pode usar essas credenciais automaticamente
-  - **Não funciona em produção/deployments** - apenas para desenvolvimento local
+  - For local development, use `infisical login` in your terminal
+  - This authenticates you personally and the SDK can use those credentials automatically
+  - **Does not work in production/deployments** — local development only
 
 **Note**: Use the SDK helper only when `infisical run` cannot be used (e.g., in serverless cold starts or dynamic environments). In standard CI/CD pipelines, prefer `infisical run` to inject secrets at build or deploy time.
 
@@ -282,18 +282,35 @@ All these commands use `infisical run` internally, so `DATABASE_URL` is automati
 
 ### `/hono-api/` Folder
 
-| Secret         | Description                                                                                    | Environments       |
-| -------------- | ---------------------------------------------------------------------------------------------- | ------------------ |
-| `DATABASE_URL` | PostgreSQL connection string in direct format: `postgresql://user:password@host:port/database` | dev, staging, prod |
+| Secret | Description | Environments |
+| --- | --- | --- |
+| `DATABASE_URL` | PostgreSQL connection string (`postgresql://user:password@host:port/database`) | dev, staging, prod |
+| `BETTER_AUTH_SECRET` | Better Auth session encryption key (min 32 chars) | dev, staging, prod |
+| `BETTER_AUTH_URL` | Base API URL for Better Auth callbacks | dev, staging, prod |
+| `RESEND_API_KEY` | Resend API key for transactional emails | dev, staging, prod |
+| `RESEND_EMAIL_TO` | Destination for enterprise contact emails | dev, staging, prod |
+| `EMAIL_FROM` | Custom sender address (optional, falls back to default) | dev, staging, prod |
+| `STRIPE_SECRET_KEY` | Stripe secret key for billing | dev, staging, prod |
+| `SIGNING_STRIPE_SECRET_KEY` | Stripe webhook signing secret | dev, staging, prod |
+| `STRIPE_BASIC_PRICE_KEY` | Stripe price ID for Basic plan | dev, staging, prod |
+| `STRIPE_PREMIUM_PRICE_KEY` | Stripe price ID for Premium plan | dev, staging, prod |
+| `STRIPE_ENTERPRISE_PRODUCT_KEY` | Stripe product ID for Enterprise plan | dev, staging, prod |
+| `STRIPE_AUTOMATIC_TAX_ENABLED` | Enable Stripe automatic tax (`"true"`/`"false"`) | dev, staging, prod |
+| `ALLOWED_ORIGINS` | JSON array of allowed CORS origins | dev, staging, prod |
+| `PORT` | Server port (optional) | dev, staging, prod |
 
-### Future Secrets
+### `/admin/` Folder
 
-As the application grows, you may add:
+| Secret | Description | Environments |
+| --- | --- | --- |
+| `VITE_API_URL` | Backend API URL | dev, staging, prod |
+| `VITE_RESEND_EMAIL_TO` | Enterprise contact email (client-side) | dev, staging, prod |
 
-- `/hono-api/`: `JWT_SECRET`, `PORT`, `API_KEY`
-- `/admin/`: `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`
-- `/widget/`: `API_ENDPOINT`, `PUBLIC_KEY`
-- `/web/`: `API_BASE_URL`
+### `/widget/` and `/web/` Folders
+
+| Secret | Description | Environments |
+| --- | --- | --- |
+| `VITE_API_URL` | Backend API URL | dev, staging, prod |
 
 ## Team Member Access Control
 
