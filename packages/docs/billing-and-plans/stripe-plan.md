@@ -1,119 +1,95 @@
-# Delivery Chat: High-Reliability Stripe Integration (v1)
+# Stripe Billing Integration
 
-## 1. Architectural Foundation & API v1 (✅ Complete)
+## Overview
 
-- **Versioning:** All Hono routes prefixed with `/v1`.
-- **Client Sync:** `BASE_URL` updated in Web and Admin apps.
+DeliveryChat uses Stripe for subscription billing with three paid tiers (Basic, Premium, Enterprise) plus a free trial period. The integration covers webhooks, RBAC-aware billing enforcement, and a hybrid Enterprise workflow.
 
-## 2. Database Resilience (Drizzle + Postgres) (✅ Complete)
+## Architecture
 
-- **Organization Schema:** Updated with `stripe_customer_id`, `plan_status`, etc.
-- **Idempotency:** `processed_events` table created to prevent duplicate webhook processing.
+### Database Schema
 
-## 3. Webhook Handler & Atomic Transactions (✅ Complete)
+The `organization` table holds all billing state:
+- `stripeCustomerId` — Stripe customer ID, created on first checkout
+- `stripeSubscriptionId` — Active subscription ID
+- `plan` — Current plan (`FREE`, `BASIC`, `PREMIUM`, `ENTERPRISE`)
+- `planStatus` — Mirrors Stripe subscription status (`active`, `trialing`, `past_due`, `canceled`, `unpaid`, `incomplete`, `paused`)
+- `trialEndsAt` — Trial expiration timestamp
+- `billingEmail` — Set to admin's email on org creation
+- `cancelAtPeriodEnd` — Whether the subscription will cancel at period end
 
-- **Endpoint:** `POST /v1/webhooks/stripe` implemented.
-- **Logic:** Signature verification, idempotency check, and database transactions for `invoice.paid`, `invoice.payment_failed`, and `subscription.deleted`.
+The `processedEvents` table provides idempotency — each Stripe webhook event ID is stored to prevent duplicate processing.
 
----
+### Webhook Handler
 
-## 4. RBAC + Billing Middleware (✅ Complete)
+**Endpoint:** `POST /v1/webhooks/stripe`
 
-Implement a Hono middleware `checkBillingStatus` to enforce business rules based on `planStatus` and `memberRoleEnum`.
+Handles three events inside atomic database transactions:
+- **`invoice.paid`** — Updates plan and status to `active`
+- **`invoice.payment_failed`** — Sets status to `past_due`
+- **`customer.subscription.deleted`** — Resets to `FREE` plan
+- **`customer.subscription.updated`** — Syncs `trial_end` into `trialEndsAt` when status is `trialing`
 
-### Enforcement Rules:
+Each event is verified via Stripe signature (`SIGNING_STRIPE_SECRET_KEY`) and checked against `processedEvents` for idempotency.
 
-- **Active / Trialing:** Full access for all roles.
-- **Past_due (Soft Block):**
-- **All Roles:** Allow `GET` (read-only) and `DELETE` (cost management). Block `POST/PUT` (no new messages/actions).
-- **Super Admin UI:** Display "Fix Billing" button/banner.
-- **Others UI:** Display "Contact Super Admin" banner.
+### RBAC Billing Middleware (`checkBillingStatus`)
 
-- **Unpaid / Canceled (Hard Block):** \* Redirect all roles to `/billing` or a blocked state.
-- Only `super_admin` can access the route to generate a Stripe Portal session.
+Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 
----
+| Status | Behavior |
+|---|---|
+| `active`, `trialing` (not expired) | Full access for all roles |
+| `trialing` (expired) | Block all. `super_admin` can access `/billing/checkout` and `/billing/portal-session` for recovery |
+| `past_due` (soft block) | `GET` and `DELETE` allowed (read-only + cost management). `POST`/`PUT` blocked. `super_admin` sees "Fix Billing" CTA; others see "Contact Super Admin" |
+| `unpaid`, `canceled` (hard block) | Block all. Only `super_admin` can access `/billing/portal-session` |
+| `incomplete`, `paused` | Block all, return 403 |
 
-## 5. The "Hybrid" Enterprise Workflow (✅ Complete)
+### Trial System
 
-- **Logic:** Enterprise tier bypasses Stripe Checkout.
-- **Trigger:** `planType === 'enterprise'` triggers **Resend** email via `RESEND_EMAIL_TO`.
-- **Payload:** Include Org Name, Admin Email, and Member Count.
-- **Destination:** `RESEND_EMAIL_TO` (configured in Infisical).
+- On organization creation: `planStatus = "trialing"`, `trialEndsAt = now + 14 days`, `billingEmail = user.email`
+- Stripe trial sync: `customer.subscription.updated` persists Stripe `trial_end` into `trialEndsAt`
+- Enforcement: expired trial returns `402 Payment Required`, allowing only `super_admin` recovery routes
 
----
+### Enterprise Hybrid Workflow
 
-## 6. Trial Control + "Zombie Checkout" Polling (✅ Complete)
+Enterprise tier bypasses Stripe Checkout entirely:
+- When `planType === 'enterprise'`, a contact email is sent via Resend to `RESEND_EMAIL_TO`
+- Payload includes: Org Name, Admin Email, Member Count
+- Admin UI shows "manual review" success state instead of Stripe redirect
 
-### Backend support
+## Admin UI
 
-- **Trial persistence:** `organization.trial_ends_at` added (migration `0011_add_trial_ends_at.sql`) and exposed as `trialEndsAt`.
-- **Internal 14-day trial:** On organization creation we set:
-  - `organization.planStatus = "trialing"`
-  - `organization.trialEndsAt = now + 14 days`
-  - `organization.billingEmail = user.email`
-- **Stripe trial sync:** `customer.subscription.updated` persists Stripe `trial_end` into `trialEndsAt` when status is `trialing`.
-- **Enforcement:** If `planStatus === "trialing"` and `trialEndsAt` is in the past:
-  - Block access with `402 Payment Required`
-  - Allow `super_admin` recovery routes: `/billing/checkout` and `/billing/portal-session`
+### Billing Alert Banner (`_system` layout)
 
-### Status endpoint (polling + banners)
+- **`past_due`**: Warning banner — `super_admin` gets "Fix billing" button, others get "Contact Admin"
+- **`trialing`**: "Trial ends in X days" based on `trialEndsAt`
+- **Trial ended**: Recovery CTA for `super_admin` to pick a plan
 
-- **Hono API:** `GET /v1/billing/status` returns:
-  - `isReady` (true only when status is `active` or non-expired `trialing`)
-  - `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`
+### Plan Selection (`/onboarding/plans`)
 
-### Polling UX ("Zombie Checkout")
+- Basic/Premium: calls `POST /v1/billing/checkout` → redirects to Stripe Checkout URL
+- Enterprise: calls `POST /v1/billing/checkout` → shows "manual review" success (Resend email triggered)
 
-- **Admin success page:** `/billing/success` implements polling (2s interval) to `GET /v1/billing/status` until `isReady === true`, then redirects to the dashboard.
-- **Note:** We intentionally keep this flow in **Admin** (tenant subdomain context), not Web.
+### Billing Settings (`/settings/billing`, super_admin only)
 
----
+- Shows current plan + status
+- Stripe portal: "Manage subscription" → `POST /v1/billing/portal-session`
+- Enterprise: hides portal, displays contact email
 
-## 7. Admin UI (RBAC + Billing Management) (✅ Complete)
+### Status Polling (`/billing/success`)
 
-### Feature-based structure + hooks (TanStack Query)
+After checkout, the success page polls `GET /v1/billing/status` every 2 seconds until `isReady === true`, then redirects to dashboard. This handles the delay between Stripe webhook delivery and database update ("Zombie Checkout" pattern).
 
-- The Admin implementation follows a **feature-based** structure (`apps/admin/src/features/*`) with:
-  - `lib/` fetchers per feature
-  - `hooks/` per feature using TanStack Query (`useQuery`, `useMutation`)
-  - `routes/` are thin wrappers around feature components
+**Status endpoint returns:** `isReady`, `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`
 
-### Global BillingAlert banner
+## Environment Variables
 
-- Implemented in the `_system` layout using the billing status endpoint.
-- **past_due:** warning banner with:
-  - `super_admin`: "Fix billing" button
-  - others: "Contact Admin"
-- **trialing:** "Trial ends in X days" based on `trialEndsAt`
-- **trial ended:** shows a recovery CTA for `super_admin` to pick a plan
-
-### Billing settings page (super_admin only)
-
-- Route: `/settings/billing`
-- Shows plan + planStatus and:
-  - **Stripe portal:** “Manage subscription” → `POST /v1/billing/portal-session`
-  - **Enterprise:** hides portal and displays the contact email (`RESEND_EMAIL_TO`)
-
-### Plan selection (onboarding)
-
-- Route: `/onboarding/plans`
-- Basic/Premium: calls `POST /v1/billing/checkout` and redirects to the Stripe Checkout URL
-- Enterprise: calls `POST /v1/billing/checkout` and shows “manual review” success (Resend email is triggered)
-
----
-
-### Instructions for Cursor:
-
-**Environment Reference:**
-
-- **Hono API:** `STRIPE_SECRET_KEY`, `SIGNING_STRIPE_SECRET_KEY`, `STRIPE_BASIC_PRICE_KEY`, `STRIPE_PREMIUM_PRICE_KEY`, `STRIPE_ENTERPRISE_PRODUCT_KEY`, `RESEND_EMAIL_TO`.
-- **Admin:** `VITE_RESEND_EMAIL_TO` (exposed client-side for showing Enterprise contact email).
-- **Web/Admin:** `PUBLIC_STRIPE_KEY` / `VITE_STRIPE_KEY` (optional; not required when redirecting via Checkout URL).
-
-**Action Items:**
-
-1. **Step 4:** ✅ Build the `checkBillingStatus` middleware. Use the `memberRoleEnum` to provide specific error messages ("Contact Super Admin" vs "Update Billing"). _(Complete)_
-2. **Step 5:** Implement the Enterprise email trigger logic in the billing router. _(Complete)_
-3. **Step 6:** ✅ Add trial tracking (`trialEndsAt`), improve billing enforcement, and implement polling on Admin `/billing/success`. _(Complete)_
-4. **Step 7:** ✅ Implement Admin onboarding (`/onboarding/plans`), BillingAlert, and billing settings (`/settings/billing` super*admin only). *(Complete)\_
+| Variable | App | Purpose |
+|---|---|---|
+| `STRIPE_SECRET_KEY` | hono-api | Stripe API access |
+| `SIGNING_STRIPE_SECRET_KEY` | hono-api | Webhook signature verification |
+| `STRIPE_BASIC_PRICE_KEY` | hono-api | Stripe price ID for Basic |
+| `STRIPE_PREMIUM_PRICE_KEY` | hono-api | Stripe price ID for Premium |
+| `STRIPE_ENTERPRISE_PRODUCT_KEY` | hono-api | Stripe product ID for Enterprise |
+| `STRIPE_AUTOMATIC_TAX_ENABLED` | hono-api | Enable automatic tax calculation |
+| `RESEND_EMAIL_TO` | hono-api | Enterprise contact email destination |
+| `VITE_RESEND_EMAIL_TO` | admin | Enterprise contact email (client-side) |
