@@ -11,7 +11,7 @@
     "check-types": "tsc --noEmit",
     "build:embed": "vite build --config vite.embed.config.ts",
     "dev:embed": "vite build --config vite.embed.config.ts --watch",
-    "predev": "bun run build:embed && node scripts/copy-widget.js",
+    "predev": "node scripts/ensure-embed.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
