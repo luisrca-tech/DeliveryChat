@@ -1,0 +1,47 @@
+import { index, text, uuid, varchar } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { createTable } from "../table";
+import { timestampString, timestampStringNullable } from "./customTypes";
+import { conversationTypeEnum } from "./enums/conversationTypeEnum";
+import { conversationStatusEnum } from "./enums/conversationStatusEnum";
+import { organization } from "./organization";
+import { applications } from "./applications";
+
+export const conversations = createTable(
+  "conversations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    organizationId: text("organization_id")
+      .notNull()
+      .references(() => organization.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id").references(() => applications.id, {
+      onDelete: "set null",
+    }),
+    type: conversationTypeEnum("type").notNull(),
+    status: conversationStatusEnum("status").notNull().default("active"),
+    subject: varchar("subject", { length: 500 }),
+    closedAt: timestampStringNullable("closed_at"),
+    createdAt: timestampString("created_at")
+      .default(sql`now()`)
+      .notNull(),
+    updatedAt: timestampString("updated_at")
+      .default(sql`now()`)
+      .notNull(),
+  },
+  (table) => ({
+    organizationIdx: index("conversations_organization_idx").on(
+      table.organizationId,
+    ),
+    applicationIdx: index("conversations_application_idx").on(
+      table.applicationId,
+    ),
+    orgStatusIdx: index("conversations_org_status_idx").on(
+      table.organizationId,
+      table.status,
+    ),
+    orgTypeIdx: index("conversations_org_type_idx").on(
+      table.organizationId,
+      table.type,
+    ),
+  }),
+);
