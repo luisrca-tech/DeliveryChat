@@ -78,6 +78,13 @@
       "when": 1771850000000,
       "tag": "0013_add_tenant_rate_limits",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1774472969139,
+      "tag": "0014_add-conversations-messages-and-anonymous-users",
+      "breakpoints": true
     }
   ]
 }
