@@ -12,3 +12,13 @@ export * from "./tenantRateLimits";
 export * from "./rateLimitEvents";
 export * from "./rateLimitAlertsSent";
 export * from "./enums/statusEnum";
+
+// Conversation & messaging
+export * from "./conversations";
+export * from "./messages";
+export * from "./conversationParticipants";
+export * from "./enums/conversationTypeEnum";
+export * from "./enums/conversationStatusEnum";
+export * from "./enums/messageTypeEnum";
+export * from "./enums/participantRoleEnum";
+export * from "./relations";

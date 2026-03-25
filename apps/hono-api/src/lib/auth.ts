@@ -1,6 +1,11 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { bearer, organization, emailOTP } from "better-auth/plugins";
+import {
+  anonymous,
+  bearer,
+  organization,
+  emailOTP,
+} from "better-auth/plugins";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { member } from "../db/schema/member.js";
@@ -152,6 +157,9 @@ export const auth = betterAuth({
     },
   },
   plugins: [
+    anonymous({
+      emailDomainName: "anonymous.deliverychat.online",
+    }),
     bearer({ requireSignature: true }),
     emailOTP({
       overrideDefaultEmailVerification: true,
