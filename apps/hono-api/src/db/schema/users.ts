@@ -1,4 +1,4 @@
-import { text, varchar } from "drizzle-orm/pg-core";
+import { boolean, text, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import {
@@ -14,6 +14,7 @@ export const user = createTable("user", {
   email: varchar("email", { length: 255 }).notNull(),
   emailVerified: emailVerifiedTimestamp("email_verified"),
   image: varchar("image", { length: 500 }),
+  isAnonymous: boolean("is_anonymous").notNull().default(false),
   status: statusEnum("status").notNull().default("PENDING_VERIFICATION"),
   pendingExpiresAt: timestampStringNullable("pending_expires_at"),
   expiredAt: timestampStringNullable("expired_at"),

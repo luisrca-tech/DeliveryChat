@@ -21,6 +21,10 @@ Architecture guides, implementation references, and technical decision records f
 - [Embed Reference](embed/embed-widget.md) — Quick reference for widget consumers: init options, async loading, destroy API
 - [How It Works](embed/how-it-works.md) — Shadow DOM isolation, CSS theming, settings flow, queue pattern
 
+### Conversations & Messaging
+
+- [Schema Design](conversations/schema.md) — Conversations, messages, participants, read status, anonymous visitors via Better Auth
+
 ### Rate Limiting
 
 - [Redis Migration (TODO)](rate-limiting/to-do/redis-migration.md) — Migration plan from MemoryStore to Redis-backed rate limiting

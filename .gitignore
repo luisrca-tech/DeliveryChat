@@ -28,6 +28,7 @@ out/
 build
 dist
 apps/widget/dist-embed/
+apps/widget/public/widget.js
 
 # TypeScript
 *.tsbuildinfo
