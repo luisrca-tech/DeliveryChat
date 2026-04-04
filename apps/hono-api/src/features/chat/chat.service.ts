@@ -1,0 +1,260 @@
+import { eq, and, sql, isNull, desc } from "drizzle-orm";
+import { db } from "../../db/index.js";
+import { conversations } from "../../db/schema/conversations.js";
+import { messages } from "../../db/schema/messages.js";
+import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
+import type {
+  ConversationType,
+  ConversationStatus,
+  ParticipantRole,
+} from "@repo/types";
+
+// ── Custom Errors ──
+
+export class ConversationNotFoundError extends Error {
+  constructor(conversationId: string) {
+    super(`Conversation not found: ${conversationId}`);
+    this.name = "ConversationNotFoundError";
+  }
+}
+
+export class ConversationNotActiveError extends Error {
+  constructor(conversationId: string, status: string) {
+    super(
+      `Conversation ${conversationId} is not active (status: ${status})`,
+    );
+    this.name = "ConversationNotActiveError";
+  }
+}
+
+export class ApplicationRequiredError extends Error {
+  constructor() {
+    super("Support conversations require an applicationId");
+    this.name = "ApplicationRequiredError";
+  }
+}
+
+export class ParticipantAlreadyExistsError extends Error {
+  constructor(conversationId: string, userId: string) {
+    super(
+      `User ${userId} is already a participant of conversation ${conversationId}`,
+    );
+    this.name = "ParticipantAlreadyExistsError";
+  }
+}
+
+// ── Types ──
+
+interface CreateConversationInput {
+  organizationId: string;
+  applicationId?: string;
+  type: ConversationType;
+  subject?: string;
+  participants: { userId: string; role: ParticipantRole }[];
+}
+
+interface SendMessageInput {
+  conversationId: string;
+  senderId: string;
+  content: string;
+}
+
+interface GetMessageHistoryInput {
+  conversationId: string;
+  limit: number;
+  offset: number;
+}
+
+interface AddParticipantInput {
+  conversationId: string;
+  userId: string;
+  role: ParticipantRole;
+}
+
+// ── Service Functions ──
+
+export async function createConversation(input: CreateConversationInput) {
+  if (input.type === "support" && !input.applicationId) {
+    throw new ApplicationRequiredError();
+  }
+
+  return db.transaction(async (tx) => {
+    const [conversation] = await tx
+      .insert(conversations)
+      .values({
+        id: crypto.randomUUID(),
+        organizationId: input.organizationId,
+        applicationId: input.applicationId ?? null,
+        type: input.type,
+        subject: input.subject ?? null,
+      })
+      .returning();
+
+    for (const participant of input.participants) {
+      await tx.insert(conversationParticipants).values({
+        id: crypto.randomUUID(),
+        conversationId: conversation.id,
+        userId: participant.userId,
+        role: participant.role,
+      });
+    }
+
+    return conversation;
+  });
+}
+
+export async function sendMessage(input: SendMessageInput) {
+  const [conversation] = await db
+    .select({
+      status: conversations.status,
+      organizationId: conversations.organizationId,
+    })
+    .from(conversations)
+    .where(eq(conversations.id, input.conversationId))
+    .limit(1);
+
+  if (!conversation) {
+    throw new ConversationNotFoundError(input.conversationId);
+  }
+
+  if (conversation.status !== "active") {
+    throw new ConversationNotActiveError(
+      input.conversationId,
+      conversation.status,
+    );
+  }
+
+  const [message] = await db
+    .insert(messages)
+    .values({
+      id: crypto.randomUUID(),
+      conversationId: input.conversationId,
+      senderId: input.senderId,
+      content: input.content,
+    })
+    .returning();
+
+  return message;
+}
+
+export async function getMessageHistory(input: GetMessageHistoryInput) {
+  return db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.conversationId, input.conversationId),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(input.limit)
+    .offset(input.offset);
+}
+
+export async function addParticipant(input: AddParticipantInput) {
+  const [participant] = await db
+    .insert(conversationParticipants)
+    .values({
+      id: crypto.randomUUID(),
+      conversationId: input.conversationId,
+      userId: input.userId,
+      role: input.role,
+    })
+    .returning();
+
+  return participant;
+}
+
+export async function getConversationWithParticipants(
+  conversationId: string,
+  organizationId: string,
+) {
+  const [conversation] = await db
+    .select()
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, organizationId),
+      ),
+    )
+    .limit(1);
+
+  if (!conversation) return null;
+
+  const participants = await db
+    .select()
+    .from(conversationParticipants)
+    .where(eq(conversationParticipants.conversationId, conversationId));
+
+  return { ...conversation, participants };
+}
+
+export async function closeConversation(
+  conversationId: string,
+  organizationId: string,
+) {
+  const [updated] = await db
+    .update(conversations)
+    .set({
+      status: "closed" as ConversationStatus,
+      closedAt: sql`now()`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, organizationId),
+      ),
+    )
+    .returning();
+
+  return updated ?? null;
+}
+
+export async function isParticipant(
+  conversationId: string,
+  userId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: conversationParticipants.id })
+    .from(conversationParticipants)
+    .where(
+      and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+        isNull(conversationParticipants.leftAt),
+      ),
+    )
+    .limit(1);
+
+  return !!row;
+}
+
+export async function getMessagesSince(
+  conversationId: string,
+  lastMessageId: string,
+  limit: number = 100,
+) {
+  const [lastMsg] = await db
+    .select({ createdAt: messages.createdAt })
+    .from(messages)
+    .where(eq(messages.id, lastMessageId))
+    .limit(1);
+
+  if (!lastMsg) return [];
+
+  return db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.conversationId, conversationId),
+        isNull(messages.deletedAt),
+        sql`${messages.createdAt} > ${lastMsg.createdAt}`,
+      ),
+    )
+    .orderBy(messages.createdAt)
+    .limit(limit);
+}

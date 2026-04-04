@@ -1,0 +1,126 @@
+// ── Enums aligned with DB schema ──
+
+export const ConversationType = {
+  SUPPORT: "support",
+  INTERNAL: "internal",
+} as const;
+export type ConversationType =
+  (typeof ConversationType)[keyof typeof ConversationType];
+
+export const ConversationStatus = {
+  ACTIVE: "active",
+  CLOSED: "closed",
+  ARCHIVED: "archived",
+} as const;
+export type ConversationStatus =
+  (typeof ConversationStatus)[keyof typeof ConversationStatus];
+
+export const MessageType = {
+  TEXT: "text",
+  SYSTEM: "system",
+} as const;
+export type MessageType = (typeof MessageType)[keyof typeof MessageType];
+
+export const ParticipantRole = {
+  VISITOR: "visitor",
+  OPERATOR: "operator",
+  ADMIN: "admin",
+} as const;
+export type ParticipantRole =
+  (typeof ParticipantRole)[keyof typeof ParticipantRole];
+
+// ── Client → Server Events ──
+
+export const WSClientEventType = {
+  ROOM_JOIN: "room:join",
+  ROOM_LEAVE: "room:leave",
+  MESSAGE_SEND: "message:send",
+  PING: "ping",
+} as const;
+export type WSClientEventType =
+  (typeof WSClientEventType)[keyof typeof WSClientEventType];
+
+export interface RoomJoinPayload {
+  conversationId: string;
+  lastMessageId?: string;
+}
+
+export interface RoomLeavePayload {
+  conversationId: string;
+}
+
+export interface MessageSendPayload {
+  conversationId: string;
+  content: string;
+  clientMessageId: string;
+}
+
+export type WSClientEvent =
+  | { type: typeof WSClientEventType.ROOM_JOIN; payload: RoomJoinPayload }
+  | { type: typeof WSClientEventType.ROOM_LEAVE; payload: RoomLeavePayload }
+  | { type: typeof WSClientEventType.MESSAGE_SEND; payload: MessageSendPayload }
+  | { type: typeof WSClientEventType.PING };
+
+// ── Server → Client Events ──
+
+export const WSServerEventType = {
+  MESSAGE_NEW: "message:new",
+  MESSAGE_ACK: "message:ack",
+  MESSAGES_SYNC: "messages:sync",
+  CONVERSATION_NEW: "conversation:new",
+  ERROR: "error",
+  PONG: "pong",
+} as const;
+export type WSServerEventType =
+  (typeof WSServerEventType)[keyof typeof WSServerEventType];
+
+export interface MessageNewPayload {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  senderName: string;
+  senderRole: ParticipantRole;
+  content: string;
+  type: MessageType;
+  createdAt: string;
+}
+
+export interface MessageAckPayload {
+  clientMessageId: string;
+  serverMessageId: string;
+  createdAt: string;
+}
+
+export interface MessagesSyncPayload {
+  conversationId: string;
+  messages: MessageNewPayload[];
+}
+
+export interface ConversationNewPayload {
+  id: string;
+  organizationId: string;
+  applicationId: string | null;
+  type: ConversationType;
+  status: ConversationStatus;
+  subject: string | null;
+  createdAt: string;
+}
+
+export interface WSErrorPayload {
+  code: string;
+  message: string;
+}
+
+export type WSServerEvent =
+  | { type: typeof WSServerEventType.MESSAGE_NEW; payload: MessageNewPayload }
+  | { type: typeof WSServerEventType.MESSAGE_ACK; payload: MessageAckPayload }
+  | {
+      type: typeof WSServerEventType.MESSAGES_SYNC;
+      payload: MessagesSyncPayload;
+    }
+  | {
+      type: typeof WSServerEventType.CONVERSATION_NEW;
+      payload: ConversationNewPayload;
+    }
+  | { type: typeof WSServerEventType.ERROR; payload: WSErrorPayload }
+  | { type: typeof WSServerEventType.PONG };
