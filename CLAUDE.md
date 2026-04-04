@@ -57,6 +57,10 @@ bunx vitest run path/to/file.test.ts      # Single test file
 # Widget embed build
 cd apps/widget && bun run build:embed     # Vite IIFE build
 
+# Watch mode & test cleanup
+bun run test:watch --filter=hono-api      # Vitest watch mode
+bun run test:cleanup --filter=hono-api    # Clean up test data in DB
+
 # Stripe webhooks
 bun run stripe:listen
 
@@ -69,12 +73,12 @@ SKIP_ENV_VALIDATION=true bun run build
 ### Backend (hono-api)
 
 - **Auth:** Better Auth v1.4.7 with plugins: `emailAndPassword`, `bearer`, `emailOTP`, `organization`. Roles: `super_admin`, `admin`, `operator`. Config at `apps/hono-api/src/lib/auth.ts`.
-- **Database:** PostgreSQL + Drizzle ORM. Schema files in `apps/hono-api/src/db/schema/`. Enums in `schema/enums/`. Custom timestamp types in `customTypes.ts` serialize timestamps as strings.
+- **Database:** PostgreSQL + Drizzle ORM. Schema files in `apps/hono-api/src/db/schema/`. Enums in `schema/enums/`. Custom timestamp types in `customTypes.ts` serialize timestamps as strings. All tables use `createTable()` from `db/table.ts` which prefixes table names with `delivery_chat_`.
 - **Tenant plans:** `FREE`, `BASIC`, `PREMIUM`, `ENTERPRISE` with plan-based feature limits defined in `src/lib/planLimits.ts`. Per-tenant overrides stored in `tenantRateLimits` table.
 - **Routes:** Composed in `src/lib/api.ts`, which exports `APIType` — the type used by the admin frontend's RPC client. Route files in `src/routes/`.
 - **Error responses:** Always use `jsonError(c, status, error, message?)` from `lib/http.ts` — never raw `c.json({ error })`.
 - **Billing:** Stripe integration — webhooks handled in `src/routes/webhooks.ts`, client in `src/lib/stripe.ts`.
-- **Email:** Resend SDK for transactional emails (OTP, password reset).
+- **Email:** Resend SDK for transactional emails (OTP, password reset). The `@repo/emails` package must be built before `hono-api` starts — this is handled automatically by `predev` and `prebuild` scripts.
 - **Env validation:** `@t3-oss/env-core` wrapping Zod in `apps/hono-api/src/env.ts`. `ALLOWED_ORIGINS` is a JSON string auto-parsed. `SKIP_ENV_VALIDATION=true` disables checks for CI.
 
 ### Middleware Chain (hono-api)
@@ -115,6 +119,15 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 - **Shadow DOM isolation:** Widget renders inside a Shadow DOM to prevent CSS leakage in both directions.
 - **Settings priority:** API-fetched (`/widget/settings`) → `defaultSettings` → caller's `InitOptions` (JS options win last).
 - **Public API:** `DeliveryChat.init({ appId })` and `DeliveryChat.destroy()`.
+
+### Conversations & Messaging
+
+Recently added domain for real-time chat. Three core tables:
+- **`conversations`** — scoped to an organization + optional application. Types: `conversationTypeEnum`. Statuses: `conversationStatusEnum` (default `active`).
+- **`messages`** — belongs to a conversation. Has `senderId` (references `user`), `messageTypeEnum` (default `text`), soft-delete via `deletedAt`.
+- **`conversationParticipants`** — join table with `participantRoleEnum`, unique constraint on `(conversationId, userId)`, tracks `lastReadMessageId` for read receipts.
+
+Relations defined in `schema/relations.ts`.
 
 ### Secrets Management
 
