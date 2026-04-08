@@ -11,6 +11,7 @@ import { tenantsRoute } from "../routes/tenants.js";
 import { widgetRoute } from "../routes/widget.js";
 import { rateLimitsRoute } from "../routes/rateLimits.js";
 import { conversationsRoute } from "../routes/conversations.js";
+import { invitationsRoute } from "../routes/invitations.js";
 
 /**
  * Shared Hono instance for API routes
@@ -29,7 +30,8 @@ const app = new Hono()
   .route("/rate-limits", rateLimitsRoute)
   .route("/webhooks", webhooksRoute)
   .route("/widget", widgetRoute)
-  .route("/conversations", conversationsRoute);
+  .route("/conversations", conversationsRoute)
+  .route("/invitations", invitationsRoute);
 
 export const api = app;
 export type APIType = typeof app;

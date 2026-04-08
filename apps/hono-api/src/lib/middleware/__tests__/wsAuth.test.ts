@@ -87,6 +87,51 @@ describe("authenticateWebSocket", () => {
       expect(result!.applicationId).toBe("app-1");
     });
 
+    it("uses visitorId when provided", async () => {
+      const c = createMockContext({
+        query: {
+          token: "dk_live_abcdefghijklmnopqrstuvwxyz123456",
+          appId: "app-1",
+          visitorId: "visitor-123",
+        },
+      });
+
+      mockVerifyApiKey.mockResolvedValue({
+        valid: true,
+        application: { id: "app-1", domain: "example.com" },
+        apiKey: { id: "key-1" },
+      });
+
+      mockSelect.mockReturnValue(
+        chainMock([{ organizationId: "org-1" }]),
+      );
+
+      const result = await authenticateWebSocket(c);
+      expect(result!.userId).toBe("visitor-123");
+    });
+
+    it("generates anonymous userId when visitorId not provided", async () => {
+      const c = createMockContext({
+        query: {
+          token: "dk_live_abcdefghijklmnopqrstuvwxyz123456",
+          appId: "app-1",
+        },
+      });
+
+      mockVerifyApiKey.mockResolvedValue({
+        valid: true,
+        application: { id: "app-1", domain: "example.com" },
+        apiKey: { id: "key-1" },
+      });
+
+      mockSelect.mockReturnValue(
+        chainMock([{ organizationId: "org-1" }]),
+      );
+
+      const result = await authenticateWebSocket(c);
+      expect(result!.userId).toMatch(/^anonymous-/);
+    });
+
     it("rejects invalid API key format", async () => {
       const c = createMockContext({
         query: { token: "bad-key", appId: "app-1" },
@@ -206,6 +251,33 @@ describe("authenticateWebSocket", () => {
 
       const result = await authenticateWebSocket(c);
       expect(result).toBeNull();
+    });
+
+    it("authenticates with sessionToken query param (cross-origin admin)", async () => {
+      const c = createMockContext({
+        query: { sessionToken: "bearer-token-123", tenant: "acme" },
+      });
+
+      mockGetSession.mockResolvedValue({ user: { id: "user-1" } });
+      mockSelect
+        .mockReturnValueOnce(chainMock([{ id: "org-1" }]))
+        .mockReturnValueOnce(chainMock([{ role: "operator" }]));
+
+      const result = await authenticateWebSocket(c);
+
+      expect(result).not.toBeNull();
+      expect(result!.userId).toBe("user-1");
+      expect(result!.role).toBe("operator");
+      expect(result!.authType).toBe("session");
+
+      // Verify getSession was called with the Authorization header
+      expect(mockGetSession).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headers: expect.any(Headers),
+        }),
+      );
+      const calledHeaders = mockGetSession.mock.calls[0][0].headers as Headers;
+      expect(calledHeaders.get("Authorization")).toBe("Bearer bearer-token-123");
     });
   });
 });

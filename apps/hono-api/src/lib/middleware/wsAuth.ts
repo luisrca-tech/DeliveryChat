@@ -41,9 +41,10 @@ export async function authenticateWebSocket(
   // Path 1: Try API key auth via query params (widget)
   const token = c.req.query("token");
   const appId = c.req.query("appId");
+  const visitorId = c.req.query("visitorId");
 
   if (token && appId) {
-    return authenticateWithApiKey(token, appId);
+    return authenticateWithApiKey(token, appId, visitorId);
   }
 
   // Path 2: Try session auth (admin app)
@@ -53,6 +54,7 @@ export async function authenticateWebSocket(
 async function authenticateWithApiKey(
   token: string,
   appId: string,
+  visitorId?: string,
 ): Promise<AuthenticatedWSUser | null> {
   if (!KEY_REGEX.test(token)) return null;
 
@@ -70,7 +72,7 @@ async function authenticateWithApiKey(
   if (!app) return null;
 
   return {
-    userId: `anonymous-${crypto.randomUUID()}`,
+    userId: visitorId ?? `anonymous-${crypto.randomUUID()}`,
     organizationId: app.organizationId,
     role: "visitor",
     authType: "apiKey",
@@ -81,8 +83,16 @@ async function authenticateWithApiKey(
 async function authenticateWithSession(
   c: Context,
 ): Promise<AuthenticatedWSUser | null> {
+  // WebSocket upgrade requests from cross-origin admin app won't carry cookies.
+  // Support Bearer token via query param as fallback.
+  const sessionToken = c.req.query("sessionToken");
+  const headers = new Headers(c.req.raw.headers);
+  if (sessionToken && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${sessionToken}`);
+  }
+
   const sessionResult = (await auth.api.getSession({
-    headers: c.req.raw.headers,
+    headers,
   })) as SessionWithUser | null;
 
   const sessionUser =

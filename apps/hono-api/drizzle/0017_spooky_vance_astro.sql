@@ -1,0 +1,1 @@
+ALTER TABLE "delivery_chat_invitation" ADD COLUMN "name" text;

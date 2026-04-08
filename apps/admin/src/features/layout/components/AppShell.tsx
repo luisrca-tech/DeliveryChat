@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Settings } from "lucide-react";
+import { Settings, MessageSquare } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { BillingAlert } from "@/features/billing/components/BillingAlert";
 import { ChatWidgetTest } from "@/features/applications/components/ChatWidgetTest";
@@ -22,6 +22,12 @@ export function AppShell(props: { children: ReactNode }) {
           <Link to="/" className="block">
             <Button variant="ghost" className="w-full justify-start">
               Dashboard
+            </Button>
+          </Link>
+          <Link to="/conversations" className="block">
+            <Button variant="ghost" className="w-full justify-start">
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Conversations
             </Button>
           </Link>
         </nav>

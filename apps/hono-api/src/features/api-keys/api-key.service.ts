@@ -93,7 +93,9 @@ export async function createApiKey(
       ),
     );
   if ((count[0]?.count ?? 0) >= maxKeys) {
-    throw new ApiKeyLimitError();
+    throw new ApiKeyLimitError(
+      `Your plan allows up to ${maxKeys} API keys per application. Please upgrade to add more.`,
+    );
   }
 
   const environment = input.environment ?? "live";

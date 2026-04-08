@@ -7,7 +7,8 @@ export const Route = createFileRoute("/_system/settings/billing")({
     if (typeof window === "undefined") return;
 
     const data = await getBillingStatus().catch(() => null);
-    if (!data || data.role !== "super_admin") {
+    const allowedRoles = ["admin", "super_admin"];
+    if (!data || !allowedRoles.includes(data.role)) {
       throw redirect({ to: "/" });
     }
   },

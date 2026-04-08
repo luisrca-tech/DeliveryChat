@@ -85,6 +85,41 @@
       "when": 1774472969139,
       "tag": "0014_add-conversations-messages-and-anonymous-users",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1775412048551,
+      "tag": "0015_faithful_triton",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1775412659903,
+      "tag": "0016_remove-invitation-token-column",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1775475837007,
+      "tag": "0017_spooky_vance_astro",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1775480016976,
+      "tag": "0018_add-conversation-created-by",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1775610929458,
+      "tag": "0019_add-assigned-to",
+      "breakpoints": true
     }
   ]
 }

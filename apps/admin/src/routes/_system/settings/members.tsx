@@ -1,8 +1,8 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { getBillingStatus } from "@/features/billing/lib/billing.client";
-import { PlansOnboardingPage } from "@/features/onboarding/components/PlansOnboardingPage";
+import { MembersPage } from "@/features/members/components/MembersPage";
 
-export const Route = createFileRoute("/_system/onboarding/plans")({
+export const Route = createFileRoute("/_system/settings/members")({
   beforeLoad: async () => {
     if (typeof window === "undefined") return;
 
@@ -12,5 +12,5 @@ export const Route = createFileRoute("/_system/onboarding/plans")({
       throw redirect({ to: "/" });
     }
   },
-  component: PlansOnboardingPage,
+  component: MembersPage,
 });
