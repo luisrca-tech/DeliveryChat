@@ -15,44 +15,69 @@ wsRoute.get("/ws", async (c, next) => {
 
   const wsHandler = upgradeWebSocket((c) => {
     let connection: WSConnection | null = null;
+    let authReady: Promise<void> | null = null;
+    const pendingMessages: string[] = [];
 
     return {
-      async onOpen(_event, ws) {
-        const authResult = await authenticateWebSocket(c);
+      onOpen(_event, ws) {
+        authReady = (async () => {
+          const authResult = await authenticateWebSocket(c);
 
-        if (!authResult) {
-          ws.send(
-            JSON.stringify({
-              type: "error",
-              payload: { code: "UNAUTHORIZED", message: "Authentication failed" },
-            }),
-          );
-          ws.close(1008, "Unauthorized");
-          return;
-        }
+          if (!authResult) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                payload: {
+                  code: "UNAUTHORIZED",
+                  message: "Authentication failed",
+                },
+              }),
+            );
+            ws.close(1008, "Unauthorized");
+            return;
+          }
 
-        connection = {
-          id: crypto.randomUUID(),
-          userId: authResult.userId,
-          organizationId: authResult.organizationId,
-          role: authResult.role,
-          ws,
-        };
+          connection = {
+            id: crypto.randomUUID(),
+            userId: authResult.userId,
+            organizationId: authResult.organizationId,
+            role: authResult.role,
+            ws,
+          };
+
+          roomManager.registerConnection(connection);
+
+          // Process any messages that arrived during auth
+          for (const msg of pendingMessages) {
+            await handleEvent(connection, msg);
+          }
+          pendingMessages.length = 0;
+        })();
       },
 
       async onMessage(event, _ws) {
-        if (!connection) return;
-
         const data =
           typeof event.data === "string"
             ? event.data
             : event.data.toString();
 
-        await handleEvent(connection, data);
+        if (!connection) {
+          // Auth still in progress — queue the message
+          pendingMessages.push(data);
+          return;
+        }
+
+        // Ensure auth has completed
+        if (authReady) await authReady;
+
+        if (connection) {
+          await handleEvent(connection, data);
+        }
       },
 
       onClose() {
         if (connection) {
+          roomManager.unregisterConnection(connection.id, connection.organizationId);
           roomManager.disconnectUser(connection.userId);
         }
       },
@@ -60,6 +85,7 @@ wsRoute.get("/ws", async (c, next) => {
       onError(error) {
         console.error("[WS] Connection error:", error);
         if (connection) {
+          roomManager.unregisterConnection(connection.id, connection.organizationId);
           roomManager.disconnectUser(connection.userId);
         }
       },

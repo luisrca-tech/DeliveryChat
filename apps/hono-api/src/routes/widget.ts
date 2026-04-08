@@ -17,6 +17,8 @@ import {
   createWidgetConversationSchema,
   getMessagesQuerySchema,
 } from "./schemas/conversations.js";
+import { roomManager } from "./ws.js";
+import type { WSServerEvent } from "@repo/types";
 
 export const widgetRoute = new Hono()
   .get("/settings/:appId", async (c) => {
@@ -91,6 +93,24 @@ export const widgetRoute = new Hono()
           subject,
           participants: [{ userId: visitorId, role: "visitor" }],
         });
+
+        // Broadcast to org staff so the queue updates in real-time
+        const event: WSServerEvent = {
+          type: "conversation:new",
+          payload: {
+            id: conversation.id,
+            organizationId: app.organizationId,
+            applicationId: apiAuth.application.id,
+            type: "support",
+            status: "pending",
+            subject: subject ?? null,
+            createdAt: conversation.createdAt,
+          },
+        };
+        roomManager.broadcastToOrganization(
+          app.organizationId,
+          JSON.stringify(event),
+        );
 
         return c.json({ conversation }, 201);
       } catch (error) {
