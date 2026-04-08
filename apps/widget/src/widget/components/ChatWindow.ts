@@ -1,11 +1,12 @@
-import type { WidgetSettings } from "../types.js";
+import type { WidgetSettings, ChatMessage } from "../types.js";
 import { createHeader } from "./Header.js";
-import { createMessageList, appendMessage } from "./MessageList.js";
+import { createMessageList, appendMessage, updateMessageStatus } from "./MessageList.js";
 import { createInputArea } from "./InputArea.js";
+import { createConnectionIndicator } from "./ConnectionIndicator.js";
 
 export function createChatWindow(
   settings: WidgetSettings,
-  messages: Array<{ id: string; text: string; role: "user" | "visitor" }>,
+  messages: ChatMessage[],
   onSend: (text: string) => void,
   onClose?: () => void
 ): HTMLElement {
@@ -15,8 +16,12 @@ export function createChatWindow(
   container.setAttribute("aria-label", settings.header.title);
 
   const header = createHeader(settings.header, onClose);
+  const connectionIndicator = createConnectionIndicator();
   const messageList = createMessageList(messages);
   const inputArea = createInputArea(onSend);
+
+  // Place connection indicator inside header
+  header.appendChild(connectionIndicator);
 
   container.appendChild(header);
   container.appendChild(messageList);
@@ -29,4 +34,4 @@ export function getMessageListEl(chatWindow: HTMLElement): HTMLElement | null {
   return chatWindow.querySelector(".message-list");
 }
 
-export { appendMessage };
+export { appendMessage, updateMessageStatus };
