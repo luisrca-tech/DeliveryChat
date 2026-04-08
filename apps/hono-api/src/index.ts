@@ -47,6 +47,7 @@ app.use(
       "X-Tenant-Slug",
       "X-Timezone",
       "X-App-Id",
+      "X-Visitor-Id",
     ],
     exposeHeaders: ["set-auth-token", "set-auth-jwt"],
     credentials: true,
