@@ -79,6 +79,7 @@ export const defaultSettings: WidgetSettings = {
 export type InitOptions = {
   appId: string;
   apiKey: string;
+  apiBaseUrl?: string;
   position?: "bottom-left" | "bottom-right";
   autoOpen?: boolean;
   autoOpenDelay?: number;

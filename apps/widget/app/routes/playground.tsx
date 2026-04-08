@@ -8,7 +8,7 @@ export function meta(_args: Route.MetaArgs) {
   ];
 }
 
-const API_BASE_FALLBACK = "http://localhost:8000/v1";
+const API_BASE_FALLBACK = "http://localhost:8000";
 
 const isBrowser = typeof window !== "undefined";
 

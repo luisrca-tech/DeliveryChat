@@ -29,7 +29,7 @@ import {
 } from "./components/ChatWindow.js";
 import { getState, setState, subscribe } from "./state.js";
 import { fetchSettings } from "./api.js";
-import { getApiBaseUrl } from "./config.js";
+import { getApiBaseUrl, setApiBaseUrl } from "./config.js";
 import {
   initChatController,
   openChat as controllerOpenChat,
@@ -254,6 +254,10 @@ async function init(opts: InitOptions): Promise<void> {
   runCleanup();
   const existing = document.getElementById(HOST_ID);
   if (existing) existing.remove();
+
+  if (opts.apiBaseUrl) {
+    setApiBaseUrl(opts.apiBaseUrl);
+  }
 
   const apiBaseUrl = getApiBaseUrl();
   let apiSettings: Partial<WidgetSettings> = {};
