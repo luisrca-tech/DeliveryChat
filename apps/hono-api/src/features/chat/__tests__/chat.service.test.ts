@@ -55,6 +55,9 @@ const {
   addParticipant,
   getConversationWithParticipants,
   closeConversation,
+  acceptConversation,
+  leaveConversation,
+  resolveConversation,
   ConversationNotFoundError,
   ConversationNotActiveError,
   ApplicationRequiredError,
@@ -322,6 +325,106 @@ describe("chat.service", () => {
       mockSelect.mockReturnValueOnce(selectChain);
 
       const result = await getConversationWithParticipants("conv-999", "org-1");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("acceptConversation", () => {
+    it("assigns the operator and sets status to active (race-condition safe)", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        status: "active" as const,
+        assignedTo: "operator-1",
+        updatedAt: "2026-01-01T00:00:00Z",
+      };
+
+      const updateChain = chainMock([updatedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await acceptConversation("conv-1", "org-1", "operator-1");
+
+      expect(result).toEqual(updatedRow);
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("returns null when conversation is already accepted (race condition lost)", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await acceptConversation("conv-1", "org-1", "operator-2");
+      expect(result).toBeNull();
+    });
+
+    it("returns null for non-existent conversation", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await acceptConversation("conv-999", "org-1", "operator-1");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("leaveConversation", () => {
+    it("unassigns operator and sets status back to pending", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        status: "pending" as const,
+        assignedTo: null,
+        updatedAt: "2026-01-01T00:00:00Z",
+      };
+
+      const updateChain = chainMock([updatedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await leaveConversation("conv-1", "org-1", "operator-1");
+
+      expect(result).toEqual(updatedRow);
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("returns null when operator is not the assigned one", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await leaveConversation("conv-1", "org-1", "operator-wrong");
+      expect(result).toBeNull();
+    });
+
+    it("returns null for non-existent conversation", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await leaveConversation("conv-999", "org-1", "operator-1");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("resolveConversation", () => {
+    it("sets status to closed and closedAt timestamp", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        status: "closed" as const,
+        closedAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+      };
+
+      const updateChain = chainMock([updatedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await resolveConversation("conv-1", "org-1", "operator-1");
+
+      expect(result).toEqual(updatedRow);
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("returns null for non-existent conversation", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await resolveConversation("conv-999", "org-1", "operator-1");
       expect(result).toBeNull();
     });
   });

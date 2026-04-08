@@ -50,6 +50,7 @@ interface CreateConversationInput {
   applicationId?: string;
   type: ConversationType;
   subject?: string;
+  createdBy?: string;
   participants: { userId: string; role: ParticipantRole }[];
 }
 
@@ -86,9 +87,13 @@ export async function createConversation(input: CreateConversationInput) {
         organizationId: input.organizationId,
         applicationId: input.applicationId ?? null,
         type: input.type,
+        status: "pending",
+        createdBy: input.createdBy ?? null,
         subject: input.subject ?? null,
       })
       .returning();
+
+    if (!conversation) throw new Error("Failed to create conversation");
 
     for (const participant of input.participants) {
       await tx.insert(conversationParticipants).values({
@@ -117,7 +122,7 @@ export async function sendMessage(input: SendMessageInput) {
     throw new ConversationNotFoundError(input.conversationId);
   }
 
-  if (conversation.status !== "active") {
+  if (conversation.status !== "active" && conversation.status !== "pending") {
     throw new ConversationNotActiveError(
       input.conversationId,
       conversation.status,
@@ -133,6 +138,8 @@ export async function sendMessage(input: SendMessageInput) {
       content: input.content,
     })
     .returning();
+
+  if (!message) throw new Error("Failed to insert message");
 
   return message;
 }
@@ -230,6 +237,79 @@ export async function isParticipant(
     .limit(1);
 
   return !!row;
+}
+
+export async function acceptConversation(
+  conversationId: string,
+  organizationId: string,
+  operatorId: string,
+) {
+  const [updated] = await db
+    .update(conversations)
+    .set({
+      status: "active" as ConversationStatus,
+      assignedTo: operatorId,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, organizationId),
+        eq(conversations.status, "pending"),
+        isNull(conversations.assignedTo),
+      ),
+    )
+    .returning();
+
+  return updated ?? null;
+}
+
+export async function leaveConversation(
+  conversationId: string,
+  organizationId: string,
+  operatorId: string,
+) {
+  const [updated] = await db
+    .update(conversations)
+    .set({
+      status: "pending" as ConversationStatus,
+      assignedTo: null,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, organizationId),
+        eq(conversations.assignedTo, operatorId),
+      ),
+    )
+    .returning();
+
+  return updated ?? null;
+}
+
+export async function resolveConversation(
+  conversationId: string,
+  organizationId: string,
+  operatorId: string,
+) {
+  const [updated] = await db
+    .update(conversations)
+    .set({
+      status: "closed" as ConversationStatus,
+      closedAt: sql`now()`,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, organizationId),
+        eq(conversations.assignedTo, operatorId),
+      ),
+    )
+    .returning();
+
+  return updated ?? null;
 }
 
 export async function getMessagesSince(

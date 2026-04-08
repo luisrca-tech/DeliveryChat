@@ -20,11 +20,20 @@ export interface IRoomManager {
   getConnections(conversationId: string): WSConnection[];
   getUserRooms(userId: string): string[];
   disconnectUser(userId: string): void;
+  registerConnection(connection: WSConnection): void;
+  unregisterConnection(connectionId: string, organizationId: string): void;
+  broadcastToOrganization(
+    organizationId: string,
+    event: string,
+    excludeConnectionId?: string,
+  ): void;
+  getOrganizationConnections(organizationId: string): WSConnection[];
 }
 
 export class InMemoryRoomManager implements IRoomManager {
   private rooms = new Map<string, Map<string, WSConnection>>();
   private userConnections = new Map<string, Set<string>>();
+  private orgConnections = new Map<string, Map<string, WSConnection>>();
 
   join(conversationId: string, connection: WSConnection): void {
     if (!this.rooms.has(conversationId)) {
@@ -107,5 +116,44 @@ export class InMemoryRoomManager implements IRoomManager {
     }
 
     this.userConnections.delete(userId);
+  }
+
+  registerConnection(connection: WSConnection): void {
+    const orgId = connection.organizationId;
+    if (!this.orgConnections.has(orgId)) {
+      this.orgConnections.set(orgId, new Map());
+    }
+    this.orgConnections.get(orgId)!.set(connection.id, connection);
+  }
+
+  unregisterConnection(connectionId: string, organizationId: string): void {
+    const orgMap = this.orgConnections.get(organizationId);
+    if (!orgMap) return;
+
+    orgMap.delete(connectionId);
+    if (orgMap.size === 0) {
+      this.orgConnections.delete(organizationId);
+    }
+  }
+
+  broadcastToOrganization(
+    organizationId: string,
+    event: string,
+    excludeConnectionId?: string,
+  ): void {
+    const orgMap = this.orgConnections.get(organizationId);
+    if (!orgMap) return;
+
+    for (const [connId, conn] of orgMap) {
+      if (connId !== excludeConnectionId) {
+        conn.ws.send(event);
+      }
+    }
+  }
+
+  getOrganizationConnections(organizationId: string): WSConnection[] {
+    const orgMap = this.orgConnections.get(organizationId);
+    if (!orgMap) return [];
+    return Array.from(orgMap.values());
   }
 }
