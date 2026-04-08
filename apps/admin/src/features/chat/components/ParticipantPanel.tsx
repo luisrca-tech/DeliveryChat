@@ -1,9 +1,5 @@
-import { Users, UserPlus } from "lucide-react";
-import { useState } from "react";
-import { Button } from "@repo/ui/components/ui/button";
-import { Separator } from "@repo/ui/components/ui/separator";
+import { Users } from "lucide-react";
 import { useConversationDetailQuery } from "../hooks/useConversationsQuery";
-import { AddParticipantDialog } from "./AddParticipantDialog";
 import type { ConversationParticipant } from "../types/chat.types";
 
 type Props = {
@@ -17,25 +13,14 @@ const roleColors: Record<string, string> = {
 };
 
 export function ParticipantPanel({ conversationId }: Props) {
-  const [addOpen, setAddOpen] = useState(false);
   const { data } = useConversationDetailQuery(conversationId);
   const participants = data?.conversation?.participants ?? [];
 
   return (
     <div className="w-72 border-l border-border bg-card/50 flex flex-col shrink-0">
-      <div className="p-4 border-b border-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Participants</span>
-        </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-7 w-7"
-          onClick={() => setAddOpen(true)}
-        >
-          <UserPlus className="h-3.5 w-3.5" />
-        </Button>
+      <div className="p-4 border-b border-border flex items-center gap-2">
+        <Users className="h-4 w-4 text-muted-foreground" />
+        <span className="text-sm font-medium">Participants</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
@@ -49,13 +34,6 @@ export function ParticipantPanel({ conversationId }: Props) {
           </p>
         )}
       </div>
-
-      <AddParticipantDialog
-        conversationId={conversationId}
-        existingParticipantIds={participants.map((p) => p.userId)}
-        open={addOpen}
-        onOpenChange={setAddOpen}
-      />
     </div>
   );
 }

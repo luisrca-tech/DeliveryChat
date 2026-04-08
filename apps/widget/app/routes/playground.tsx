@@ -10,6 +10,17 @@ export function meta(_args: Route.MetaArgs) {
 
 const API_BASE_FALLBACK = "http://localhost:8000/v1";
 
+const isBrowser = typeof window !== "undefined";
+
+function safeGetItem(key: string, fallback: string): string {
+  if (!isBrowser) return fallback;
+  try {
+    return localStorage.getItem(key) ?? fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 type DeliveryChatAPI = {
   init: (opts: {
     appId: string;
@@ -21,14 +32,15 @@ type DeliveryChatAPI = {
 };
 
 function getDeliveryChat(): DeliveryChatAPI | null {
+  if (!isBrowser) return null;
   return (window as unknown as { DeliveryChat?: DeliveryChatAPI }).DeliveryChat ?? null;
 }
 
 export default function Playground() {
-  const [appId, setAppId] = useState(() => localStorage.getItem("pg_appId") ?? "");
-  const [apiKey, setApiKey] = useState(() => localStorage.getItem("pg_apiKey") ?? "");
+  const [appId, setAppId] = useState(() => safeGetItem("pg_appId", ""));
+  const [apiKey, setApiKey] = useState(() => safeGetItem("pg_apiKey", ""));
   const [apiBaseUrl, setApiBaseUrl] = useState(
-    () => localStorage.getItem("pg_apiBaseUrl") ?? API_BASE_FALLBACK,
+    () => safeGetItem("pg_apiBaseUrl", API_BASE_FALLBACK),
   );
   const [isActive, setIsActive] = useState(false);
   const scriptLoaded = useRef(false);
