@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, isNull, desc } from "drizzle-orm";
+import { and, eq, isNull, desc, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { messages } from "../db/schema/messages.js";
 import { user } from "../db/schema/users.js";
@@ -86,11 +86,29 @@ export const widgetRoute = new Hono()
           );
         }
 
+        // Ensure anonymous user exists for this visitor
+        const [existingUser] = await db
+          .select({ id: user.id })
+          .from(user)
+          .where(eq(user.id, visitorId))
+          .limit(1);
+
+        if (!existingUser) {
+          await db.insert(user).values({
+            id: visitorId,
+            name: "Visitor",
+            email: `${visitorId}@anonymous.deliverychat.online`,
+            isAnonymous: true,
+            status: "ACTIVE",
+          });
+        }
+
         const conversation = await createConversation({
           organizationId: app.organizationId,
           applicationId: apiAuth.application.id,
           type: "support",
           subject,
+          createdBy: visitorId,
           participants: [{ userId: visitorId, role: "visitor" }],
         });
 
