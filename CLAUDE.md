@@ -122,10 +122,20 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 
 ### Conversations & Messaging
 
-Recently added domain for real-time chat. Three core tables:
-- **`conversations`** — scoped to an organization + optional application. Types: `conversationTypeEnum`. Statuses: `conversationStatusEnum` (default `active`).
-- **`messages`** — belongs to a conversation. Has `senderId` (references `user`), `messageTypeEnum` (default `text`), soft-delete via `deletedAt`.
+Support conversation lifecycle with real-time WebSocket updates. Three core tables:
+- **`conversations`** — scoped to an organization + optional application. Type: `support` only (visitor-initiated). Statuses: `pending` → `active` → `closed`. Has `assignedTo` (operator who accepted). Default status: `pending`.
+- **`messages`** — belongs to a conversation. Has `senderId` (references `user`), `messageTypeEnum` (default `text`), soft-delete via `deletedAt`. Messages can be sent while conversation is `pending` or `active`.
 - **`conversationParticipants`** — join table with `participantRoleEnum`, unique constraint on `(conversationId, userId)`, tracks `lastReadMessageId` for read receipts.
+
+**Conversation lifecycle:**
+1. Visitor sends first message → conversation created as `pending` → appears in operator queue
+2. Operator clicks Accept → `POST /conversations/:id/accept` (race-condition safe: `WHERE assignedTo IS NULL`) → status `active`, `assignedTo` set
+3. Operator clicks Leave Chat → `POST /conversations/:id/leave` → status back to `pending`, `assignedTo` null → returns to queue
+4. Operator clicks Mark as Solved → `POST /conversations/:id/resolve` → status `closed`
+
+**Visibility rules:** Operators see pending (queue) + their own active. Admins/super_admins see all.
+
+**WS org-level broadcasting:** `InMemoryRoomManager` tracks connections per organization. Lifecycle events (`conversation:new`, `conversation:accepted`, `conversation:released`, `conversation:resolved`) broadcast to all org staff so queue updates in real-time.
 
 Relations defined in `schema/relations.ts`.
 
