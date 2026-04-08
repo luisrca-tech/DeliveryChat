@@ -8,9 +8,9 @@ export type ConversationType =
   (typeof ConversationType)[keyof typeof ConversationType];
 
 export const ConversationStatus = {
+  PENDING: "pending",
   ACTIVE: "active",
   CLOSED: "closed",
-  ARCHIVED: "archived",
 } as const;
 export type ConversationStatus =
   (typeof ConversationStatus)[keyof typeof ConversationStatus];
@@ -68,6 +68,9 @@ export const WSServerEventType = {
   MESSAGE_ACK: "message:ack",
   MESSAGES_SYNC: "messages:sync",
   CONVERSATION_NEW: "conversation:new",
+  CONVERSATION_ACCEPTED: "conversation:accepted",
+  CONVERSATION_RELEASED: "conversation:released",
+  CONVERSATION_RESOLVED: "conversation:resolved",
   ERROR: "error",
   PONG: "pong",
 } as const;
@@ -106,6 +109,21 @@ export interface ConversationNewPayload {
   createdAt: string;
 }
 
+export interface ConversationAcceptedPayload {
+  conversationId: string;
+  assignedTo: string;
+  assignedToName: string;
+}
+
+export interface ConversationReleasedPayload {
+  conversationId: string;
+}
+
+export interface ConversationResolvedPayload {
+  conversationId: string;
+  resolvedBy: string;
+}
+
 export interface WSErrorPayload {
   code: string;
   message: string;
@@ -121,6 +139,18 @@ export type WSServerEvent =
   | {
       type: typeof WSServerEventType.CONVERSATION_NEW;
       payload: ConversationNewPayload;
+    }
+  | {
+      type: typeof WSServerEventType.CONVERSATION_ACCEPTED;
+      payload: ConversationAcceptedPayload;
+    }
+  | {
+      type: typeof WSServerEventType.CONVERSATION_RELEASED;
+      payload: ConversationReleasedPayload;
+    }
+  | {
+      type: typeof WSServerEventType.CONVERSATION_RESOLVED;
+      payload: ConversationResolvedPayload;
     }
   | { type: typeof WSServerEventType.ERROR; payload: WSErrorPayload }
   | { type: typeof WSServerEventType.PONG };

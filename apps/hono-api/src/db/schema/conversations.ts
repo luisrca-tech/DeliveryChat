@@ -6,6 +6,7 @@ import { conversationTypeEnum } from "./enums/conversationTypeEnum";
 import { conversationStatusEnum } from "./enums/conversationStatusEnum";
 import { organization } from "./organization";
 import { applications } from "./applications";
+import { user } from "./users";
 
 export const conversations = createTable(
   "conversations",
@@ -18,7 +19,13 @@ export const conversations = createTable(
       onDelete: "set null",
     }),
     type: conversationTypeEnum("type").notNull(),
-    status: conversationStatusEnum("status").notNull().default("active"),
+    status: conversationStatusEnum("status").notNull().default("pending"),
+    createdBy: text("created_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    assignedTo: text("assigned_to").references(() => user.id, {
+      onDelete: "set null",
+    }),
     subject: varchar("subject", { length: 500 }),
     closedAt: timestampStringNullable("closed_at"),
     createdAt: timestampString("created_at")
@@ -42,6 +49,9 @@ export const conversations = createTable(
     orgTypeIdx: index("conversations_org_type_idx").on(
       table.organizationId,
       table.type,
+    ),
+    assignedToIdx: index("conversations_assigned_to_idx").on(
+      table.assignedTo,
     ),
   }),
 );
