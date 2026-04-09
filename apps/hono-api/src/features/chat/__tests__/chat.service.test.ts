@@ -58,8 +58,10 @@ const {
   acceptConversation,
   leaveConversation,
   resolveConversation,
+  validateSendAuthorization,
   ConversationNotFoundError,
   ConversationNotActiveError,
+  NotAssignedToConversationError,
   ApplicationRequiredError,
 } = await import("../chat.service.js");
 
@@ -426,6 +428,102 @@ describe("chat.service", () => {
 
       const result = await resolveConversation("conv-999", "org-1", "operator-1");
       expect(result).toBeNull();
+    });
+  });
+
+  describe("validateSendAuthorization", () => {
+    it("allows visitor who is a participant to send", async () => {
+      // select conversation
+      const selectConvChain = chainMock([
+        { status: "pending", assignedTo: null, organizationId: "org-1" },
+      ]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      // select participant (isParticipant check)
+      const selectPartChain = chainMock([{ id: "part-1" }]);
+      mockSelect.mockReturnValueOnce(selectPartChain);
+
+      await expect(
+        validateSendAuthorization("conv-1", "visitor-1", "visitor"),
+      ).resolves.not.toThrow();
+    });
+
+    it("rejects visitor who is NOT a participant", async () => {
+      const selectConvChain = chainMock([
+        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
+      ]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      const selectPartChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(selectPartChain);
+
+      await expect(
+        validateSendAuthorization("conv-1", "visitor-unknown", "visitor"),
+      ).rejects.toThrow(NotAssignedToConversationError);
+    });
+
+    it("allows operator who is assignedTo the conversation", async () => {
+      const selectConvChain = chainMock([
+        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
+      ]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      await expect(
+        validateSendAuthorization("conv-1", "operator-1", "operator"),
+      ).resolves.not.toThrow();
+    });
+
+    it("rejects operator who is NOT assignedTo the conversation", async () => {
+      const selectConvChain = chainMock([
+        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
+      ]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      await expect(
+        validateSendAuthorization("conv-1", "operator-2", "operator"),
+      ).rejects.toThrow(NotAssignedToConversationError);
+    });
+
+    it("rejects admin who is NOT assignedTo the conversation", async () => {
+      const selectConvChain = chainMock([
+        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
+      ]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      await expect(
+        validateSendAuthorization("conv-1", "admin-1", "admin"),
+      ).rejects.toThrow(NotAssignedToConversationError);
+    });
+
+    it("allows admin who IS assignedTo the conversation", async () => {
+      const selectConvChain = chainMock([
+        { status: "active", assignedTo: "admin-1", organizationId: "org-1" },
+      ]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      await expect(
+        validateSendAuthorization("conv-1", "admin-1", "admin"),
+      ).resolves.not.toThrow();
+    });
+
+    it("rejects staff sending to a pending conversation (must accept first)", async () => {
+      const selectConvChain = chainMock([
+        { status: "pending", assignedTo: null, organizationId: "org-1" },
+      ]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      await expect(
+        validateSendAuthorization("conv-1", "operator-1", "operator"),
+      ).rejects.toThrow(NotAssignedToConversationError);
+    });
+
+    it("throws ConversationNotFoundError for non-existent conversation", async () => {
+      const selectConvChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(selectConvChain);
+
+      await expect(
+        validateSendAuthorization("conv-999", "user-1", "operator"),
+      ).rejects.toThrow(ConversationNotFoundError);
     });
   });
 });

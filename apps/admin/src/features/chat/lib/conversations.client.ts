@@ -56,6 +56,7 @@ export async function listConversations(
   if (filters.status) params.set("status", filters.status);
   if (filters.type) params.set("type", filters.type);
   if (filters.applicationId) params.set("applicationId", filters.applicationId);
+  if (filters.assignedTo) params.set("assignedTo", filters.assignedTo);
 
   const res = await fetch(`${base()}/conversations?${params}`, {
     headers: getTenantHeaders(),

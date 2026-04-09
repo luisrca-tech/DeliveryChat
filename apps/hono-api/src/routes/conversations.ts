@@ -36,7 +36,7 @@ export const conversationsRoute = new Hono()
   .get("/", zValidator("query", listConversationsQuerySchema), async (c) => {
     try {
       const { organization, user: authUser, membership } = getTenantAuth(c);
-      const { limit, offset, status, type, applicationId } =
+      const { limit, offset, status, type, applicationId, assignedTo } =
         c.req.valid("query");
 
       const isAdmin =
@@ -47,6 +47,11 @@ export const conversationsRoute = new Hono()
       if (type) conditions.push(eq(conversations.type, type));
       if (applicationId)
         conditions.push(eq(conversations.applicationId, applicationId));
+
+      // assignedTo=me: filter to conversations assigned to the current user
+      if (assignedTo === "me") {
+        conditions.push(eq(conversations.assignedTo, authUser.id));
+      }
 
       // Visibility rules:
       // - Admins/super_admins see all conversations

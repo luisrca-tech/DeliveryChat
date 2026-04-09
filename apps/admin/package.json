@@ -29,6 +29,7 @@
     "hono": "^4.10.6",
     "lucide-react": "^0.544.0",
     "nitro": "^3.0.1-alpha.1",
+    "nuqs": "^2.8.9",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-hook-form": "^7.53.2",

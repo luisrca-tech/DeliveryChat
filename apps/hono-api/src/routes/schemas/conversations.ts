@@ -6,6 +6,7 @@ export const listConversationsQuerySchema = z.object({
   status: z.enum(["pending", "active", "closed"]).optional(),
   type: z.enum(["support"]).optional(),
   applicationId: z.string().uuid().optional(),
+  assignedTo: z.enum(["me"]).optional(),
 });
 
 export const getMessagesQuerySchema = z.object({

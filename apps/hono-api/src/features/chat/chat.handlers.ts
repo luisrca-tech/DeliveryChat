@@ -4,6 +4,8 @@ import {
   sendMessage,
   isParticipant,
   getMessagesSince,
+  validateSendAuthorization,
+  NotAssignedToConversationError,
 } from "./chat.service.js";
 import type {
   WSServerEvent,
@@ -112,6 +114,20 @@ async function handleMessageSend(
   payload: { conversationId: string; content: string; clientMessageId: string },
   roomManager: IRoomManager,
 ) {
+  try {
+    await validateSendAuthorization(
+      payload.conversationId,
+      conn.userId,
+      conn.role,
+    );
+  } catch (error) {
+    if (error instanceof NotAssignedToConversationError) {
+      sendError(conn, "FORBIDDEN", error.message);
+      return;
+    }
+    throw error;
+  }
+
   const message = await sendMessage({
     conversationId: payload.conversationId,
     senderId: conn.userId,

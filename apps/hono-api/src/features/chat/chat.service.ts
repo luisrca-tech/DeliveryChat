@@ -43,6 +43,15 @@ export class ParticipantAlreadyExistsError extends Error {
   }
 }
 
+export class NotAssignedToConversationError extends Error {
+  constructor(conversationId: string, userId: string) {
+    super(
+      `User ${userId} is not authorized to send messages in conversation ${conversationId}`,
+    );
+    this.name = "NotAssignedToConversationError";
+  }
+}
+
 // ── Types ──
 
 interface CreateConversationInput {
@@ -237,6 +246,39 @@ export async function isParticipant(
     .limit(1);
 
   return !!row;
+}
+
+export async function validateSendAuthorization(
+  conversationId: string,
+  senderId: string,
+  senderRole: ParticipantRole,
+): Promise<void> {
+  const [conversation] = await db
+    .select({
+      status: conversations.status,
+      assignedTo: conversations.assignedTo,
+      organizationId: conversations.organizationId,
+    })
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+
+  if (!conversation) {
+    throw new ConversationNotFoundError(conversationId);
+  }
+
+  if (senderRole === "visitor") {
+    const participantExists = await isParticipant(conversationId, senderId);
+    if (!participantExists) {
+      throw new NotAssignedToConversationError(conversationId, senderId);
+    }
+    return;
+  }
+
+  // Staff (operator, admin): must be the assignedTo user
+  if (conversation.assignedTo !== senderId) {
+    throw new NotAssignedToConversationError(conversationId, senderId);
+  }
 }
 
 export async function acceptConversation(

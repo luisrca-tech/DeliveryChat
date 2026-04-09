@@ -3,19 +3,33 @@ import { InMemoryRoomManager } from "../room-manager.js";
 import type { WSConnection } from "../room-manager.js";
 import { createEventHandler } from "../chat.handlers.js";
 
-vi.mock("../chat.service.js", () => ({
-  sendMessage: vi.fn(),
-  isParticipant: vi.fn(),
-  getMessagesSince: vi.fn(),
-}));
+vi.mock("../chat.service.js", () => {
+  class NotAssignedToConversationError extends Error {
+    constructor(conversationId: string, userId: string) {
+      super(
+        `User ${userId} is not authorized to send messages in conversation ${conversationId}`,
+      );
+      this.name = "NotAssignedToConversationError";
+    }
+  }
 
-const { sendMessage, isParticipant, getMessagesSince } = await import(
+  return {
+    sendMessage: vi.fn(),
+    isParticipant: vi.fn(),
+    getMessagesSince: vi.fn(),
+    validateSendAuthorization: vi.fn(),
+    NotAssignedToConversationError,
+  };
+});
+
+const { sendMessage, isParticipant, getMessagesSince, validateSendAuthorization, NotAssignedToConversationError } = await import(
   "../chat.service.js"
-);
+) as any;
 
 const mockSendMessage = sendMessage as ReturnType<typeof vi.fn>;
 const mockIsParticipant = isParticipant as ReturnType<typeof vi.fn>;
 const mockGetMessagesSince = getMessagesSince as ReturnType<typeof vi.fn>;
+const mockValidateSendAuthorization = validateSendAuthorization as ReturnType<typeof vi.fn>;
 
 function createMockConnection(
   overrides: Partial<WSConnection> = {},
@@ -233,6 +247,68 @@ describe("chat.handlers", () => {
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("VALIDATION_ERROR");
+    });
+
+    it("sends FORBIDDEN error when staff is not assigned to conversation", async () => {
+      mockValidateSendAuthorization.mockRejectedValue(
+        new NotAssignedToConversationError("conv-1", "user-1"),
+      );
+
+      const convId = "550e8400-e29b-41d4-a716-446655440000";
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:send",
+          payload: {
+            conversationId: convId,
+            content: "Hello!",
+            clientMessageId: "client-msg-2",
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("FORBIDDEN");
+      expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it("calls validateSendAuthorization before sendMessage", async () => {
+      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      const convId = "550e8400-e29b-41d4-a716-446655440000";
+      const savedMessage = {
+        id: "msg-1",
+        conversationId: convId,
+        senderId: "user-1",
+        content: "Hello!",
+        type: "text",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        deletedAt: null,
+      };
+      mockSendMessage.mockResolvedValue(savedMessage);
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:send",
+          payload: {
+            conversationId: convId,
+            content: "Hello!",
+            clientMessageId: "client-msg-3",
+          },
+        }),
+      );
+
+      expect(mockValidateSendAuthorization).toHaveBeenCalledWith(
+        convId,
+        "user-1",
+        "operator",
+      );
+      expect(mockSendMessage).toHaveBeenCalled();
     });
   });
 

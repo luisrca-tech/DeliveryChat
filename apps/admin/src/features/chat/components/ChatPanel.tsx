@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { MessageSquareOff, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
-import { ParticipantPanel } from "./ParticipantPanel";
 import { useConversationMessagesQuery, useConversationDetailQuery } from "../hooks/useConversationsQuery";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useAcceptConversationMutation } from "../hooks/useConversationMutations";
@@ -27,7 +26,6 @@ type Props = {
 
 export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }: Props) {
   const prevConvRef = useRef<string | null>(null);
-  const [showParticipants, setShowParticipants] = useState(false);
 
   const { data: messagesData, isLoading: messagesLoading } =
     useConversationMessagesQuery(conversationId);
@@ -76,7 +74,9 @@ export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }
   const displayMessages = [...messages].reverse();
   const isPending = conversation?.status === "pending";
   const isActive = conversation?.status === "active";
-  const canSend = isActive && ws.isConnected;
+  const isAssignedToMe = conversation?.assignedTo === currentUserId;
+  const isStaff = currentUserRole !== "visitor";
+  const canSend = isActive && ws.isConnected && (!isStaff || isAssignedToMe);
 
   const handleAccept = async () => {
     try {
@@ -98,8 +98,6 @@ export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }
           <ChatHeader
             conversation={conversation}
             currentUserId={currentUserId}
-            currentUserRole={currentUserRole}
-            onToggleParticipants={() => setShowParticipants((p) => !p)}
           />
         )}
         <MessageList
@@ -131,7 +129,9 @@ export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }
             placeholder={
               !ws.isConnected
                 ? "Connecting..."
-                : "Type a message..."
+                : isStaff && !isAssignedToMe
+                  ? "This conversation is assigned to another agent"
+                  : "Type a message..."
             }
           />
         )}
@@ -142,7 +142,6 @@ export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }
           </div>
         )}
       </div>
-      {showParticipants && <ParticipantPanel conversationId={conversationId} />}
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { MessageSquare, Users, LogOut, CheckCircle, MoreVertical } from "lucide-react";
+import { MessageSquare, LogOut, CheckCircle, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -16,8 +16,6 @@ import type { ConversationWithParticipants } from "../types/chat.types";
 type Props = {
   conversation: ConversationWithParticipants;
   currentUserId: string;
-  currentUserRole: string;
-  onToggleParticipants?: () => void;
 };
 
 const statusColors: Record<string, string> = {
@@ -26,14 +24,13 @@ const statusColors: Record<string, string> = {
   closed: "bg-gray-100 text-gray-600",
 };
 
-export function ChatHeader({ conversation, currentUserId, currentUserRole, onToggleParticipants }: Props) {
+export function ChatHeader({ conversation, currentUserId }: Props) {
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
   const leaveMutation = useLeaveConversationMutation();
   const resolveMutation = useResolveConversationMutation();
 
   const isAssigned = conversation.assignedTo === currentUserId;
-  const isAdmin = currentUserRole === "admin" || currentUserRole === "super_admin";
-  const canManage = isAssigned || isAdmin;
+  const canManage = isAssigned;
 
   const handleLeave = async () => {
     try {
@@ -64,12 +61,6 @@ export function ChatHeader({ conversation, currentUserId, currentUserRole, onTog
       <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusClass}`}>
         {conversation.status}
       </span>
-
-      {onToggleParticipants && (
-        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onToggleParticipants}>
-          <Users className="h-4 w-4" />
-        </Button>
-      )}
 
       {canManage && conversation.status === "active" && (
         <DropdownMenu>

@@ -65,6 +65,7 @@ export type ConversationFilters = {
   status?: ConversationStatus;
   type?: ConversationType;
   applicationId?: string;
+  assignedTo?: "me";
   limit: number;
   offset: number;
 };
