@@ -13,18 +13,41 @@ vi.mock("../chat.service.js", () => {
     }
   }
 
+  class ConversationNotFoundError extends Error {
+    constructor(conversationId: string) {
+      super(`Conversation not found: ${conversationId}`);
+      this.name = "ConversationNotFoundError";
+    }
+  }
+
+  class ConversationNotActiveError extends Error {
+    constructor(conversationId: string, status: string) {
+      super(
+        `Conversation ${conversationId} is not active (status: ${status})`,
+      );
+      this.name = "ConversationNotActiveError";
+    }
+  }
+
   return {
     sendMessage: vi.fn(),
     isParticipant: vi.fn(),
     getMessagesSince: vi.fn(),
     validateSendAuthorization: vi.fn(),
     NotAssignedToConversationError,
+    ConversationNotFoundError,
+    ConversationNotActiveError,
   };
 });
 
-const { sendMessage, isParticipant, getMessagesSince, validateSendAuthorization, NotAssignedToConversationError } = await import(
-  "../chat.service.js"
-) as any;
+const {
+  sendMessage,
+  isParticipant,
+  getMessagesSince,
+  validateSendAuthorization,
+  NotAssignedToConversationError,
+  ConversationNotActiveError,
+} = (await import("../chat.service.js")) as any;
 
 const mockSendMessage = sendMessage as ReturnType<typeof vi.fn>;
 const mockIsParticipant = isParticipant as ReturnType<typeof vi.fn>;
@@ -274,6 +297,37 @@ describe("chat.handlers", () => {
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("FORBIDDEN");
       expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it("sends CONVERSATION_NOT_ACTIVE when conversation is closed", async () => {
+      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockSendMessage.mockRejectedValue(
+        new ConversationNotActiveError(
+          "550e8400-e29b-41d4-a716-446655440000",
+          "closed",
+        ),
+      );
+
+      const convId = "550e8400-e29b-41d4-a716-446655440000";
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:send",
+          payload: {
+            conversationId: convId,
+            content: "Hello!",
+            clientMessageId: "client-msg-closed",
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("CONVERSATION_NOT_ACTIVE");
+      expect(mockSendMessage).toHaveBeenCalled();
     });
 
     it("calls validateSendAuthorization before sendMessage", async () => {

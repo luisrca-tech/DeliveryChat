@@ -6,6 +6,8 @@ import {
   getMessagesSince,
   validateSendAuthorization,
   NotAssignedToConversationError,
+  ConversationNotFoundError,
+  ConversationNotActiveError,
 } from "./chat.service.js";
 import type {
   WSServerEvent,
@@ -132,11 +134,31 @@ async function handleMessageSend(
 
   console.log(`[WS:Handler] message:send convId=${payload.conversationId} senderId=${conn.userId} role=${conn.role}`);
 
-  const message = await sendMessage({
-    conversationId: payload.conversationId,
-    senderId: conn.userId,
-    content: payload.content,
-  });
+  let message;
+  try {
+    message = await sendMessage({
+      conversationId: payload.conversationId,
+      senderId: conn.userId,
+      content: payload.content,
+    });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : "Unknown error";
+    if (
+      error instanceof ConversationNotFoundError ||
+      (error instanceof Error && error.name === "ConversationNotFoundError")
+    ) {
+      sendError(conn, "CONVERSATION_NOT_FOUND", msg);
+      return;
+    }
+    if (
+      error instanceof ConversationNotActiveError ||
+      (error instanceof Error && error.name === "ConversationNotActiveError")
+    ) {
+      sendError(conn, "CONVERSATION_NOT_ACTIVE", msg);
+      return;
+    }
+    throw error;
+  }
 
   console.log(`[WS:Handler] message persisted msgId=${message.id} — broadcasting to room`);
 

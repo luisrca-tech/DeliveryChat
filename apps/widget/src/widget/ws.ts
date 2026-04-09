@@ -1,5 +1,6 @@
 import { setState, getState } from "./state.js";
 import type { ChatMessage } from "./types.js";
+import { clearStaleConversationPersistence } from "./conversation-persistence.js";
 
 type WSConfig = {
   apiBaseUrl: string;
@@ -20,9 +21,13 @@ let reconnectAttempts = 0;
 let intentionalClose = false;
 
 export function connectWS(cfg: WSConfig): void {
-  config = cfg;
+  if (ws || reconnectTimer) {
+    intentionalClose = true;
+    cleanup();
+  }
   intentionalClose = false;
   reconnectAttempts = 0;
+  config = cfg;
   setState("connectionStatus", "connecting");
   createConnection();
 }
@@ -196,6 +201,19 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
 
     case "error": {
       const payload = event.payload as { code: string; message: string };
+      if (
+        payload.code === "CONVERSATION_NOT_ACTIVE" ||
+        payload.code === "CONVERSATION_NOT_FOUND"
+      ) {
+        clearStaleConversationPersistence();
+        setState("messages", (prev) =>
+          prev.map((msg) =>
+            msg.status === "pending"
+              ? { ...msg, status: "failed" as const }
+              : msg,
+          ),
+        );
+      }
       console.error(`[DeliveryChat WS] Error: ${payload.code} — ${payload.message}`);
       break;
     }
@@ -245,4 +263,5 @@ function cleanup(): void {
     }
     ws = null;
   }
+  config = null;
 }

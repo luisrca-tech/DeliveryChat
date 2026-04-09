@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState } from "react";
 import type { Route } from "./+types/playground";
 
 export function meta(_args: Route.MetaArgs) {
@@ -36,6 +36,28 @@ function getDeliveryChat(): DeliveryChatAPI | null {
   return (window as unknown as { DeliveryChat?: DeliveryChatAPI }).DeliveryChat ?? null;
 }
 
+function removePlaygroundEmbedScripts(): void {
+  for (const el of document.querySelectorAll<HTMLScriptElement>(
+    'script[src^="/widget.js"]',
+  )) {
+    el.remove();
+  }
+}
+
+function loadPlaygroundEmbedScript(): Promise<void> {
+  getDeliveryChat()?.destroy();
+  removePlaygroundEmbedScripts();
+
+  return new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = `/widget.js?t=${Date.now()}`;
+    script.async = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Failed to load widget embed"));
+    document.body.appendChild(script);
+  });
+}
+
 export default function Playground() {
   const [appId, setAppId] = useState(() => safeGetItem("pg_appId", ""));
   const [apiKey, setApiKey] = useState(() => safeGetItem("pg_apiKey", ""));
@@ -43,37 +65,20 @@ export default function Playground() {
     () => safeGetItem("pg_apiBaseUrl", API_BASE_FALLBACK),
   );
   const [isActive, setIsActive] = useState(false);
-  const scriptLoaded = useRef(false);
 
-  useEffect(() => {
-    if (scriptLoaded.current) return;
-    const existing = document.querySelector('script[src="/widget.js"]');
-    if (existing) {
-      scriptLoaded.current = true;
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = "/widget.js";
-    script.onload = () => {
-      scriptLoaded.current = true;
-    };
-    document.body.appendChild(script);
-  }, []);
-
-  // Destroy auto-init widget from root.tsx on mount
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      getDeliveryChat()?.destroy();
-    }, 500);
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleStart = () => {
+  const handleStart = async () => {
     if (!appId.trim() || !apiKey.trim()) return;
 
     localStorage.setItem("pg_appId", appId);
     localStorage.setItem("pg_apiKey", apiKey);
     localStorage.setItem("pg_apiBaseUrl", apiBaseUrl);
+
+    try {
+      await loadPlaygroundEmbedScript();
+    } catch (e) {
+      console.error(e);
+      return;
+    }
 
     getDeliveryChat()?.destroy();
 

@@ -4,9 +4,13 @@ import { getOrCreateVisitorId } from "./visitor.js";
 import { createConversation } from "./conversation.js";
 import { connectWS, disconnectWS, sendWSMessage } from "./ws.js";
 import type { ChatMessage } from "./types.js";
-
-const CONV_STORAGE_PREFIX = "dc_conv_";
-const LAST_MSG_STORAGE_PREFIX = "dc_lastmsg_";
+import {
+  setActiveAppIdForPersistence,
+  loadPersistedConversationId,
+  saveConversationId,
+  saveLastClientMessageId,
+  removeAllConversationKeysForApp,
+} from "./conversation-persistence.js";
 
 let appId: string | null = null;
 let apiKey: string | null = null;
@@ -19,8 +23,8 @@ export function initChatController(opts: { appId: string; apiKey: string }): voi
   const visitorId = getOrCreateVisitorId();
   setState("visitorId", visitorId);
 
-  // Restore conversation from localStorage
-  const savedConvId = loadFromStorage(`${CONV_STORAGE_PREFIX}${appId}`);
+  setActiveAppIdForPersistence(appId);
+  const savedConvId = loadPersistedConversationId(appId);
   if (savedConvId) {
     setState("conversationId", savedConvId);
   }
@@ -81,7 +85,7 @@ export async function sendMessage(content: string): Promise<void> {
       conversationId = result.conversation.id;
       setState("conversationId", conversationId);
       setState("conversationStatus", "pending");
-      saveToStorage(`${CONV_STORAGE_PREFIX}${appId}`, conversationId);
+      saveConversationId(appId, conversationId);
 
       // Join the room
       sendWSMessage({
@@ -107,7 +111,7 @@ export async function sendMessage(content: string): Promise<void> {
   });
 
   // Track last message for reconnection
-  saveToStorage(`${LAST_MSG_STORAGE_PREFIX}${appId}`, clientMessageId);
+  saveLastClientMessageId(appId, clientMessageId);
 }
 
 export function destroyChat(): void {
@@ -115,13 +119,9 @@ export function destroyChat(): void {
 
   const currentAppId = appId;
   if (currentAppId) {
-    try {
-      localStorage.removeItem(`${CONV_STORAGE_PREFIX}${currentAppId}`);
-      localStorage.removeItem(`${LAST_MSG_STORAGE_PREFIX}${currentAppId}`);
-    } catch {
-      // Ignore
-    }
+    removeAllConversationKeysForApp(currentAppId);
   }
+  setActiveAppIdForPersistence(null);
 
   setState("conversationId", null);
   setState("conversationStatus", null);
@@ -130,20 +130,4 @@ export function destroyChat(): void {
   initialized = false;
   appId = null;
   apiKey = null;
-}
-
-function loadFromStorage(key: string): string | null {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function saveToStorage(key: string, value: string): void {
-  try {
-    localStorage.setItem(key, value);
-  } catch {
-    // Ignore
-  }
 }
