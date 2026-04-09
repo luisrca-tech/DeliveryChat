@@ -5,6 +5,8 @@ type Props = {
   conversation: Conversation;
   isSelected: boolean;
   onClick: () => void;
+  appName?: string;
+  assignedToName?: string;
 };
 
 const statusColors: Record<string, string> = {
@@ -13,7 +15,7 @@ const statusColors: Record<string, string> = {
   closed: "bg-gray-100 text-gray-600",
 };
 
-export function ConversationListItem({ conversation, isSelected, onClick }: Props) {
+export function ConversationListItem({ conversation, isSelected, onClick, appName, assignedToName }: Props) {
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
 
   return (
@@ -38,7 +40,19 @@ export function ConversationListItem({ conversation, isSelected, onClick }: Prop
             <span className="text-xs text-muted-foreground">
               {new Date(conversation.updatedAt).toLocaleDateString()}
             </span>
+            {appName && (
+              <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={appName}>
+                · {appName}
+              </span>
+            )}
           </div>
+          {assignedToName && (
+            <div className="mt-0.5">
+              <span className="text-[11px] text-muted-foreground truncate block max-w-[200px]" title={`Assigned to: ${assignedToName}`}>
+                Assigned to: {assignedToName}
+              </span>
+            </div>
+          )}
         </div>
       </div>
     </button>
