@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { MessageSquare, LogOut, CheckCircle, MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
+import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +30,8 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
   const leaveMutation = useLeaveConversationMutation();
   const resolveMutation = useResolveConversationMutation();
+  const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
+  const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
 
   const isAssigned = conversation.assignedTo === currentUserId;
   const canManage = isAssigned;
@@ -35,6 +39,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
   const handleLeave = async () => {
     try {
       await leaveMutation.mutateAsync(conversation.id);
+      setIsLeaveDialogOpen(false);
       toast.success("Left conversation — returned to queue");
     } catch {
       toast.error("Failed to leave conversation");
@@ -44,6 +49,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
   const handleResolve = async () => {
     try {
       await resolveMutation.mutateAsync(conversation.id);
+      setIsResolveDialogOpen(false);
       toast.success("Conversation marked as solved");
     } catch {
       toast.error("Failed to resolve conversation");
@@ -63,23 +69,58 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
       </span>
 
       {canManage && conversation.status === "active" && (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="h-8 w-8">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem className="cursor-pointer" onClick={handleLeave}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Leave Chat
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={handleResolve}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Mark as Solved
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setIsLeaveDialogOpen(true);
+                }}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Leave Chat
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="cursor-pointer"
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setIsResolveDialogOpen(true);
+                }}
+              >
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Mark as Solved
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <ConfirmDialog
+            open={isLeaveDialogOpen}
+            onOpenChange={setIsLeaveDialogOpen}
+            title="Leave chat"
+            description="Are you sure you want to leave this conversation and return it to the queue?"
+            onConfirm={handleLeave}
+            confirmLabel="Leave Chat"
+            variant="destructive"
+            isLoading={leaveMutation.isPending}
+          />
+
+          <ConfirmDialog
+            open={isResolveDialogOpen}
+            onOpenChange={setIsResolveDialogOpen}
+            title="Mark as solved"
+            description="Are you sure you want to mark this conversation as solved?"
+            onConfirm={handleResolve}
+            confirmLabel="Mark as Solved"
+            isLoading={resolveMutation.isPending}
+          />
+        </>
       )}
     </div>
   );
