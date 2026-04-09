@@ -51,7 +51,6 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
     conversationId = await createConversationInDB({
       organizationId: testData.org.id,
       applicationId: testData.app.id,
-      type: "support",
       subject: "E2E: Visitor needs help",
       participants: [
         { userId: testData.visitorUser.id, role: "visitor" },
@@ -201,7 +200,6 @@ test.describe("Flow 2: Operator ↔ Admin (Internal Conversation)", () => {
   test.beforeAll(async () => {
     conversationId = await createConversationInDB({
       organizationId: testData.org.id,
-      type: "internal",
       subject: "E2E: Internal team discussion",
       participants: [
         { userId: testData.operatorUser.id, role: "operator" },
@@ -294,7 +292,6 @@ test.describe("Flow 3: Admin Escalation into Support Conversation", () => {
     supportConvId = await createConversationInDB({
       organizationId: testData.org.id,
       applicationId: testData.app.id,
-      type: "support",
       subject: "E2E: Escalation scenario",
       participants: [
         { userId: testData.visitorUser.id, role: "visitor" },
@@ -400,7 +397,6 @@ test.describe("Flow 4: Reconnection and Message Sync", () => {
     conversationId = await createConversationInDB({
       organizationId: testData.org.id,
       applicationId: testData.app.id,
-      type: "support",
       subject: "E2E: Reconnection test",
       participants: [
         { userId: testData.visitorUser.id, role: "visitor" },
@@ -498,7 +494,6 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
     convA = await createConversationInDB({
       organizationId: testData.org.id,
       applicationId: testData.app.id,
-      type: "support",
       subject: "E2E: Isolation Conv A",
       participants: [
         { userId: testData.visitorUser.id, role: "visitor" },
@@ -509,7 +504,6 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
     convB = await createConversationInDB({
       organizationId: testData.org.id,
       applicationId: testData.app.id,
-      type: "support",
       subject: "E2E: Isolation Conv B",
       participants: [
         { userId: testData.operatorUser.id, role: "operator" },

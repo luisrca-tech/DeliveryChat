@@ -49,7 +49,7 @@ The `super_admin` member role maps to `admin` participant role.
 | `message:new` | `{ id, conversationId, senderId, senderName, senderRole, content, type, createdAt }` | New message broadcast to all room participants except the sender. |
 | `message:ack` | `{ clientMessageId, serverMessageId, createdAt }` | Sent to the message sender to confirm persistence. |
 | `messages:sync` | `{ conversationId, messages[] }` | Missed messages sent on reconnection when `lastMessageId` is provided in `room:join`. |
-| `conversation:new` | `{ id, organizationId, applicationId, type, status, subject, createdAt }` | Notification of a new conversation (for operator/admin dashboards). |
+| `conversation:new` | `{ id, organizationId, applicationId, status, subject, createdAt }` | Notification of a new conversation (for operator/admin dashboards). |
 | `error` | `{ code, message }` | Error response. Codes: `PARSE_ERROR`, `VALIDATION_ERROR`, `FORBIDDEN`, `UNAUTHORIZED`. |
 | `pong` | (none) | Heartbeat response. |
 
@@ -79,8 +79,8 @@ The `super_admin` member role maps to `admin` participant role.
 
 ## Conversation Patterns
 
-| Pattern | conversation.type | Participants |
-|---------|-------------------|--------------|
-| Visitor to Operator | `support` | visitor + operator |
-| Admin escalation (iFood model) | `support` | visitor + operator + admin |
-| Internal team chat | `internal` | operator + admin |
+| Pattern | Participants |
+|---------|--------------|
+| Visitor to Operator | visitor + operator |
+| Admin escalation (iFood model) | visitor + operator + admin |
+| Internal team chat | operator + admin |

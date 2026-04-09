@@ -63,7 +63,7 @@ export function AppShell(props: { children: ReactNode }) {
               {!isSidebarCollapsed && "Dashboard"}
             </Button>
           </Link>
-          <Link to="/conversations" search={{ conversationId: undefined }} className="block">
+          <Link to="/conversations" search={{ conversationId: undefined, filter: undefined, appId: undefined }} className="block">
             <Button
               variant="ghost"
               className={`w-full ${isSidebarCollapsed ? "justify-center" : "justify-start"}`}

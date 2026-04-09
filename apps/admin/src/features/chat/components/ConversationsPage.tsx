@@ -7,13 +7,17 @@ import { useMembersQuery } from "@/features/members/hooks/useMembersQuery";
 import { Route } from "@/routes/_system/conversations";
 
 export function ConversationsPage() {
-  const { conversationId: selectedId } = Route.useSearch();
+  const { conversationId: selectedId, filter, appId } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const ws = useWebSocket();
   useConversationNotifications(ws.subscribe);
 
   const setSelectedId = (id: string) => {
-    navigate({ search: { conversationId: id } });
+    navigate({ search: (prev) => ({ ...prev, conversationId: id }) });
+  };
+
+  const onFiltersChange = (newFilter: string, newAppId: string | undefined) => {
+    navigate({ search: (prev) => ({ ...prev, filter: newFilter, appId: newAppId }) });
   };
 
   const context = useRouteContext({ from: "/_system" }) as {
@@ -32,6 +36,9 @@ export function ConversationsPage() {
         selectedId={selectedId ?? null}
         onSelect={setSelectedId}
         currentUserRole={currentUserRole}
+        initialFilter={filter}
+        initialAppId={appId}
+        onFiltersChange={onFiltersChange}
       />
       <ChatPanel
         conversationId={selectedId ?? null}

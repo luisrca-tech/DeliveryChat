@@ -5,5 +5,7 @@ export const Route = createFileRoute("/_system/conversations")({
   component: ConversationsPage,
   validateSearch: (search: Record<string, unknown>) => ({
     conversationId: (search.conversationId as string) || undefined,
+    filter: (search.filter as string) || undefined,
+    appId: (search.appId as string) || undefined,
   }),
 });

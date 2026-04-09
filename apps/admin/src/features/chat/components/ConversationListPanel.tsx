@@ -20,6 +20,9 @@ type Props = {
   selectedId: string | null;
   onSelect: (id: string) => void;
   currentUserRole: string;
+  initialFilter?: string;
+  initialAppId?: string;
+  onFiltersChange?: (filter: string, appId: string | undefined) => void;
 };
 
 const ALL_APPS = "__all__";
@@ -27,15 +30,26 @@ const ALL_APPS = "__all__";
 const emptyMessages: Record<string, string> = {
   queue: "No pending conversations",
   mine: "No active conversations assigned to you",
-  "all-active": "No active conversations",
+  all: "No active conversations",
   closed: "No closed conversations",
 };
 
-export function ConversationListPanel({ selectedId, onSelect, currentUserRole }: Props) {
-  const [activeFilter, setActiveFilter] = useState("queue");
-  const [selectedAppId, setSelectedAppId] = useState(ALL_APPS);
-
+export function ConversationListPanel({ selectedId, onSelect, currentUserRole, initialFilter, initialAppId, onFiltersChange }: Props) {
   const isAdmin = currentUserRole === "admin" || currentUserRole === "super_admin";
+  const defaultFilter = isAdmin ? "all" : "queue";
+  const [activeFilter, setActiveFilter] = useState(initialFilter ?? defaultFilter);
+  const [selectedAppId, setSelectedAppId] = useState(initialAppId ?? ALL_APPS);
+
+  const handleFilterChange = (value: string) => {
+    setActiveFilter(value);
+    onFiltersChange?.(value, selectedAppId === ALL_APPS ? undefined : selectedAppId);
+  };
+
+  const handleAppChange = (value: string) => {
+    setSelectedAppId(value);
+    onFiltersChange?.(activeFilter, value === ALL_APPS ? undefined : value);
+  };
+
   const visibleOptions = filterOptions.filter((opt) => !opt.adminOnly || isAdmin);
   const currentOption = visibleOptions.find((opt) => opt.id === activeFilter) ?? visibleOptions[0]!;
 
@@ -94,8 +108,8 @@ export function ConversationListPanel({ selectedId, onSelect, currentUserRole }:
         <h2 className="text-lg font-semibold">Conversations</h2>
 
         <div className="grid grid-cols-2 gap-2">
-          <Select value={activeFilter} onValueChange={setActiveFilter}>
-            <SelectTrigger className="w-full cursor-pointer">
+          <Select value={activeFilter} onValueChange={handleFilterChange}>
+            <SelectTrigger className="w-full cursor-pointer [&>span]:flex-1 [&>span]:text-left">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -108,12 +122,12 @@ export function ConversationListPanel({ selectedId, onSelect, currentUserRole }:
           </Select>
 
           {applications.length > 0 && (
-            <Select value={selectedAppId} onValueChange={setSelectedAppId}>
-              <SelectTrigger className="w-full cursor-pointer">
+            <Select value={selectedAppId} onValueChange={handleAppChange}>
+              <SelectTrigger className="w-full cursor-pointer [&>span]:flex-1 [&>span]:text-left">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem className="cursor-pointer" value={ALL_APPS}>All Applications</SelectItem>
+                <SelectItem className="cursor-pointer" value={ALL_APPS}>All</SelectItem>
                 {applications.map((app) => (
                   <SelectItem className="cursor-pointer" key={app.id} value={app.id}>
                     {app.name}
