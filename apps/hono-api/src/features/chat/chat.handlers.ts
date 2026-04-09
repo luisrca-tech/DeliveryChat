@@ -40,6 +40,7 @@ export function createEventHandler(roomManager: IRoomManager) {
     }
 
     const event = result.data;
+    console.log(`[WS:Handler] event=${event.type} connId=${conn.id} userId=${conn.userId} role=${conn.role}`);
 
     switch (event.type) {
       case "room:join":
@@ -64,6 +65,7 @@ async function handleRoomJoin(
   roomManager: IRoomManager,
 ) {
   const canJoin = await isParticipant(payload.conversationId, conn.userId);
+  console.log(`[WS:Handler] room:join convId=${payload.conversationId} userId=${conn.userId} canJoin=${canJoin}`);
 
   if (!canJoin) {
     sendError(conn, "FORBIDDEN", "Not a participant of this conversation");
@@ -128,11 +130,15 @@ async function handleMessageSend(
     throw error;
   }
 
+  console.log(`[WS:Handler] message:send convId=${payload.conversationId} senderId=${conn.userId} role=${conn.role}`);
+
   const message = await sendMessage({
     conversationId: payload.conversationId,
     senderId: conn.userId,
     content: payload.content,
   });
+
+  console.log(`[WS:Handler] message persisted msgId=${message.id} — broadcasting to room`);
 
   // ACK to sender
   sendEvent(conn, {

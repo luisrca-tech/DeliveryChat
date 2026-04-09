@@ -10,7 +10,7 @@ import type { Message } from "../types/chat.types";
 
 type WSMessageHandler = (event: WSServerEvent) => void;
 
-export function useWebSocket() {
+export function useWebSocket(activeConversationId: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const managerRef = useRef<WebSocketManager | null>(null);
   const handlersRef = useRef<Set<WSMessageHandler>>(new Set());
@@ -27,6 +27,13 @@ export function useWebSocket() {
     managerRef.current?.send(event);
   }, []);
 
+  const setActiveRoom = useCallback(
+    (conversationId: string | null, lastMessageId?: string, force?: boolean) => {
+      managerRef.current?.setActiveRoom(conversationId, lastMessageId, force);
+    },
+    [],
+  );
+
   useEffect(() => {
     const tenant = getSubdomain();
     const token = getBearerToken();
@@ -42,6 +49,7 @@ export function useWebSocket() {
       onEvent: (event) => {
         if (event.type === "message:new") {
           const msg = event.payload;
+          console.log(`[WS:Hook] message:new received — msgId=${msg.id} convId=${msg.conversationId} senderId=${msg.senderId} role=${msg.senderRole}`);
           const newMessage: Message = {
             id: msg.id,
             conversationId: msg.conversationId,
@@ -97,5 +105,9 @@ export function useWebSocket() {
     };
   }, [queryClient]);
 
-  return { isConnected, sendEvent, subscribe };
+  useEffect(() => {
+    managerRef.current?.setActiveRoom(activeConversationId);
+  }, [activeConversationId]);
+
+  return { isConnected, sendEvent, subscribe, setActiveRoom };
 }

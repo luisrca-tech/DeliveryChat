@@ -1,7 +1,7 @@
-import { useEffect, useRef } from "react";
 import { MessageSquareOff, UserCheck } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
+import { authClient } from "@/lib/authClient";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
@@ -15,17 +15,22 @@ type WSHandle = {
   isConnected: boolean;
   sendEvent: (event: WSClientEvent) => void;
   subscribe: (handler: (event: WSServerEvent) => void) => () => void;
+  setActiveRoom: (
+    conversationId: string | null,
+    lastMessageId?: string,
+    force?: boolean,
+  ) => void;
 };
 
 type Props = {
   conversationId: string | null;
   ws: WSHandle;
-  currentUserId: string;
   currentUserRole: string;
 };
 
-export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }: Props) {
-  const prevConvRef = useRef<string | null>(null);
+export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
+  const { data: sessionInfo, isPending: sessionPending } = authClient.useSession();
+  const currentUserId = sessionInfo?.user?.id ?? "";
 
   const { data: messagesData, isLoading: messagesLoading } =
     useConversationMessagesQuery(conversationId);
@@ -33,29 +38,6 @@ export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }
 
   const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId);
   const acceptMutation = useAcceptConversationMutation();
-
-  // Join/leave WS rooms when conversation changes
-  useEffect(() => {
-    if (prevConvRef.current && prevConvRef.current !== conversationId) {
-      ws.sendEvent({
-        type: "room:leave",
-        payload: { conversationId: prevConvRef.current },
-      });
-    }
-
-    if (conversationId) {
-      const lastMsg = messagesData?.messages?.[0];
-      ws.sendEvent({
-        type: "room:join",
-        payload: {
-          conversationId,
-          ...(lastMsg ? { lastMessageId: lastMsg.id } : {}),
-        },
-      });
-    }
-
-    prevConvRef.current = conversationId;
-  }, [conversationId, ws.sendEvent]);
 
   if (!conversationId) {
     return (
@@ -74,14 +56,21 @@ export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }
   const displayMessages = [...messages].reverse();
   const isPending = conversation?.status === "pending";
   const isActive = conversation?.status === "active";
-  const isAssignedToMe = conversation?.assignedTo === currentUserId;
+  const isAssignedToMe =
+    !!currentUserId && conversation?.assignedTo === currentUserId;
   const isStaff = currentUserRole !== "visitor";
-  const canSend = isActive && ws.isConnected && (!isStaff || isAssignedToMe);
+  const canSend =
+    isActive &&
+    ws.isConnected &&
+    !sessionPending &&
+    !!currentUserId &&
+    (!isStaff || isAssignedToMe);
 
   const handleAccept = async () => {
     try {
       await acceptMutation.mutateAsync(conversationId);
       toast.success("Conversation accepted");
+      ws.setActiveRoom(conversationId, undefined, true);
     } catch (error) {
       if (error instanceof ConversationConflictError) {
         toast.error("Already taken by another operator");
@@ -129,9 +118,11 @@ export function ChatPanel({ conversationId, ws, currentUserId, currentUserRole }
             placeholder={
               !ws.isConnected
                 ? "Connecting..."
-                : isStaff && !isAssignedToMe
-                  ? "This conversation is assigned to another agent"
-                  : "Type a message..."
+                : sessionPending || !currentUserId
+                  ? "Loading..."
+                  : isStaff && !isAssignedToMe
+                    ? "This conversation is assigned to another agent"
+                    : "Type a message..."
             }
           />
         )}

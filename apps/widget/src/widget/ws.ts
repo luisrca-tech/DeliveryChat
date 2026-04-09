@@ -171,12 +171,26 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
       break;
 
     case "conversation:accepted": {
-      setState("conversationStatus", "active");
+      const payload = event.payload as { conversationId: string };
+      if (payload.conversationId === getState("conversationId")) {
+        setState("conversationStatus", "active");
+      }
       break;
     }
 
     case "conversation:resolved": {
-      setState("conversationStatus", "closed");
+      const payload = event.payload as { conversationId: string };
+      if (payload.conversationId === getState("conversationId")) {
+        setState("conversationStatus", "closed");
+      }
+      break;
+    }
+
+    case "conversation:released": {
+      const payload = event.payload as { conversationId: string };
+      if (payload.conversationId === getState("conversationId")) {
+        setState("conversationStatus", "pending");
+      }
       break;
     }
 

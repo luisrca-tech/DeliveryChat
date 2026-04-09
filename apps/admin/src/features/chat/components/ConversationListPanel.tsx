@@ -20,9 +20,9 @@ type Props = {
   selectedId: string | null;
   onSelect: (id: string) => void;
   currentUserRole: string;
-  initialFilter?: string;
-  initialAppId?: string;
-  onFiltersChange?: (filter: string, appId: string | undefined) => void;
+  filter: string;
+  appId: string | undefined;
+  onFiltersChange: (filter: string, appId: string | undefined) => void;
 };
 
 const ALL_APPS = "__all__";
@@ -34,20 +34,23 @@ const emptyMessages: Record<string, string> = {
   closed: "No closed conversations",
 };
 
-export function ConversationListPanel({ selectedId, onSelect, currentUserRole, initialFilter, initialAppId, onFiltersChange }: Props) {
+export function ConversationListPanel({
+  selectedId,
+  onSelect,
+  currentUserRole,
+  filter: activeFilter,
+  appId: appIdFromUrl,
+  onFiltersChange,
+}: Props) {
   const isAdmin = currentUserRole === "admin" || currentUserRole === "super_admin";
-  const defaultFilter = isAdmin ? "all" : "queue";
-  const [activeFilter, setActiveFilter] = useState(initialFilter ?? defaultFilter);
-  const [selectedAppId, setSelectedAppId] = useState(initialAppId ?? ALL_APPS);
+  const selectedAppId = appIdFromUrl ?? ALL_APPS;
 
   const handleFilterChange = (value: string) => {
-    setActiveFilter(value);
-    onFiltersChange?.(value, selectedAppId === ALL_APPS ? undefined : selectedAppId);
+    onFiltersChange(value, selectedAppId === ALL_APPS ? undefined : selectedAppId);
   };
 
   const handleAppChange = (value: string) => {
-    setSelectedAppId(value);
-    onFiltersChange?.(activeFilter, value === ALL_APPS ? undefined : value);
+    onFiltersChange(activeFilter, value === ALL_APPS ? undefined : value);
   };
 
   const visibleOptions = filterOptions.filter((opt) => !opt.adminOnly || isAdmin);
