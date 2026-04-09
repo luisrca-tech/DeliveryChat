@@ -15,11 +15,13 @@ import {
   acceptConversation,
   leaveConversation,
   resolveConversation,
+  softDeleteConversation,
   addParticipant,
 } from "../features/chat/chat.service.js";
 import {
   getTenantAuth,
   requireTenantAuth,
+  requireRole,
 } from "../lib/middleware/auth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
 import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
@@ -42,7 +44,10 @@ export const conversationsRoute = new Hono()
       const isAdmin =
         membership.role === "admin" || membership.role === "super_admin";
 
-      const conditions = [eq(conversations.organizationId, organization.id)];
+      const conditions = [
+        eq(conversations.organizationId, organization.id),
+        isNull(conversations.deletedAt),
+      ];
       if (status) conditions.push(eq(conversations.status, status));
       if (type) conditions.push(eq(conversations.type, type));
       if (applicationId)
@@ -333,6 +338,37 @@ export const conversationsRoute = new Hono()
       return c.json({ conversation: updated });
     } catch (error) {
       console.error("Error resolving conversation:", error);
+      return jsonError(
+        c,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+      );
+    }
+  })
+
+  // DELETE /:id — soft delete conversation (admin/super_admin only)
+  .delete("/:id", requireRole("admin"), async (c) => {
+    try {
+      const { organization } = getTenantAuth(c);
+      const conversationId = c.req.param("id");
+
+      const deleted = await softDeleteConversation(
+        conversationId,
+        organization.id,
+      );
+
+      if (!deleted) {
+        return jsonError(
+          c,
+          HTTP_STATUS.NOT_FOUND,
+          ERROR_MESSAGES.NOT_FOUND,
+          "Conversation not found",
+        );
+      }
+
+      return c.body(null, 204);
+    } catch (error) {
+      console.error("Error deleting conversation:", error);
       return jsonError(
         c,
         HTTP_STATUS.INTERNAL_SERVER_ERROR,

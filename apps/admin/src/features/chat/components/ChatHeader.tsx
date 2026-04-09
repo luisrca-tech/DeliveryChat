@@ -70,11 +70,11 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={handleLeave}>
+            <DropdownMenuItem className="cursor-pointer" onClick={handleLeave}>
               <LogOut className="mr-2 h-4 w-4" />
               Leave Chat
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleResolve}>
+            <DropdownMenuItem className="cursor-pointer" onClick={handleResolve}>
               <CheckCircle className="mr-2 h-4 w-4" />
               Mark as Solved
             </DropdownMenuItem>

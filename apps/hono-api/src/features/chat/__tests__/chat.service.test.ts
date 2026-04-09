@@ -58,6 +58,7 @@ const {
   acceptConversation,
   leaveConversation,
   resolveConversation,
+  softDeleteConversation,
   validateSendAuthorization,
   ConversationNotFoundError,
   ConversationNotActiveError,
@@ -524,6 +525,41 @@ describe("chat.service", () => {
       await expect(
         validateSendAuthorization("conv-999", "user-1", "operator"),
       ).rejects.toThrow(ConversationNotFoundError);
+    });
+  });
+
+  describe("softDeleteConversation", () => {
+    it("sets deletedAt and returns the updated row", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        deletedAt: "2026-04-09T00:00:00Z",
+        updatedAt: "2026-04-09T00:00:00Z",
+      };
+
+      const updateChain = chainMock([updatedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await softDeleteConversation("conv-1", "org-1");
+
+      expect(result).toEqual(updatedRow);
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("returns null for non-existent conversation", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await softDeleteConversation("conv-999", "org-1");
+      expect(result).toBeNull();
+    });
+
+    it("returns null for already-deleted conversation", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await softDeleteConversation("conv-deleted", "org-1");
+      expect(result).toBeNull();
     });
   });
 });

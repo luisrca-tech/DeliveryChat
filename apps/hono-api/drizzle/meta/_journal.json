@@ -120,6 +120,13 @@
       "when": 1775610929458,
       "tag": "0019_add-assigned-to",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1775737596001,
+      "tag": "0020_add-deleted-at-to-conversation",
+      "breakpoints": true
     }
   ]
 }

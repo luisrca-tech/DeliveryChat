@@ -28,6 +28,7 @@ export const conversations = createTable(
     }),
     subject: varchar("subject", { length: 500 }),
     closedAt: timestampStringNullable("closed_at"),
+    deletedAt: timestampStringNullable("deleted_at"),
     createdAt: timestampString("created_at")
       .default(sql`now()`)
       .notNull(),

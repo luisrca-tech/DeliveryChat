@@ -7,7 +7,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/ui/select";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import { useConversationsQuery } from "../hooks/useConversationsQuery";
+import { useDeleteConversationMutation } from "../hooks/useConversationMutations";
 import { useApplicationsQuery } from "@/features/applications/hooks/useApplicationsQuery";
 import { useMembersQuery } from "@/features/members/hooks/useMembersQuery";
 import { filterOptions } from "../constants/conversation-filters";
@@ -59,6 +62,20 @@ export function ConversationListPanel({ selectedId, onSelect, currentUserRole }:
     return map;
   }, [membersData]);
 
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const deleteMutation = useDeleteConversationMutation();
+
+  const handleConfirmDelete = () => {
+    if (!deleteTargetId) return;
+    deleteMutation.mutate(deleteTargetId, {
+      onSuccess: () => {
+        toast.success("Conversation deleted");
+        setDeleteTargetId(null);
+      },
+      onError: () => toast.error("Failed to delete conversation"),
+    });
+  };
+
   const applications = appsData?.applications ?? [];
   const showAllApps = selectedAppId === ALL_APPS;
 
@@ -82,7 +99,7 @@ export function ConversationListPanel({ selectedId, onSelect, currentUserRole }:
           </SelectTrigger>
           <SelectContent>
             {visibleOptions.map((opt) => (
-              <SelectItem key={opt.id} value={opt.id}>
+              <SelectItem className="cursor-pointer" key={opt.id} value={opt.id}>
                 {opt.label}
               </SelectItem>
             ))}
@@ -95,9 +112,9 @@ export function ConversationListPanel({ selectedId, onSelect, currentUserRole }:
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value={ALL_APPS}>All Applications</SelectItem>
+              <SelectItem className="cursor-pointer" value={ALL_APPS}>All Applications</SelectItem>
               {applications.map((app) => (
-                <SelectItem key={app.id} value={app.id}>
+                <SelectItem className="cursor-pointer" key={app.id} value={app.id}>
                   {app.name}
                 </SelectItem>
               ))}
@@ -127,9 +144,22 @@ export function ConversationListPanel({ selectedId, onSelect, currentUserRole }:
             onClick={() => onSelect(conv.id)}
             appName={showAllApps ? appNameMap.get(conv.applicationId ?? "") : undefined}
             assignedToName={conv.assignedTo ? memberNameMap.get(conv.assignedTo) : undefined}
+            canDelete={isAdmin}
+            onDelete={setDeleteTargetId}
           />
         ))}
       </ScrollArea>
+
+      <ConfirmDialog
+        open={!!deleteTargetId}
+        onOpenChange={(open) => !open && setDeleteTargetId(null)}
+        title="Delete Conversation"
+        description="Are you sure you want to delete this conversation? This action cannot be undone."
+        onConfirm={handleConfirmDelete}
+        confirmLabel="Delete"
+        variant="destructive"
+        isLoading={deleteMutation.isPending}
+      />
     </div>
   );
 }

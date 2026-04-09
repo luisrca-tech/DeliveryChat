@@ -3,6 +3,7 @@ import {
   acceptConversation,
   leaveConversation,
   resolveConversation,
+  deleteConversation,
 } from "../lib/conversations.client";
 import { conversationsQueryKeys } from "./useConversationsQuery";
 
@@ -34,6 +35,18 @@ export function useResolveConversationMutation() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => resolveConversation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: conversationsQueryKeys.all(),
+      });
+    },
+  });
+}
+
+export function useDeleteConversationMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteConversation(id),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: conversationsQueryKeys.all(),

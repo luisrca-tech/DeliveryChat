@@ -110,6 +110,14 @@ export async function leaveConversation(
   return parseJson(res);
 }
 
+export async function deleteConversation(id: string): Promise<void> {
+  const res = await fetch(`${base()}/conversations/${id}`, {
+    method: "DELETE",
+    headers: getTenantHeaders(),
+  });
+  if (!res.ok) throw await handleError(res);
+}
+
 export async function resolveConversation(
   id: string,
 ): Promise<{ conversation: { id: string; status: string } }> {
