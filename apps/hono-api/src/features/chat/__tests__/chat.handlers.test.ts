@@ -54,6 +54,14 @@ const mockIsParticipant = isParticipant as ReturnType<typeof vi.fn>;
 const mockGetMessagesSince = getMessagesSince as ReturnType<typeof vi.fn>;
 const mockValidateSendAuthorization = validateSendAuthorization as ReturnType<typeof vi.fn>;
 
+function firstWsSendPayload(sendMock: ReturnType<typeof vi.fn>): string {
+  const arg = sendMock.mock.calls[0]?.[0];
+  if (typeof arg !== "string") {
+    throw new Error("Expected ws.send first argument to be a string");
+  }
+  return arg;
+}
+
 function createMockConnection(
   overrides: Partial<WSConnection> = {},
 ): WSConnection {
@@ -129,7 +137,7 @@ describe("chat.handlers", () => {
 
       expect(conn.ws.send).toHaveBeenCalled();
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("messages:sync");
     });
@@ -152,7 +160,7 @@ describe("chat.handlers", () => {
       ).toHaveLength(0);
 
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("FORBIDDEN");
@@ -243,7 +251,9 @@ describe("chat.handlers", () => {
       const senderCalls = (conn.ws.send as ReturnType<typeof vi.fn>).mock
         .calls;
       expect(senderCalls.length).toBeGreaterThanOrEqual(1);
-      const ackEvent = JSON.parse(senderCalls[0][0]);
+      const ackArg = senderCalls[0]?.[0];
+      expect(typeof ackArg).toBe("string");
+      const ackEvent = JSON.parse(ackArg as string);
       expect(ackEvent.type).toBe("message:ack");
       expect(ackEvent.payload.clientMessageId).toBe("client-msg-1");
       expect(ackEvent.payload.serverMessageId).toBe("msg-1");
@@ -252,7 +262,9 @@ describe("chat.handlers", () => {
       const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock
         .calls;
       expect(conn2Calls.length).toBeGreaterThanOrEqual(1);
-      const newMsgEvent = JSON.parse(conn2Calls[0][0]);
+      const newArg = conn2Calls[0]?.[0];
+      expect(typeof newArg).toBe("string");
+      const newMsgEvent = JSON.parse(newArg as string);
       expect(newMsgEvent.type).toBe("message:new");
       expect(newMsgEvent.payload.content).toBe("Hello!");
     });
@@ -267,7 +279,7 @@ describe("chat.handlers", () => {
       );
 
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("VALIDATION_ERROR");
@@ -293,7 +305,7 @@ describe("chat.handlers", () => {
       );
 
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("FORBIDDEN");
@@ -324,7 +336,7 @@ describe("chat.handlers", () => {
       );
 
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("CONVERSATION_NOT_ACTIVE");
@@ -402,7 +414,9 @@ describe("chat.handlers", () => {
 
       const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock.calls;
       expect(conn2Calls).toHaveLength(1);
-      const event = JSON.parse(conn2Calls[0][0]);
+      const typingStartArg = conn2Calls[0]?.[0];
+      expect(typeof typingStartArg).toBe("string");
+      const event = JSON.parse(typingStartArg as string);
       expect(event.type).toBe("typing:start");
       expect(event.payload.conversationId).toBe(convId);
       expect(event.payload.userId).toBe("user-1");
@@ -460,7 +474,9 @@ describe("chat.handlers", () => {
 
       const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock.calls;
       expect(conn2Calls).toHaveLength(1);
-      const event = JSON.parse(conn2Calls[0][0]);
+      const typingStopArg = conn2Calls[0]?.[0];
+      expect(typeof typingStopArg).toBe("string");
+      const event = JSON.parse(typingStopArg as string);
       expect(event.type).toBe("typing:stop");
       expect(event.payload.conversationId).toBe(convId);
       expect(event.payload.userId).toBe("user-1");
@@ -472,7 +488,7 @@ describe("chat.handlers", () => {
       await handler(conn, JSON.stringify({ type: "ping" }));
 
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("pong");
     });
@@ -483,7 +499,7 @@ describe("chat.handlers", () => {
       await handler(conn, "not json{{{");
 
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("PARSE_ERROR");
@@ -496,7 +512,7 @@ describe("chat.handlers", () => {
       );
 
       const sentData = JSON.parse(
-        (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0],
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("VALIDATION_ERROR");

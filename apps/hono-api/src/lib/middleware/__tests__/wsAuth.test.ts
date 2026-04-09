@@ -25,7 +25,7 @@ const { verifyApiKey } = await import(
 const { db } = await import("../../../db/index.js");
 const { authenticateWebSocket } = await import("../wsAuth.js");
 
-const mockGetSession = auth.api.getSession as ReturnType<typeof vi.fn>;
+const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
 const mockVerifyApiKey = verifyApiKey as ReturnType<typeof vi.fn>;
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
 
@@ -276,7 +276,11 @@ describe("authenticateWebSocket", () => {
           headers: expect.any(Headers),
         }),
       );
-      const calledHeaders = mockGetSession.mock.calls[0][0].headers as Headers;
+      const sessionCall = mockGetSession.mock.calls[0]?.[0] as
+        | { headers: Headers }
+        | undefined;
+      expect(sessionCall).toBeDefined();
+      const calledHeaders = sessionCall!.headers;
       expect(calledHeaders.get("Authorization")).toBe("Bearer bearer-token-123");
     });
   });
