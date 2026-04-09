@@ -34,7 +34,7 @@ try {
   );
 }
 
-const conn = globalForDb.conn ?? postgres(databaseUrl);
+const conn = globalForDb.conn ?? postgres(databaseUrl, { ssl: "require" });
 if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
 
 export const db = drizzle(conn, { schema: { ...schema } });
