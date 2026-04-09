@@ -112,6 +112,21 @@ export async function sendMessage(content: string): Promise<void> {
 
 export function destroyChat(): void {
   disconnectWS();
+
+  const currentAppId = appId;
+  if (currentAppId) {
+    try {
+      localStorage.removeItem(`${CONV_STORAGE_PREFIX}${currentAppId}`);
+      localStorage.removeItem(`${LAST_MSG_STORAGE_PREFIX}${currentAppId}`);
+    } catch {
+      // Ignore
+    }
+  }
+
+  setState("conversationId", null);
+  setState("conversationStatus", null);
+  setState("messages", []);
+
   initialized = false;
   appId = null;
   apiKey = null;
