@@ -50,11 +50,16 @@ const base = () => getApiBaseUrl();
 export async function listApplications(
   limit = 100,
   offset = 0,
+  options?: { hasMyConversations?: boolean },
 ): Promise<ApplicationsListResponse> {
-  const res = await fetch(
-    `${base()}/applications?limit=${limit}&offset=${offset}`,
-    { headers: getTenantHeaders({ json: true }) },
-  );
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  if (options?.hasMyConversations) params.set("hasMyConversations", "true");
+
+  const res = await fetch(`${base()}/applications?${params}`, {
+    headers: getTenantHeaders({ json: true }),
+  });
   if (!res.ok) throw await handleError(res);
   return parseJson<ApplicationsListResponse>(res);
 }

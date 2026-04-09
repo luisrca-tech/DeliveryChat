@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { applications } from "../db/schema/applications.js";
+import { conversations } from "../db/schema/conversations.js";
 import {
   createApplicationSchema,
   listApplicationsQuerySchema,
@@ -37,9 +38,41 @@ export const applicationsRoute = new Hono()
   .use("*", createTenantRateLimitMiddleware())
   .get("/", zValidator("query", listApplicationsQuerySchema), async (c) => {
     try {
-      const { organization } = getTenantAuth(c);
+      const { organization, user: authUser } = getTenantAuth(c);
 
-      const { limit, offset } = c.req.valid("query");
+      const { limit, offset, hasMyConversations } = c.req.valid("query");
+
+      if (hasMyConversations) {
+        const rows = await db
+          .selectDistinct({
+            id: applications.id,
+            name: applications.name,
+            domain: applications.domain,
+            description: applications.description,
+            organizationId: applications.organizationId,
+            settings: applications.settings,
+            deletedAt: applications.deletedAt,
+            createdAt: applications.createdAt,
+            updatedAt: applications.updatedAt,
+          })
+          .from(applications)
+          .innerJoin(
+            conversations,
+            eq(applications.id, conversations.applicationId),
+          )
+          .where(
+            and(
+              eq(applications.organizationId, organization.id),
+              isNull(applications.deletedAt),
+              eq(conversations.assignedTo, authUser.id),
+            ),
+          )
+          .limit(limit)
+          .offset(offset);
+
+        return c.json({ applications: rows, limit, offset });
+      }
+
       const result = await db
         .select()
         .from(applications)

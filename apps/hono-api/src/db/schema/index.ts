@@ -17,7 +17,6 @@ export * from "./enums/statusEnum";
 export * from "./conversations";
 export * from "./messages";
 export * from "./conversationParticipants";
-export * from "./enums/conversationTypeEnum";
 export * from "./enums/conversationStatusEnum";
 export * from "./enums/messageTypeEnum";
 export * from "./enums/participantRoleEnum";

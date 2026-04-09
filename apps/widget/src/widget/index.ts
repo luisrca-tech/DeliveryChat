@@ -27,9 +27,18 @@ import {
   getMessageListEl,
   appendMessage,
 } from "./components/ChatWindow.js";
-import { getState, setState } from "./state.js";
+import { getState, setState, subscribe } from "./state.js";
 import { fetchSettings } from "./api.js";
-import { getApiBaseUrl } from "./config.js";
+import { getApiBaseUrl, setApiBaseUrl } from "./config.js";
+import {
+  initChatController,
+  openChat as controllerOpenChat,
+  sendMessage as controllerSendMessage,
+  notifyTypingStart,
+  notifyTypingStop,
+  destroyChat,
+} from "./chat-controller.js";
+import type { ChatMessage } from "./types.js";
 
 import styles from "./styles/main.css?inline";
 
@@ -108,21 +117,6 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
 
   // eslint-disable-next-line prefer-const
   let chatWindowEl: HTMLElement;
-  const onSend = (text: string) => {
-    const id = crypto.randomUUID();
-    const next = [
-      ...getState("messages"),
-      { id, text, role: "user" as const },
-    ];
-    const trimmed = next.slice(-MAX_MESSAGES);
-    setState("messages", trimmed);
-    const listEl = getMessageListEl(chatWindowEl);
-    if (listEl) {
-      while (listEl.children.length >= MAX_MESSAGES)
-        listEl.firstChild?.remove();
-      appendMessage(listEl, { id, text, role: "user" });
-    }
-  };
 
   let isOpen = getState("isOpen");
   const closeChat = () => {
@@ -136,8 +130,12 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   chatWindowEl = createChatWindow(
     settings,
     getState("messages"),
-    onSend,
-    closeChat,
+    {
+      onSend: (text) => controllerSendMessage(text),
+      onTypingStart: notifyTypingStart,
+      onTypingStop: notifyTypingStop,
+      onClose: closeChat,
+    },
   );
   const chatWindow = chatWindowEl;
   chatWindow.hidden = !isOpen;
@@ -150,6 +148,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     chatWindow.hidden = !isOpen;
     launcher.setAttribute("aria-expanded", String(isOpen));
     if (isOpen) {
+      controllerOpenChat();
       focusTrapAbort?.abort();
       focusTrapAbort = new AbortController();
       focusTrap(chatWindow, focusTrapAbort.signal);
@@ -161,6 +160,75 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   wrapper.appendChild(launcher);
   wrapper.appendChild(chatWindow);
   shadow.appendChild(wrapper);
+
+  // Status banner for conversation state
+  const statusBanner = document.createElement("div");
+  statusBanner.className = "status-banner";
+  statusBanner.hidden = true;
+  // Insert banner between header and message list
+  const messageListEl = chatWindow.querySelector(".message-list");
+  if (messageListEl) {
+    chatWindow.insertBefore(statusBanner, messageListEl);
+  }
+
+  const unsubConvStatus = subscribe("conversationStatus", (status) => {
+    if (status === "pending") {
+      statusBanner.textContent = "Waiting for support...";
+      statusBanner.hidden = false;
+      statusBanner.className = "status-banner status-pending";
+    } else if (status === "active") {
+      statusBanner.textContent = "Connected with support";
+      statusBanner.hidden = false;
+      statusBanner.className = "status-banner status-active";
+      setTimeout(() => { statusBanner.hidden = true; }, 3000);
+    } else if (status === "closed") {
+      statusBanner.textContent = "Conversation resolved";
+      statusBanner.hidden = false;
+      statusBanner.className = "status-banner status-closed";
+    } else {
+      statusBanner.hidden = true;
+    }
+  });
+  cleanupFns.push(unsubConvStatus);
+
+  // Subscribe to state changes to update DOM
+  let lastMessageCount = getState("messages").length;
+  const unsubMessages = subscribe("messages", (messages: ChatMessage[]) => {
+    const listEl = getMessageListEl(chatWindow);
+    if (!listEl) return;
+
+    // Append only new messages
+    for (let i = lastMessageCount; i < messages.length; i++) {
+      const msg = messages[i];
+      if (msg) {
+        while (listEl.children.length >= MAX_MESSAGES)
+          listEl.firstChild?.remove();
+        appendMessage(listEl, msg);
+      }
+    }
+    lastMessageCount = messages.length;
+  });
+  cleanupFns.push(unsubMessages);
+
+  // Typing indicator
+  const typingEl = chatWindow.querySelector(".typing-indicator") as HTMLElement | null;
+  const unsubTyping = subscribe("typingUser", (typingUser) => {
+    if (!typingEl) return;
+    if (typingUser) {
+      typingEl.textContent =
+        typingUser.senderRole === "visitor"
+          ? "Visitor is typing..."
+          : `${typingUser.userName ?? "Agent"} is typing...`;
+      typingEl.hidden = false;
+      // Auto-scroll to show indicator
+      const listEl = getMessageListEl(chatWindow);
+      if (listEl) listEl.scrollTop = listEl.scrollHeight;
+    } else {
+      typingEl.hidden = true;
+      typingEl.textContent = "";
+    }
+  });
+  cleanupFns.push(unsubTyping);
 
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && isOpen) closeChat();
@@ -201,10 +269,18 @@ async function init(opts: InitOptions): Promise<void> {
     console.warn("[DeliveryChat] appId is required");
     return;
   }
+  if (!opts?.apiKey || typeof opts.apiKey !== "string") {
+    console.warn("[DeliveryChat] apiKey is required");
+    return;
+  }
 
   runCleanup();
   const existing = document.getElementById(HOST_ID);
   if (existing) existing.remove();
+
+  if (opts.apiBaseUrl) {
+    setApiBaseUrl(opts.apiBaseUrl);
+  }
 
   const apiBaseUrl = getApiBaseUrl();
   let apiSettings: Partial<WidgetSettings> = {};
@@ -225,6 +301,8 @@ async function init(opts: InitOptions): Promise<void> {
   setState("settings", settings);
   setState("isOpen", false);
   setState("messages", []);
+
+  initChatController({ appId: opts.appId, apiKey: opts.apiKey });
 
   const host = createShadowHost();
   const shadow = createShadowRoot(host);
@@ -251,6 +329,7 @@ async function init(opts: InitOptions): Promise<void> {
 }
 
 function destroy(): void {
+  destroyChat();
   runCleanup();
   destroyHost();
 }

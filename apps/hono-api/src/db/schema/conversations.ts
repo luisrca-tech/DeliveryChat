@@ -2,10 +2,10 @@ import { index, text, uuid, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { timestampString, timestampStringNullable } from "./customTypes";
-import { conversationTypeEnum } from "./enums/conversationTypeEnum";
 import { conversationStatusEnum } from "./enums/conversationStatusEnum";
 import { organization } from "./organization";
 import { applications } from "./applications";
+import { user } from "./users";
 
 export const conversations = createTable(
   "conversations",
@@ -17,10 +17,16 @@ export const conversations = createTable(
     applicationId: uuid("application_id").references(() => applications.id, {
       onDelete: "set null",
     }),
-    type: conversationTypeEnum("type").notNull(),
-    status: conversationStatusEnum("status").notNull().default("active"),
+    status: conversationStatusEnum("status").notNull().default("pending"),
+    createdBy: text("created_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    assignedTo: text("assigned_to").references(() => user.id, {
+      onDelete: "set null",
+    }),
     subject: varchar("subject", { length: 500 }),
     closedAt: timestampStringNullable("closed_at"),
+    deletedAt: timestampStringNullable("deleted_at"),
     createdAt: timestampString("created_at")
       .default(sql`now()`)
       .notNull(),
@@ -39,9 +45,8 @@ export const conversations = createTable(
       table.organizationId,
       table.status,
     ),
-    orgTypeIdx: index("conversations_org_type_idx").on(
-      table.organizationId,
-      table.type,
+    assignedToIdx: index("conversations_assigned_to_idx").on(
+      table.assignedTo,
     ),
   }),
 );

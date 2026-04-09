@@ -37,6 +37,7 @@
     "db:drop": "TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop",
     "test": "vitest run --reporter verbose",
     "test:watch": "vitest",
+    "test:e2e": "infisical run --path=/hono-api -- npx playwright test --config=playwright.config.ts",
     "test:cleanup": "infisical run --path=/hono-api -- tsx scripts/test-cleanup.ts",
     "cron:trial-ending": "tsx scripts/cron-trial-ending.ts",
     "cron:cleanup": "tsx scripts/cron-cleanup.ts"
@@ -64,13 +65,16 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.1.0",
+    "@playwright/test": "^1.59.1",
     "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.11.17",
     "@types/pg": "^8.15.6",
+    "@types/ws": "^8.18.1",
     "drizzle-kit": "^0.31.7",
     "typescript": "^5.8.3",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "ws": "^8.20.0"
   }
 }

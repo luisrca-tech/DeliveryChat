@@ -9,10 +9,12 @@ import {
 import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { member } from "../db/schema/member.js";
+import { user } from "../db/schema/users.js";
 import { organization as organizationSchema } from "../db/schema/organization.js";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { env } from "../env.js";
 import { ac, super_admin, admin, operator } from "./permissions.js";
+import { getMemberLimitByPlan } from "./planLimits.js";
 import { createTrustedOrigins } from "./auth/origins.js";
 import { getAuthBaseURL } from "./auth/baseUrl.js";
 import { getAdvancedOptions } from "./auth/advanced.js";
@@ -24,6 +26,7 @@ import {
   sendPasswordChangedEmail,
   sendResetPasswordEmail,
   sendVerificationOTPEmail,
+  sendOrganizationInvitationEmail,
 } from "./email/index.js";
 
 const trustedOrigins = createTrustedOrigins();
@@ -182,6 +185,28 @@ export const auth = betterAuth({
         admin,
         operator,
       },
+      async sendInvitationEmail(data) {
+        console.info("[Auth] Sending invitation email to:", data.email, "for org:", data.organization.name, "role:", data.role);
+        // Link points to the admin frontend, which calls acceptInvitation client-side
+        const orgSlug = data.organization.slug;
+        const isDev = process.env.NODE_ENV !== "production";
+        const adminHost = isDev
+          ? `http://${orgSlug}.localhost:3000`
+          : `https://${orgSlug}.deliverychat.online`;
+        const inviteLink = `${adminHost}/accept-invitation?invitationId=${data.id}`;
+        try {
+          await sendOrganizationInvitationEmail({
+            email: data.email,
+            inviterName: data.inviter.user.name,
+            organizationName: data.organization.name,
+            role: data.role,
+            inviteLink,
+          });
+          console.info("[Auth] Invitation email sent successfully to:", data.email);
+        } catch (error) {
+          console.error("[Auth] Failed to send invitation email:", error);
+        }
+      },
       schema: {
         organization: {
           additionalFields: {
@@ -203,7 +228,33 @@ export const auth = betterAuth({
             },
           };
         },
+        beforeCreateInvitation: async ({ invitation, organization: org }) => {
+          const plan = (org as { plan?: string }).plan ?? "FREE";
+          const limit = getMemberLimitByPlan(plan);
+
+          const [countResult] = await db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(member)
+            .where(eq(member.organizationId, org.id));
+
+          const currentCount = countResult?.count ?? 0;
+          if (currentCount >= limit) {
+            throw new Error(
+              `Your ${plan} plan allows up to ${limit} members. Please upgrade to add more.`,
+            );
+          }
+
+          return { data: invitation };
+        },
         beforeAddMember: async ({ member }) => {
+          // Mark user as ACTIVE when added to an org via invitation
+          if (member.userId) {
+            await db
+              .update(user)
+              .set({ status: "ACTIVE" })
+              .where(eq(user.id, member.userId));
+          }
+
           if (member.role === "owner") {
             return {
               data: {

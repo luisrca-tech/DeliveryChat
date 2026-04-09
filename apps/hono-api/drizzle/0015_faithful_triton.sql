@@ -1,0 +1,3 @@
+ALTER TABLE "delivery_chat_invitation" ADD COLUMN "status" text DEFAULT 'pending' NOT NULL;--> statement-breakpoint
+ALTER TABLE "delivery_chat_invitation" ADD COLUMN "inviter_id" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "delivery_chat_invitation" ADD CONSTRAINT "delivery_chat_invitation_inviter_id_delivery_chat_user_id_fk" FOREIGN KEY ("inviter_id") REFERENCES "public"."delivery_chat_user"("id") ON DELETE cascade ON UPDATE no action;

@@ -12,6 +12,9 @@ const getDeliveryChat = () =>
 
 export function ChatWidgetEmbed() {
   useEffect(() => {
+    // Skip auto-init on playground — it handles its own init
+    if (window.location.pathname === "/playground") return;
+
     const init = () => {
       getDeliveryChat()?.init({
         appId: APP_ID,

@@ -2,6 +2,7 @@ import * as React from "react";
 import {
   EmailVerifiedWelcomeEmail,
   NewSignInAlertEmail,
+  OrganizationInvitationEmail,
   PasswordChangedEmail,
   ResetPasswordEmail,
   VerificationOtpEmail,
@@ -79,6 +80,30 @@ export async function sendPasswordChangedEmail(params: {
       timeZone: params.timeZone,
     }),
   });
+}
+
+export async function sendOrganizationInvitationEmail(params: {
+  email: string;
+  inviterName: string;
+  organizationName: string;
+  role: string;
+  inviteLink: string;
+}): Promise<void> {
+  try {
+    await sendEmail({
+      to: params.email,
+      subject: `You've been invited to join ${params.organizationName}`,
+      template: React.createElement(OrganizationInvitationEmail, {
+        inviteLink: params.inviteLink,
+        inviterName: params.inviterName,
+        organizationName: params.organizationName,
+        role: params.role,
+      }),
+    });
+  } catch (error) {
+    console.error("[Email] Failed to send invitation email:", error);
+    throw error;
+  }
 }
 
 export async function sendNewSignInAlertEmail(params: {

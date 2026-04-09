@@ -7,8 +7,12 @@ import { auth } from "./lib/auth.js";
 import { api } from "./lib/api.js";
 import { env } from "./env.js";
 import { isOriginAllowed } from "./lib/corsPatterns.js";
+import { initWebSocket } from "./lib/ws.js";
+import { wsRoute } from "./routes/ws.js";
 
 const app = new Hono();
+
+const { injectWebSocket } = initWebSocket(app);
 
 app.use("*", logger());
 
@@ -36,13 +40,14 @@ app.use(
 
       return null;
     },
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: [
       "Content-Type",
       "Authorization",
       "X-Tenant-Slug",
       "X-Timezone",
       "X-App-Id",
+      "X-Visitor-Id",
     ],
     exposeHeaders: ["set-auth-token", "set-auth-jwt"],
     credentials: true,
@@ -58,22 +63,28 @@ app.all("/api/auth/*", async (c) => {
 });
 
 app.route("/v1", api);
+app.route("/v1", wsRoute);
 
 export type AppType = typeof app;
 
 const port = Number(env.PORT) || 8000;
 
-serve(
+const server = serve(
   {
     fetch: app.fetch,
     port,
   },
   (info) => {
     console.log(
-      `[Hono API] 🚀 Server running on http://localhost:${info.port}`,
+      `[Hono API] Server running on http://localhost:${info.port}`,
     );
   },
-).on("error", (error) => {
+);
+
+injectWebSocket(server);
+console.log("[Hono API] WebSocket support enabled");
+
+server.on("error", (error) => {
   console.error(`[Hono API] Failed to start server:`, error);
   process.exit(1);
 });
