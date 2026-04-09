@@ -1,0 +1,2 @@
+ALTER TABLE "delivery_chat_conversations" ADD COLUMN "created_by" text;--> statement-breakpoint
+ALTER TABLE "delivery_chat_conversations" ADD CONSTRAINT "delivery_chat_conversations_created_by_delivery_chat_user_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."delivery_chat_user"("id") ON DELETE set null ON UPDATE no action;

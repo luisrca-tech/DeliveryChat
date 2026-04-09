@@ -5,6 +5,13 @@ export const API_KEY_LIMITS = {
   ENTERPRISE: 1000,
 } as const;
 
+export const MEMBER_LIMITS = {
+  FREE: 3,
+  BASIC: 6,
+  PREMIUM: 15,
+  ENTERPRISE: 1000,
+} as const;
+
 export const RATE_LIMITS = {
   FREE: { perSecond: 5, perMinute: 50, perHour: 500 },
   BASIC: { perSecond: 10, perMinute: 100, perHour: 1000 },
@@ -21,6 +28,12 @@ export type RateLimitConfig = {
 export function getApiKeyLimitByPlan(plan: string): number {
   return (
     API_KEY_LIMITS[plan as keyof typeof API_KEY_LIMITS] ?? API_KEY_LIMITS.FREE
+  );
+}
+
+export function getMemberLimitByPlan(plan: string): number {
+  return (
+    MEMBER_LIMITS[plan as keyof typeof MEMBER_LIMITS] ?? MEMBER_LIMITS.FREE
   );
 }
 

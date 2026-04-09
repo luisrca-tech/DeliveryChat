@@ -1,7 +1,18 @@
-import { Settings, CreditCard, Package, Key, AppWindow, Gauge } from "lucide-react";
+import { Settings, CreditCard, Package, Key, AppWindow, Gauge, Users } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getBillingStatus } from "@/features/billing/lib/billing.client";
 import { SettingsLinkCard } from "./SettingsLinkCard";
 
 export function SettingsIndexPage() {
+  const { data } = useQuery({
+    queryKey: ["billing-status"],
+    queryFn: getBillingStatus,
+    staleTime: 30_000,
+  });
+
+  const role = data?.role;
+  const isAdmin = role === "admin" || role === "super_admin";
+
   return (
     <div className="max-w-full space-y-6">
       <div className="flex items-center gap-2">
@@ -13,18 +24,22 @@ export function SettingsIndexPage() {
         settings.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
-        <SettingsLinkCard
-          to="/onboarding/plans"
-          title="Plans"
-          description="View and manage your subscription plan."
-          icon={<Package className="h-5 w-5" />}
-        />
-        <SettingsLinkCard
-          to="/settings/billing"
-          title="Billing"
-          description="Manage billing, payment methods, and invoices."
-          icon={<CreditCard className="h-5 w-5" />}
-        />
+        {isAdmin && (
+          <SettingsLinkCard
+            to="/onboarding/plans"
+            title="Plans"
+            description="View and manage your subscription plan."
+            icon={<Package className="h-5 w-5" />}
+          />
+        )}
+        {isAdmin && (
+          <SettingsLinkCard
+            to="/settings/billing"
+            title="Billing"
+            description="Manage billing, payment methods, and invoices."
+            icon={<CreditCard className="h-5 w-5" />}
+          />
+        )}
         <SettingsLinkCard
           to="/settings/applications"
           title="Applications"
@@ -43,6 +58,14 @@ export function SettingsIndexPage() {
           description="View and configure API rate limits per tenant."
           icon={<Gauge className="h-5 w-5" />}
         />
+        {isAdmin && (
+          <SettingsLinkCard
+            to="/settings/members"
+            title="Members"
+            description="View and manage organization members and roles."
+            icon={<Users className="h-5 w-5" />}
+          />
+        )}
       </div>
     </div>
   );

@@ -36,3 +36,6 @@ export type { NewSignInAlertEmailProps } from "./templates/types/new-sign-in-ale
 
 export { default as RateLimitAlertEmail } from "./templates/rate-limit-alert";
 export type { RateLimitAlertEmailProps } from "./templates/types/rate-limit-alert";
+
+export { default as OrganizationInvitationEmail } from "./templates/organization-invitation";
+export type { OrganizationInvitationEmailProps } from "./templates/types/organization-invitation";

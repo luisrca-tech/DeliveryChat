@@ -48,6 +48,7 @@ export const Route = createFileRoute("/_system")({
     return {
       currentOrganization: currentOrg,
       session: session.data.session,
+      user: session.data.user,
     };
   },
   component: SystemLayout,

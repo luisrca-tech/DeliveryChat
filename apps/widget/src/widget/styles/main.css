@@ -195,3 +195,72 @@
 :where(.chat-widget) .send-btn:hover {
   opacity: 0.9;
 }
+
+/* Connection indicator */
+:where(.chat-widget) .connection-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+:where(.chat-widget) .connection-connected {
+  background: #22c55e;
+}
+
+:where(.chat-widget) .connection-connecting {
+  background: #eab308;
+  animation: pulse 1.5s infinite;
+}
+
+:where(.chat-widget) .connection-disconnected {
+  background: #ef4444;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Message status states */
+:where(.chat-widget) .message-pending {
+  opacity: 0.6;
+}
+
+:where(.chat-widget) .message-failed {
+  opacity: 0.5;
+  border: 1px dashed #ef4444;
+}
+
+/* Conversation status banner */
+:where(.chat-widget) .status-banner {
+  padding: 8px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+:where(.chat-widget) .status-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+:where(.chat-widget) .status-active {
+  background-color: #d1fae5;
+  color: #065f46;
+}
+
+:where(.chat-widget) .status-closed {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+:where(.chat-widget) .typing-indicator {
+  padding: 4px 16px 8px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--dc-text-secondary, #64748b);
+}

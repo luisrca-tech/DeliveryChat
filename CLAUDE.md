@@ -14,7 +14,7 @@ DeliveryChat is a **multi-tenant SaaS chat platform** built as a Turborepo monor
 | `apps/widget` | React Router v7 + React 19 | 3001 | Embeddable chat widget (iframe + IIFE build) |
 | `apps/web` | Astro v5 | 3002 | Landing page with registration flow |
 | `apps/hono-api` | Hono v4 + Drizzle ORM | 8000 | Backend API (all business logic, auth, billing) |
-| `apps/docs` | Static | - | Documentation site |
+| `apps/docs` | Next.js | 3003 | Documentation site |
 | `packages/types` | TypeScript | - | Shared types, Zod schemas, validation |
 | `packages/ui` | React | - | Shared UI components (shadcn-based) |
 | `packages/emails` | React Email | - | Transactional email templates |
@@ -56,6 +56,22 @@ bunx vitest run path/to/file.test.ts      # Single test file
 
 # Widget embed build
 cd apps/widget && bun run build:embed     # Vite IIFE build
+cd apps/widget && bun run dev:embed       # Watch mode for IIFE build
+
+# Watch mode & test cleanup
+bun run test:watch --filter=hono-api      # Vitest watch mode
+bun run test:cleanup --filter=hono-api    # Clean up test data in DB
+
+# E2E tests (Playwright — hono-api only)
+bun run test:e2e --filter=hono-api        # Requires server on localhost:8000
+# E2E files: apps/hono-api/e2e/**/*.e2e.ts
+
+# Email template dev server
+cd packages/emails && bun run dev         # React Email preview on port 3004
+
+# Cron scripts (hono-api)
+bun run cron:trial-ending --filter=hono-api
+bun run cron:cleanup --filter=hono-api
 
 # Stripe webhooks
 bun run stripe:listen
@@ -69,23 +85,24 @@ SKIP_ENV_VALIDATION=true bun run build
 ### Backend (hono-api)
 
 - **Auth:** Better Auth v1.4.7 with plugins: `emailAndPassword`, `bearer`, `emailOTP`, `organization`. Roles: `super_admin`, `admin`, `operator`. Config at `apps/hono-api/src/lib/auth.ts`.
-- **Database:** PostgreSQL + Drizzle ORM. Schema files in `apps/hono-api/src/db/schema/`. Enums in `schema/enums/`. Custom timestamp types in `customTypes.ts` serialize timestamps as strings.
+- **Database:** PostgreSQL + Drizzle ORM. Schema files in `apps/hono-api/src/db/schema/`. Enums in `schema/enums/`. Custom timestamp types in `customTypes.ts` serialize timestamps as strings. All tables use `createTable()` from `db/table.ts` which prefixes table names with `delivery_chat_`.
 - **Tenant plans:** `FREE`, `BASIC`, `PREMIUM`, `ENTERPRISE` with plan-based feature limits defined in `src/lib/planLimits.ts`. Per-tenant overrides stored in `tenantRateLimits` table.
 - **Routes:** Composed in `src/lib/api.ts`, which exports `APIType` — the type used by the admin frontend's RPC client. Route files in `src/routes/`.
 - **Error responses:** Always use `jsonError(c, status, error, message?)` from `lib/http.ts` — never raw `c.json({ error })`.
 - **Billing:** Stripe integration — webhooks handled in `src/routes/webhooks.ts`, client in `src/lib/stripe.ts`.
-- **Email:** Resend SDK for transactional emails (OTP, password reset).
+- **Email:** Resend SDK for transactional emails (OTP, password reset). The `@repo/emails` package must be built before `hono-api` starts — this is handled automatically by `predev` and `prebuild` scripts.
 - **Env validation:** `@t3-oss/env-core` wrapping Zod in `apps/hono-api/src/env.ts`. `ALLOWED_ORIGINS` is a JSON string auto-parsed. `SKIP_ENV_VALIDATION=true` disables checks for CI.
 
 ### Middleware Chain (hono-api)
 
-Four middleware guards in `src/lib/middleware/`, applied in order:
+Middleware guards in `src/lib/middleware/`, applied per-route:
 
 1. **`requireTenantAuth()`** — validates Better Auth session, resolves tenant subdomain from headers (priority: `X-Tenant-Slug` > `Origin`/`Referer`/`X-Forwarded-Host` > `Host`), verifies user is an active member. Sets `c.set("auth", ...)`.
 2. **`requireRole(minRole)`** — composable guard with numeric rank: `operator=1 < admin=2 < super_admin=3`.
 3. **`checkBillingStatus()`** — gates requests based on Stripe subscription status (`active`, `trialing`, `past_due`, `canceled`, etc.). Some statuses allow reads but block writes; expired trials only allow billing endpoints for `super_admin`.
 4. **`requireApiKeyAuth()`** — for widget/public API routes. Validates `Bearer dk_(live|test)_[32chars]` + `X-App-Id` header. Optionally validates `Origin` against registered domain.
-5. **`createTenantRateLimitMiddleware()`** — three chained windows (per-second, per-minute, per-hour) using in-memory store (not Redis — not shared across instances).
+5. **`authenticateWebSocket()`** (`wsAuth.ts`) — dual auth for WebSocket connections: session cookie (admin/operator) or API key + appId query params (widget visitors).
+6. **`createTenantRateLimitMiddleware()`** — three chained windows (per-second, per-minute, per-hour) using in-memory store (not Redis — not shared across instances).
 
 ### Account Lifecycle State Machine
 
@@ -100,7 +117,7 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 
 ### Frontend (admin)
 
-- **Hono RPC client:** `hc<APIType>(baseUrl)` in `src/lib/api.ts` provides compile-time type safety for all API calls. `APIType` is imported from `hono-api`. Route changes in hono-api automatically surface as TypeScript errors in admin.
+- **Hono RPC client:** `hc<APIType>(baseUrl)` in `src/lib/api.ts` provides compile-time type safety for all API calls. `APIType` is imported from `hono-api/types`. Route changes in hono-api automatically surface as TypeScript errors in admin.
 - **Request headers:** Every RPC call auto-injects `Authorization: Bearer <token>` and `X-Tenant-Slug: <subdomain>` via a custom fetch wrapper.
 - **Routing:** TanStack Router with file-based routes. `_public/` = unauthenticated, `_system/` = authenticated+tenant-scoped.
 - **Data fetching:** TanStack Query v5 — do NOT use `useEffect` for data fetching or state sync. Use URL search params (via `nuqs` or native APIs) for UI state like filters, tabs, modals.
@@ -115,6 +132,30 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 - **Shadow DOM isolation:** Widget renders inside a Shadow DOM to prevent CSS leakage in both directions.
 - **Settings priority:** API-fetched (`/widget/settings`) → `defaultSettings` → caller's `InitOptions` (JS options win last).
 - **Public API:** `DeliveryChat.init({ appId })` and `DeliveryChat.destroy()`.
+
+### Conversations & Messaging
+
+Support conversation lifecycle with real-time WebSocket updates. Three core tables:
+- **`conversations`** — scoped to an organization + optional application. Statuses: `pending` → `active` → `closed`. Has `assignedTo` (operator who accepted). Default status: `pending`. Soft-delete via `deletedAt`.
+- **`messages`** — belongs to a conversation. Has `senderId` (references `user`), `messageTypeEnum` (default `text`), soft-delete via `deletedAt`. Messages can be sent while conversation is `pending` or `active`.
+- **`conversationParticipants`** — join table with `participantRoleEnum`, unique constraint on `(conversationId, userId)`, tracks `lastReadMessageId` for read receipts.
+
+**Conversation lifecycle:**
+1. Visitor sends first message → conversation created as `pending` → appears in operator queue
+2. Operator clicks Accept → `POST /conversations/:id/accept` (race-condition safe: `WHERE assignedTo IS NULL`) → status `active`, `assignedTo` set
+3. Operator clicks Leave Chat → `POST /conversations/:id/leave` → status back to `pending`, `assignedTo` null → returns to queue
+4. Operator clicks Mark as Solved → `POST /conversations/:id/resolve` → status `closed`
+
+**Visibility rules:** Operators see pending (queue) + their own active. Admins/super_admins see all.
+
+**WebSocket architecture:**
+- Endpoint: `GET /v1/ws` — upgrade handled in `src/routes/ws.ts`, init in `src/lib/ws.ts`.
+- Dual auth: session cookie (admin) or API key + appId query params (widget).
+- `InMemoryRoomManager` tracks connections per organization. Supports `room:join`, `room:leave`, `message:send`, `ping` client events.
+- Lifecycle events (`conversation:new`, `conversation:accepted`, `conversation:released`, `conversation:resolved`) broadcast to all org staff so queue updates in real-time.
+- Protocol details documented in `apps/hono-api/src/features/chat/docs/websocket-protocol.md`.
+
+Relations defined in `schema/relations.ts`.
 
 ### Secrets Management
 
@@ -135,7 +176,7 @@ All environment variables managed via **Infisical** (not `.env` files). Folder-b
 - **UI components:** Import from `@repo/ui` for shared components.
 - **Path aliases:** `@repo/types`, `@repo/ui`, `hono-api` configured in root `tsconfig.json`.
 - **API responses:** Use `jsonError()` for errors. Standardized response envelopes from `@repo/types`.
-- **Testing:** Vitest — `hono-api` uses `node` env, `widget` uses `jsdom` env (only `src/widget/**/*.test.ts`). Tests colocated with source files.
+- **Testing:** Vitest for unit/integration (`hono-api` uses `node` env, `widget` uses `jsdom` env restricted to `src/widget/**/*.test.ts`). Playwright for E2E (`apps/hono-api/e2e/**/*.e2e.ts`). Tests colocated with source files.
 - **Formatting:** Prettier + ESLint. Run `bun run lint` and `bun run format`.
 - **Feature docs:** Every new feature or non-trivial change must have a `docs/` folder inside its feature directory with `.md` files covering business rules and technical decisions.
 - **Factory docs:** When creating a Factory, add a `factory.md` in that feature's `docs/` folder.

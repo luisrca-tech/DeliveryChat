@@ -4,6 +4,7 @@ export {
   sendEmailVerifiedWelcomeEmail,
   sendPasswordChangedEmail,
   sendNewSignInAlertEmail,
+  sendOrganizationInvitationEmail,
   type SendVerificationOTPEmailParams,
   type SendResetPasswordEmailParams,
 } from "./auth.js";

@@ -78,9 +78,21 @@ export const defaultSettings: WidgetSettings = {
 
 export type InitOptions = {
   appId: string;
+  apiKey: string;
+  apiBaseUrl?: string;
   position?: "bottom-left" | "bottom-right";
   autoOpen?: boolean;
   autoOpenDelay?: number;
-  /** Extensible: add more overrides here (e.g. colors, font) and in buildInitOverrides */
   colors?: Partial<WidgetSettings["colors"]>;
 };
+
+export type ChatMessage = {
+  id: string;
+  content: string;
+  senderRole: "visitor" | "operator" | "admin";
+  senderId: string;
+  status: "pending" | "sent" | "failed";
+  createdAt: string;
+};
+
+export type ConversationStatus = "pending" | "active" | "closed";

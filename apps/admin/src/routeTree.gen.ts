@@ -12,11 +12,14 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as SystemRouteImport } from './routes/_system'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as SystemIndexRouteImport } from './routes/_system/index'
+import { Route as SystemConversationsRouteImport } from './routes/_system/conversations'
 import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
+import { Route as PublicAcceptInvitationRouteImport } from './routes/_public/accept-invitation'
 import { Route as SystemSettingsIndexRouteImport } from './routes/_system/settings/index'
 import { Route as SystemSettingsRateLimitsRouteImport } from './routes/_system/settings/rate-limits'
+import { Route as SystemSettingsMembersRouteImport } from './routes/_system/settings/members'
 import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
 import { Route as SystemSettingsApplicationsRouteImport } from './routes/_system/settings/applications'
 import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/settings/api-keys'
@@ -36,6 +39,11 @@ const SystemIndexRoute = SystemIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemConversationsRoute = SystemConversationsRouteImport.update({
+  id: '/conversations',
+  path: '/conversations',
+  getParentRoute: () => SystemRoute,
+} as any)
 const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -51,6 +59,11 @@ const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
   path: '/forgot-password',
   getParentRoute: () => PublicRoute,
 } as any)
+const PublicAcceptInvitationRoute = PublicAcceptInvitationRouteImport.update({
+  id: '/accept-invitation',
+  path: '/accept-invitation',
+  getParentRoute: () => PublicRoute,
+} as any)
 const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
@@ -62,6 +75,11 @@ const SystemSettingsRateLimitsRoute =
     path: '/settings/rate-limits',
     getParentRoute: () => SystemRoute,
   } as any)
+const SystemSettingsMembersRoute = SystemSettingsMembersRouteImport.update({
+  id: '/settings/members',
+  path: '/settings/members',
+  getParentRoute: () => SystemRoute,
+} as any)
 const SystemSettingsBillingRoute = SystemSettingsBillingRouteImport.update({
   id: '/settings/billing',
   path: '/settings/billing',
@@ -90,28 +108,34 @@ const SystemBillingSuccessRoute = SystemBillingSuccessRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/conversations': typeof SystemConversationsRoute
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
+  '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/conversations': typeof SystemConversationsRoute
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
+  '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
 }
@@ -119,58 +143,70 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_public': typeof PublicRouteWithChildren
   '/_system': typeof SystemRouteWithChildren
+  '/_public/accept-invitation': typeof PublicAcceptInvitationRoute
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
+  '/_system/conversations': typeof SystemConversationsRoute
   '/_system/': typeof SystemIndexRoute
   '/_system/billing/success': typeof SystemBillingSuccessRoute
   '/_system/onboarding/plans': typeof SystemOnboardingPlansRoute
   '/_system/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/_system/settings/applications': typeof SystemSettingsApplicationsRoute
   '/_system/settings/billing': typeof SystemSettingsBillingRoute
+  '/_system/settings/members': typeof SystemSettingsMembersRoute
   '/_system/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/_system/settings/': typeof SystemSettingsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/accept-invitation'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/conversations'
     | '/'
     | '/billing/success'
     | '/onboarding/plans'
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
+    | '/settings/members'
     | '/settings/rate-limits'
     | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/accept-invitation'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/conversations'
     | '/'
     | '/billing/success'
     | '/onboarding/plans'
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
+    | '/settings/members'
     | '/settings/rate-limits'
     | '/settings'
   id:
     | '__root__'
     | '/_public'
     | '/_system'
+    | '/_public/accept-invitation'
     | '/_public/forgot-password'
     | '/_public/login'
     | '/_public/reset-password'
+    | '/_system/conversations'
     | '/_system/'
     | '/_system/billing/success'
     | '/_system/onboarding/plans'
     | '/_system/settings/api-keys'
     | '/_system/settings/applications'
     | '/_system/settings/billing'
+    | '/_system/settings/members'
     | '/_system/settings/rate-limits'
     | '/_system/settings/'
   fileRoutesById: FileRoutesById
@@ -203,6 +239,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemIndexRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/_system/conversations': {
+      id: '/_system/conversations'
+      path: '/conversations'
+      fullPath: '/conversations'
+      preLoaderRoute: typeof SystemConversationsRouteImport
+      parentRoute: typeof SystemRoute
+    }
     '/_public/reset-password': {
       id: '/_public/reset-password'
       path: '/reset-password'
@@ -224,6 +267,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicForgotPasswordRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/accept-invitation': {
+      id: '/_public/accept-invitation'
+      path: '/accept-invitation'
+      fullPath: '/accept-invitation'
+      preLoaderRoute: typeof PublicAcceptInvitationRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_system/settings/': {
       id: '/_system/settings/'
       path: '/settings'
@@ -236,6 +286,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/rate-limits'
       fullPath: '/settings/rate-limits'
       preLoaderRoute: typeof SystemSettingsRateLimitsRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/_system/settings/members': {
+      id: '/_system/settings/members'
+      path: '/settings/members'
+      fullPath: '/settings/members'
+      preLoaderRoute: typeof SystemSettingsMembersRouteImport
       parentRoute: typeof SystemRoute
     }
     '/_system/settings/billing': {
@@ -277,12 +334,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface PublicRouteChildren {
+  PublicAcceptInvitationRoute: typeof PublicAcceptInvitationRoute
   PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
   PublicLoginRoute: typeof PublicLoginRoute
   PublicResetPasswordRoute: typeof PublicResetPasswordRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
+  PublicAcceptInvitationRoute: PublicAcceptInvitationRoute,
   PublicForgotPasswordRoute: PublicForgotPasswordRoute,
   PublicLoginRoute: PublicLoginRoute,
   PublicResetPasswordRoute: PublicResetPasswordRoute,
@@ -292,23 +351,27 @@ const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
 interface SystemRouteChildren {
+  SystemConversationsRoute: typeof SystemConversationsRoute
   SystemIndexRoute: typeof SystemIndexRoute
   SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
   SystemOnboardingPlansRoute: typeof SystemOnboardingPlansRoute
   SystemSettingsApiKeysRoute: typeof SystemSettingsApiKeysRoute
   SystemSettingsApplicationsRoute: typeof SystemSettingsApplicationsRoute
   SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute
+  SystemSettingsMembersRoute: typeof SystemSettingsMembersRoute
   SystemSettingsRateLimitsRoute: typeof SystemSettingsRateLimitsRoute
   SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
 }
 
 const SystemRouteChildren: SystemRouteChildren = {
+  SystemConversationsRoute: SystemConversationsRoute,
   SystemIndexRoute: SystemIndexRoute,
   SystemBillingSuccessRoute: SystemBillingSuccessRoute,
   SystemOnboardingPlansRoute: SystemOnboardingPlansRoute,
   SystemSettingsApiKeysRoute: SystemSettingsApiKeysRoute,
   SystemSettingsApplicationsRoute: SystemSettingsApplicationsRoute,
   SystemSettingsBillingRoute: SystemSettingsBillingRoute,
+  SystemSettingsMembersRoute: SystemSettingsMembersRoute,
   SystemSettingsRateLimitsRoute: SystemSettingsRateLimitsRoute,
   SystemSettingsIndexRoute: SystemSettingsIndexRoute,
 }
