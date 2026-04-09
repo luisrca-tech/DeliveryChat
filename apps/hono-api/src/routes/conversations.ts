@@ -9,6 +9,7 @@ import { user } from "../db/schema/users.js";
 import {
   listConversationsQuerySchema,
   getMessagesQuerySchema,
+  updateConversationSubjectSchema,
 } from "./schemas/conversations.js";
 import {
   getConversationWithParticipants,
@@ -16,6 +17,7 @@ import {
   leaveConversation,
   resolveConversation,
   softDeleteConversation,
+  updateConversationSubject,
   addParticipant,
 } from "../features/chat/chat.service.js";
 import {
@@ -345,6 +347,44 @@ export const conversationsRoute = new Hono()
       );
     }
   })
+
+  // PATCH /:id/subject — update subject (assigned user only)
+  .patch(
+    "/:id/subject",
+    zValidator("json", updateConversationSubjectSchema),
+    async (c) => {
+      try {
+        const { organization, user: authUser } = getTenantAuth(c);
+        const conversationId = c.req.param("id");
+        const { subject } = c.req.valid("json");
+
+        const updated = await updateConversationSubject(
+          conversationId,
+          organization.id,
+          authUser.id,
+          subject,
+        );
+
+        if (!updated) {
+          return jsonError(
+            c,
+            HTTP_STATUS.NOT_FOUND,
+            ERROR_MESSAGES.NOT_FOUND,
+            "Conversation not found or not assigned to you",
+          );
+        }
+
+        return c.json({ conversation: updated });
+      } catch (error) {
+        console.error("Error updating conversation subject:", error);
+        return jsonError(
+          c,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+        );
+      }
+    },
+  )
 
   // DELETE /:id — soft delete conversation (admin/super_admin only)
   .delete("/:id", requireRole("admin"), async (c) => {

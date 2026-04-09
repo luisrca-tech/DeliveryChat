@@ -59,6 +59,7 @@ const {
   leaveConversation,
   resolveConversation,
   softDeleteConversation,
+  updateConversationSubject,
   validateSendAuthorization,
   ConversationNotFoundError,
   ConversationNotActiveError,
@@ -559,6 +560,59 @@ describe("chat.service", () => {
       mockUpdate.mockReturnValueOnce(updateChain);
 
       const result = await softDeleteConversation("conv-deleted", "org-1");
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("updateConversationSubject", () => {
+    it("updates subject and returns the row", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        subject: "New subject",
+        assignedTo: "operator-1",
+        updatedAt: "2026-04-09T00:00:00Z",
+      };
+
+      const updateChain = chainMock([updatedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await updateConversationSubject(
+        "conv-1",
+        "org-1",
+        "operator-1",
+        "New subject",
+      );
+
+      expect(result).toEqual(updatedRow);
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("returns null when user is not assignedTo", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await updateConversationSubject(
+        "conv-1",
+        "org-1",
+        "wrong-user",
+        "New subject",
+      );
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null for non-existent conversation", async () => {
+      const updateChain = chainMock([]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await updateConversationSubject(
+        "conv-999",
+        "org-1",
+        "operator-1",
+        "New subject",
+      );
+
       expect(result).toBeNull();
     });
   });

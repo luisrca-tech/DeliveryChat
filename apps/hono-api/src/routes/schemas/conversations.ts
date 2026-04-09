@@ -18,6 +18,10 @@ export const updateConversationStatusSchema = z.object({
   status: z.enum(["closed"]),
 });
 
+export const updateConversationSubjectSchema = z.object({
+  subject: z.string().trim().min(1).max(500),
+});
+
 export const addParticipantSchema = z.object({
   userId: z.string().min(1),
   role: z.enum(["visitor", "operator", "admin"]),

@@ -354,6 +354,30 @@ export async function resolveConversation(
   return updated ?? null;
 }
 
+export async function updateConversationSubject(
+  conversationId: string,
+  organizationId: string,
+  operatorId: string,
+  subject: string,
+) {
+  const [updated] = await db
+    .update(conversations)
+    .set({
+      subject,
+      updatedAt: sql`now()`,
+    })
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, organizationId),
+        eq(conversations.assignedTo, operatorId),
+      ),
+    )
+    .returning();
+
+  return updated ?? null;
+}
+
 export async function softDeleteConversation(
   conversationId: string,
   organizationId: string,
