@@ -54,6 +54,12 @@ export function createEventHandler(roomManager: IRoomManager) {
       case "message:send":
         await handleMessageSend(conn, event.payload, roomManager);
         break;
+      case "typing:start":
+        handleTypingStart(conn, event.payload, roomManager);
+        break;
+      case "typing:stop":
+        handleTypingStop(conn, event.payload, roomManager);
+        break;
       case "ping":
         sendEvent(conn, { type: "pong" });
         break;
@@ -184,6 +190,48 @@ async function handleMessageSend(
       content: message.content,
       type: message.type as "text" | "system",
       createdAt: message.createdAt,
+    },
+  };
+
+  roomManager.broadcast(
+    payload.conversationId,
+    JSON.stringify(broadcastEvent),
+    conn.id,
+  );
+}
+
+function handleTypingStart(
+  conn: WSConnection,
+  payload: { conversationId: string },
+  roomManager: IRoomManager,
+) {
+  const broadcastEvent: WSServerEvent = {
+    type: "typing:start",
+    payload: {
+      conversationId: payload.conversationId,
+      userId: conn.userId,
+      userName: conn.userName,
+      senderRole: conn.role,
+    },
+  };
+
+  roomManager.broadcast(
+    payload.conversationId,
+    JSON.stringify(broadcastEvent),
+    conn.id,
+  );
+}
+
+function handleTypingStop(
+  conn: WSConnection,
+  payload: { conversationId: string },
+  roomManager: IRoomManager,
+) {
+  const broadcastEvent: WSServerEvent = {
+    type: "typing:stop",
+    payload: {
+      conversationId: payload.conversationId,
+      userId: conn.userId,
     },
   };
 

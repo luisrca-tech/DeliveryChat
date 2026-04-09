@@ -12,13 +12,23 @@ type WSConfig = {
 const PING_INTERVAL = 25_000;
 const RECONNECT_BASE_DELAY = 1_000;
 const RECONNECT_MAX_DELAY = 30_000;
+const TYPING_TIMEOUT_MS = 3_000;
 
 let ws: WebSocket | null = null;
 let config: WSConfig | null = null;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let typingTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalClose = false;
+
+function clearTypingState() {
+  setState("typingUser", null);
+  if (typingTimer) {
+    clearTimeout(typingTimer);
+    typingTimer = null;
+  }
+}
 
 export function connectWS(cfg: WSConfig): void {
   if (ws || reconnectTimer) {
@@ -121,6 +131,36 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
       };
 
       setState("messages", (prev) => [...prev, newMsg]);
+
+      if (payload.senderId === getState("typingUser")?.userId) {
+        clearTypingState();
+      }
+      break;
+    }
+
+    case "typing:start": {
+      const payload = event.payload as {
+        conversationId: string;
+        userId: string;
+        userName: string | null;
+        senderRole: string;
+      };
+      setState("typingUser", {
+        userId: payload.userId,
+        userName: payload.userName,
+        senderRole: payload.senderRole,
+      });
+      if (typingTimer) clearTimeout(typingTimer);
+      typingTimer = setTimeout(() => setState("typingUser", null), TYPING_TIMEOUT_MS);
+      break;
+    }
+
+    case "typing:stop": {
+      const payload = event.payload as { conversationId: string; userId: string };
+      const current = getState("typingUser");
+      if (current?.userId === payload.userId) {
+        clearTypingState();
+      }
       break;
     }
 

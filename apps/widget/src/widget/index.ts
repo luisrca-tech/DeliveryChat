@@ -34,6 +34,8 @@ import {
   initChatController,
   openChat as controllerOpenChat,
   sendMessage as controllerSendMessage,
+  notifyTypingStart,
+  notifyTypingStop,
   destroyChat,
 } from "./chat-controller.js";
 import type { ChatMessage } from "./types.js";
@@ -115,9 +117,6 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
 
   // eslint-disable-next-line prefer-const
   let chatWindowEl: HTMLElement;
-  const onSend = (text: string) => {
-    controllerSendMessage(text);
-  };
 
   let isOpen = getState("isOpen");
   const closeChat = () => {
@@ -131,8 +130,12 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   chatWindowEl = createChatWindow(
     settings,
     getState("messages"),
-    onSend,
-    closeChat,
+    {
+      onSend: (text) => controllerSendMessage(text),
+      onTypingStart: notifyTypingStart,
+      onTypingStop: notifyTypingStop,
+      onClose: closeChat,
+    },
   );
   const chatWindow = chatWindowEl;
   chatWindow.hidden = !isOpen;
@@ -206,6 +209,26 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     lastMessageCount = messages.length;
   });
   cleanupFns.push(unsubMessages);
+
+  // Typing indicator
+  const typingEl = chatWindow.querySelector(".typing-indicator") as HTMLElement | null;
+  const unsubTyping = subscribe("typingUser", (typingUser) => {
+    if (!typingEl) return;
+    if (typingUser) {
+      typingEl.textContent =
+        typingUser.senderRole === "visitor"
+          ? "Visitor is typing..."
+          : `${typingUser.userName ?? "Agent"} is typing...`;
+      typingEl.hidden = false;
+      // Auto-scroll to show indicator
+      const listEl = getMessageListEl(chatWindow);
+      if (listEl) listEl.scrollTop = listEl.scrollHeight;
+    } else {
+      typingEl.hidden = true;
+      typingEl.textContent = "";
+    }
+  });
+  cleanupFns.push(unsubTyping);
 
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && isOpen) closeChat();

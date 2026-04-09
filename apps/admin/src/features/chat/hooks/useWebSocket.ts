@@ -10,11 +10,29 @@ import type { Message } from "../types/chat.types";
 
 type WSMessageHandler = (event: WSServerEvent) => void;
 
+export type TypingUser = {
+  userId: string;
+  userName: string | null;
+  senderRole: string;
+} | null;
+
+const TYPING_TIMEOUT_MS = 3_000;
+
 export function useWebSocket(activeConversationId: string | null) {
   const [isConnected, setIsConnected] = useState(false);
+  const [typingUser, setTypingUser] = useState<TypingUser>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const managerRef = useRef<WebSocketManager | null>(null);
   const handlersRef = useRef<Set<WSMessageHandler>>(new Set());
   const queryClient = useQueryClient();
+
+  const clearTyping = useCallback(() => {
+    setTypingUser(null);
+    if (typingTimerRef.current) {
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = null;
+    }
+  }, []);
 
   const subscribe = useCallback((handler: WSMessageHandler) => {
     handlersRef.current.add(handler);
@@ -74,6 +92,37 @@ export function useWebSocket(activeConversationId: string | null) {
           queryClient.invalidateQueries({
             queryKey: conversationsQueryKeys.all(),
           });
+
+          // Clear typing indicator when the typing user sends a message
+          setTypingUser((current) =>
+            current?.userId === msg.senderId ? null : current,
+          );
+          if (typingTimerRef.current) {
+            clearTimeout(typingTimerRef.current);
+            typingTimerRef.current = null;
+          }
+        }
+
+        if (event.type === "typing:start") {
+          const payload = event.payload;
+          setTypingUser({
+            userId: payload.userId,
+            userName: payload.userName,
+            senderRole: payload.senderRole,
+          });
+          if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
+          typingTimerRef.current = setTimeout(() => setTypingUser(null), TYPING_TIMEOUT_MS);
+        }
+
+        if (event.type === "typing:stop") {
+          const payload = event.payload;
+          setTypingUser((current) =>
+            current?.userId === payload.userId ? null : current,
+          );
+          if (typingTimerRef.current) {
+            clearTimeout(typingTimerRef.current);
+            typingTimerRef.current = null;
+          }
         }
 
         // Conversation lifecycle events — invalidate list so queue updates
@@ -107,7 +156,8 @@ export function useWebSocket(activeConversationId: string | null) {
 
   useEffect(() => {
     managerRef.current?.setActiveRoom(activeConversationId);
-  }, [activeConversationId]);
+    clearTyping();
+  }, [activeConversationId, clearTyping]);
 
-  return { isConnected, sendEvent, subscribe, setActiveRoom };
+  return { isConnected, sendEvent, subscribe, setActiveRoom, typingUser };
 }

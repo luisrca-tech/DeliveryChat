@@ -5,6 +5,7 @@ import { ChatPanel } from "./ChatPanel";
 import { useWebSocket } from "../hooks/useWebSocket";
 import { useConversationNotifications } from "../hooks/useConversationNotifications";
 import { useInferMissingConversationFilterUrl } from "../hooks/useInferMissingConversationFilterUrl";
+import { useConversationUrlFilterSync } from "../hooks/useConversationUrlFilterSync";
 import { useMembersQuery } from "@/features/members/hooks/useMembersQuery";
 import { Route } from "@/routes/_system/conversations";
 
@@ -38,6 +39,15 @@ export function ConversationsPage() {
     currentUserRole,
     sessionUserId,
     navigate,
+  );
+
+  useConversationUrlFilterSync(
+    selectedId,
+    urlFilter,
+    sessionUserId,
+    currentUserRole,
+    navigate,
+    ws.subscribe,
   );
 
   useConversationNotifications(ws.subscribe);

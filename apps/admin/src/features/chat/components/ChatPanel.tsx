@@ -5,11 +5,15 @@ import { authClient } from "@/lib/authClient";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
+import { useNavigate } from "@tanstack/react-router";
 import { useConversationMessagesQuery, useConversationDetailQuery } from "../hooks/useConversationsQuery";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useAcceptConversationMutation } from "../hooks/useConversationMutations";
 import { ConversationConflictError } from "../lib/conversations.client";
+import { navigateSearchAfterAccept } from "../lib/conversationSearchNavigation";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
+import type { TypingUser } from "../hooks/useWebSocket";
+import { Route } from "@/routes/_system/conversations";
 
 type WSHandle = {
   isConnected: boolean;
@@ -20,6 +24,7 @@ type WSHandle = {
     lastMessageId?: string,
     force?: boolean,
   ) => void;
+  typingUser: TypingUser;
 };
 
 type Props = {
@@ -29,6 +34,8 @@ type Props = {
 };
 
 export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { filter: urlFilter } = Route.useSearch();
   const { data: sessionInfo, isPending: sessionPending } = authClient.useSession();
   const currentUserId = sessionInfo?.user?.id ?? "";
 
@@ -69,6 +76,12 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
   const handleAccept = async () => {
     try {
       await acceptMutation.mutateAsync(conversationId);
+      navigateSearchAfterAccept(
+        navigate,
+        conversationId,
+        currentUserRole,
+        urlFilter,
+      );
       toast.success("Conversation accepted");
       ws.setActiveRoom(conversationId, undefined, true);
     } catch (error) {
@@ -93,6 +106,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
           messages={displayMessages}
           isLoading={messagesLoading}
           currentUserId={currentUserId}
+          typingUser={ws.typingUser}
         />
 
         {isPending && (
@@ -114,6 +128,18 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
         {isActive && (
           <MessageInput
             onSend={(content) => send(conversationId, content)}
+            onTypingStart={() => {
+              ws.sendEvent({
+                type: "typing:start",
+                payload: { conversationId },
+              });
+            }}
+            onTypingStop={() => {
+              ws.sendEvent({
+                type: "typing:stop",
+                payload: { conversationId },
+              });
+            }}
             disabled={!canSend}
             placeholder={
               !ws.isConnected

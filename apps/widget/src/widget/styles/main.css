@@ -257,3 +257,10 @@
   background-color: #f1f5f9;
   color: #475569;
 }
+
+:where(.chat-widget) .typing-indicator {
+  padding: 4px 16px 8px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--dc-text-secondary, #64748b);
+}

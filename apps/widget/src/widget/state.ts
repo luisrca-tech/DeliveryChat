@@ -2,6 +2,12 @@ import type { WidgetSettings, ChatMessage, ConversationStatus } from "./types.js
 
 type Listener<T> = (value: T) => void;
 
+export type TypingUser = {
+  userId: string;
+  userName: string | null;
+  senderRole: string;
+} | null;
+
 type State = {
   settings: WidgetSettings;
   isOpen: boolean;
@@ -10,6 +16,7 @@ type State = {
   visitorId: string | null;
   connectionStatus: "disconnected" | "connecting" | "connected";
   conversationStatus: ConversationStatus | null;
+  typingUser: TypingUser;
 };
 
 const listeners: Map<keyof State, Set<Listener<unknown>>> = new Map();
@@ -22,6 +29,7 @@ let state: State = {
   visitorId: null,
   connectionStatus: "disconnected",
   conversationStatus: null,
+  typingUser: null,
 };
 
 export function getState<K extends keyof State>(key: K): State[K] {

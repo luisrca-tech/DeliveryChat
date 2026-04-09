@@ -8,6 +8,7 @@ function createMockConnection(
   return {
     id: crypto.randomUUID(),
     userId: "user-1",
+    userName: "Test User",
     organizationId: "org-1",
     role: "operator" as const,
     ws: {

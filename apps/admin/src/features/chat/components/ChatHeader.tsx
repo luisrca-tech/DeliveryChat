@@ -1,4 +1,10 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { Route } from "@/routes/_system/conversations";
+import {
+  navigateSearchAfterLeave,
+  navigateSearchAfterResolve,
+} from "../lib/conversationSearchNavigation";
 import { MessageSquare, LogOut, CheckCircle, MoreVertical, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
@@ -29,6 +35,8 @@ const statusColors: Record<string, string> = {
 };
 
 export function ChatHeader({ conversation, currentUserId }: Props) {
+  const navigate = useNavigate({ from: Route.fullPath });
+  const { filter: urlFilter } = Route.useSearch();
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
   const leaveMutation = useLeaveConversationMutation();
   const resolveMutation = useResolveConversationMutation();
@@ -71,6 +79,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
   const handleLeave = async () => {
     try {
       await leaveMutation.mutateAsync(conversation.id);
+      navigateSearchAfterLeave(navigate, conversation.id, urlFilter);
       setIsLeaveDialogOpen(false);
       toast.success("Left conversation — returned to queue");
     } catch {
@@ -81,6 +90,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
   const handleResolve = async () => {
     try {
       await resolveMutation.mutateAsync(conversation.id);
+      navigateSearchAfterResolve(navigate, conversation.id, urlFilter);
       setIsResolveDialogOpen(false);
       toast.success("Conversation marked as solved");
     } catch {

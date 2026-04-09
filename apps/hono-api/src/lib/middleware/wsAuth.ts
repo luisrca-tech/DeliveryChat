@@ -14,6 +14,7 @@ const KEY_REGEX = /^dk_(live|test)_[a-zA-Z0-9]{32}$/;
 
 export interface AuthenticatedWSUser {
   userId: string;
+  userName: string | null;
   organizationId: string;
   role: ParticipantRole;
   authType: "session" | "apiKey";
@@ -22,8 +23,8 @@ export interface AuthenticatedWSUser {
 
 type SessionResult = Awaited<ReturnType<typeof auth.api.getSession>>;
 type SessionWithUser = SessionResult & {
-  user?: { id: string };
-  data?: { user?: { id: string } };
+  user?: { id: string; name?: string };
+  data?: { user?: { id: string; name?: string } };
 };
 
 /**
@@ -73,6 +74,7 @@ async function authenticateWithApiKey(
 
   return {
     userId: visitorId ?? `anonymous-${crypto.randomUUID()}`,
+    userName: null,
     organizationId: app.organizationId,
     role: "visitor",
     authType: "apiKey",
@@ -129,6 +131,7 @@ async function authenticateWithSession(
 
   return {
     userId: sessionUser.id,
+    userName: sessionUser.name ?? null,
     organizationId: org.id,
     role,
     authType: "session",

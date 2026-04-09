@@ -15,6 +15,8 @@ import {
 let appId: string | null = null;
 let apiKey: string | null = null;
 let initialized = false;
+let lastTypingSent = 0;
+const TYPING_THROTTLE_MS = 2_000;
 
 export function initChatController(opts: { appId: string; apiKey: string }): void {
   appId = opts.appId;
@@ -110,8 +112,35 @@ export async function sendMessage(content: string): Promise<void> {
     payload: { conversationId, content, clientMessageId },
   });
 
+  lastTypingSent = 0;
+
   // Track last message for reconnection
   saveLastClientMessageId(appId, clientMessageId);
+}
+
+export function notifyTypingStart(): void {
+  const conversationId = getState("conversationId");
+  if (!conversationId || !initialized) return;
+
+  const now = Date.now();
+  if (now - lastTypingSent < TYPING_THROTTLE_MS) return;
+  lastTypingSent = now;
+
+  sendWSMessage({
+    type: "typing:start",
+    payload: { conversationId },
+  });
+}
+
+export function notifyTypingStop(): void {
+  const conversationId = getState("conversationId");
+  if (!conversationId || !initialized) return;
+
+  lastTypingSent = 0;
+  sendWSMessage({
+    type: "typing:stop",
+    payload: { conversationId },
+  });
 }
 
 export function destroyChat(): void {
@@ -127,6 +156,7 @@ export function destroyChat(): void {
   setState("conversationStatus", null);
   setState("messages", []);
 
+  lastTypingSent = 0;
   initialized = false;
   appId = null;
   apiKey = null;

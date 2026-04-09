@@ -40,6 +40,7 @@ wsRoute.get("/ws", async (c, next) => {
           connection = {
             id: crypto.randomUUID(),
             userId: authResult.userId,
+            userName: authResult.userName,
             organizationId: authResult.organizationId,
             role: authResult.role,
             ws,

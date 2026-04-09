@@ -4,6 +4,7 @@ import type { ParticipantRole } from "@repo/types";
 export interface WSConnection {
   id: string;
   userId: string;
+  userName: string | null;
   organizationId: string;
   role: ParticipantRole;
   ws: WSContext;

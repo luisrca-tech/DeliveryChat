@@ -21,7 +21,13 @@ export function appendMessage(
   list: HTMLElement,
   message: ChatMessage,
 ): void {
-  list.appendChild(createBubble(message));
+  const typingEl = list.querySelector(".typing-indicator");
+  const bubble = createBubble(message);
+  if (typingEl) {
+    list.insertBefore(bubble, typingEl);
+  } else {
+    list.appendChild(bubble);
+  }
   list.scrollTop = list.scrollHeight;
 }
 

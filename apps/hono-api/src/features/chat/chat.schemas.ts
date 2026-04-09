@@ -17,10 +17,20 @@ export const messageSendSchema = z.object({
   clientMessageId: z.string().min(1),
 });
 
+export const typingStartSchema = z.object({
+  conversationId: z.string().uuid(),
+});
+
+export const typingStopSchema = z.object({
+  conversationId: z.string().uuid(),
+});
+
 export const wsClientEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("room:join"), payload: roomJoinSchema }),
   z.object({ type: z.literal("room:leave"), payload: roomLeaveSchema }),
   z.object({ type: z.literal("message:send"), payload: messageSendSchema }),
+  z.object({ type: z.literal("typing:start"), payload: typingStartSchema }),
+  z.object({ type: z.literal("typing:stop"), payload: typingStopSchema }),
   z.object({ type: z.literal("ping") }),
 ]);
 

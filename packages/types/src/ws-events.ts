@@ -28,6 +28,8 @@ export const WSClientEventType = {
   ROOM_JOIN: "room:join",
   ROOM_LEAVE: "room:leave",
   MESSAGE_SEND: "message:send",
+  TYPING_START: "typing:start",
+  TYPING_STOP: "typing:stop",
   PING: "ping",
 } as const;
 export type WSClientEventType =
@@ -48,10 +50,20 @@ export interface MessageSendPayload {
   clientMessageId: string;
 }
 
+export interface TypingStartPayload {
+  conversationId: string;
+}
+
+export interface TypingStopPayload {
+  conversationId: string;
+}
+
 export type WSClientEvent =
   | { type: typeof WSClientEventType.ROOM_JOIN; payload: RoomJoinPayload }
   | { type: typeof WSClientEventType.ROOM_LEAVE; payload: RoomLeavePayload }
   | { type: typeof WSClientEventType.MESSAGE_SEND; payload: MessageSendPayload }
+  | { type: typeof WSClientEventType.TYPING_START; payload: TypingStartPayload }
+  | { type: typeof WSClientEventType.TYPING_STOP; payload: TypingStopPayload }
   | { type: typeof WSClientEventType.PING };
 
 // ── Server → Client Events ──
@@ -64,6 +76,8 @@ export const WSServerEventType = {
   CONVERSATION_ACCEPTED: "conversation:accepted",
   CONVERSATION_RELEASED: "conversation:released",
   CONVERSATION_RESOLVED: "conversation:resolved",
+  TYPING_START: "typing:start",
+  TYPING_STOP: "typing:stop",
   ERROR: "error",
   PONG: "pong",
 } as const;
@@ -116,6 +130,18 @@ export interface ConversationResolvedPayload {
   resolvedBy: string;
 }
 
+export interface TypingStartBroadcastPayload {
+  conversationId: string;
+  userId: string;
+  userName: string | null;
+  senderRole: ParticipantRole;
+}
+
+export interface TypingStopBroadcastPayload {
+  conversationId: string;
+  userId: string;
+}
+
 export interface WSErrorPayload {
   code: string;
   message: string;
@@ -143,6 +169,14 @@ export type WSServerEvent =
   | {
       type: typeof WSServerEventType.CONVERSATION_RESOLVED;
       payload: ConversationResolvedPayload;
+    }
+  | {
+      type: typeof WSServerEventType.TYPING_START;
+      payload: TypingStartBroadcastPayload;
+    }
+  | {
+      type: typeof WSServerEventType.TYPING_STOP;
+      payload: TypingStopBroadcastPayload;
     }
   | { type: typeof WSServerEventType.ERROR; payload: WSErrorPayload }
   | { type: typeof WSServerEventType.PONG };

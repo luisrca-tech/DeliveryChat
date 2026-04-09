@@ -2,14 +2,16 @@ import { useEffect, useRef } from "react";
 import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
 import { MessageBubble } from "./MessageBubble";
 import type { Message } from "../types/chat.types";
+import type { TypingUser } from "../hooks/useWebSocket";
 
 type Props = {
   messages: Message[];
   isLoading: boolean;
   currentUserId: string;
+  typingUser: TypingUser;
 };
 
-export function MessageList({ messages, isLoading, currentUserId }: Props) {
+export function MessageList({ messages, isLoading, currentUserId, typingUser }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(messages.length);
 
@@ -49,6 +51,15 @@ export function MessageList({ messages, isLoading, currentUserId }: Props) {
             isSelf={msg.senderId === currentUserId}
           />
         ))}
+        {typingUser && (
+          <div className="px-1 py-1">
+            <p className="text-xs text-muted-foreground italic">
+              {typingUser.senderRole === "visitor"
+                ? "Visitor is typing..."
+                : `${typingUser.userName ?? "Agent"} is typing...`}
+            </p>
+          </div>
+        )}
         <div ref={bottomRef} />
       </div>
     </ScrollArea>

@@ -60,6 +60,7 @@ function createMockConnection(
   return {
     id: "conn-1",
     userId: "user-1",
+    userName: "Test User",
     organizationId: "org-1",
     role: "operator" as const,
     ws: {
@@ -363,6 +364,106 @@ describe("chat.handlers", () => {
         "operator",
       );
       expect(mockSendMessage).toHaveBeenCalled();
+    });
+  });
+
+  describe("typing:start", () => {
+    it("broadcasts typing:start to other room participants", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+      const convId = "550e8400-e29b-41d4-a716-446655440000";
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "room:join",
+          payload: { conversationId: convId },
+        }),
+      );
+
+      const conn2 = createMockConnection({
+        id: "conn-2",
+        userId: "user-2",
+        userName: null,
+        role: "visitor" as const,
+      });
+      roomManager.join(convId, conn2);
+
+      vi.clearAllMocks();
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "typing:start",
+          payload: { conversationId: convId },
+        }),
+      );
+
+      expect(conn.ws.send).not.toHaveBeenCalled();
+
+      const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock.calls;
+      expect(conn2Calls).toHaveLength(1);
+      const event = JSON.parse(conn2Calls[0][0]);
+      expect(event.type).toBe("typing:start");
+      expect(event.payload.conversationId).toBe(convId);
+      expect(event.payload.userId).toBe("user-1");
+      expect(event.payload.userName).toBe("Test User");
+      expect(event.payload.senderRole).toBe("operator");
+    });
+
+    it("does not broadcast when sender is not in the room", async () => {
+      const convId = "550e8400-e29b-41d4-a716-446655440000";
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "typing:start",
+          payload: { conversationId: convId },
+        }),
+      );
+
+      expect(conn.ws.send).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("typing:stop", () => {
+    it("broadcasts typing:stop to other room participants", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+      const convId = "550e8400-e29b-41d4-a716-446655440000";
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "room:join",
+          payload: { conversationId: convId },
+        }),
+      );
+
+      const conn2 = createMockConnection({
+        id: "conn-2",
+        userId: "user-2",
+        userName: null,
+        role: "visitor" as const,
+      });
+      roomManager.join(convId, conn2);
+
+      vi.clearAllMocks();
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "typing:stop",
+          payload: { conversationId: convId },
+        }),
+      );
+
+      expect(conn.ws.send).not.toHaveBeenCalled();
+
+      const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock.calls;
+      expect(conn2Calls).toHaveLength(1);
+      const event = JSON.parse(conn2Calls[0][0]);
+      expect(event.type).toBe("typing:stop");
+      expect(event.payload.conversationId).toBe(convId);
+      expect(event.payload.userId).toBe("user-1");
     });
   });
 
