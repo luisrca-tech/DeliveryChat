@@ -117,7 +117,7 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 
 ### Frontend (admin)
 
-- **Hono RPC client:** `hc<APIType>(baseUrl)` in `src/lib/api.ts` provides compile-time type safety for all API calls. `APIType` is imported from `hono-api`. Route changes in hono-api automatically surface as TypeScript errors in admin.
+- **Hono RPC client:** `hc<APIType>(baseUrl)` in `src/lib/api.ts` provides compile-time type safety for all API calls. `APIType` is imported from `hono-api/types`. Route changes in hono-api automatically surface as TypeScript errors in admin.
 - **Request headers:** Every RPC call auto-injects `Authorization: Bearer <token>` and `X-Tenant-Slug: <subdomain>` via a custom fetch wrapper.
 - **Routing:** TanStack Router with file-based routes. `_public/` = unauthenticated, `_system/` = authenticated+tenant-scoped.
 - **Data fetching:** TanStack Query v5 — do NOT use `useEffect` for data fetching or state sync. Use URL search params (via `nuqs` or native APIs) for UI state like filters, tabs, modals.
@@ -136,7 +136,7 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 ### Conversations & Messaging
 
 Support conversation lifecycle with real-time WebSocket updates. Three core tables:
-- **`conversations`** — scoped to an organization + optional application. Type: `support` only (visitor-initiated). Statuses: `pending` → `active` → `closed`. Has `assignedTo` (operator who accepted). Default status: `pending`.
+- **`conversations`** — scoped to an organization + optional application. Statuses: `pending` → `active` → `closed`. Has `assignedTo` (operator who accepted). Default status: `pending`. Soft-delete via `deletedAt`.
 - **`messages`** — belongs to a conversation. Has `senderId` (references `user`), `messageTypeEnum` (default `text`), soft-delete via `deletedAt`. Messages can be sent while conversation is `pending` or `active`.
 - **`conversationParticipants`** — join table with `participantRoleEnum`, unique constraint on `(conversationId, userId)`, tracks `lastReadMessageId` for read receipts.
 
