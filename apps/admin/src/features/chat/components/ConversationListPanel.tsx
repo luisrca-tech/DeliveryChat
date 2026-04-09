@@ -93,34 +93,36 @@ export function ConversationListPanel({ selectedId, onSelect, currentUserRole }:
       <div className="p-4 border-b border-border space-y-2">
         <h2 className="text-lg font-semibold">Conversations</h2>
 
-        <Select value={activeFilter} onValueChange={setActiveFilter}>
-          <SelectTrigger className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {visibleOptions.map((opt) => (
-              <SelectItem className="cursor-pointer" key={opt.id} value={opt.id}>
-                {opt.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        {applications.length > 0 && (
-          <Select value={selectedAppId} onValueChange={setSelectedAppId}>
-            <SelectTrigger className="w-full">
+        <div className="grid grid-cols-2 gap-2">
+          <Select value={activeFilter} onValueChange={setActiveFilter}>
+            <SelectTrigger className="w-full cursor-pointer">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem className="cursor-pointer" value={ALL_APPS}>All Applications</SelectItem>
-              {applications.map((app) => (
-                <SelectItem className="cursor-pointer" key={app.id} value={app.id}>
-                  {app.name}
+              {visibleOptions.map((opt) => (
+                <SelectItem className="cursor-pointer" key={opt.id} value={opt.id}>
+                  {opt.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-        )}
+
+          {applications.length > 0 && (
+            <Select value={selectedAppId} onValueChange={setSelectedAppId}>
+              <SelectTrigger className="w-full cursor-pointer">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem className="cursor-pointer" value={ALL_APPS}>All Applications</SelectItem>
+                {applications.map((app) => (
+                  <SelectItem className="cursor-pointer" key={app.id} value={app.id}>
+                    {app.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        </div>
       </div>
 
       <ScrollArea className="flex-1">

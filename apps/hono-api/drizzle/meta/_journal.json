@@ -127,6 +127,13 @@
       "when": 1775737596001,
       "tag": "0020_add-deleted-at-to-conversation",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1775746838075,
+      "tag": "0021_remove-conversation-type-column",
+      "breakpoints": true
     }
   ]
 }

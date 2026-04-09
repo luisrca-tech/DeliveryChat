@@ -54,7 +54,6 @@ export async function listConversations(
   params.set("limit", String(filters.limit));
   params.set("offset", String(filters.offset));
   if (filters.status) params.set("status", filters.status);
-  if (filters.type) params.set("type", filters.type);
   if (filters.applicationId) params.set("applicationId", filters.applicationId);
   if (filters.assignedTo) params.set("assignedTo", filters.assignedTo);
 

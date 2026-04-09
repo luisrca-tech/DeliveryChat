@@ -1,5 +1,4 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { ConversationType } from "@repo/types";
 
 vi.mock("../../../db/index.js", () => ({
   db: {
@@ -64,7 +63,6 @@ const {
   ConversationNotFoundError,
   ConversationNotActiveError,
   NotAssignedToConversationError,
-  ApplicationRequiredError,
 } = await import("../chat.service.js");
 
 describe("chat.service", () => {
@@ -78,7 +76,6 @@ describe("chat.service", () => {
         id: "conv-1",
         organizationId: "org-1",
         applicationId: "app-1",
-        type: "support" as const,
         status: "active" as const,
         subject: null,
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -102,7 +99,6 @@ describe("chat.service", () => {
       const result = await createConversation({
         organizationId: "org-1",
         applicationId: "app-1",
-        type: "support" as ConversationType,
         participants: [
           { userId: "user-1", role: "visitor" as const },
           { userId: "user-2", role: "operator" as const },
@@ -113,25 +109,11 @@ describe("chat.service", () => {
       expect(mockTransaction).toHaveBeenCalled();
     });
 
-    it("rejects support conversation without applicationId", async () => {
-      await expect(
-        createConversation({
-          organizationId: "org-1",
-          type: "support" as ConversationType,
-          participants: [
-            { userId: "user-1", role: "visitor" as const },
-            { userId: "user-2", role: "operator" as const },
-          ],
-        }),
-      ).rejects.toThrow(ApplicationRequiredError);
-    });
-
-    it("allows internal conversation without applicationId", async () => {
+    it("creates conversation without applicationId", async () => {
       const conversationRow = {
         id: "conv-2",
         organizationId: "org-1",
         applicationId: null,
-        type: "internal" as const,
         status: "active" as const,
         subject: "Team sync",
         createdAt: "2026-01-01T00:00:00.000Z",
@@ -154,7 +136,6 @@ describe("chat.service", () => {
 
       const result = await createConversation({
         organizationId: "org-1",
-        type: "internal" as ConversationType,
         subject: "Team sync",
         participants: [
           { userId: "user-1", role: "operator" as const },
@@ -301,7 +282,6 @@ describe("chat.service", () => {
       const conversationData = {
         id: "conv-1",
         organizationId: "org-1",
-        type: "support" as const,
         status: "active" as const,
       };
       const participantsData = [

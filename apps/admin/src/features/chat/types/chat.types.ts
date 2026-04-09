@@ -1,5 +1,4 @@
 import type {
-  ConversationType,
   ConversationStatus,
   ParticipantRole,
   MessageType,
@@ -9,7 +8,6 @@ export type Conversation = {
   id: string;
   organizationId: string;
   applicationId: string | null;
-  type: ConversationType;
   status: ConversationStatus;
   createdBy: string | null;
   assignedTo: string | null;
@@ -63,7 +61,6 @@ export type MessagesListResponse = {
 
 export type ConversationFilters = {
   status?: ConversationStatus;
-  type?: ConversationType;
   applicationId?: string;
   assignedTo?: "me";
   limit: number;

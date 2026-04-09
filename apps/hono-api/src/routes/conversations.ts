@@ -40,7 +40,7 @@ export const conversationsRoute = new Hono()
   .get("/", zValidator("query", listConversationsQuerySchema), async (c) => {
     try {
       const { organization, user: authUser, membership } = getTenantAuth(c);
-      const { limit, offset, status, type, applicationId, assignedTo } =
+      const { limit, offset, status, applicationId, assignedTo } =
         c.req.valid("query");
 
       const isAdmin =
@@ -51,7 +51,6 @@ export const conversationsRoute = new Hono()
         isNull(conversations.deletedAt),
       ];
       if (status) conditions.push(eq(conversations.status, status));
-      if (type) conditions.push(eq(conversations.type, type));
       if (applicationId)
         conditions.push(eq(conversations.applicationId, applicationId));
 

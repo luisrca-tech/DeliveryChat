@@ -47,7 +47,6 @@ test.describe("REST: Conversation Management", () => {
       expect(response.status()).toBe(201);
       const body = await response.json();
       expect(body.conversation).toBeDefined();
-      expect(body.conversation.type).toBe("support");
       expect(body.conversation.applicationId).toBe(testData.app.id);
       expect(body.conversation.organizationId).toBe(testData.org.id);
       expect(body.conversation.status).toBe("active");
@@ -249,7 +248,6 @@ test.describe("Business Rules", () => {
     expect(response.status()).toBe(201);
     const body = await response.json();
     expect(body.conversation.applicationId).toBe(testData.app.id);
-    expect(body.conversation.type).toBe("support");
   });
 
   test("widget message history returns messages with sender info", async ({

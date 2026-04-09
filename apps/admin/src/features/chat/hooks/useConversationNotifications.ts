@@ -10,7 +10,7 @@ export function useConversationNotifications(subscribe: SubscribeFn) {
       if (event.type === "conversation:new") {
         const payload = event.payload;
         toast.info("New conversation", {
-          description: payload.subject ?? `${payload.type} conversation`,
+          description: payload.subject ?? "Conversation created",
         });
       }
     });

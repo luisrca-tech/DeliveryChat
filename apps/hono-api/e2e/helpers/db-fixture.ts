@@ -156,7 +156,6 @@ export async function provisionTestData(): Promise<E2ETestData> {
 export async function createConversationInDB(opts: {
   organizationId: string;
   applicationId?: string;
-  type: "support" | "internal";
   subject?: string;
   participants: { userId: string; role: "visitor" | "operator" | "admin" }[];
 }): Promise<string> {
@@ -165,7 +164,6 @@ export async function createConversationInDB(opts: {
     id: convId,
     organizationId: opts.organizationId,
     applicationId: opts.applicationId ?? null,
-    type: opts.type,
     subject: opts.subject ?? null,
   });
 

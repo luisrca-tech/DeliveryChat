@@ -1,12 +1,5 @@
 // ── Enums aligned with DB schema ──
 
-export const ConversationType = {
-  SUPPORT: "support",
-  INTERNAL: "internal",
-} as const;
-export type ConversationType =
-  (typeof ConversationType)[keyof typeof ConversationType];
-
 export const ConversationStatus = {
   PENDING: "pending",
   ACTIVE: "active",
@@ -103,7 +96,6 @@ export interface ConversationNewPayload {
   id: string;
   organizationId: string;
   applicationId: string | null;
-  type: ConversationType;
   status: ConversationStatus;
   subject: string | null;
   createdAt: string;

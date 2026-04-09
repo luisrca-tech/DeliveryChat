@@ -9,7 +9,6 @@ import { applications } from "../db/schema/applications.js";
 import { getApplicationSettings } from "../features/applications/application.service.js";
 import {
   createConversation,
-  ApplicationRequiredError,
 } from "../features/chat/chat.service.js";
 import { requireApiKeyAuth, getApiAuth } from "../lib/middleware/apiKeyAuth.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
@@ -106,7 +105,6 @@ export const widgetRoute = new Hono()
         const conversation = await createConversation({
           organizationId: app.organizationId,
           applicationId: apiAuth.application.id,
-          type: "support",
           subject,
           createdBy: visitorId,
           participants: [{ userId: visitorId, role: "visitor" }],
@@ -119,7 +117,6 @@ export const widgetRoute = new Hono()
             id: conversation.id,
             organizationId: app.organizationId,
             applicationId: apiAuth.application.id,
-            type: "support",
             status: "pending",
             subject: subject ?? null,
             createdAt: conversation.createdAt,
@@ -132,14 +129,6 @@ export const widgetRoute = new Hono()
 
         return c.json({ conversation }, 201);
       } catch (error) {
-        if (error instanceof ApplicationRequiredError) {
-          return jsonError(
-            c,
-            HTTP_STATUS.BAD_REQUEST,
-            ERROR_MESSAGES.BAD_REQUEST,
-            error.message,
-          );
-        }
         console.error("Error creating widget conversation:", error);
         return jsonError(
           c,

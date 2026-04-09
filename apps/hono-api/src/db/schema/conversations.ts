@@ -2,7 +2,6 @@ import { index, text, uuid, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { timestampString, timestampStringNullable } from "./customTypes";
-import { conversationTypeEnum } from "./enums/conversationTypeEnum";
 import { conversationStatusEnum } from "./enums/conversationStatusEnum";
 import { organization } from "./organization";
 import { applications } from "./applications";
@@ -18,7 +17,6 @@ export const conversations = createTable(
     applicationId: uuid("application_id").references(() => applications.id, {
       onDelete: "set null",
     }),
-    type: conversationTypeEnum("type").notNull(),
     status: conversationStatusEnum("status").notNull().default("pending"),
     createdBy: text("created_by").references(() => user.id, {
       onDelete: "set null",
@@ -46,10 +44,6 @@ export const conversations = createTable(
     orgStatusIdx: index("conversations_org_status_idx").on(
       table.organizationId,
       table.status,
-    ),
-    orgTypeIdx: index("conversations_org_type_idx").on(
-      table.organizationId,
-      table.type,
     ),
     assignedToIdx: index("conversations_assigned_to_idx").on(
       table.assignedTo,

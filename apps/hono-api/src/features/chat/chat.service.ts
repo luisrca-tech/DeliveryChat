@@ -4,7 +4,6 @@ import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
 import type {
-  ConversationType,
   ConversationStatus,
   ParticipantRole,
 } from "@repo/types";
@@ -24,13 +23,6 @@ export class ConversationNotActiveError extends Error {
       `Conversation ${conversationId} is not active (status: ${status})`,
     );
     this.name = "ConversationNotActiveError";
-  }
-}
-
-export class ApplicationRequiredError extends Error {
-  constructor() {
-    super("Support conversations require an applicationId");
-    this.name = "ApplicationRequiredError";
   }
 }
 
@@ -57,7 +49,6 @@ export class NotAssignedToConversationError extends Error {
 interface CreateConversationInput {
   organizationId: string;
   applicationId?: string;
-  type: ConversationType;
   subject?: string;
   createdBy?: string;
   participants: { userId: string; role: ParticipantRole }[];
@@ -84,10 +75,6 @@ interface AddParticipantInput {
 // ── Service Functions ──
 
 export async function createConversation(input: CreateConversationInput) {
-  if (input.type === "support" && !input.applicationId) {
-    throw new ApplicationRequiredError();
-  }
-
   return db.transaction(async (tx) => {
     const [conversation] = await tx
       .insert(conversations)
@@ -95,7 +82,6 @@ export async function createConversation(input: CreateConversationInput) {
         id: crypto.randomUUID(),
         organizationId: input.organizationId,
         applicationId: input.applicationId ?? null,
-        type: input.type,
         status: "pending",
         createdBy: input.createdBy ?? null,
         subject: input.subject ?? null,
