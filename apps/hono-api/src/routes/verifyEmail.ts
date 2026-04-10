@@ -45,11 +45,14 @@ export const verifyEmailRoute = new Hono().post(
       }
 
       try {
-        await auth.api.verifyEmailOTP({
+        console.info("[Verify Email] Calling auth.api.verifyEmailOTP for:", email);
+        const verifyResult = await auth.api.verifyEmailOTP({
           body: { email, otp },
           headers: c.req.raw.headers,
         });
+        console.info("[Verify Email] OTP verified successfully:", JSON.stringify(verifyResult));
       } catch (error) {
+        console.error("[Verify Email] OTP verification FAILED:", error instanceof APIError ? { status: error.status, message: error.message } : error);
         if (error instanceof APIError) {
           return jsonError(
             c,
