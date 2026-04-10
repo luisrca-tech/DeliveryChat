@@ -14,10 +14,18 @@ import { sendEmailVerifiedWelcomeEmail } from "../lib/email/index.js";
 
 export const verifyEmailRoute = new Hono().post(
   "/verify-email",
+  async (c, next) => {
+    const body = await c.req.json();
+    console.info("[Verify Email] Raw request body:", JSON.stringify(body));
+    // Re-set the body so zValidator can read it
+    c.req.bodyCache.json = body;
+    await next();
+  },
   zValidator("json", verifyEmailSchema),
   async (c) => {
     try {
       const { email, otp } = c.req.valid("json");
+      console.info("[Verify Email] Validated input:", { email, otp: otp ? `${otp.length} chars` : "missing" });
 
       const users = await db
         .select()
@@ -25,6 +33,8 @@ export const verifyEmailRoute = new Hono().post(
         .where(eq(user.email, email))
         .limit(1);
       const existingUser = users[0];
+
+      console.info("[Verify Email] Looking up user:", email, "| Found:", existingUser ? { id: existingUser.id, status: existingUser.status, emailVerified: existingUser.emailVerified } : null);
 
       if (!existingUser) {
         return jsonError(
@@ -36,6 +46,7 @@ export const verifyEmailRoute = new Hono().post(
       }
 
       if (existingUser.status !== "PENDING_VERIFICATION") {
+        console.warn("[Verify Email] Rejected — status is:", existingUser.status);
         return jsonError(
           c,
           HTTP_STATUS.BAD_REQUEST,

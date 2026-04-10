@@ -248,11 +248,20 @@ export const auth = betterAuth({
         },
         beforeAddMember: async ({ member }) => {
           // Mark user as ACTIVE when added to an org via invitation
+          // Skip for PENDING_VERIFICATION users — they must verify email first
           if (member.userId) {
-            await db
-              .update(user)
-              .set({ status: "ACTIVE" })
-              .where(eq(user.id, member.userId));
+            const [existingUser] = await db
+              .select({ status: user.status })
+              .from(user)
+              .where(eq(user.id, member.userId))
+              .limit(1);
+
+            if (existingUser && existingUser.status !== "PENDING_VERIFICATION") {
+              await db
+                .update(user)
+                .set({ status: "ACTIVE" })
+                .where(eq(user.id, member.userId));
+            }
           }
 
           if (member.role === "owner") {
