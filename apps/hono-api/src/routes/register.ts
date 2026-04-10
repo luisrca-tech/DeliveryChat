@@ -133,7 +133,7 @@ export const registerRoute = new Hono().post(
             name,
             status: "PENDING_VERIFICATION",
             pendingExpiresAt: pendingExpiresAt.toISOString(),
-            emailVerified: false,
+            emailVerified: null,
             expiredAt: null,
             updatedAt: new Date().toISOString(),
           })
@@ -217,7 +217,7 @@ export const registerRoute = new Hono().post(
           .set({
             status: "PENDING_VERIFICATION",
             pendingExpiresAt: pendingExpiresAt.toISOString(),
-            emailVerified: false,
+            emailVerified: null,
           })
           .where(eq(user.id, userId));
       }
