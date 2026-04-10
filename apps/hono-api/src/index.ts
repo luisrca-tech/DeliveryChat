@@ -78,15 +78,6 @@ const server = serve(
     console.log(
       `[Hono API] Server running on http://localhost:${info.port}`,
     );
-    console.log(
-      `[Hono API] BETTER_AUTH_URL: ${env.BETTER_AUTH_URL}`,
-    );
-    console.log(
-      `[Hono API] NODE_ENV: ${env.NODE_ENV}`,
-    );
-    console.log(
-      `[Hono API] ALLOWED_ORIGINS: ${JSON.stringify(env.ALLOWED_ORIGINS)}`,
-    );
   },
 );
 

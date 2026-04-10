@@ -45,39 +45,10 @@ export const verifyEmailRoute = new Hono().post(
       }
 
       try {
-        const requestOrigin = (() => {
-          try {
-            return new URL(c.req.url).origin;
-          } catch {
-            return "http://localhost:8000";
-          }
-        })();
-        const verifyUrl = `${requestOrigin}/api/auth/email-otp/verify-email`;
-
-        const origin =
-          c.req.header("origin") || c.req.header("referer") || requestOrigin;
-
-        const verifyRequest = new Request(verifyUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Origin: origin,
-            cookie: c.req.header("cookie") || "",
-          },
-          body: JSON.stringify({ email, otp }),
+        await auth.api.verifyEmailOTP({
+          body: { email, otp },
+          headers: c.req.raw.headers,
         });
-
-        const verifyResponse = await auth.handler(verifyRequest);
-
-        if (!verifyResponse.ok) {
-          const errorData = await verifyResponse.json().catch(() => ({}));
-          return jsonError(
-            c,
-            mapToHttpStatus(verifyResponse.status),
-            "Verification failed",
-            errorData.message || "Invalid OTP code"
-          );
-        }
       } catch (error) {
         if (error instanceof APIError) {
           return jsonError(

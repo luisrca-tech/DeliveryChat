@@ -25,30 +25,19 @@ export const registerRoute = new Hono().post(
       const { email, password, name, companyName, subdomain } =
         c.req.valid("json");
 
-      console.info("[Register] Starting registration for:", {
-        email,
-        name,
-        companyName,
-        subdomain,
-      });
-
-      console.info("[Register] Step 1: Checking existing user...");
       const existingUsers = await db
         .select()
         .from(user)
         .where(eq(user.email, email))
         .limit(1);
       const existingUser = existingUsers[0] ?? null;
-      console.info("[Register] Step 1 done. Existing user:", existingUser ? { id: existingUser.id, status: existingUser.status } : null);
 
-      console.info("[Register] Step 2: Checking existing org...");
       const existingOrgs = await db
         .select()
         .from(organization)
         .where(eq(organization.slug, subdomain))
         .limit(1);
       const existingOrg = existingOrgs[0] ?? null;
-      console.info("[Register] Step 2 done. Existing org:", existingOrg ? { id: existingOrg.id, status: existingOrg.status } : null);
 
       const signupAction = resolveSignupAction(
         existingUser,
@@ -135,8 +124,6 @@ export const registerRoute = new Hono().post(
       let userId: string;
       let signUpHeaders: Headers | undefined;
 
-      console.info("[Register] Step 3: signupAction =", signupAction, "| isReactivatingUser =", isReactivatingUser);
-
       if (isReactivatingUser) {
         userId = existingUser.id;
 
@@ -187,7 +174,6 @@ export const registerRoute = new Hono().post(
       } else {
         let signUpResult;
         try {
-          console.info("[Register] Step 4: Calling auth.api.signUpEmail for:", email);
           const signUpResponse = await auth.api.signUpEmail({
             body: {
               email,
@@ -200,9 +186,7 @@ export const registerRoute = new Hono().post(
 
           signUpResult = signUpResponse.response;
           signUpHeaders = signUpResponse.headers;
-          console.info("[Register] Step 4 done. signUpResult user:", signUpResult?.user?.id ?? "NO USER ID");
         } catch (error) {
-          console.error("[Register] Step 4 FAILED - auth.api.signUpEmail error:", error instanceof APIError ? { status: error.status, message: error.message } : error);
           if (error instanceof APIError) {
             return jsonError(
               c,
@@ -215,7 +199,6 @@ export const registerRoute = new Hono().post(
         }
 
         if (!signUpResult?.user?.id) {
-          console.error("[Register] Step 4 FAILED - No user ID in signUpResult:", JSON.stringify(signUpResult));
           return jsonError(
             c,
             HTTP_STATUS.INTERNAL_SERVER_ERROR,
@@ -228,7 +211,6 @@ export const registerRoute = new Hono().post(
       }
 
       if (!isReactivatingUser) {
-        console.info("[Register] Step 5: Setting user status to PENDING_VERIFICATION for userId:", userId);
         await db
           .update(user)
           .set({
@@ -236,7 +218,6 @@ export const registerRoute = new Hono().post(
             pendingExpiresAt: pendingExpiresAt.toISOString(),
           })
           .where(eq(user.id, userId));
-        console.info("[Register] Step 5 done.");
       }
 
       const isReactivatingOrg =
@@ -289,15 +270,9 @@ export const registerRoute = new Hono().post(
             const setCookie = signUpHeaders.get("set-cookie");
             if (setCookie) {
               orgHeaders.set("cookie", setCookie);
-              console.info("[Register] Step 6: Forwarding session cookie to createOrganization");
-            } else {
-              console.warn("[Register] Step 6: No set-cookie header from signUp — createOrganization may fail without auth session");
             }
-          } else {
-            console.warn("[Register] Step 6: No signUpHeaders — createOrganization may fail without auth session");
           }
 
-          console.info("[Register] Step 6: Calling auth.api.createOrganization for:", { companyName, subdomain });
           const orgResponse = await auth.api.createOrganization({
             body: {
               name: companyName,
@@ -305,7 +280,6 @@ export const registerRoute = new Hono().post(
             },
             headers: orgHeaders,
           });
-          console.info("[Register] Step 6 done. orgResponse:", orgResponse?.id ? { id: orgResponse.id } : orgResponse);
 
           if (orgResponse?.id) {
             orgId = orgResponse.id;
@@ -322,15 +296,12 @@ export const registerRoute = new Hono().post(
             throw new Error("Organization creation failed");
           }
         } catch (error) {
-          console.error("[Register] Step 6 FAILED - createOrganization error:", error instanceof APIError ? { status: error.status, message: error.message } : error);
           try {
-            console.info("[Register] Rolling back user creation for userId:", userId);
             await db.transaction(async (tx) => {
               await tx.delete(account).where(eq(account.userId, userId));
               await tx.delete(session).where(eq(session.userId, userId));
               await tx.delete(user).where(eq(user.id, userId));
             });
-            console.info("[Register] Rollback complete");
           } catch (deleteError) {
             console.error(
               "[Register] Failed to delete account and session:",
@@ -351,7 +322,6 @@ export const registerRoute = new Hono().post(
       }
 
       try {
-        console.info("[Register] Step 7: Sending verification OTP to:", email);
         await auth.api.sendVerificationOTP({
           body: {
             email,
@@ -359,9 +329,8 @@ export const registerRoute = new Hono().post(
           },
           headers: c.req.raw.headers,
         });
-        console.info("[Register] Step 7 done. OTP sent successfully");
       } catch (error) {
-        console.error("[Register] Step 7 FAILED - sendVerificationOTP error:", error);
+        console.error("[Register] Failed to send OTP:", error);
         return jsonError(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
@@ -370,14 +339,12 @@ export const registerRoute = new Hono().post(
         );
       }
 
-      console.info("[Register] Step 8: Fetching final user record for userId:", userId);
       const userRecord = await db
         .select()
         .from(user)
         .where(eq(user.id, userId))
         .limit(1);
 
-      console.info("[Register] Registration complete. Returning OTP_SENT for:", email);
       return c.json({
         status: "OTP_SENT",
         success: true,
