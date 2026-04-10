@@ -1,4 +1,4 @@
-import { useRouteContext, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { authClient } from "@/lib/authClient";
 import { ConversationListPanel } from "./ConversationListPanel";
 import { ChatPanel } from "./ChatPanel";
@@ -7,6 +7,7 @@ import { useConversationNotifications } from "../hooks/useConversationNotificati
 import { useInferMissingConversationFilterUrl } from "../hooks/useInferMissingConversationFilterUrl";
 import { useConversationUrlFilterSync } from "../hooks/useConversationUrlFilterSync";
 import { useMembersQuery } from "@/features/members/hooks/useMembersQuery";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { Route } from "@/routes/_system/conversations";
 
 export function ConversationsPage() {
@@ -17,11 +18,8 @@ export function ConversationsPage() {
   const { data: sessionData } = authClient.useSession();
   const sessionUserId = sessionData?.user?.id ?? "";
 
-  const context = useRouteContext({ from: "/_system" }) as {
-    session?: { userId?: string };
-    user?: { id?: string };
-  };
-  const routeUserId = context?.user?.id ?? context?.session?.userId ?? "";
+  const { data: authData } = useAuthSession();
+  const routeUserId = authData?.user?.id ?? "";
 
   const { data: membersData } = useMembersQuery();
   const actorId = sessionUserId || routeUserId;

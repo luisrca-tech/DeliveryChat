@@ -5,6 +5,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/authClient";
 import { clearBearerToken } from "../../lib/bearerToken";
 import { getSubdomainUrl } from "../../lib/urls";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 
 export const Route = createFileRoute("/_system/")({
   component: Dashboard,
@@ -12,11 +13,8 @@ export const Route = createFileRoute("/_system/")({
 
 function Dashboard() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const context = Route.useRouteContext();
-  const currentOrganization =
-    context && "currentOrganization" in context
-      ? context.currentOrganization
-      : null;
+  const { data: authData } = useAuthSession();
+  const currentOrganization = authData?.currentOrganization ?? null;
 
   return (
     <div className="max-w-full">

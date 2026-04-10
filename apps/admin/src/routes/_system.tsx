@@ -1,15 +1,15 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { authClient } from "../lib/authClient";
+import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import { getBearerToken } from "../lib/bearerToken";
 import { getSubdomain } from "../lib/subdomain";
 import { AppShell } from "@/features/layout/components/AppShell";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 
 export const Route = createFileRoute("/_system")({
-  beforeLoad: async () => {
+  beforeLoad: () => {
     if (typeof window === "undefined") return;
 
-    const session = await authClient.getSession();
-
-    if (!session?.data?.session) {
+    const token = getBearerToken();
+    if (!token) {
       throw redirect({
         to: "/login",
         search: {
@@ -21,40 +21,46 @@ export const Route = createFileRoute("/_system")({
     }
 
     const subdomain = getSubdomain();
-
-    const orgsResult = await authClient.organization.list();
-    const organizations = orgsResult.data || [];
-
-    const currentOrg = organizations.find(
-      (org: { slug?: string; id: string }) =>
-        org.slug === subdomain || org.id === subdomain,
-    );
-
-    if (!currentOrg) {
+    if (!subdomain) {
       throw redirect({
         to: "/login",
         search: {
           error: "access_denied",
-          message: "You don't have access to this organization",
+          message: "Subdomain is required",
           redirect: undefined,
         },
       });
     }
-
-    await authClient.organization.setActive({
-      organizationId: currentOrg.id,
-    });
-
-    return {
-      currentOrganization: currentOrg,
-      session: session.data.session,
-      user: session.data.user,
-    };
   },
   component: SystemLayout,
 });
 
 function SystemLayout() {
+  const { data, isLoading } = useAuthSession();
+  const navigate = useNavigate();
+
+  if (isLoading) {
+    return (
+      <AppShell>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="animate-pulse text-muted-foreground">Loading...</div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!data) {
+    navigate({
+      to: "/login",
+      search: {
+        error: "access_denied",
+        message: "You don't have access to this organization",
+        redirect: undefined,
+      },
+    });
+    return null;
+  }
+
   return (
     <AppShell>
       <Outlet />

@@ -1,15 +1,14 @@
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { authClient } from "../lib/authClient";
+import { getBearerToken } from "../lib/bearerToken";
 
 import "@repo/ui/styles.css";
 
 export const Route = createFileRoute("/_public")({
-  beforeLoad: async () => {
+  beforeLoad: () => {
     if (typeof window === "undefined") return;
 
-    const session = await authClient.getSession();
-
-    if (session?.data?.session) {
+    const token = getBearerToken();
+    if (token) {
       throw redirect({
         to: "/",
       });

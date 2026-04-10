@@ -1,14 +1,9 @@
 import { Settings, CreditCard, Package, Key, AppWindow, Gauge, Users } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { getBillingStatus } from "@/features/billing/lib/billing.client";
+import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus";
 import { SettingsLinkCard } from "./SettingsLinkCard";
 
 export function SettingsIndexPage() {
-  const { data } = useQuery({
-    queryKey: ["billing-status"],
-    queryFn: getBillingStatus,
-    staleTime: 30_000,
-  });
+  const { data } = useBillingStatusQuery();
 
   const role = data?.role;
   const isAdmin = role === "admin" || role === "super_admin";

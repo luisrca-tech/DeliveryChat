@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Users, UserPlus, Clock, MoreHorizontal, Pencil, Trash2, RefreshCw } from "lucide-react";
-import { useRouteContext } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -67,13 +67,9 @@ export function MembersPage() {
 
   const { data, isLoading } = useMembersQuery();
   const queryClient = useQueryClient();
-  const context = useRouteContext({ from: "/_system" }) as {
-    session?: { userId?: string };
-    user?: { id?: string };
-    currentOrganization?: { id: string };
-  };
-  const currentUserId = context?.user?.id ?? context?.session?.userId;
-  const organizationId = context?.currentOrganization?.id;
+  const { data: authData } = useAuthSession();
+  const currentUserId = authData?.user?.id;
+  const organizationId = authData?.currentOrganization?.id;
 
   // Determine current user's role from the members list
   const currentUserRole = (data?.users ?? []).find(

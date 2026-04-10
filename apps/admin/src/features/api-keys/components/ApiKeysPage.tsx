@@ -1,4 +1,5 @@
 import { useState, useCallback, useMemo } from "react";
+import { Link } from "@tanstack/react-router";
 import { Key, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
@@ -30,7 +31,8 @@ import { RegenerateApiKeyDialog } from "./RegenerateApiKeyDialog";
 import { KeyRevealDialog } from "./KeyRevealDialog";
 
 export function ApiKeysPage() {
-  const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  /** When null, the first application in the list is used (see selectedAppId). */
+  const [pickedAppId, setPickedAppId] = useState<string | null>(null);
   const [environmentFilter, setEnvironmentFilter] = useState<
     ApiKeyEnvironment | "all"
   >("all");
@@ -45,6 +47,17 @@ export function ApiKeysPage() {
 
   const { data: billing } = useBillingStatusQuery();
   const { data: appsData } = useApplicationsQuery();
+
+  const applications = useMemo(
+    () => appsData?.applications ?? [],
+    [appsData?.applications],
+  );
+  const firstApplicationId = applications[0]?.id ?? null;
+  const pickedIsValid =
+    pickedAppId != null &&
+    applications.some((a) => a.id === pickedAppId);
+  const selectedAppId = pickedIsValid ? pickedAppId : firstApplicationId;
+
   const { data: keysData, isLoading: keysLoading } =
     useApiKeysQuery(selectedAppId);
 
@@ -52,10 +65,6 @@ export function ApiKeysPage() {
   const revokeMutation = useRevokeApiKeyMutation(selectedAppId);
   const regenerateMutation = useRegenerateApiKeyMutation(selectedAppId);
 
-  const applications = useMemo(
-    () => appsData?.applications ?? [],
-    [appsData?.applications],
-  );
   const apiKeys = keysData?.apiKeys ?? [];
   const used = keysData?.used ?? 0;
   const limit = keysData?.limit ?? 0;
@@ -153,7 +162,7 @@ export function ApiKeysPage() {
           </label>
           <Select
             value={selectedAppId ?? ""}
-            onValueChange={(v) => setSelectedAppId(v || null)}
+            onValueChange={(v) => setPickedAppId(v || null)}
           >
             <SelectTrigger className="max-w-md">
               <SelectValue placeholder="Select application" />
@@ -168,7 +177,14 @@ export function ApiKeysPage() {
           </Select>
           {applications.length === 0 && (
             <p className="text-sm text-muted-foreground">
-              Create an application first to manage API keys.
+              Create an{" "}
+              <Link
+                to="/settings/applications"
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                application
+              </Link>{" "}
+              first to manage API keys.
             </p>
           )}
         </div>
