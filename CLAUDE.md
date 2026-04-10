@@ -48,6 +48,7 @@ bun run db:migrate     # Run migrations
 bun run db:studio      # Drizzle Studio GUI
 bun run db:seed        # Seed data (uses @faker-js)
 bun run db:drop        # Drop all tables
+bun run db:migrate:prod                   # Run migrations against production DB
 
 # Testing (Vitest)
 bun run test                              # Run all tests
@@ -119,6 +120,7 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 
 - **Hono RPC client:** `hc<APIType>(baseUrl)` in `src/lib/api.ts` provides compile-time type safety for all API calls. `APIType` is imported from `hono-api/types`. Route changes in hono-api automatically surface as TypeScript errors in admin.
 - **Request headers:** Every RPC call auto-injects `Authorization: Bearer <token>` and `X-Tenant-Slug: <subdomain>` via a custom fetch wrapper.
+- **Deployment:** Cloudflare Workers via Wrangler. Use `local:build` / `local:serve` scripts (which inject Infisical secrets) for local production builds; the plain `build` script is for CI (secrets provided externally).
 - **Routing:** TanStack Router with file-based routes. `_public/` = unauthenticated, `_system/` = authenticated+tenant-scoped.
 - **Data fetching:** TanStack Query v5 — do NOT use `useEffect` for data fetching or state sync. Use URL search params (via `nuqs` or native APIs) for UI state like filters, tabs, modals.
 - **Forms:** React Hook Form + Zod resolvers.
