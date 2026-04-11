@@ -18,7 +18,7 @@ describe("destroyChat", () => {
     localStorage.setItem(`dc_conv_${appId}`, "conv-existing");
     localStorage.setItem(`dc_lastmsg_${appId}`, "msg-1");
 
-    initChatController({ appId, apiKey: "dk_test_key" });
+    initChatController({ appId });
 
     expect(getState("conversationId")).toBe("conv-existing");
 
