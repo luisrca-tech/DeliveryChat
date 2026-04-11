@@ -269,11 +269,6 @@ async function init(opts: InitOptions): Promise<void> {
     console.warn("[DeliveryChat] appId is required");
     return;
   }
-  if (!opts?.apiKey || typeof opts.apiKey !== "string") {
-    console.warn("[DeliveryChat] apiKey is required");
-    return;
-  }
-
   runCleanup();
   const existing = document.getElementById(HOST_ID);
   if (existing) existing.remove();
@@ -302,7 +297,7 @@ async function init(opts: InitOptions): Promise<void> {
   setState("isOpen", false);
   setState("messages", []);
 
-  initChatController({ appId: opts.appId, apiKey: opts.apiKey });
+  initChatController({ appId: opts.appId });
 
   const host = createShadowHost();
   const shadow = createShadowRoot(host);

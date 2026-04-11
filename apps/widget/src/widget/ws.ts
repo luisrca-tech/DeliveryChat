@@ -4,7 +4,6 @@ import { clearStaleConversationPersistence } from "./conversation-persistence.js
 
 type WSConfig = {
   apiBaseUrl: string;
-  apiKey: string;
   appId: string;
   visitorId: string;
 };
@@ -56,7 +55,7 @@ export function sendWSMessage(event: object): void {
 function buildWsUrl(cfg: WSConfig): string {
   const protocol = cfg.apiBaseUrl.startsWith("https") ? "wss" : "ws";
   const host = cfg.apiBaseUrl.replace(/^https?:\/\//, "");
-  return `${protocol}://${host}/v1/ws?token=${encodeURIComponent(cfg.apiKey)}&appId=${encodeURIComponent(cfg.appId)}&visitorId=${encodeURIComponent(cfg.visitorId)}`;
+  return `${protocol}://${host}/v1/ws?appId=${encodeURIComponent(cfg.appId)}&visitorId=${encodeURIComponent(cfg.visitorId)}`;
 }
 
 function createConnection(): void {
