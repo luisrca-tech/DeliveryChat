@@ -1,5 +1,8 @@
 ---
-import { Github, Linkedin, MessageCircle, X } from "lucide-react";
+import { Github, Linkedin, X } from "lucide-react";
+import { getLogoPublicSrc } from "../../lib/logoPublicSrc";
+
+const logoSrc = getLogoPublicSrc();
 ---
 
 <footer class="bg-muted/30 border-t border-border">
@@ -7,12 +10,13 @@ import { Github, Linkedin, MessageCircle, X } from "lucide-react";
     <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
       <div class="space-y-4">
         <a href="/" class="flex items-center gap-2">
-          <div class="bg-gradient-hero p-2 rounded-lg shadow-soft">
-            <MessageCircle
-              className="h-5 w-5 text-primary-foreground"
-              client:load
-            />
-          </div>
+          <img
+            src={logoSrc}
+            alt=""
+            width="600"
+            height="328"
+            class="block h-9 w-auto max-w-[9rem] object-contain object-left shrink-0"
+          />
           <span
             class="text-lg font-bold bg-linear-to-r from-primary to-primary-glow bg-clip-text text-transparent"
           >

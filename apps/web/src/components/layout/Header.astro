@@ -1,6 +1,7 @@
 ---
-import { Button } from "@repo/ui/components/ui/button";
-import { MessageCircle } from "lucide-react";
+import { getLogoPublicSrc } from "../../lib/logoPublicSrc";
+
+const logoSrc = getLogoPublicSrc();
 ---
 
 <header
@@ -8,15 +9,17 @@ import { MessageCircle } from "lucide-react";
 >
   <div class="container mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex items-center justify-between h-16">
-      <a href="/" class="flex items-center gap-2 group">
-        <div
-          class="bg-gradient-hero p-2 rounded-lg shadow-soft group-hover:shadow-glow transition-all duration-300"
-        >
-          <MessageCircle
-            className="h-6 w-6 text-primary-foreground"
-            client:load
-          />
-        </div>
+      <a
+        href="/"
+        class="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        <img
+          src={logoSrc}
+          alt=""
+          width="600"
+          height="328"
+          class="block h-[60px] w-auto max-w-[min(18rem,calc(100vw-12rem))] object-contain object-left shrink-0"
+        />
         <span
           class="text-xl font-bold bg-linear-to-r from-primary to-primary-glow bg-clip-text text-transparent"
         >

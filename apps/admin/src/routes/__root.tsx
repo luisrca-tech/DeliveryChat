@@ -21,10 +21,22 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "Delivery Chat — Admin",
       },
     ],
-    links: [],
+    links: [
+      {
+        rel: "icon",
+        type: "image/x-icon",
+        sizes: "any",
+        href: import.meta.env.VITE_FAVICON_HREF,
+      },
+      {
+        rel: "apple-touch-icon",
+        href: import.meta.env.VITE_FAVICON_HREF,
+        sizes: "180x180",
+      },
+    ],
   }),
 
   notFoundComponent: () => {

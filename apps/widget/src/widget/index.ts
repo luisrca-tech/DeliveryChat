@@ -30,6 +30,7 @@ import {
 import { getState, setState, subscribe } from "./state.js";
 import { fetchSettings } from "./api.js";
 import { getApiBaseUrl, setApiBaseUrl } from "./config.js";
+import { isValidLauncherImageUrl } from "./utils/logo-url.js";
 import {
   initChatController,
   openChat as controllerOpenChat,
@@ -82,7 +83,49 @@ function buildInitOverrides(
       autoOpenDelay: init.autoOpenDelay,
     };
   if (init.colors) overrides.colors = { ...base.colors, ...init.colors };
+  if (init.launcherLogoUrl !== undefined) {
+    overrides.launcher = {
+      ...(overrides.launcher ?? base.launcher),
+      ...(init.launcherLogoUrl === null
+        ? { logoUrl: undefined }
+        : { logoUrl: init.launcherLogoUrl }),
+    };
+  }
   return overrides;
+}
+
+function resolveLauncherLogoUrl(
+  settings: WidgetSettings,
+  init: InitOptions,
+  apiBaseUrl: string,
+): void {
+  const base = apiBaseUrl.replace(/\/$/, "");
+  const brandDefault = `${base}/brand/logo.png?v=${Date.now()}`;
+
+  if (init.launcherLogoUrl === null) {
+    const { logoUrl, ...launcherRest } = settings.launcher;
+    void logoUrl;
+    settings.launcher = launcherRest as WidgetSettings["launcher"];
+    return;
+  }
+  if (
+    typeof init.launcherLogoUrl === "string" &&
+    init.launcherLogoUrl.trim() !== ""
+  ) {
+    settings.launcher = {
+      ...settings.launcher,
+      logoUrl: init.launcherLogoUrl.trim(),
+    };
+    return;
+  }
+  if (isValidLauncherImageUrl(settings.launcher.logoUrl)) {
+    settings.launcher = {
+      ...settings.launcher,
+      logoUrl: settings.launcher.logoUrl!.trim(),
+    };
+    return;
+  }
+  settings.launcher = { ...settings.launcher, logoUrl: brandDefault };
 }
 
 function deepMergeWidgetSettings(
@@ -114,6 +157,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     corner,
     label: settings.launcher.label,
     icon: settings.launcher.icon,
+    logoUrl: settings.launcher.logoUrl,
   });
 
   // eslint-disable-next-line prefer-const
@@ -324,6 +368,7 @@ async function init(opts: InitOptions): Promise<void> {
   }
 
   const settings = mergeSettings(apiSettings, opts);
+  resolveLauncherLogoUrl(settings, opts, apiBaseUrl);
   setState("settings", settings);
   setState("isOpen", false);
   setState("messages", []);

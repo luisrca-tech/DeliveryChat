@@ -1,17 +1,24 @@
 {
   "extends": "@repo/typescript-config/react-library.json",
-  "include": ["**/*.ts", "**/*.tsx"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
   "compilerOptions": {
     "module": "ESNext",
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
-    "types": ["vite/client"],
-
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "vite/client"
+    ],
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": false,
     "noEmit": true,
-
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -19,11 +26,21 @@
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@repo/types": ["../../packages/types/src"],
-      "@repo/types/*": ["../../packages/types/src/*"],
-      "hono-api": ["../../apps/hono-api/src"],
-      "hono-api/*": ["../../apps/hono-api/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@repo/types": [
+        "../../packages/types/src"
+      ],
+      "@repo/types/*": [
+        "../../packages/types/src/*"
+      ],
+      "hono-api": [
+        "../../apps/hono-api/src"
+      ],
+      "hono-api/*": [
+        "../../apps/hono-api/src/*"
+      ]
     }
   }
 }

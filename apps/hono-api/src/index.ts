@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
+import { existsSync, statSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
@@ -64,31 +65,65 @@ app.get("/", (c) => {
 
 app.get("/widget.js", async (c) => {
   const __dirname = dirname(fileURLToPath(import.meta.url));
-  console.log("[widget.js] __dirname:", __dirname);
-  console.log("[widget.js] process.cwd():", process.cwd());
-
   const candidates = [
     resolve(__dirname, "widget.iife.js"),
-    resolve(__dirname, "../widget/dist-embed/widget.iife.js"),
     resolve(__dirname, "../../widget/dist-embed/widget.iife.js"),
-    resolve(__dirname, "../../../apps/widget/dist-embed/widget.iife.js"),
   ];
 
   for (const widgetPath of candidates) {
     try {
       const content = await readFile(widgetPath, "utf-8");
-      console.log("[widget.js] Found at:", widgetPath);
       return c.body(content, 200, {
         "Content-Type": "application/javascript; charset=utf-8",
         "Cache-Control": "public, max-age=3600",
         "Access-Control-Allow-Origin": "*",
       });
     } catch {
-      console.log("[widget.js] Not found at:", widgetPath);
       continue;
     }
   }
   return c.text("Widget not found. Run: cd apps/widget && bun run build:embed", 404);
+});
+
+app.get("/brand/logo.png", async (c) => {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(__dirname, "../../assets/logo.png"),
+    resolve(__dirname, "../public/logo.png"),
+  ];
+  for (const logoPath of candidates) {
+    if (!existsSync(logoPath)) continue;
+    try {
+      const st = statSync(logoPath);
+      const etag = `"${st.mtimeMs}-${st.size}"`;
+      if (c.req.header("if-none-match") === etag) {
+        const cacheControl =
+          env.NODE_ENV === "production"
+            ? "public, max-age=300, stale-while-revalidate=3600"
+            : "public, max-age=0, must-revalidate";
+        return c.body(null, 304, {
+          "Cache-Control": cacheControl,
+          ETag: etag,
+          "Access-Control-Allow-Origin": "*",
+        });
+      }
+      const buf = await readFile(logoPath);
+      const cacheControl =
+        env.NODE_ENV === "production"
+          ? "public, max-age=300, stale-while-revalidate=3600"
+          : "public, max-age=0, must-revalidate";
+      return c.body(buf, 200, {
+        "Content-Type": "image/png",
+        "Cache-Control": cacheControl,
+        ETag: etag,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Expose-Headers": "ETag",
+      });
+    } catch {
+      continue;
+    }
+  }
+  return c.text("Logo not found", 404);
 });
 
 app.all("/api/auth/*", async (c) => {

@@ -22,22 +22,14 @@ function PublicLayout() {
     <div className="min-h-screen bg-linear-to-br from-background via-background to-muted/20 flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md space-y-8">
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 mb-2">
-            <svg
-              className="w-8 h-8 text-primary"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              aria-label="Chat icon"
-              role="img"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-              />
-            </svg>
+          <div className="inline-flex items-center justify-center px-3 py-2 rounded-2xl bg-primary/10 mb-2">
+            <img
+              src="/logo.png"
+              alt=""
+              width={160}
+              height={88}
+              className="h-10 w-auto max-w-[200px] object-contain"
+            />
           </div>
           <h1 className="text-4xl font-bold tracking-tight bg-linear-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
             Delivery Chat

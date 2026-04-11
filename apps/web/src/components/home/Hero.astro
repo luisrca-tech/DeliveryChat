@@ -1,6 +1,9 @@
 ---
 import { Button } from "@repo/ui/components/ui/button";
 import { ArrowRight, MessageCircle, Sparkles } from "lucide-react";
+import { getLogoPublicSrc } from "../../lib/logoPublicSrc";
+
+const logoSrc = getLogoPublicSrc();
 ---
 
 <section
@@ -102,7 +105,13 @@ import { ArrowRight, MessageCircle, Sparkles } from "lucide-react";
         <div
           class="aspect-video bg-linear-to-br from-primary/20 to-primary-glow/20 flex items-center justify-center"
         >
-          <MessageCircle className="h-24 w-24 text-primary/30" client:load />
+          <img
+            src={logoSrc}
+            alt=""
+            width="600"
+            height="328"
+            class="w-auto max-w-[min(92%,40rem)] h-44 sm:h-52 md:h-60 object-contain opacity-30"
+          />
         </div>
         <div
           class="absolute bottom-4 right-4 bg-card rounded-lg shadow-2xl p-4 border border-border animate-scale-in"

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isValidLogoUrl } from "./logo-url.js";
+import { isValidLauncherImageUrl, isValidLogoUrl } from "./logo-url.js";
 
 describe("isValidLogoUrl", () => {
   it("returns false for undefined", () => {
@@ -40,5 +40,29 @@ describe("isValidLogoUrl", () => {
 
   it("returns false for invalid URL", () => {
     expect(isValidLogoUrl("not-a-url")).toBe(false);
+  });
+});
+
+describe("isValidLauncherImageUrl", () => {
+  it("allows https URLs", () => {
+    expect(isValidLauncherImageUrl("https://cdn.example.com/x.png")).toBe(true);
+  });
+
+  it("allows http on localhost", () => {
+    expect(isValidLauncherImageUrl("http://localhost:8000/brand/logo.png")).toBe(
+      true,
+    );
+  });
+
+  it("allows http on 127.0.0.1", () => {
+    expect(isValidLauncherImageUrl("http://127.0.0.1:8000/logo.png")).toBe(true);
+  });
+
+  it("rejects http on arbitrary hosts", () => {
+    expect(isValidLauncherImageUrl("http://evil.com/x.png")).toBe(false);
+  });
+
+  it("accepts root-relative paths (resolved as same-origin https in tests)", () => {
+    expect(isValidLauncherImageUrl("/brand/logo.png")).toBe(true);
   });
 });

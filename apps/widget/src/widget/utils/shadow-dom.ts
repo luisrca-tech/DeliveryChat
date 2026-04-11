@@ -11,7 +11,7 @@ export function createShadowHost(): HTMLElement {
   const host = document.createElement("div");
   host.id = HOST_ID;
   host.style.cssText =
-    "position:fixed;inset:0;width:0;height:0;overflow:visible;pointer-events:none;z-index:9999";
+    "position:fixed;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:9999";
   document.body.appendChild(host);
   return host;
 }

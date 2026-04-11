@@ -14,9 +14,10 @@ export const metadata: Metadata = {
     "Complete documentation for the Delivery Chat embedded support platform",
   icons: {
     icon: [
+      { url: "/favicon.ico", type: "image/x-icon", sizes: "any" },
       { url: "/favicon.svg", type: "image/svg+xml" },
-      { url: "/favicon.ico", sizes: "any" },
     ],
+    apple: [{ url: "/favicon.ico", sizes: "180x180", type: "image/x-icon" }],
   },
 };
 

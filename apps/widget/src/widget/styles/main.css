@@ -1,4 +1,9 @@
 :where(.chat-widget) {
+  --dc-launcher-size: 56px;
+  --dc-launcher-radius: 14px;
+  position: relative;
+  width: 100%;
+  min-height: 100%;
   font-family: var(--dc-font-family, system-ui, -apple-system, sans-serif);
   font-size: var(--dc-font-size, 14px);
   color: var(--dc-text-color, #0f172a);
@@ -20,9 +25,11 @@
   position: fixed;
   bottom: var(--dc-position-offset, 16px);
   right: var(--dc-position-offset, 16px);
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  width: var(--dc-launcher-size);
+  height: var(--dc-launcher-size);
+  box-sizing: border-box;
+  padding: 2px;
+  border-radius: var(--dc-launcher-radius);
   background: var(--dc-primary-color, #0ea5e9);
   color: white;
   border: none;
@@ -41,8 +48,23 @@
 }
 
 :where(.chat-widget) .launcher svg {
-  width: 24px;
-  height: 24px;
+  display: block;
+  width: calc(var(--dc-launcher-size) - 4px);
+  height: calc(var(--dc-launcher-size) - 4px);
+  flex-shrink: 0;
+}
+
+:where(.chat-widget) .launcher .launcher-logo {
+  display: block;
+  flex-shrink: 0;
+  width: calc(var(--dc-launcher-size) - 4px);
+  height: calc(var(--dc-launcher-size) - 4px);
+  max-width: calc(var(--dc-launcher-size) - 4px);
+  max-height: calc(var(--dc-launcher-size) - 4px);
+  object-fit: contain;
+  object-position: center;
+  pointer-events: none;
+  border-radius: calc(var(--dc-launcher-radius) - 2px);
 }
 
 :where(.chat-widget)[data-corner="bottom-left"] .launcher {
@@ -52,7 +74,9 @@
 
 :where(.chat-widget) .chat-window {
   position: fixed;
-  bottom: calc(56px + var(--dc-position-offset, 16px) + 8px);
+  bottom: calc(
+    var(--dc-launcher-size) + var(--dc-position-offset, 16px) + 8px
+  );
   right: var(--dc-position-offset, 16px);
   width: var(--dc-width, 380px);
   max-width: calc(100vw - 32px);

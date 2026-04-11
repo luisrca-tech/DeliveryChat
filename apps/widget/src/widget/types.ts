@@ -30,6 +30,7 @@ export type WidgetSettings = {
   launcher: {
     icon: "chat" | "question" | "message";
     label: string;
+    logoUrl?: string;
   };
   behavior: {
     autoOpen: boolean;
@@ -83,6 +84,8 @@ export type InitOptions = {
   autoOpen?: boolean;
   autoOpenDelay?: number;
   colors?: Partial<WidgetSettings["colors"]>;
+  /** Set to `null` to use the default SVG icon instead of an image. */
+  launcherLogoUrl?: string | null;
 };
 
 export type ChatMessage = {

@@ -31,9 +31,18 @@ export function AppShell(props: { children: ReactNode }) {
           } py-4 border-b border-border/60 shrink-0 flex items-center justify-between gap-2`}
         >
           {!isSidebarCollapsed && (
-            <div>
-              <p className="font-bold tracking-tight">Delivery Chat</p>
-              <p className="text-xs text-muted-foreground">Admin</p>
+            <div className="flex items-center gap-2 min-w-0">
+              <img
+                src="/logo.png"
+                alt=""
+                width={120}
+                height={44}
+                className="h-8 w-auto max-w-[140px] object-contain shrink-0"
+              />
+              <div className="min-w-0">
+                <p className="font-bold tracking-tight truncate">Delivery Chat</p>
+                <p className="text-xs text-muted-foreground">Admin</p>
+              </div>
             </div>
           )}
           <Button
