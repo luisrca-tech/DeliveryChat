@@ -1,6 +1,7 @@
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
@@ -62,17 +63,27 @@ app.get("/", (c) => {
 });
 
 app.get("/widget.js", async (c) => {
-  const widgetPath = resolve(process.cwd(), "../widget/dist-embed/widget.iife.js");
-  try {
-    const content = await readFile(widgetPath, "utf-8");
-    return c.body(content, 200, {
-      "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
-      "Access-Control-Allow-Origin": "*",
-    });
-  } catch {
-    return c.text("Widget not found. Run: cd apps/widget && bun run build:embed", 404);
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(__dirname, "widget.iife.js"),
+    resolve(__dirname, "../widget/dist-embed/widget.iife.js"),
+    resolve(__dirname, "../../widget/dist-embed/widget.iife.js"),
+    resolve(__dirname, "../../../apps/widget/dist-embed/widget.iife.js"),
+  ];
+
+  for (const widgetPath of candidates) {
+    try {
+      const content = await readFile(widgetPath, "utf-8");
+      return c.body(content, 200, {
+        "Content-Type": "application/javascript; charset=utf-8",
+        "Cache-Control": "public, max-age=3600",
+        "Access-Control-Allow-Origin": "*",
+      });
+    } catch {
+      continue;
+    }
   }
+  return c.text("Widget not found. Run: cd apps/widget && bun run build:embed", 404);
 });
 
 app.all("/api/auth/*", async (c) => {

@@ -25,7 +25,7 @@
     "dev": "infisical run --path=/hono-api -- tsx watch src/index.ts",
     "predev": "cd ../.. && bun run --filter=@repo/emails build",
     "prebuild": "cd ../.. && bun run --filter=@repo/emails build",
-    "build": "tsc && node scripts/fix-dist-extensions.js",
+    "build": "tsc && node scripts/fix-dist-extensions.js && node scripts/copy-widget.js",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "lint": "eslint . --max-warnings 0",
     "check-types": "tsc --noEmit",
