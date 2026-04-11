@@ -64,6 +64,9 @@ app.get("/", (c) => {
 
 app.get("/widget.js", async (c) => {
   const __dirname = dirname(fileURLToPath(import.meta.url));
+  console.log("[widget.js] __dirname:", __dirname);
+  console.log("[widget.js] process.cwd():", process.cwd());
+
   const candidates = [
     resolve(__dirname, "widget.iife.js"),
     resolve(__dirname, "../widget/dist-embed/widget.iife.js"),
@@ -74,12 +77,14 @@ app.get("/widget.js", async (c) => {
   for (const widgetPath of candidates) {
     try {
       const content = await readFile(widgetPath, "utf-8");
+      console.log("[widget.js] Found at:", widgetPath);
       return c.body(content, 200, {
         "Content-Type": "application/javascript; charset=utf-8",
         "Cache-Control": "public, max-age=3600",
         "Access-Control-Allow-Origin": "*",
       });
     } catch {
+      console.log("[widget.js] Not found at:", widgetPath);
       continue;
     }
   }
