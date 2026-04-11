@@ -7,7 +7,7 @@ The Delivery Chat widget is a vanilla JavaScript embed that adds a chat launcher
 Add the script tag and call `DeliveryChat.init()` with your application ID:
 
 ```html
-<script src="https://your-cdn.com/widget.js"></script>
+<script src="https://api.deliverychat.online/widget.js"></script>
 <script>
   DeliveryChat.init({
     appId: "your-app-uuid",
@@ -25,6 +25,7 @@ Add the script tag and call `DeliveryChat.init()` with your application ID:
 | Option | Type | Required | Description |
 |--------|------|----------|-------------|
 | `appId` | `string` | Yes | Your application UUID from the dashboard |
+| `apiBaseUrl` | `string` | No | Override the API URL. Auto-detected from the script `src` by default |
 | `position` | `"bottom-left" \| "bottom-right"` | No | Launcher position. Default: `"bottom-right"` |
 | `autoOpen` | `boolean` | No | Open chat automatically on load. Default: `false` |
 | `autoOpenDelay` | `number` | No | Delay in ms before auto-open. Default: `5000` |
@@ -51,7 +52,7 @@ DeliveryChat.init({
 You can load the script asynchronously. The widget uses a queue pattern—calls to `DeliveryChat.init()` before the script finishes loading are queued and processed when ready:
 
 ```html
-<script async src="https://your-cdn.com/widget.js"></script>
+<script async src="https://api.deliverychat.online/widget.js"></script>
 <script>
   // Safe to call immediately—will run when script loads
   DeliveryChat.init({
