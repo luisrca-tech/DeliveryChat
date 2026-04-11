@@ -54,6 +54,7 @@ export function closeChat(): void {
 
 export async function sendMessage(content: string): Promise<void> {
   if (!initialized || !appId) return;
+  if (getState("conversationStatus") === "closed") return;
 
   const visitorId = getState("visitorId");
   if (!visitorId) return;
@@ -137,6 +138,18 @@ export function notifyTypingStop(): void {
     type: "typing:stop",
     payload: { conversationId },
   });
+}
+
+export function startNewChat(): void {
+  if (!initialized || !appId) return;
+
+  removeAllConversationKeysForApp(appId);
+
+  setState("conversationId", null);
+  setState("conversationStatus", null);
+  setState("messages", []);
+  setState("typingUser", null);
+  lastTypingSent = 0;
 }
 
 export function destroyChat(): void {

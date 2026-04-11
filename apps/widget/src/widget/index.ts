@@ -37,6 +37,7 @@ import {
   notifyTypingStart,
   notifyTypingStop,
   destroyChat,
+  startNewChat,
 } from "./chat-controller.js";
 import type { ChatMessage } from "./types.js";
 
@@ -157,6 +158,17 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     }
   });
 
+  // "Start new chat" button (replaces input area when conversation is closed)
+  const newChatBtn = document.createElement("button");
+  newChatBtn.type = "button";
+  newChatBtn.className = "new-chat-btn";
+  newChatBtn.textContent = "Start new chat";
+  newChatBtn.hidden = true;
+  newChatBtn.addEventListener("click", () => {
+    startNewChat();
+  });
+  chatWindowEl.appendChild(newChatBtn);
+
   wrapper.appendChild(launcher);
   wrapper.appendChild(chatWindow);
   shadow.appendChild(wrapper);
@@ -171,22 +183,32 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     chatWindow.insertBefore(statusBanner, messageListEl);
   }
 
+  const inputAreaEl = chatWindow.querySelector(".input-area") as HTMLElement | null;
+
   const unsubConvStatus = subscribe("conversationStatus", (status) => {
     if (status === "pending") {
       statusBanner.textContent = "Waiting for support...";
       statusBanner.hidden = false;
       statusBanner.className = "status-banner status-pending";
+      if (inputAreaEl) inputAreaEl.hidden = false;
+      newChatBtn.hidden = true;
     } else if (status === "active") {
       statusBanner.textContent = "Connected with support";
       statusBanner.hidden = false;
       statusBanner.className = "status-banner status-active";
       setTimeout(() => { statusBanner.hidden = true; }, 3000);
+      if (inputAreaEl) inputAreaEl.hidden = false;
+      newChatBtn.hidden = true;
     } else if (status === "closed") {
       statusBanner.textContent = "Conversation resolved";
       statusBanner.hidden = false;
       statusBanner.className = "status-banner status-closed";
+      if (inputAreaEl) inputAreaEl.hidden = true;
+      newChatBtn.hidden = false;
     } else {
       statusBanner.hidden = true;
+      if (inputAreaEl) inputAreaEl.hidden = false;
+      newChatBtn.hidden = true;
     }
   });
   cleanupFns.push(unsubConvStatus);
@@ -196,6 +218,15 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   const unsubMessages = subscribe("messages", (messages: ChatMessage[]) => {
     const listEl = getMessageListEl(chatWindow);
     if (!listEl) return;
+
+    // State was reset (new chat) — clear the DOM list
+    if (messages.length < lastMessageCount) {
+      const typingEl = listEl.querySelector(".typing-indicator");
+      listEl.innerHTML = "";
+      if (typingEl) listEl.appendChild(typingEl);
+      lastMessageCount = 0;
+      return;
+    }
 
     // Append only new messages
     for (let i = lastMessageCount; i < messages.length; i++) {
