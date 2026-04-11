@@ -1,4 +1,4 @@
-import type { Context, MiddlewareHandler } from "hono";
+import type { MiddlewareHandler } from "hono";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { applications } from "../../db/schema/applications.js";
@@ -10,31 +10,20 @@ export type WidgetAuthContext = {
   organizationId: string;
 };
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidUuid(value: string): boolean {
+  return UUID_REGEX.test(value);
+}
+
 function isLocalhostOrigin(origin: string): boolean {
   try {
     const url = new URL(origin);
-    return (
-      url.hostname === "localhost" || url.hostname === "127.0.0.1"
-    );
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
   } catch {
     return false;
   }
-}
-
-async function resolveOrigin(c: Context): Promise<string | null> {
-  const headerOrigin = c.req.header("Origin");
-  if (headerOrigin) return headerOrigin;
-
-  try {
-    const body = await c.req.json();
-    if (body && typeof body.origin === "string") {
-      return body.origin;
-    }
-  } catch {
-    // No JSON body or parsing failed — that's fine
-  }
-
-  return null;
 }
 
 export function requireWidgetAuth(): MiddlewareHandler {
@@ -46,6 +35,15 @@ export function requireWidgetAuth(): MiddlewareHandler {
         HTTP_STATUS.UNAUTHORIZED,
         ERROR_MESSAGES.UNAUTHORIZED,
         "Missing X-App-Id header",
+      );
+    }
+
+    if (!isValidUuid(appId)) {
+      return jsonError(
+        c,
+        HTTP_STATUS.NOT_FOUND,
+        ERROR_MESSAGES.NOT_FOUND,
+        "Application not found",
       );
     }
 
@@ -68,10 +66,14 @@ export function requireWidgetAuth(): MiddlewareHandler {
       );
     }
 
-    const origin = await resolveOrigin(c);
+    const origin = c.req.header("Origin") ?? null;
 
     if (origin) {
-      if (!isLocalhostOrigin(origin)) {
+      const isLocalhost = isLocalhostOrigin(origin);
+      const bypassForLocalhost =
+        isLocalhost && process.env.NODE_ENV !== "production";
+
+      if (!bypassForLocalhost) {
         if (!validateOrigin(origin, application.domain)) {
           return jsonError(
             c,
