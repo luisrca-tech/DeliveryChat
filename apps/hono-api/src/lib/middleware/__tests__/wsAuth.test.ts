@@ -9,7 +9,7 @@ vi.mock("../../auth.js", () => ({
 }));
 
 vi.mock("../../../features/api-keys/api-key.service.js", () => ({
-  verifyApiKey: vi.fn(),
+  validateOrigin: vi.fn(),
 }));
 
 vi.mock("../../../db/index.js", () => ({
@@ -19,14 +19,14 @@ vi.mock("../../../db/index.js", () => ({
 }));
 
 const { auth } = await import("../../auth.js");
-const { verifyApiKey } = await import(
+const { validateOrigin } = await import(
   "../../../features/api-keys/api-key.service.js"
 );
 const { db } = await import("../../../db/index.js");
 const { authenticateWebSocket } = await import("../wsAuth.js");
 
 const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
-const mockVerifyApiKey = verifyApiKey as ReturnType<typeof vi.fn>;
+const mockValidateOrigin = validateOrigin as unknown as ReturnType<typeof vi.fn>;
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
 
 function chainMock(result: unknown) {
@@ -59,118 +59,160 @@ describe("authenticateWebSocket", () => {
     vi.clearAllMocks();
   });
 
-  describe("API key auth (widget)", () => {
-    it("authenticates with valid token and appId", async () => {
+  describe("widget auth", () => {
+    it("authenticates with valid appId and visitorId", async () => {
       const c = createMockContext({
         query: {
-          token: "dk_live_abcdefghijklmnopqrstuvwxyz123456",
           appId: "app-1",
+          visitorId: "visitor-123",
+        },
+        headers: {
+          Origin: "https://example.com",
         },
       });
 
-      mockVerifyApiKey.mockResolvedValue({
-        valid: true,
-        application: { id: "app-1", domain: "example.com" },
-        apiKey: { id: "key-1" },
+      mockSelect.mockReturnValue(
+        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+      );
+
+      mockValidateOrigin.mockReturnValue(true);
+
+      const result = await authenticateWebSocket(c);
+
+      expect(result).not.toBeNull();
+      expect(result!.userId).toBe("visitor-123");
+      expect(result!.organizationId).toBe("org-1");
+      expect(result!.role).toBe("visitor");
+      expect(result!.authType).toBe("widget");
+      expect(result!.applicationId).toBe("app-1");
+    });
+
+    it("rejects when application is not found", async () => {
+      const c = createMockContext({
+        query: {
+          appId: "app-nonexistent",
+          visitorId: "visitor-123",
+        },
+      });
+
+      mockSelect.mockReturnValue(chainMock([]));
+
+      const result = await authenticateWebSocket(c);
+      expect(result).toBeNull();
+    });
+
+    it("rejects when origin does not match application domain", async () => {
+      const c = createMockContext({
+        query: {
+          appId: "app-1",
+          visitorId: "visitor-123",
+        },
+        headers: {
+          Origin: "https://evil.com",
+        },
       });
 
       mockSelect.mockReturnValue(
-        chainMock([{ organizationId: "org-1" }]),
+        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+      );
+
+      mockValidateOrigin.mockReturnValue(false);
+
+      const result = await authenticateWebSocket(c);
+      expect(result).toBeNull();
+    });
+
+    it("allows localhost origin in non-production environment", async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "development";
+
+      const c = createMockContext({
+        query: {
+          appId: "app-1",
+          visitorId: "visitor-123",
+        },
+        headers: {
+          Origin: "http://localhost:3000",
+        },
+      });
+
+      mockSelect.mockReturnValue(
+        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
       );
 
       const result = await authenticateWebSocket(c);
 
       expect(result).not.toBeNull();
-      expect(result!.organizationId).toBe("org-1");
-      expect(result!.role).toBe("visitor");
-      expect(result!.authType).toBe("apiKey");
-      expect(result!.applicationId).toBe("app-1");
+      expect(result!.authType).toBe("widget");
+      expect(mockValidateOrigin).not.toHaveBeenCalled();
+
+      process.env.NODE_ENV = originalEnv;
     });
 
-    it("uses visitorId when provided", async () => {
+    it("rejects localhost origin in production environment", async () => {
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = "production";
+
       const c = createMockContext({
         query: {
-          token: "dk_live_abcdefghijklmnopqrstuvwxyz123456",
+          appId: "app-1",
+          visitorId: "visitor-123",
+        },
+        headers: {
+          Origin: "http://localhost:3000",
+        },
+      });
+
+      mockSelect.mockReturnValue(
+        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+      );
+
+      mockValidateOrigin.mockReturnValue(false);
+
+      const result = await authenticateWebSocket(c);
+      expect(result).toBeNull();
+
+      process.env.NODE_ENV = originalEnv;
+    });
+
+    it("allows connection when no Origin header is present", async () => {
+      const c = createMockContext({
+        query: {
           appId: "app-1",
           visitorId: "visitor-123",
         },
       });
 
-      mockVerifyApiKey.mockResolvedValue({
-        valid: true,
-        application: { id: "app-1", domain: "example.com" },
-        apiKey: { id: "key-1" },
-      });
-
       mockSelect.mockReturnValue(
-        chainMock([{ organizationId: "org-1" }]),
+        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
       );
 
       const result = await authenticateWebSocket(c);
-      expect(result!.userId).toBe("visitor-123");
+
+      expect(result).not.toBeNull();
+      expect(result!.authType).toBe("widget");
+      expect(mockValidateOrigin).not.toHaveBeenCalled();
     });
 
-    it("generates anonymous userId when visitorId not provided", async () => {
+    it("falls through to session auth when only appId is provided without visitorId", async () => {
       const c = createMockContext({
         query: {
-          token: "dk_live_abcdefghijklmnopqrstuvwxyz123456",
           appId: "app-1",
         },
-      });
-
-      mockVerifyApiKey.mockResolvedValue({
-        valid: true,
-        application: { id: "app-1", domain: "example.com" },
-        apiKey: { id: "key-1" },
-      });
-
-      mockSelect.mockReturnValue(
-        chainMock([{ organizationId: "org-1" }]),
-      );
-
-      const result = await authenticateWebSocket(c);
-      expect(result!.userId).toMatch(/^anonymous-/);
-    });
-
-    it("rejects invalid API key format", async () => {
-      const c = createMockContext({
-        query: { token: "bad-key", appId: "app-1" },
-      });
-
-      const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
-    });
-
-    it("rejects when verifyApiKey returns invalid", async () => {
-      const c = createMockContext({
-        query: {
-          token: "dk_live_abcdefghijklmnopqrstuvwxyz123456",
-          appId: "app-1",
+        headers: {
+          "X-Tenant-Slug": "acme",
         },
       });
 
-      mockVerifyApiKey.mockResolvedValue({ valid: false, reason: "revoked" });
+      mockGetSession.mockResolvedValue({ user: { id: "user-1" } });
+      mockSelect
+        .mockReturnValueOnce(chainMock([{ id: "org-1" }]))
+        .mockReturnValueOnce(chainMock([{ role: "admin" }]));
 
       const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
-    });
 
-    it("rejects when appId does not match", async () => {
-      const c = createMockContext({
-        query: {
-          token: "dk_live_abcdefghijklmnopqrstuvwxyz123456",
-          appId: "app-wrong",
-        },
-      });
-
-      mockVerifyApiKey.mockResolvedValue({
-        valid: true,
-        application: { id: "app-1", domain: "example.com" },
-        apiKey: { id: "key-1" },
-      });
-
-      const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
+      expect(result).not.toBeNull();
+      expect(result!.authType).toBe("session");
     });
   });
 

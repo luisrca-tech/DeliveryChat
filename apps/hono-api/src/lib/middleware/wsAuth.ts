@@ -1,23 +1,19 @@
 import type { Context } from "hono";
 import { auth } from "../auth.js";
-import {
-  verifyApiKey,
-} from "../../features/api-keys/api-key.service.js";
+import { validateOrigin } from "../../features/api-keys/api-key.service.js";
 import { db } from "../../db/index.js";
 import { member } from "../../db/schema/member.js";
 import { applications } from "../../db/schema/applications.js";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { organization } from "../../db/schema/organization.js";
 import type { ParticipantRole } from "@repo/types";
-
-const KEY_REGEX = /^dk_(live|test)_[a-zA-Z0-9]{32}$/;
 
 export interface AuthenticatedWSUser {
   userId: string;
   userName: string | null;
   organizationId: string;
   role: ParticipantRole;
-  authType: "session" | "apiKey";
+  authType: "session" | "widget";
   applicationId?: string;
 }
 
@@ -31,53 +27,70 @@ type SessionWithUser = SessionResult & {
  * Authenticates a WebSocket connection during the HTTP upgrade phase.
  *
  * Two auth paths:
- * 1. Session cookie (admin app) — reads session from request headers
- * 2. Query params (widget) — token + appId in the WS URL
+ * 1. Widget auth (widget) — appId + visitorId query params with origin validation
+ * 2. Session cookie (admin app) — reads session from request headers
  *
  * Returns null if authentication fails.
  */
 export async function authenticateWebSocket(
   c: Context,
 ): Promise<AuthenticatedWSUser | null> {
-  // Path 1: Try API key auth via query params (widget)
-  const token = c.req.query("token");
+  // Path 1: Try widget auth via query params (appId + visitorId)
   const appId = c.req.query("appId");
   const visitorId = c.req.query("visitorId");
 
-  if (token && appId) {
-    return authenticateWithApiKey(token, appId, visitorId);
+  if (appId && visitorId) {
+    return authenticateWidget(c, appId, visitorId);
   }
 
   // Path 2: Try session auth (admin app)
   return authenticateWithSession(c);
 }
 
-async function authenticateWithApiKey(
-  token: string,
+function isLocalhostOrigin(origin: string): boolean {
+  try {
+    const url = new URL(origin);
+    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
+  } catch {
+    return false;
+  }
+}
+
+async function authenticateWidget(
+  c: Context,
   appId: string,
-  visitorId?: string,
+  visitorId: string,
 ): Promise<AuthenticatedWSUser | null> {
-  if (!KEY_REGEX.test(token)) return null;
-
-  const result = await verifyApiKey(token);
-  if (!result.valid) return null;
-  if (result.application.id !== appId) return null;
-
-  // verifyApiKey doesn't return organizationId, look it up from the application
   const [app] = await db
-    .select({ organizationId: applications.organizationId })
+    .select({
+      id: applications.id,
+      domain: applications.domain,
+      organizationId: applications.organizationId,
+    })
     .from(applications)
-    .where(eq(applications.id, appId))
+    .where(and(eq(applications.id, appId), isNull(applications.deletedAt)))
     .limit(1);
 
   if (!app) return null;
 
+  // Validate origin
+  const origin = c.req.header("Origin");
+
+  if (origin) {
+    const isLocalhost = isLocalhostOrigin(origin);
+    if (isLocalhost && process.env.NODE_ENV !== "production") {
+      // Allow localhost in non-production environments
+    } else if (!validateOrigin(origin, app.domain)) {
+      return null;
+    }
+  }
+
   return {
-    userId: visitorId ?? `anonymous-${crypto.randomUUID()}`,
+    userId: visitorId,
     userName: null,
     organizationId: app.organizationId,
     role: "visitor",
-    authType: "apiKey",
+    authType: "widget",
     applicationId: appId,
   };
 }
