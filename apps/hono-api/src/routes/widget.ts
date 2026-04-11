@@ -5,12 +5,11 @@ import { db } from "../db/index.js";
 import { messages } from "../db/schema/messages.js";
 import { user } from "../db/schema/users.js";
 import { conversations } from "../db/schema/conversations.js";
-import { applications } from "../db/schema/applications.js";
 import { getApplicationSettings } from "../features/applications/application.service.js";
 import {
   createConversation,
 } from "../features/chat/chat.service.js";
-import { requireApiKeyAuth, getApiAuth } from "../lib/middleware/apiKeyAuth.js";
+import { requireWidgetAuth, getWidgetAuth } from "../lib/middleware/widgetAuth.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import {
   createWidgetConversationSchema,
@@ -44,12 +43,12 @@ export const widgetRoute = new Hono()
   // POST /conversations — create a support conversation from widget
   .post(
     "/conversations",
-    requireApiKeyAuth(),
+    requireWidgetAuth(),
     zValidator("json", createWidgetConversationSchema),
     async (c) => {
       try {
-        const apiAuth = getApiAuth(c);
-        if (!apiAuth) {
+        const widgetAuth = getWidgetAuth(c);
+        if (!widgetAuth) {
           return jsonError(
             c,
             HTTP_STATUS.UNAUTHORIZED,
@@ -66,22 +65,6 @@ export const widgetRoute = new Hono()
             HTTP_STATUS.BAD_REQUEST,
             ERROR_MESSAGES.BAD_REQUEST,
             "X-Visitor-Id header required",
-          );
-        }
-
-        // Look up organizationId from the application
-        const [app] = await db
-          .select({ organizationId: applications.organizationId })
-          .from(applications)
-          .where(eq(applications.id, apiAuth.application.id))
-          .limit(1);
-
-        if (!app) {
-          return jsonError(
-            c,
-            HTTP_STATUS.NOT_FOUND,
-            ERROR_MESSAGES.NOT_FOUND,
-            "Application not found",
           );
         }
 
@@ -103,8 +86,8 @@ export const widgetRoute = new Hono()
         }
 
         const conversation = await createConversation({
-          organizationId: app.organizationId,
-          applicationId: apiAuth.application.id,
+          organizationId: widgetAuth.organizationId,
+          applicationId: widgetAuth.application.id,
           subject,
           createdBy: visitorId,
           participants: [{ userId: visitorId, role: "visitor" }],
@@ -115,15 +98,15 @@ export const widgetRoute = new Hono()
           type: "conversation:new",
           payload: {
             id: conversation.id,
-            organizationId: app.organizationId,
-            applicationId: apiAuth.application.id,
+            organizationId: widgetAuth.organizationId,
+            applicationId: widgetAuth.application.id,
             status: "pending",
             subject: subject ?? null,
             createdAt: conversation.createdAt,
           },
         };
         roomManager.broadcastToOrganization(
-          app.organizationId,
+          widgetAuth.organizationId,
           JSON.stringify(event),
         );
 
@@ -142,12 +125,12 @@ export const widgetRoute = new Hono()
   // GET /conversations/:id/messages — paginated history for reconnection
   .get(
     "/conversations/:id/messages",
-    requireApiKeyAuth(),
+    requireWidgetAuth(),
     zValidator("query", getMessagesQuerySchema),
     async (c) => {
       try {
-        const apiAuth = getApiAuth(c);
-        if (!apiAuth) {
+        const widgetAuth = getWidgetAuth(c);
+        if (!widgetAuth) {
           return jsonError(
             c,
             HTTP_STATUS.UNAUTHORIZED,
@@ -165,7 +148,7 @@ export const widgetRoute = new Hono()
           .where(
             and(
               eq(conversations.id, conversationId),
-              eq(conversations.applicationId, apiAuth.application.id),
+              eq(conversations.applicationId, widgetAuth.application.id),
             ),
           )
           .limit(1);
