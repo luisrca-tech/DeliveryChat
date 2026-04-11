@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { readFile } from "node:fs/promises";
-import { resolve, dirname } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { logger } from "hono/logger";
@@ -13,7 +12,6 @@ import { isOriginAllowed } from "./lib/corsPatterns.js";
 import { initWebSocket } from "./lib/ws.js";
 import { wsRoute } from "./routes/ws.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app = new Hono();
 
@@ -64,7 +62,7 @@ app.get("/", (c) => {
 });
 
 app.get("/widget.js", async (c) => {
-  const widgetPath = resolve(__dirname, "../../../widget/dist-embed/widget.iife.js");
+  const widgetPath = resolve(process.cwd(), "../widget/dist-embed/widget.iife.js");
   try {
     const content = await readFile(widgetPath, "utf-8");
     return c.body(content, 200, {
