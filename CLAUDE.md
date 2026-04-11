@@ -85,7 +85,7 @@ SKIP_ENV_VALIDATION=true bun run build
 
 ### Backend (hono-api)
 
-- **Auth:** Better Auth (^1.4.7) with plugins: `anonymous`, `bearer`, `emailOTP`, `organization`. Roles: `super_admin`, `admin`, `operator`. Permissions in `src/lib/permissions.js`. The `anonymous` plugin enables widget visitor support. Config at `apps/hono-api/src/lib/auth.ts`.
+- **Auth:** Better Auth (^1.4.7) with plugins: `anonymous`, `bearer`, `emailOTP`, `organization`. Roles: `super_admin`, `admin`, `operator`. Permissions in `src/lib/permissions.ts`. The `anonymous` plugin enables widget visitor support. Config at `apps/hono-api/src/lib/auth.ts`.
 - **Database:** PostgreSQL + Drizzle ORM. Schema files in `apps/hono-api/src/db/schema/`. Enums in `schema/enums/`. Custom timestamp types in `customTypes.ts` serialize timestamps as strings. All tables use `createTable()` from `db/table.ts` which prefixes table names with `delivery_chat_`. Drizzle config at `apps/hono-api/drizzle.config.ts`, migrations output to `apps/hono-api/drizzle/`. Requires `DATABASE_URL` (use Infisical).
 - **Tenant plans:** `FREE`, `BASIC`, `PREMIUM`, `ENTERPRISE` with plan-based feature limits defined in `src/lib/planLimits.ts`. Per-tenant overrides stored in `tenantRateLimits` table.
 - **Routes:** Composed in `src/lib/api.ts`, which exports `APIType` — the type used by the admin frontend's RPC client. Route files in `src/routes/`.
