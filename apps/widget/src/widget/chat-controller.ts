@@ -13,14 +13,12 @@ import {
 } from "./conversation-persistence.js";
 
 let appId: string | null = null;
-let apiKey: string | null = null;
 let initialized = false;
 let lastTypingSent = 0;
 const TYPING_THROTTLE_MS = 2_000;
 
-export function initChatController(opts: { appId: string; apiKey: string }): void {
+export function initChatController(opts: { appId: string }): void {
   appId = opts.appId;
-  apiKey = opts.apiKey;
 
   const visitorId = getOrCreateVisitorId();
   setState("visitorId", visitorId);
@@ -35,7 +33,7 @@ export function initChatController(opts: { appId: string; apiKey: string }): voi
 }
 
 export function openChat(): void {
-  if (!initialized || !appId || !apiKey) return;
+  if (!initialized || !appId) return;
 
   const visitorId = getState("visitorId");
   if (!visitorId) return;
@@ -44,7 +42,6 @@ export function openChat(): void {
   if (getState("connectionStatus") === "disconnected") {
     connectWS({
       apiBaseUrl: getApiBaseUrl(),
-      apiKey,
       appId,
       visitorId,
     });
@@ -56,7 +53,7 @@ export function closeChat(): void {
 }
 
 export async function sendMessage(content: string): Promise<void> {
-  if (!initialized || !appId || !apiKey) return;
+  if (!initialized || !appId) return;
 
   const visitorId = getState("visitorId");
   if (!visitorId) return;
@@ -80,7 +77,6 @@ export async function sendMessage(content: string): Promise<void> {
     try {
       const result = await createConversation(
         getApiBaseUrl(),
-        apiKey,
         appId,
         visitorId,
       );
@@ -159,5 +155,4 @@ export function destroyChat(): void {
   lastTypingSent = 0;
   initialized = false;
   appId = null;
-  apiKey = null;
 }

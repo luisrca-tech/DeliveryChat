@@ -24,9 +24,8 @@ type MessagesResponse = {
   offset: number;
 };
 
-function buildHeaders(apiKey: string, appId: string, visitorId?: string): Record<string, string> {
+function buildHeaders(appId: string, visitorId?: string): Record<string, string> {
   const headers: Record<string, string> = {
-    Authorization: `Bearer ${apiKey}`,
     "X-App-Id": appId,
     "Content-Type": "application/json",
   };
@@ -38,7 +37,6 @@ function buildHeaders(apiKey: string, appId: string, visitorId?: string): Record
 
 export async function createConversation(
   apiBaseUrl: string,
-  apiKey: string,
   appId: string,
   visitorId: string,
   subject?: string,
@@ -46,7 +44,7 @@ export async function createConversation(
   const url = `${apiBaseUrl}/v1/widget/conversations`;
   const res = await fetch(url, {
     method: "POST",
-    headers: buildHeaders(apiKey, appId, visitorId),
+    headers: buildHeaders(appId, visitorId),
     body: JSON.stringify({ subject }),
   });
 
@@ -62,7 +60,6 @@ export async function createConversation(
 
 export async function getConversationMessages(
   apiBaseUrl: string,
-  apiKey: string,
   appId: string,
   conversationId: string,
   limit = 50,
@@ -70,7 +67,7 @@ export async function getConversationMessages(
 ): Promise<MessagesResponse> {
   const url = `${apiBaseUrl}/v1/widget/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`;
   const res = await fetch(url, {
-    headers: buildHeaders(apiKey, appId),
+    headers: buildHeaders(appId),
   });
 
   if (!res.ok) {
