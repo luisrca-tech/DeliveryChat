@@ -118,6 +118,18 @@ DeliveryChat.init({
 
 The launcher supports three icon types: `"chat"`, `"question"`, and `"message"`. Set via `applications.settings.launcher.icon`.
 
+## Security
+
+The widget authenticates using **domain-based origin validation**. When you create an application, you register a domain (e.g. `nike.com`). The server validates that widget requests originate from that domain — no API key is exposed in client-side code.
+
+- Requests from matching domains and subdomains are allowed (e.g. `shop.nike.com` matches `nike.com`)
+- Wildcard domains are supported (e.g. `*.nike.com`)
+- `localhost` origins are allowed automatically during development
+
+<Callout type="info" title="No API key needed">
+  The widget only needs your <code>appId</code>. API keys are reserved for server-side SDK and REST API integrations where they can be kept secret.
+</Callout>
+
 ## How It Works
 
 - **Shadow DOM** — Styles are isolated. Your site CSS does not affect the widget, and widget CSS does not leak out.
