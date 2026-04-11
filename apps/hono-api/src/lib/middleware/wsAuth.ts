@@ -23,19 +23,9 @@ type SessionWithUser = SessionResult & {
   data?: { user?: { id: string; name?: string } };
 };
 
-/**
- * Authenticates a WebSocket connection during the HTTP upgrade phase.
- *
- * Two auth paths:
- * 1. Widget auth (widget) — appId + visitorId query params with origin validation
- * 2. Session cookie (admin app) — reads session from request headers
- *
- * Returns null if authentication fails.
- */
 export async function authenticateWebSocket(
   c: Context,
 ): Promise<AuthenticatedWSUser | null> {
-  // Path 1: Try widget auth via query params (appId + visitorId)
   const appId = c.req.query("appId");
   const visitorId = c.req.query("visitorId");
 
@@ -43,7 +33,6 @@ export async function authenticateWebSocket(
     return authenticateWidget(c, appId, visitorId);
   }
 
-  // Path 2: Try session auth (admin app)
   return authenticateWithSession(c);
 }
 
@@ -73,14 +62,13 @@ async function authenticateWidget(
 
   if (!app) return null;
 
-  // Validate origin
   const origin = c.req.header("Origin");
 
   if (origin) {
-    const isLocalhost = isLocalhostOrigin(origin);
-    if (isLocalhost && process.env.NODE_ENV !== "production") {
-      // Allow localhost in non-production environments
-    } else if (!validateOrigin(origin, app.domain)) {
+    const bypassForLocalhost =
+      isLocalhostOrigin(origin) && process.env.NODE_ENV !== "production";
+
+    if (!bypassForLocalhost && !validateOrigin(origin, app.domain)) {
       return null;
     }
   }
@@ -98,8 +86,6 @@ async function authenticateWidget(
 async function authenticateWithSession(
   c: Context,
 ): Promise<AuthenticatedWSUser | null> {
-  // WebSocket upgrade requests from cross-origin admin app won't carry cookies.
-  // Support Bearer token via query param as fallback.
   const sessionToken = c.req.query("sessionToken");
   const headers = new Headers(c.req.raw.headers);
   if (sessionToken && !headers.has("Authorization")) {
@@ -115,7 +101,6 @@ async function authenticateWithSession(
 
   if (!sessionUser?.id) return null;
 
-  // Resolve tenant from headers (same priority as requireTenantAuth)
   const tenantSlug =
     c.req.header("X-Tenant-Slug") ?? c.req.query("tenant");
 
