@@ -1,6 +1,6 @@
 :where(.chat-widget) {
-  --dc-launcher-size: 56px;
-  --dc-launcher-radius: 14px;
+  --dc-launcher-size: 96px;
+  --dc-launcher-radius: 38px;
   position: relative;
   width: 100%;
   min-height: 100%;
@@ -23,24 +23,31 @@
 
 :where(.chat-widget) .launcher {
   position: fixed;
-  bottom: var(--dc-position-offset, 16px);
-  right: var(--dc-position-offset, 16px);
+  bottom: var(--dc-position-offset, 6px);
+  right: var(--dc-position-offset, 6px);
   width: var(--dc-launcher-size);
   height: var(--dc-launcher-size);
   box-sizing: border-box;
-  padding: 2px;
-  border-radius: var(--dc-launcher-radius);
-  background: var(--dc-primary-color, #0ea5e9);
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
   color: white;
   border: none;
   cursor: pointer;
-  box-shadow: var(--dc-shadow, 0 0 20px rgba(0, 0, 0, 0.15));
+  box-shadow: none;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: transform 0.2s;
   pointer-events: auto;
   z-index: 10001;
+}
+
+:where(.chat-widget) .launcher:not(:has(.launcher-logo)) {
+  padding: 2px;
+  border-radius: var(--dc-launcher-radius);
+  background: var(--dc-primary-color, #0ea5e9);
+  box-shadow: var(--dc-shadow, 0 0 20px rgba(0, 0, 0, 0.15));
 }
 
 :where(.chat-widget) .launcher:hover {
@@ -57,27 +64,28 @@
 :where(.chat-widget) .launcher .launcher-logo {
   display: block;
   flex-shrink: 0;
-  width: calc(var(--dc-launcher-size) - 4px);
-  height: calc(var(--dc-launcher-size) - 4px);
-  max-width: calc(var(--dc-launcher-size) - 4px);
-  max-height: calc(var(--dc-launcher-size) - 4px);
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
   object-fit: contain;
   object-position: center;
   pointer-events: none;
-  border-radius: calc(var(--dc-launcher-radius) - 2px);
+  border-radius: 0;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.2));
 }
 
 :where(.chat-widget)[data-corner="bottom-left"] .launcher {
-  left: var(--dc-position-offset, 16px);
+  left: var(--dc-position-offset, 6px);
   right: auto;
 }
 
 :where(.chat-widget) .chat-window {
   position: fixed;
   bottom: calc(
-    var(--dc-launcher-size) + var(--dc-position-offset, 16px) + 8px
+    var(--dc-launcher-size) + var(--dc-position-offset, 6px) + 8px
   );
-  right: var(--dc-position-offset, 16px);
+  right: var(--dc-position-offset, 6px);
   width: var(--dc-width, 380px);
   max-width: calc(100vw - 32px);
   height: var(--dc-height, 500px);
@@ -93,7 +101,7 @@
 }
 
 :where(.chat-widget)[data-corner="bottom-left"] .chat-window {
-  left: var(--dc-position-offset, 16px);
+  left: var(--dc-position-offset, 6px);
   right: auto;
 }
 

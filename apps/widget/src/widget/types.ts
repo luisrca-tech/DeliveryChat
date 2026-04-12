@@ -53,7 +53,7 @@ export const defaultSettings: WidgetSettings = {
   },
   position: {
     corner: "bottom-right",
-    offset: "16px",
+    offset: "6px",
   },
   appearance: {
     borderRadius: "12px",

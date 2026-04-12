@@ -126,6 +126,47 @@ app.get("/brand/logo.png", async (c) => {
   return c.text("Logo not found", 404);
 });
 
+app.get("/brand/chat.png", async (c) => {
+  const __dirname = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    resolve(__dirname, "../../widget/public/chat.png"),
+    resolve(__dirname, "../public/chat.png"),
+  ];
+  for (const chatPath of candidates) {
+    if (!existsSync(chatPath)) continue;
+    try {
+      const st = statSync(chatPath);
+      const etag = `"${st.mtimeMs}-${st.size}"`;
+      if (c.req.header("if-none-match") === etag) {
+        const cacheControl =
+          env.NODE_ENV === "production"
+            ? "public, max-age=300, stale-while-revalidate=3600"
+            : "public, max-age=0, must-revalidate";
+        return c.body(null, 304, {
+          "Cache-Control": cacheControl,
+          ETag: etag,
+          "Access-Control-Allow-Origin": "*",
+        });
+      }
+      const buf = await readFile(chatPath);
+      const cacheControl =
+        env.NODE_ENV === "production"
+          ? "public, max-age=300, stale-while-revalidate=3600"
+          : "public, max-age=0, must-revalidate";
+      return c.body(buf, 200, {
+        "Content-Type": "image/png",
+        "Cache-Control": cacheControl,
+        ETag: etag,
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Expose-Headers": "ETag",
+      });
+    } catch {
+      continue;
+    }
+  }
+  return c.text("Chat launcher image not found", 404);
+});
+
 app.all("/api/auth/*", async (c) => {
   return auth.handler(c.req.raw);
 });

@@ -20,7 +20,8 @@
     "db:seed": "cd apps/hono-api && infisical run --path=/hono-api -- bun run src/db/seeds/index.ts",
     "db:push": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit push",
     "db:studio": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit studio",
-    "db:drop": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop"
+    "db:drop": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop",
+    "sync:assets": "bun run scripts/sync-brand-assets.ts"
   },
   "devDependencies": {
     "prettier": "^3.6.2",
