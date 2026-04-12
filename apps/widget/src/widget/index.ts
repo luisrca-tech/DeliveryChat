@@ -160,6 +160,11 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     logoUrl: settings.launcher.logoUrl,
   });
 
+  const backdrop = document.createElement("div");
+  backdrop.className = "chat-dismiss-backdrop";
+  backdrop.hidden = true;
+  backdrop.setAttribute("aria-hidden", "true");
+
   // eslint-disable-next-line prefer-const
   let chatWindowEl: HTMLElement;
 
@@ -168,6 +173,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     isOpen = false;
     setState("isOpen", false);
     chatWindowEl!.hidden = true;
+    backdrop.hidden = true;
     launcher.setAttribute("aria-expanded", "false");
     launcher.focus();
   };
@@ -187,10 +193,15 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
 
   let focusTrapAbort: AbortController | null = null;
 
+  backdrop.addEventListener("click", () => {
+    if (isOpen) closeChat();
+  });
+
   launcher.addEventListener("click", () => {
     isOpen = !isOpen;
     setState("isOpen", isOpen);
     chatWindow.hidden = !isOpen;
+    backdrop.hidden = !isOpen;
     launcher.setAttribute("aria-expanded", String(isOpen));
     if (isOpen) {
       controllerOpenChat();
@@ -213,6 +224,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   chatWindowEl.appendChild(newChatBtn);
 
+  wrapper.appendChild(backdrop);
   wrapper.appendChild(launcher);
   wrapper.appendChild(chatWindow);
   shadow.appendChild(wrapper);
@@ -393,8 +405,12 @@ async function init(opts: InitOptions): Promise<void> {
       setState("isOpen", true);
       const chatWindow = shadow.querySelector(".chat-window") as HTMLElement;
       const launcher = shadow.querySelector(".launcher") as HTMLElement;
+      const backdropEl = shadow.querySelector(
+        ".chat-dismiss-backdrop",
+      ) as HTMLElement;
       if (chatWindow) chatWindow.hidden = false;
       if (launcher) launcher.setAttribute("aria-expanded", "true");
+      if (backdropEl) backdropEl.hidden = false;
     }, settings.behavior.autoOpenDelay);
   }
 }

@@ -1,6 +1,10 @@
 :where(.chat-widget) {
   --dc-launcher-size: 96px;
   --dc-launcher-radius: 38px;
+  /* Horizontal inset for the chat panel only (launcher stays flush to the corner). */
+  --dc-chat-window-edge-inset: 22px;
+  /* Pulls the chat panel slightly over the launcher band so it visually hugs the button. */
+  --dc-chat-launcher-overlap: 8px;
   position: relative;
   width: 100%;
   min-height: 100%;
@@ -13,6 +17,14 @@
 
 :where(.chat-widget) [hidden] {
   display: none !important;
+}
+
+:where(.chat-widget) .chat-dismiss-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: auto;
+  background: transparent;
 }
 
 :where(.chat-widget) *,
@@ -83,11 +95,15 @@
 :where(.chat-widget) .chat-window {
   position: fixed;
   bottom: calc(
-    var(--dc-launcher-size) + var(--dc-position-offset, 6px) + 8px
+    var(--dc-launcher-size) +
+      var(--dc-position-offset, 6px) -
+      var(--dc-chat-launcher-overlap, 0px)
   );
-  right: var(--dc-position-offset, 6px);
+  right: calc(
+    var(--dc-position-offset, 6px) + var(--dc-chat-window-edge-inset, 0px)
+  );
   width: var(--dc-width, 380px);
-  max-width: calc(100vw - 32px);
+  max-width: calc(100vw - 32px - 2 * var(--dc-chat-window-edge-inset, 0px));
   height: var(--dc-height, 500px);
   max-height: calc(100vh - 120px);
   background: var(--dc-background-color, #ffffff);
@@ -101,7 +117,9 @@
 }
 
 :where(.chat-widget)[data-corner="bottom-left"] .chat-window {
-  left: var(--dc-position-offset, 6px);
+  left: calc(
+    var(--dc-position-offset, 6px) + var(--dc-chat-window-edge-inset, 0px)
+  );
   right: auto;
 }
 

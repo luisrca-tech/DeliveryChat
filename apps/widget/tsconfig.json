@@ -12,7 +12,6 @@
     "module": "ES2022",
     "moduleResolution": "bundler",
     "rootDirs": [".", "./.react-router/types"],
-    "baseUrl": ".",
     "paths": {
       "~/*": ["./app/*"]
     },
