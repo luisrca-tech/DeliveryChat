@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { createAdminPageHead } from "@/lib/adminMeta";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "../../lib/authClient";
@@ -8,6 +9,10 @@ import { getSubdomainUrl } from "../../lib/urls";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 
 export const Route = createFileRoute("/_system/")({
+  head: createAdminPageHead(
+    "Dashboard",
+    "Overview of conversations, organization, and quick actions in Delivery Chat.",
+  ),
   component: Dashboard,
 });
 

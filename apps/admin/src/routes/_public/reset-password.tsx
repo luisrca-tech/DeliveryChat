@@ -1,10 +1,15 @@
 import { createFileRoute, useSearch } from "@tanstack/react-router";
 import "@repo/ui/styles.css";
+import { createAdminPageHead } from "@/lib/adminMeta";
 import { ResetPasswordForm } from "@/features/reset-password";
 import { resetPasswordSearchSchema } from "@/schemas/auth";
 import type { ResetPasswordSearchParams } from "@/types/auth";
 
 export const Route = createFileRoute("/_public/reset-password")({
+  head: createAdminPageHead(
+    "Reset password",
+    "Set a new password for your Delivery Chat admin account.",
+  ),
   component: ResetPasswordPage,
   validateSearch: (search: Record<string, unknown>) => {
     return resetPasswordSearchSchema.parse(search);

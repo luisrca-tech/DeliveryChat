@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { createAdminPageHead } from "@/lib/adminMeta";
 
 type InvitationData = {
   id: string;
@@ -27,6 +28,10 @@ type InvitationData = {
 };
 
 export const Route = createFileRoute("/_public/accept-invitation")({
+  head: createAdminPageHead(
+    "Accept invitation",
+    "Accept your invitation to join an organization on Delivery Chat.",
+  ),
   validateSearch: (search: Record<string, unknown>) => ({
     invitationId: (search.invitationId as string) ?? "",
   }),

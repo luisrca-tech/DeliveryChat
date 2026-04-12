@@ -9,6 +9,7 @@ import "@repo/ui/styles.css";
 import { getSubdomain } from "../lib/subdomain";
 import { getQueryClient } from "../lib/queryClient";
 import { SubdomainForm } from "../features/subdomain";
+import { ADMIN_APP_NAME, DEFAULT_ADMIN_DESCRIPTION } from "../lib/adminMeta";
 
 export const Route = createRootRoute({
   head: () => ({
@@ -21,7 +22,15 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "Delivery Chat — Admin",
+        name: "robots",
+        content: "noindex, nofollow",
+      },
+      {
+        title: ADMIN_APP_NAME,
+      },
+      {
+        name: "description",
+        content: DEFAULT_ADMIN_DESCRIPTION,
       },
     ],
     links: [
