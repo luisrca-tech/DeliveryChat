@@ -8,6 +8,12 @@ export type TypingUser = {
   senderRole: string;
 } | null;
 
+export type ConnectionError = {
+  type: "permanent" | "temporary";
+  userMessage: string;
+  devMessage: string;
+} | null;
+
 type State = {
   settings: WidgetSettings;
   isOpen: boolean;
@@ -15,6 +21,7 @@ type State = {
   conversationId: string | null;
   visitorId: string | null;
   connectionStatus: "disconnected" | "connecting" | "connected";
+  connectionError: ConnectionError;
   conversationStatus: ConversationStatus | null;
   typingUser: TypingUser;
 };
@@ -28,6 +35,7 @@ let state: State = {
   conversationId: null,
   visitorId: null,
   connectionStatus: "disconnected",
+  connectionError: null,
   conversationStatus: null,
   typingUser: null,
 };

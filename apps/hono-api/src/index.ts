@@ -73,9 +73,12 @@ app.get("/widget.js", async (c) => {
   for (const widgetPath of candidates) {
     try {
       const content = await readFile(widgetPath, "utf-8");
+      const cacheControl = env.NODE_ENV === "production"
+        ? "public, max-age=3600"
+        : "no-cache, no-store, must-revalidate";
       return c.body(content, 200, {
         "Content-Type": "application/javascript; charset=utf-8",
-        "Cache-Control": "public, max-age=3600",
+        "Cache-Control": cacheControl,
         "Access-Control-Allow-Origin": "*",
       });
     } catch {

@@ -334,3 +334,30 @@
   font-style: italic;
   color: var(--dc-text-secondary, #64748b);
 }
+
+/* Connection error banner */
+:where(.chat-widget) .error-banner {
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+:where(.chat-widget) .error-permanent {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-bottom: 1px solid #fecaca;
+}
+
+:where(.chat-widget) .error-temporary {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-bottom: 1px solid #fde68a;
+}
+
+/* Disabled input area (permanent connection error) */
+:where(.chat-widget) .input-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}

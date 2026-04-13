@@ -241,6 +241,44 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
 
   const inputAreaEl = chatWindow.querySelector(".input-area") as HTMLElement | null;
 
+  const errorBanner = document.createElement("div");
+  errorBanner.className = "error-banner";
+  errorBanner.hidden = true;
+  errorBanner.setAttribute("role", "alert");
+  if (messageListEl) {
+    chatWindow.insertBefore(errorBanner, statusBanner.nextSibling ?? messageListEl);
+  }
+
+  const unsubConnError = subscribe("connectionError", (error) => {
+    if (!error) {
+      errorBanner.hidden = true;
+      errorBanner.className = "error-banner";
+      if (inputAreaEl) {
+        inputAreaEl.classList.remove("input-disabled");
+        const input = inputAreaEl.querySelector("input") as HTMLInputElement | null;
+        const btn = inputAreaEl.querySelector("button") as HTMLButtonElement | null;
+        if (input) input.disabled = false;
+        if (btn) btn.disabled = false;
+      }
+      return;
+    }
+
+    errorBanner.textContent = error.userMessage;
+    errorBanner.hidden = false;
+    errorBanner.className = error.type === "permanent"
+      ? "error-banner error-permanent"
+      : "error-banner error-temporary";
+
+    if (error.type === "permanent" && inputAreaEl) {
+      inputAreaEl.classList.add("input-disabled");
+      const input = inputAreaEl.querySelector("input") as HTMLInputElement | null;
+      const btn = inputAreaEl.querySelector("button") as HTMLButtonElement | null;
+      if (input) input.disabled = true;
+      if (btn) btn.disabled = true;
+    }
+  });
+  cleanupFns.push(unsubConnError);
+
   const unsubConvStatus = subscribe("conversationStatus", (status) => {
     if (status === "pending") {
       statusBanner.textContent = "Waiting for support...";
@@ -269,13 +307,11 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   cleanupFns.push(unsubConvStatus);
 
-  // Subscribe to state changes to update DOM
   let lastMessageCount = getState("messages").length;
   const unsubMessages = subscribe("messages", (messages: ChatMessage[]) => {
     const listEl = getMessageListEl(chatWindow);
     if (!listEl) return;
 
-    // State was reset (new chat) — clear the DOM list
     if (messages.length < lastMessageCount) {
       const typingEl = listEl.querySelector(".typing-indicator");
       listEl.innerHTML = "";
@@ -284,7 +320,6 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
       return;
     }
 
-    // Append only new messages
     for (let i = lastMessageCount; i < messages.length; i++) {
       const msg = messages[i];
       if (msg) {
@@ -297,7 +332,6 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   cleanupFns.push(unsubMessages);
 
-  // Typing indicator
   const typingEl = chatWindow.querySelector(".typing-indicator") as HTMLElement | null;
   const unsubTyping = subscribe("typingUser", (typingUser) => {
     if (!typingEl) return;
@@ -307,7 +341,6 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
           ? "Visitor is typing..."
           : `${typingUser.userName ?? "Agent"} is typing...`;
       typingEl.hidden = false;
-      // Auto-scroll to show indicator
       const listEl = getMessageListEl(chatWindow);
       if (listEl) listEl.scrollTop = listEl.scrollHeight;
     } else {
