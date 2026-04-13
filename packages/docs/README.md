@@ -25,6 +25,15 @@ Architecture guides, implementation references, and technical decision records f
 
 - [Schema Design](conversations/schema.md) — Conversations, messages, participants, read status, anonymous visitors via Better Auth
 
+### WebSocket
+
+- [Architecture Overview](websocket/architecture.md) — Technology stack, high-level design, dual broadcast channels, hybrid REST+WS pattern
+- [Protocol Reference](websocket/protocol.md) — Complete event catalog: client→server, server→client, payloads, error codes, heartbeat
+- [Authentication](websocket/authentication.md) — Dual auth flow: session-based (admin/operator) and widget-based (visitor), origin validation
+- [Room Manager](websocket/room-manager.md) — InMemoryRoomManager: three-level tracking, broadcast scopes, cleanup, IRoomManager interface
+- [Conversation Lifecycle](websocket/conversation-lifecycle.md) — Full conversation flow: creation, acceptance, messaging, release, resolution
+- [Client Implementations](websocket/client-implementations.md) — Admin WebSocketManager, widget standalone client, reconnection, state management
+
 ### Rate Limiting
 
 - [Redis Migration (TODO)](rate-limiting/to-do/redis-migration.md) — Migration plan from MemoryStore to Redis-backed rate limiting
