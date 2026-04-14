@@ -19,6 +19,8 @@ import {
   softDeleteConversation,
   updateConversationSubject,
   addParticipant,
+  getUnreadCount,
+  markAsRead,
 } from "../features/chat/chat.service.js";
 import {
   getTenantAuth,
@@ -84,8 +86,15 @@ export const conversationsRoute = new Hono()
         .from(conversations)
         .where(and(...conditions));
 
+      const conversationsWithUnread = await Promise.all(
+        result.map(async (conv) => ({
+          ...conv,
+          unreadCount: await getUnreadCount(conv.id, authUser.id),
+        })),
+      );
+
       return c.json({
-        conversations: result,
+        conversations: conversationsWithUnread,
         total: countRow?.count ?? 0,
         limit,
         offset,
@@ -384,6 +393,40 @@ export const conversationsRoute = new Hono()
       }
     },
   )
+
+  // POST /:id/read — mark conversation as read for current user
+  .post("/:id/read", async (c) => {
+    try {
+      const { user: authUser } = getTenantAuth(c);
+      const conversationId = c.req.param("id");
+
+      const [latestMessage] = await db
+        .select({ id: messages.id })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.conversationId, conversationId),
+            isNull(messages.deletedAt),
+          ),
+        )
+        .orderBy(desc(messages.createdAt))
+        .limit(1);
+
+      if (!latestMessage) {
+        return c.json({ success: true });
+      }
+
+      await markAsRead(conversationId, authUser.id, latestMessage.id);
+      return c.json({ success: true });
+    } catch (error) {
+      console.error("Error marking conversation as read:", error);
+      return jsonError(
+        c,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+      );
+    }
+  })
 
   // DELETE /:id — soft delete conversation (admin/super_admin only)
   .delete("/:id", requireRole("admin"), async (c) => {
