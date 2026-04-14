@@ -510,3 +510,108 @@ export async function getMessagesSince(
     .orderBy(messages.createdAt)
     .limit(limit);
 }
+
+// ── Unread Count ──
+
+export async function getUnreadCount(
+  conversationId: string,
+  userId: string,
+): Promise<number> {
+  // Find if the user is a participant (they may not be for pending/queue conversations)
+  const [participant] = await db
+    .select({ lastReadMessageId: conversationParticipants.lastReadMessageId })
+    .from(conversationParticipants)
+    .where(
+      and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+        isNull(conversationParticipants.leftAt),
+      ),
+    )
+    .limit(1);
+
+  // Determine the cutoff: messages after this date are "unread"
+  let afterDate: string | null = null;
+  if (participant?.lastReadMessageId) {
+    const [lastReadMsg] = await db
+      .select({ createdAt: messages.createdAt })
+      .from(messages)
+      .where(eq(messages.id, participant.lastReadMessageId))
+      .limit(1);
+    afterDate = lastReadMsg?.createdAt ?? null;
+  }
+  // If no participant or no lastReadMessageId → afterDate stays null → count ALL visitor messages
+
+  const whereConditions = [
+    eq(messages.conversationId, conversationId),
+    isNull(messages.deletedAt),
+  ];
+  if (afterDate) {
+    whereConditions.push(sql`${messages.createdAt} > ${afterDate}`);
+  }
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(distinct ${messages.id})::int` })
+    .from(messages)
+    .innerJoin(
+      conversationParticipants,
+      and(
+        eq(conversationParticipants.conversationId, messages.conversationId),
+        eq(conversationParticipants.userId, messages.senderId),
+        eq(conversationParticipants.role, "visitor"),
+      ),
+    )
+    .where(and(...whereConditions));
+
+  return countRow?.count ?? 0;
+}
+
+// ── Mark as Read ──
+
+export async function markAsRead(
+  conversationId: string,
+  userId: string,
+  messageId: string,
+): Promise<{ lastReadMessageId: string } | null> {
+  const [participant] = await db
+    .select({
+      id: conversationParticipants.id,
+      lastReadMessageId: conversationParticipants.lastReadMessageId,
+    })
+    .from(conversationParticipants)
+    .where(
+      and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, userId),
+        isNull(conversationParticipants.leftAt),
+      ),
+    )
+    .limit(1);
+
+  if (!participant) return null;
+
+  if (participant.lastReadMessageId) {
+    const [currentMsg] = await db
+      .select({ createdAt: messages.createdAt })
+      .from(messages)
+      .where(eq(messages.id, participant.lastReadMessageId))
+      .limit(1);
+
+    const [newMsg] = await db
+      .select({ createdAt: messages.createdAt })
+      .from(messages)
+      .where(eq(messages.id, messageId))
+      .limit(1);
+
+    if (!newMsg) return null;
+    if (currentMsg && newMsg.createdAt <= currentMsg.createdAt) return null;
+  }
+
+  const [updated] = await db
+    .update(conversationParticipants)
+    .set({ lastReadMessageId: messageId })
+    .where(eq(conversationParticipants.id, participant.id))
+    .returning();
+
+  return updated ? { lastReadMessageId: messageId } : null;
+}
