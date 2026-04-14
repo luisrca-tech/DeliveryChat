@@ -1,7 +1,7 @@
 import { getState, setState } from "./state.js";
 import { getApiBaseUrl } from "./config.js";
 import { getOrCreateVisitorId } from "./visitor.js";
-import { createConversation } from "./conversation.js";
+import { createConversation, getConversationMessages } from "./conversation.js";
 import { connectWS, disconnectWS, sendWSMessage } from "./ws.js";
 import type { ChatMessage } from "./types.js";
 import {
@@ -17,7 +17,7 @@ let initialized = false;
 let lastTypingSent = 0;
 const TYPING_THROTTLE_MS = 2_000;
 
-export function initChatController(opts: { appId: string }): void {
+export async function initChatController(opts: { appId: string }): Promise<void> {
   appId = opts.appId;
 
   const visitorId = getOrCreateVisitorId();
@@ -27,9 +27,48 @@ export function initChatController(opts: { appId: string }): void {
   const savedConvId = loadPersistedConversationId(appId);
   if (savedConvId) {
     setState("conversationId", savedConvId);
+    await restoreConversationHistory(appId, savedConvId);
   }
 
   initialized = true;
+}
+
+async function restoreConversationHistory(
+  currentAppId: string,
+  conversationId: string,
+): Promise<void> {
+  try {
+    const result = await getConversationMessages(
+      getApiBaseUrl(),
+      currentAppId,
+      conversationId,
+    );
+
+    const restored: ChatMessage[] = result.messages
+      .map((m) => ({
+        id: m.id,
+        content: m.content,
+        senderRole: resolveSenderRole(m.senderId),
+        senderId: m.senderId,
+        status: "sent" as const,
+        createdAt: m.createdAt,
+      }))
+      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+    setState("messages", restored);
+  } catch (error) {
+    const is404 = error instanceof Error && error.message.includes("404");
+    if (is404) {
+      removeAllConversationKeysForApp(currentAppId);
+      setState("conversationId", null);
+      setState("conversationStatus", null);
+    }
+  }
+}
+
+function resolveSenderRole(senderId: string): ChatMessage["senderRole"] {
+  const visitorId = getState("visitorId");
+  return senderId === visitorId ? "visitor" : "operator";
 }
 
 export function openChat(): void {

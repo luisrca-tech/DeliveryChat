@@ -418,7 +418,7 @@ async function init(opts: InitOptions): Promise<void> {
   setState("isOpen", false);
   setState("messages", []);
 
-  initChatController({ appId: opts.appId });
+  await initChatController({ appId: opts.appId });
 
   const host = createShadowHost();
   const shadow = createShadowRoot(host);
