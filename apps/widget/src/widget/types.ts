@@ -95,6 +95,8 @@ export type ChatMessage = {
   senderId: string;
   status: "pending" | "sent" | "failed";
   createdAt: string;
+  editedAt?: string | null;
+  isDeleted?: boolean;
 };
 
 export type ConversationStatus = "pending" | "active" | "closed";

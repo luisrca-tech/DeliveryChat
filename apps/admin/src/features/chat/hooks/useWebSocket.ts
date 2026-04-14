@@ -76,6 +76,7 @@ export function useWebSocket(activeConversationId: string | null) {
             type: msg.type,
             content: msg.content,
             createdAt: msg.createdAt,
+            editedAt: msg.editedAt ?? null,
           };
 
           queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
@@ -123,6 +124,42 @@ export function useWebSocket(activeConversationId: string | null) {
             clearTimeout(typingTimerRef.current);
             typingTimerRef.current = null;
           }
+        }
+
+        if (event.type === "message:edited") {
+          const { conversationId, messageId, content, editedAt } = event.payload;
+          queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
+            conversationsQueryKeys.messages(conversationId, 50, 0),
+            (old) => {
+              if (!old) return old;
+              return {
+                ...old,
+                messages: old.messages.map((msg) =>
+                  msg.id === messageId
+                    ? { ...msg, content, editedAt }
+                    : msg,
+                ),
+              };
+            },
+          );
+        }
+
+        if (event.type === "message:deleted") {
+          const { conversationId, messageId } = event.payload;
+          queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
+            conversationsQueryKeys.messages(conversationId, 50, 0),
+            (old) => {
+              if (!old) return old;
+              return {
+                ...old,
+                messages: old.messages.map((msg) =>
+                  msg.id === messageId
+                    ? { ...msg, isDeleted: true, content: "" }
+                    : msg,
+                ),
+              };
+            },
+          );
         }
 
         // Conversation lifecycle events — invalidate list so queue updates

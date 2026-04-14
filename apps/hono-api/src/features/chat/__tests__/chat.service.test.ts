@@ -60,9 +60,13 @@ const {
   softDeleteConversation,
   updateConversationSubject,
   validateSendAuthorization,
+  editMessage,
+  deleteMessage,
   ConversationNotFoundError,
   ConversationNotActiveError,
   NotAssignedToConversationError,
+  MessageNotFoundError,
+  NotMessageSenderError,
 } = await import("../chat.service.js");
 
 describe("chat.service", () => {
@@ -594,6 +598,165 @@ describe("chat.service", () => {
       );
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe("editMessage", () => {
+    const existingMessage = {
+      id: "msg-1",
+      conversationId: "conv-1",
+      senderId: "user-1",
+      type: "text" as const,
+      content: "Original",
+      editedAt: null,
+      deletedAt: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    it("updates content and sets editedAt", async () => {
+      const selectChain = chainMock([existingMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      const updatedRow = {
+        ...existingMessage,
+        content: "Updated content",
+        editedAt: "2026-01-01T00:01:00.000Z",
+        updatedAt: "2026-01-01T00:01:00.000Z",
+      };
+      const updateChain = chainMock([updatedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await editMessage({
+        messageId: "msg-1",
+        conversationId: "conv-1",
+        senderId: "user-1",
+        content: "Updated content",
+      });
+
+      expect(result).toEqual(updatedRow);
+      expect(result.editedAt).not.toBeNull();
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("throws MessageNotFoundError for non-existent message", async () => {
+      const selectChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        editMessage({
+          messageId: "msg-999",
+          conversationId: "conv-1",
+          senderId: "user-1",
+          content: "Updated",
+        }),
+      ).rejects.toThrow(MessageNotFoundError);
+    });
+
+    it("throws MessageNotFoundError for already-deleted message", async () => {
+      const deletedMessage = { ...existingMessage, deletedAt: "2026-01-01T00:00:00.000Z" };
+      // The WHERE clause filters deletedAt IS NULL, so no rows returned
+      const selectChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        editMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+          content: "Updated",
+        }),
+      ).rejects.toThrow(MessageNotFoundError);
+    });
+
+    it("throws NotMessageSenderError when senderId does not match", async () => {
+      const selectChain = chainMock([existingMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        editMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-other",
+          content: "Updated",
+        }),
+      ).rejects.toThrow(NotMessageSenderError);
+    });
+  });
+
+  describe("deleteMessage", () => {
+    const existingMessage = {
+      id: "msg-1",
+      conversationId: "conv-1",
+      senderId: "user-1",
+      type: "text" as const,
+      content: "Hello",
+      editedAt: null,
+      deletedAt: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+    };
+
+    it("soft-deletes message by setting deletedAt", async () => {
+      const selectChain = chainMock([existingMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      const deletedRow = {
+        ...existingMessage,
+        deletedAt: "2026-01-01T00:01:00.000Z",
+        updatedAt: "2026-01-01T00:01:00.000Z",
+      };
+      const updateChain = chainMock([deletedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await deleteMessage({
+        messageId: "msg-1",
+        conversationId: "conv-1",
+        senderId: "user-1",
+      });
+
+      expect(result).toEqual(deletedRow);
+      expect(result.deletedAt).not.toBeNull();
+      expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("throws MessageNotFoundError for non-existent message", async () => {
+      const selectChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        deleteMessage({
+          messageId: "msg-999",
+          conversationId: "conv-1",
+          senderId: "user-1",
+        }),
+      ).rejects.toThrow(MessageNotFoundError);
+    });
+
+    it("throws MessageNotFoundError for already-deleted message", async () => {
+      const selectChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        deleteMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+        }),
+      ).rejects.toThrow(MessageNotFoundError);
+    });
+
+    it("throws NotMessageSenderError when senderId does not match", async () => {
+      const selectChain = chainMock([existingMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        deleteMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-other",
+        }),
+      ).rejects.toThrow(NotMessageSenderError);
     });
   });
 });

@@ -8,6 +8,7 @@ import { MessageInput } from "./MessageInput";
 import { useNavigate } from "@tanstack/react-router";
 import { useConversationMessagesQuery, useConversationDetailQuery } from "../hooks/useConversationsQuery";
 import { useSendMessage } from "../hooks/useSendMessage";
+import { useMessageActions } from "../hooks/useMessageActions";
 import { useAcceptConversationMutation } from "../hooks/useConversationMutations";
 import { ConversationConflictError } from "../lib/conversations.client";
 import { navigateSearchAfterAccept } from "../lib/conversationSearchNavigation";
@@ -44,6 +45,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
   const { data: detailData } = useConversationDetailQuery(conversationId);
 
   const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId);
+  const { editMessage, deleteMessage } = useMessageActions(ws.sendEvent);
   const acceptMutation = useAcceptConversationMutation();
 
   if (!conversationId) {
@@ -107,6 +109,12 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
           isLoading={messagesLoading}
           currentUserId={currentUserId}
           typingUser={ws.typingUser}
+          onEditMessage={(messageId, content) =>
+            editMessage(conversationId, messageId, content)
+          }
+          onDeleteMessage={(messageId) =>
+            deleteMessage(conversationId, messageId)
+          }
         />
 
         {isPending && (

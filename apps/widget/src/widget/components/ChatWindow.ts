@@ -1,6 +1,15 @@
 import type { WidgetSettings, ChatMessage } from "../types.js";
 import { createHeader } from "./Header.js";
-import { createMessageList, appendMessage, updateMessageStatus } from "./MessageList.js";
+import {
+  createMessageList,
+  appendMessage,
+  updateMessageStatus,
+  updateMessageContent,
+  markMessageDeleted,
+  enterEditMode,
+  exitEditMode,
+  type BubbleContext,
+} from "./MessageList.js";
 import { createInputArea } from "./InputArea.js";
 import { createConnectionIndicator } from "./ConnectionIndicator.js";
 
@@ -15,6 +24,7 @@ export function createChatWindow(
   settings: WidgetSettings,
   messages: ChatMessage[],
   callbacks: ChatWindowCallbacks,
+  bubbleCtx: BubbleContext,
 ): HTMLElement {
   const container = document.createElement("div");
   container.className = "chat-window";
@@ -23,7 +33,7 @@ export function createChatWindow(
 
   const header = createHeader(settings.header, callbacks.onClose);
   const connectionIndicator = createConnectionIndicator();
-  const messageList = createMessageList(messages);
+  const messageList = createMessageList(messages, bubbleCtx);
   const inputArea = createInputArea({
     onSend: callbacks.onSend,
     onTypingStart: callbacks.onTypingStart,
@@ -50,4 +60,12 @@ export function getMessageListEl(chatWindow: HTMLElement): HTMLElement | null {
   return chatWindow.querySelector(".message-list");
 }
 
-export { appendMessage, updateMessageStatus };
+export {
+  appendMessage,
+  updateMessageStatus,
+  updateMessageContent,
+  markMessageDeleted,
+  enterEditMode,
+  exitEditMode,
+  type BubbleContext,
+};

@@ -40,6 +40,8 @@ export type Message = {
   type: MessageType;
   content: string;
   createdAt: string;
+  editedAt?: string | null;
+  isDeleted?: boolean;
 };
 
 export type ConversationsListResponse = {
