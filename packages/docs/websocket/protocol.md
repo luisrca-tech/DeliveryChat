@@ -94,6 +94,43 @@ Explicitly stop the typing indicator. Clients also auto-clear after 3 seconds if
 }
 ```
 
+### `message:edit`
+
+Edit a previously sent message. Only the original sender can edit. The server validates ownership (`msg.senderId === userId`), updates the message content and `editedAt` timestamp, then broadcasts `message:edited` to all room participants (including the sender, for multi-tab sync).
+
+```typescript
+{
+  type: "message:edit",
+  payload: {
+    conversationId: string,  // UUID of the conversation
+    messageId: string,       // UUID of the message to edit
+    content: string          // New message content (max 10,000 characters)
+  }
+}
+```
+
+**Authorization:** User must be the original sender of the message. Conversation must not be closed.
+
+**Errors:** `MESSAGE_NOT_FOUND`, `NOT_MESSAGE_SENDER`, `CONVERSATION_NOT_ACTIVE`
+
+### `message:delete`
+
+Soft-delete a previously sent message. Only the original sender can delete. The server validates ownership, sets `deletedAt` on the message, then broadcasts `message:deleted` to all room participants (including the sender, for multi-tab sync).
+
+```typescript
+{
+  type: "message:delete",
+  payload: {
+    conversationId: string,  // UUID of the conversation
+    messageId: string        // UUID of the message to delete
+  }
+}
+```
+
+**Authorization:** User must be the original sender of the message. Conversation must not be closed.
+
+**Errors:** `MESSAGE_NOT_FOUND`, `NOT_MESSAGE_SENDER`, `CONVERSATION_NOT_ACTIVE`
+
 ### `ping`
 
 Heartbeat to keep the connection alive. Server responds with `pong`.
@@ -223,6 +260,42 @@ A conversation was marked as solved/closed. Broadcast org-wide.
 
 **Trigger:** `POST /v1/conversations/:id/resolve` (REST)
 
+### `message:edited`
+
+Broadcast when a message is edited. Sent to **all** room participants including the sender (no `excludeConnectionId`) to support multi-tab synchronization.
+
+```typescript
+{
+  type: "message:edited",
+  payload: {
+    conversationId: string,
+    messageId: string,
+    content: string,         // Updated message content
+    editedAt: string,        // ISO timestamp of the edit
+    senderId: string         // User ID of the original sender
+  }
+}
+```
+
+**Trigger:** `message:edit` client event (WebSocket)
+
+### `message:deleted`
+
+Broadcast when a message is soft-deleted. Sent to **all** room participants including the sender (no `excludeConnectionId`) to support multi-tab synchronization.
+
+```typescript
+{
+  type: "message:deleted",
+  payload: {
+    conversationId: string,
+    messageId: string,
+    senderId: string         // User ID of the original sender
+  }
+}
+```
+
+**Trigger:** `message:delete` client event (WebSocket)
+
 ### `typing:start` (broadcast)
 
 Relayed from another user in the same room. Includes sender identity for UI display.
@@ -287,6 +360,8 @@ Response to a `ping` heartbeat.
 | `FORBIDDEN` | Not authorized for action | Not a participant, not assigned to conversation |
 | `CONVERSATION_NOT_FOUND` | Conversation does not exist | Invalid or deleted conversation ID |
 | `CONVERSATION_NOT_ACTIVE` | Conversation is closed/pending | Trying to send to a non-active conversation |
+| `MESSAGE_NOT_FOUND` | Message does not exist | Invalid, deleted, or non-existent message ID |
+| `NOT_MESSAGE_SENDER` | Not the original sender | Trying to edit/delete another user's message |
 
 ## Heartbeat
 

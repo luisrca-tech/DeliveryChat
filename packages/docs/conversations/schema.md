@@ -54,6 +54,7 @@ organization (tenant)
 | `sender_id` | text | no | — | FK → user (set null on delete). Can be anonymous or authenticated user |
 | `type` | enum | no | `text` | `text` (regular message) or `system` (auto-generated) |
 | `content` | text | no | — | Message body |
+| `edited_at` | timestamp | yes | — | Set when message content is updated. `NULL` means never edited |
 | `deleted_at` | timestamp | yes | — | Soft delete timestamp |
 | `created_at` | timestamp | no | now() | Message send time |
 | `updated_at` | timestamp | no | now() | Last edit time |
