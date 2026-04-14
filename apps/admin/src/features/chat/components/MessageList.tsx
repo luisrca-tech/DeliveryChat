@@ -9,9 +9,18 @@ type Props = {
   isLoading: boolean;
   currentUserId: string;
   typingUser: TypingUser;
+  onEditMessage?: (messageId: string, content: string) => void;
+  onDeleteMessage?: (messageId: string) => void;
 };
 
-export function MessageList({ messages, isLoading, currentUserId, typingUser }: Props) {
+export function MessageList({
+  messages,
+  isLoading,
+  currentUserId,
+  typingUser,
+  onEditMessage,
+  onDeleteMessage,
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(messages.length);
 
@@ -49,6 +58,8 @@ export function MessageList({ messages, isLoading, currentUserId, typingUser }: 
             key={msg.id}
             message={msg}
             isSelf={msg.senderId === currentUserId}
+            onEdit={onEditMessage}
+            onDelete={onDeleteMessage}
           />
         ))}
         {typingUser && (
