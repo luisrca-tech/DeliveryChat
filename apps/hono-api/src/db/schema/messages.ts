@@ -18,6 +18,7 @@ export const messages = createTable(
       .references(() => user.id, { onDelete: "set null" }),
     type: messageTypeEnum("type").notNull().default("text"),
     content: text("content").notNull(),
+    editedAt: timestampStringNullable("edited_at"),
     deletedAt: timestampStringNullable("deleted_at"),
     createdAt: timestampString("created_at")
       .default(sql`now()`)

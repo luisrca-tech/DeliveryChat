@@ -1,0 +1,1 @@
+ALTER TABLE "delivery_chat_messages" ADD COLUMN "edited_at" timestamp;

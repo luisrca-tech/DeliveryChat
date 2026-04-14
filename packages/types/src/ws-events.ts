@@ -28,6 +28,8 @@ export const WSClientEventType = {
   ROOM_JOIN: "room:join",
   ROOM_LEAVE: "room:leave",
   MESSAGE_SEND: "message:send",
+  MESSAGE_EDIT: "message:edit",
+  MESSAGE_DELETE: "message:delete",
   TYPING_START: "typing:start",
   TYPING_STOP: "typing:stop",
   PING: "ping",
@@ -50,6 +52,17 @@ export interface MessageSendPayload {
   clientMessageId: string;
 }
 
+export interface MessageEditPayload {
+  conversationId: string;
+  messageId: string;
+  content: string;
+}
+
+export interface MessageDeletePayload {
+  conversationId: string;
+  messageId: string;
+}
+
 export interface TypingStartPayload {
   conversationId: string;
 }
@@ -62,6 +75,8 @@ export type WSClientEvent =
   | { type: typeof WSClientEventType.ROOM_JOIN; payload: RoomJoinPayload }
   | { type: typeof WSClientEventType.ROOM_LEAVE; payload: RoomLeavePayload }
   | { type: typeof WSClientEventType.MESSAGE_SEND; payload: MessageSendPayload }
+  | { type: typeof WSClientEventType.MESSAGE_EDIT; payload: MessageEditPayload }
+  | { type: typeof WSClientEventType.MESSAGE_DELETE; payload: MessageDeletePayload }
   | { type: typeof WSClientEventType.TYPING_START; payload: TypingStartPayload }
   | { type: typeof WSClientEventType.TYPING_STOP; payload: TypingStopPayload }
   | { type: typeof WSClientEventType.PING };
@@ -71,6 +86,8 @@ export type WSClientEvent =
 export const WSServerEventType = {
   MESSAGE_NEW: "message:new",
   MESSAGE_ACK: "message:ack",
+  MESSAGE_EDITED: "message:edited",
+  MESSAGE_DELETED: "message:deleted",
   MESSAGES_SYNC: "messages:sync",
   CONVERSATION_NEW: "conversation:new",
   CONVERSATION_ACCEPTED: "conversation:accepted",
@@ -93,12 +110,27 @@ export interface MessageNewPayload {
   content: string;
   type: MessageType;
   createdAt: string;
+  editedAt?: string | null;
 }
 
 export interface MessageAckPayload {
   clientMessageId: string;
   serverMessageId: string;
   createdAt: string;
+}
+
+export interface MessageEditedPayload {
+  conversationId: string;
+  messageId: string;
+  content: string;
+  editedAt: string;
+  senderId: string;
+}
+
+export interface MessageDeletedPayload {
+  conversationId: string;
+  messageId: string;
+  senderId: string;
 }
 
 export interface MessagesSyncPayload {
@@ -150,6 +182,14 @@ export interface WSErrorPayload {
 export type WSServerEvent =
   | { type: typeof WSServerEventType.MESSAGE_NEW; payload: MessageNewPayload }
   | { type: typeof WSServerEventType.MESSAGE_ACK; payload: MessageAckPayload }
+  | {
+      type: typeof WSServerEventType.MESSAGE_EDITED;
+      payload: MessageEditedPayload;
+    }
+  | {
+      type: typeof WSServerEventType.MESSAGE_DELETED;
+      payload: MessageDeletedPayload;
+    }
   | {
       type: typeof WSServerEventType.MESSAGES_SYNC;
       payload: MessagesSyncPayload;
