@@ -43,7 +43,14 @@ export function ConversationListItem({ conversation, isSelected, onClick, appNam
       }`}
     >
       <div className="flex items-start gap-3">
-        <MessageSquare className="h-4 w-4 mt-0.5 shrink-0 text-muted-foreground" />
+        <div className="relative shrink-0">
+          <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground" />
+          {conversation.unreadCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 bg-primary text-primary-foreground text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+              {conversation.unreadCount > 99 ? "99+" : conversation.unreadCount}
+            </span>
+          )}
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-start gap-2">
             <span className="text-sm font-medium truncate">
