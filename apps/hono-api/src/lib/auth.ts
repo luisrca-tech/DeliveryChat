@@ -10,8 +10,9 @@ import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { member } from "../db/schema/member.js";
 import { user } from "../db/schema/users.js";
+import { invitation } from "../db/schema/invitation.js";
 import { organization as organizationSchema } from "../db/schema/organization.js";
-import { eq, sql } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import { env } from "../env.js";
 import { ac, super_admin, admin, operator } from "./permissions.js";
 import { getMemberLimitByPlan } from "./planLimits.js";
@@ -247,9 +248,8 @@ export const auth = betterAuth({
           return { data: invitation };
         },
         beforeAddMember: async ({ member }) => {
-          // Mark user as ACTIVE when added to an org via invitation.
-          // The invite email itself serves as email verification — if the
-          // user received it and created an account, the address is valid.
+          // Fallback activation: if the user wasn't activated during signup
+          // (e.g., added manually), activate them here.
           if (member.userId) {
             await db
               .update(user)
@@ -270,6 +270,35 @@ export const auth = betterAuth({
       },
     }),
   ],
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (createdUser) => {
+          // If this user was created to accept a pending invitation,
+          // activate them immediately — the invite email itself
+          // serves as email verification.
+          const [pendingInvite] = await db
+            .select({ id: invitation.id })
+            .from(invitation)
+            .where(
+              and(
+                eq(invitation.email, createdUser.email),
+                eq(invitation.status, "pending"),
+              ),
+            )
+            .limit(1);
+
+          if (pendingInvite) {
+            console.info("[Auth:databaseHooks] Activating invited user:", createdUser.id, createdUser.email);
+            await db
+              .update(user)
+              .set({ status: "ACTIVE" })
+              .where(eq(user.id, createdUser.id));
+          }
+        },
+      },
+    },
+  },
   secret: env.BETTER_AUTH_SECRET,
   baseURL,
   trustedOrigins,
