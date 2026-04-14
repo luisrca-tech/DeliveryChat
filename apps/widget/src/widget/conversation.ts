@@ -76,3 +76,37 @@ export async function getConversationMessages(
 
   return res.json() as Promise<MessagesResponse>;
 }
+
+export async function getUnreadCount(
+  apiBaseUrl: string,
+  appId: string,
+  conversationId: string,
+  visitorId: string,
+): Promise<number> {
+  const url = `${apiBaseUrl}/v1/widget/conversations/${conversationId}/unread`;
+  const res = await fetch(url, {
+    headers: buildHeaders(appId, visitorId),
+  });
+
+  if (!res.ok) return 0;
+
+  const data = (await res.json()) as { unreadCount: number };
+  return data.unreadCount;
+}
+
+export async function markConversationAsRead(
+  apiBaseUrl: string,
+  appId: string,
+  conversationId: string,
+  visitorId: string,
+): Promise<void> {
+  const url = `${apiBaseUrl}/v1/widget/conversations/${conversationId}/read`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: buildHeaders(appId, visitorId),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to mark conversation as read (${res.status})`);
+  }
+}

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { conversationsQueryKeys } from "./useConversationsQuery";
+import type { AckedIdRegistrar } from "./useWebSocket";
 import type { WSServerEvent } from "@repo/types";
 import type { Message } from "../types/chat.types";
 
@@ -21,6 +22,7 @@ export function useSendMessage(
   sendEvent: SendMessageFn,
   subscribe: SubscribeFn,
   currentUserId: string,
+  registerAckedId: AckedIdRegistrar,
 ) {
   const queryClient = useQueryClient();
   const pendingRef = useRef<
@@ -37,6 +39,9 @@ export function useSendMessage(
 
       clearTimeout(pending.timer);
       pendingRef.current.delete(event.payload.clientMessageId);
+
+      // Register server ID so the subsequent message:new broadcast is deduped
+      registerAckedId(event.payload.serverMessageId);
 
       // Replace optimistic message with server-confirmed data
       queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
@@ -56,7 +61,7 @@ export function useSendMessage(
     });
 
     return unsubscribe;
-  }, [subscribe, queryClient]);
+  }, [subscribe, queryClient, registerAckedId]);
 
   const send = useCallback(
     (conversationId: string, content: string) => {
@@ -68,6 +73,7 @@ export function useSendMessage(
         conversationId,
         senderId: currentUserId,
         senderName: null,
+        senderRole: null,
         type: "text",
         content,
         createdAt: new Date().toISOString(),

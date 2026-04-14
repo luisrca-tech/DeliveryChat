@@ -12,7 +12,7 @@ export function createHeader(
     const img = document.createElement("img");
     img.className = "header-logo";
     img.alt = "";
-    img.setAttribute("src", settings.logoUrl.trim());
+    img.setAttribute("src", settings.logoUrl!.trim());
     header.appendChild(img);
   }
 

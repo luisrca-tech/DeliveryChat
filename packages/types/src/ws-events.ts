@@ -111,6 +111,7 @@ export interface MessageNewPayload {
   type: MessageType;
   createdAt: string;
   editedAt?: string | null;
+  assignedTo?: string | null;
 }
 
 export interface MessageAckPayload {

@@ -1,7 +1,12 @@
 import { getState, setState } from "./state.js";
 import { getApiBaseUrl } from "./config.js";
 import { getOrCreateVisitorId } from "./visitor.js";
-import { createConversation, getConversationMessages } from "./conversation.js";
+import {
+  createConversation,
+  getConversationMessages,
+  getUnreadCount,
+  markConversationAsRead,
+} from "./conversation.js";
 import { connectWS, disconnectWS, sendWSMessage } from "./ws.js";
 import type { ChatMessage } from "./types.js";
 import {
@@ -28,6 +33,9 @@ export async function initChatController(opts: { appId: string }): Promise<void>
   if (savedConvId) {
     setState("conversationId", savedConvId);
     await restoreConversationHistory(appId, savedConvId);
+
+    // Connect WS eagerly so the badge updates in real-time
+    connectWS({ apiBaseUrl: getApiBaseUrl(), appId, visitorId });
   }
 
   initialized = true;
@@ -57,6 +65,13 @@ async function restoreConversationHistory(
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
     setState("messages", restored);
+
+    const visitorId = getState("visitorId");
+    if (visitorId) {
+      getUnreadCount(getApiBaseUrl(), currentAppId, conversationId, visitorId)
+        .then((count) => setState("unreadCount", count))
+        .catch(() => {});
+    }
   } catch (error) {
     const is404 = error instanceof Error && error.message.includes("404");
     if (is404) {
@@ -77,6 +92,14 @@ export function openChat(): void {
 
   const visitorId = getState("visitorId");
   if (!visitorId) return;
+
+  setState("unreadCount", 0);
+
+  const conversationId = getState("conversationId");
+  if (conversationId) {
+    markConversationAsRead(getApiBaseUrl(), appId, conversationId, visitorId)
+      .catch(() => {});
+  }
 
   // Connect WS lazily when chat opens
   if (getState("connectionStatus") === "disconnected") {
@@ -228,6 +251,7 @@ export function startNewChat(): void {
   setState("conversationStatus", null);
   setState("messages", []);
   setState("typingUser", null);
+  setState("unreadCount", 0);
   lastTypingSent = 0;
 }
 
@@ -243,6 +267,7 @@ export function destroyChat(): void {
   setState("conversationId", null);
   setState("conversationStatus", null);
   setState("messages", []);
+  setState("unreadCount", 0);
 
   lastTypingSent = 0;
   initialized = false;

@@ -1,4 +1,4 @@
-import { eq, and, sql, isNull, desc } from "drizzle-orm";
+import { eq, ne, and, sql, isNull, desc } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
@@ -561,6 +561,51 @@ export async function getUnreadCount(
         eq(conversationParticipants.role, "visitor"),
       ),
     )
+    .where(and(...whereConditions));
+
+  return countRow?.count ?? 0;
+}
+
+// ── Unread Count (Visitor) ──
+
+export async function getUnreadCountForVisitor(
+  conversationId: string,
+  visitorUserId: string,
+): Promise<number> {
+  const [participant] = await db
+    .select({ lastReadMessageId: conversationParticipants.lastReadMessageId })
+    .from(conversationParticipants)
+    .where(
+      and(
+        eq(conversationParticipants.conversationId, conversationId),
+        eq(conversationParticipants.userId, visitorUserId),
+        isNull(conversationParticipants.leftAt),
+      ),
+    )
+    .limit(1);
+
+  let afterDate: string | null = null;
+  if (participant?.lastReadMessageId) {
+    const [lastReadMsg] = await db
+      .select({ createdAt: messages.createdAt })
+      .from(messages)
+      .where(eq(messages.id, participant.lastReadMessageId))
+      .limit(1);
+    afterDate = lastReadMsg?.createdAt ?? null;
+  }
+
+  const whereConditions = [
+    eq(messages.conversationId, conversationId),
+    isNull(messages.deletedAt),
+    ne(messages.senderId, visitorUserId),
+  ];
+  if (afterDate) {
+    whereConditions.push(sql`${messages.createdAt} > ${afterDate}`);
+  }
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(distinct ${messages.id})::int` })
+    .from(messages)
     .where(and(...whereConditions));
 
   return countRow?.count ?? 0;

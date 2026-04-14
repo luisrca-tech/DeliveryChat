@@ -25,6 +25,7 @@ type State = {
   conversationStatus: ConversationStatus | null;
   typingUser: TypingUser;
   editingMessageId: string | null;
+  unreadCount: number;
 };
 
 const listeners: Map<keyof State, Set<Listener<unknown>>> = new Map();
@@ -40,6 +41,7 @@ let state: State = {
   conversationStatus: null,
   typingUser: null,
   editingMessageId: null,
+  unreadCount: 0,
 };
 
 export function getState<K extends keyof State>(key: K): State[K] {

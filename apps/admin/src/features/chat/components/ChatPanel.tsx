@@ -26,6 +26,7 @@ type WSHandle = {
     force?: boolean,
   ) => void;
   typingUser: TypingUser;
+  registerAckedId: (serverMessageId: string) => void;
 };
 
 type Props = {
@@ -44,7 +45,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
     useConversationMessagesQuery(conversationId);
   const { data: detailData } = useConversationDetailQuery(conversationId);
 
-  const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId);
+  const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId, ws.registerAckedId);
   const { editMessage, deleteMessage } = useMessageActions(ws.sendEvent);
   const acceptMutation = useAcceptConversationMutation();
 

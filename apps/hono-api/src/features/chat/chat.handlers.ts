@@ -1,3 +1,6 @@
+import { eq } from "drizzle-orm";
+import { db } from "../../db/index.js";
+import { conversations } from "../../db/schema/conversations.js";
 import type { IRoomManager, WSConnection } from "./room-manager.js";
 import { wsClientEventSchema } from "./chat.schemas.js";
 import {
@@ -188,6 +191,13 @@ async function handleMessageSend(
     },
   });
 
+  // Fetch assignedTo for the broadcast payload
+  const [conv] = await db
+    .select({ assignedTo: conversations.assignedTo })
+    .from(conversations)
+    .where(eq(conversations.id, payload.conversationId))
+    .limit(1);
+
   // Broadcast to other participants in the room
   const broadcastEvent: WSServerEvent = {
     type: "message:new",
@@ -200,6 +210,7 @@ async function handleMessageSend(
       content: message.content,
       type: message.type as "text" | "system",
       createdAt: message.createdAt,
+      assignedTo: conv?.assignedTo ?? null,
     },
   };
 

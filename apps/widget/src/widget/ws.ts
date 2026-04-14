@@ -177,7 +177,18 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         editedAt: payload.editedAt ?? null,
       };
 
-      setState("messages", (prev) => [...prev, newMsg]);
+      let wasDuplicate = false;
+      setState("messages", (prev) => {
+        if (prev.some((m) => m.id === newMsg.id)) {
+          wasDuplicate = true;
+          return prev;
+        }
+        return [...prev, newMsg];
+      });
+
+      if (!wasDuplicate && payload.senderRole !== "visitor" && !getState("isOpen")) {
+        setState("unreadCount", (prev) => prev + 1);
+      }
 
       if (payload.senderId === getState("typingUser")?.userId) {
         clearTypingState();
@@ -292,7 +303,11 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         editedAt: m.editedAt ?? null,
       }));
 
-      setState("messages", (prev) => [...prev, ...syncedMessages]);
+      setState("messages", (prev) => {
+        const existingIds = new Set(prev.map((m) => m.id));
+        const newMessages = syncedMessages.filter((m) => !existingIds.has(m.id));
+        return newMessages.length > 0 ? [...prev, ...newMessages] : prev;
+      });
       break;
     }
 

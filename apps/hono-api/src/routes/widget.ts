@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, isNull, desc, sql } from "drizzle-orm";
+import { and, eq, isNull, desc } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { messages } from "../db/schema/messages.js";
 import { user } from "../db/schema/users.js";
@@ -8,6 +8,8 @@ import { conversations } from "../db/schema/conversations.js";
 import { getApplicationSettings } from "../features/applications/application.service.js";
 import {
   createConversation,
+  getUnreadCountForVisitor,
+  markAsRead,
 } from "../features/chat/chat.service.js";
 import { requireWidgetAuth, getWidgetAuth } from "../lib/middleware/widgetAuth.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
@@ -192,6 +194,104 @@ export const widgetRoute = new Hono()
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
         );
+      }
+    },
+  )
+
+  // GET /conversations/:id/unread — unread count for visitor
+  .get(
+    "/conversations/:id/unread",
+    requireWidgetAuth(),
+    async (c) => {
+      try {
+        const widgetAuth = getWidgetAuth(c);
+        if (!widgetAuth) {
+          return jsonError(c, HTTP_STATUS.UNAUTHORIZED, ERROR_MESSAGES.UNAUTHORIZED);
+        }
+
+        const conversationId = c.req.param("id");
+        const visitorId = c.req.header("X-Visitor-Id");
+        if (!visitorId) {
+          return jsonError(c, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.BAD_REQUEST, "X-Visitor-Id header required");
+        }
+
+        const [conv] = await db
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(
+            and(
+              eq(conversations.id, conversationId),
+              eq(conversations.applicationId, widgetAuth.application.id),
+            ),
+          )
+          .limit(1);
+
+        if (!conv) {
+          return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
+        }
+
+        const unreadCount = await getUnreadCountForVisitor(conversationId, visitorId);
+        return c.json({ unreadCount });
+      } catch (error) {
+        console.error("Error fetching widget unread count:", error);
+        return jsonError(c, HTTP_STATUS.INTERNAL_SERVER_ERROR, ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+      }
+    },
+  )
+
+  // POST /conversations/:id/read — mark conversation as read for visitor
+  .post(
+    "/conversations/:id/read",
+    requireWidgetAuth(),
+    async (c) => {
+      try {
+        const widgetAuth = getWidgetAuth(c);
+        if (!widgetAuth) {
+          return jsonError(c, HTTP_STATUS.UNAUTHORIZED, ERROR_MESSAGES.UNAUTHORIZED);
+        }
+
+        const conversationId = c.req.param("id");
+        const visitorId = c.req.header("X-Visitor-Id");
+        if (!visitorId) {
+          return jsonError(c, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.BAD_REQUEST, "X-Visitor-Id header required");
+        }
+
+        const [conv] = await db
+          .select({ id: conversations.id })
+          .from(conversations)
+          .where(
+            and(
+              eq(conversations.id, conversationId),
+              eq(conversations.applicationId, widgetAuth.application.id),
+            ),
+          )
+          .limit(1);
+
+        if (!conv) {
+          return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
+        }
+
+        const [latestMessage] = await db
+          .select({ id: messages.id })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, conversationId),
+              isNull(messages.deletedAt),
+            ),
+          )
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
+
+        if (!latestMessage) {
+          return c.json({ success: true });
+        }
+
+        await markAsRead(conversationId, visitorId, latestMessage.id);
+        return c.json({ success: true });
+      } catch (error) {
+        console.error("Error marking widget conversation as read:", error);
+        return jsonError(c, HTTP_STATUS.INTERNAL_SERVER_ERROR, ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
       }
     },
   );

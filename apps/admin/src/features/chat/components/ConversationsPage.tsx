@@ -92,7 +92,7 @@ export function ConversationsPage() {
     ws.subscribe,
   );
 
-  useConversationNotifications(ws.subscribe, selectedId ?? null, setSelectedId);
+  useConversationNotifications(ws.subscribe, selectedId ?? null, setSelectedId, sessionUserId);
 
   const onFiltersChange = (newFilter: string, newAppId: string | undefined) => {
     navigate({

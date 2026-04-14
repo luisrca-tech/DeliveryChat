@@ -63,6 +63,7 @@ const {
   editMessage,
   deleteMessage,
   getUnreadCount,
+  getUnreadCountForVisitor,
   markAsRead,
   ConversationNotFoundError,
   ConversationNotActiveError,
@@ -887,6 +888,75 @@ describe("chat.service", () => {
       const result = await markAsRead("conv-1", "user-unknown", "msg-5");
       expect(result).toBeNull();
       expect(mockUpdate).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("getUnreadCountForVisitor", () => {
+    it("returns count of all non-visitor messages when lastReadMessageId is null", async () => {
+      // Query 1: get participant's lastReadMessageId
+      const participantChain = chainMock([{ lastReadMessageId: null }]);
+      mockSelect.mockReturnValueOnce(participantChain);
+
+      // Query 2: count non-visitor messages (no cutoff — count all)
+      const countChain = chainMock([{ count: 3 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await getUnreadCountForVisitor("conv-1", "visitor-1");
+      expect(result).toBe(3);
+    });
+
+    it("returns count of non-visitor messages after lastReadMessageId", async () => {
+      // Query 1: get participant's lastReadMessageId
+      const participantChain = chainMock([{ lastReadMessageId: "msg-2" }]);
+      mockSelect.mockReturnValueOnce(participantChain);
+
+      // Query 2: get lastReadMessage's createdAt
+      const lastReadChain = chainMock([{ createdAt: "2026-01-01T00:02:00.000Z" }]);
+      mockSelect.mockReturnValueOnce(lastReadChain);
+
+      // Query 3: count non-visitor messages after cutoff
+      const countChain = chainMock([{ count: 2 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await getUnreadCountForVisitor("conv-1", "visitor-1");
+      expect(result).toBe(2);
+    });
+
+    it("returns 0 when no unread messages exist", async () => {
+      const participantChain = chainMock([{ lastReadMessageId: null }]);
+      mockSelect.mockReturnValueOnce(participantChain);
+
+      const countChain = chainMock([{ count: 0 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await getUnreadCountForVisitor("conv-1", "visitor-1");
+      expect(result).toBe(0);
+    });
+
+    it("excludes visitor's own messages from count", async () => {
+      // Query 1: get participant's lastReadMessageId
+      const participantChain = chainMock([{ lastReadMessageId: null }]);
+      mockSelect.mockReturnValueOnce(participantChain);
+
+      // Query 2: count only non-visitor messages (visitor's own excluded by senderId != visitorUserId)
+      const countChain = chainMock([{ count: 1 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await getUnreadCountForVisitor("conv-1", "visitor-1");
+      expect(result).toBe(1);
+    });
+
+    it("returns 0 when visitor is not a participant (no participant row)", async () => {
+      // Query 1: participant lookup returns empty
+      const participantChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(participantChain);
+
+      // Query 2: still counts non-visitor messages (no cutoff)
+      const countChain = chainMock([{ count: 0 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await getUnreadCountForVisitor("conv-1", "visitor-unknown");
+      expect(result).toBe(0);
     });
   });
 });

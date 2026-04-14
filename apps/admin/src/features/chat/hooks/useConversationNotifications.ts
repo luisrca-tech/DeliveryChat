@@ -8,9 +8,11 @@ export function useConversationNotifications(
   subscribe: SubscribeFn,
   selectedConversationId: string | null,
   onNavigate: (conversationId: string) => void,
+  sessionUserId: string,
 ) {
   const selectedRef = useRef(selectedConversationId);
   const navigateRef = useRef(onNavigate);
+  const userIdRef = useRef(sessionUserId);
 
   useEffect(() => {
     selectedRef.current = selectedConversationId;
@@ -19,6 +21,10 @@ export function useConversationNotifications(
   useEffect(() => {
     navigateRef.current = onNavigate;
   }, [onNavigate]);
+
+  useEffect(() => {
+    userIdRef.current = sessionUserId;
+  }, [sessionUserId]);
 
   useEffect(() => {
     const unsubscribe = subscribe((event) => {
@@ -31,9 +37,11 @@ export function useConversationNotifications(
 
       if (event.type === "message:new") {
         const msg = event.payload;
+        const isAssignedToMe = msg.assignedTo === userIdRef.current;
         if (
           msg.senderRole === "visitor" &&
-          msg.conversationId !== selectedRef.current
+          msg.conversationId !== selectedRef.current &&
+          isAssignedToMe
         ) {
           const convId = msg.conversationId;
           toast.info("New message", {

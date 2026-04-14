@@ -89,7 +89,10 @@ export const conversationsRoute = new Hono()
       const conversationsWithUnread = await Promise.all(
         result.map(async (conv) => ({
           ...conv,
-          unreadCount: await getUnreadCount(conv.id, authUser.id),
+          unreadCount:
+            conv.assignedTo === authUser.id
+              ? await getUnreadCount(conv.id, authUser.id)
+              : 0,
         })),
       );
 

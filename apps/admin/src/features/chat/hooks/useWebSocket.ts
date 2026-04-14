@@ -19,6 +19,8 @@ export type TypingUser = {
 
 const TYPING_TIMEOUT_MS = 3_000;
 
+export type AckedIdRegistrar = (serverMessageId: string) => void;
+
 export function useWebSocket(activeConversationId: string | null) {
   const [isConnected, setIsConnected] = useState(false);
   const [typingUser, setTypingUser] = useState<TypingUser>(null);
@@ -227,5 +229,9 @@ export function useWebSocket(activeConversationId: string | null) {
     clearTyping();
   }, [activeConversationId, clearTyping]);
 
-  return { isConnected, sendEvent, subscribe, setActiveRoom, typingUser };
+  const registerAckedId: AckedIdRegistrar = useCallback((serverMessageId: string) => {
+    processedMsgIds.current.add(serverMessageId);
+  }, []);
+
+  return { isConnected, sendEvent, subscribe, setActiveRoom, typingUser, registerAckedId };
 }

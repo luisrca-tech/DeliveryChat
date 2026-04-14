@@ -433,6 +433,18 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   cleanupFns.push(unsubTyping);
 
+  const badgeEl = launcher.querySelector(".launcher-badge") as HTMLElement | null;
+  const unsubUnread = subscribe("unreadCount", (count: number) => {
+    if (!badgeEl) return;
+    if (count > 0) {
+      badgeEl.textContent = count > 99 ? "99+" : String(count);
+      badgeEl.hidden = false;
+    } else {
+      badgeEl.hidden = true;
+    }
+  });
+  cleanupFns.push(unsubUnread);
+
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && isOpen) closeChat();
   };
