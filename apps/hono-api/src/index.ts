@@ -91,8 +91,8 @@ app.get("/widget.js", async (c) => {
 app.get("/brand/logo.png", async (c) => {
   const __dirname = dirname(fileURLToPath(import.meta.url));
   const candidates = [
-    resolve(__dirname, "../../assets/logo.png"),
-    resolve(__dirname, "../public/logo.png"),
+    resolve(__dirname, "../../assets/chat-widget.png"),
+    resolve(__dirname, "../public/chat-widget.png"),
   ];
   for (const logoPath of candidates) {
     if (!existsSync(logoPath)) continue;
@@ -126,7 +126,7 @@ app.get("/brand/logo.png", async (c) => {
       continue;
     }
   }
-  return c.text("Logo not found", 404);
+  return c.text("Launcher image not found", 404);
 });
 
 app.get("/brand/chat.png", async (c) => {
