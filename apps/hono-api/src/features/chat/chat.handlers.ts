@@ -203,11 +203,13 @@ async function handleMessageSend(
     },
   };
 
-  roomManager.broadcast(
-    payload.conversationId,
-    JSON.stringify(broadcastEvent),
-    conn.id,
-  );
+  const eventStr = JSON.stringify(broadcastEvent);
+
+  // Broadcast to participants in the room
+  roomManager.broadcast(payload.conversationId, eventStr, conn.id);
+
+  // Also notify all org staff (for unread badges on conversations they're not viewing)
+  roomManager.broadcastToOrganization(conn.organizationId, eventStr, conn.id);
 }
 
 async function handleMessageEdit(
