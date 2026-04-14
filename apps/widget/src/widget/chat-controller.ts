@@ -52,6 +52,7 @@ async function restoreConversationHistory(
         senderId: m.senderId,
         status: "sent" as const,
         createdAt: m.createdAt,
+        editedAt: (m as { editedAt?: string | null }).editedAt ?? null,
       }))
       .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
@@ -152,6 +153,45 @@ export async function sendMessage(content: string): Promise<void> {
 
   // Track last message for reconnection
   saveLastClientMessageId(appId, clientMessageId);
+}
+
+export function editMessage(messageId: string, newContent: string): void {
+  if (!initialized || !appId) return;
+  const conversationId = getState("conversationId");
+  if (!conversationId) return;
+
+  setState("messages", (prev) =>
+    prev.map((msg) =>
+      msg.id === messageId
+        ? { ...msg, content: newContent, editedAt: new Date().toISOString() }
+        : msg,
+    ),
+  );
+  setState("editingMessageId", null);
+
+  sendWSMessage({
+    type: "message:edit",
+    payload: { conversationId, messageId, content: newContent },
+  });
+}
+
+export function deleteMessage(messageId: string): void {
+  if (!initialized || !appId) return;
+  const conversationId = getState("conversationId");
+  if (!conversationId) return;
+
+  setState("messages", (prev) =>
+    prev.map((msg) =>
+      msg.id === messageId
+        ? { ...msg, isDeleted: true, content: "" }
+        : msg,
+    ),
+  );
+
+  sendWSMessage({
+    type: "message:delete",
+    payload: { conversationId, messageId },
+  });
 }
 
 export function notifyTypingStart(): void {

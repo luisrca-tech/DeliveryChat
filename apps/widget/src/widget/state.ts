@@ -24,6 +24,7 @@ type State = {
   connectionError: ConnectionError;
   conversationStatus: ConversationStatus | null;
   typingUser: TypingUser;
+  editingMessageId: string | null;
 };
 
 const listeners: Map<keyof State, Set<Listener<unknown>>> = new Map();
@@ -38,6 +39,7 @@ let state: State = {
   connectionError: null,
   conversationStatus: null,
   typingUser: null,
+  editingMessageId: null,
 };
 
 export function getState<K extends keyof State>(key: K): State[K] {

@@ -26,6 +26,11 @@ import {
   createChatWindow,
   getMessageListEl,
   appendMessage,
+  updateMessageContent,
+  markMessageDeleted,
+  enterEditMode,
+  exitEditMode,
+  type BubbleContext,
 } from "./components/ChatWindow.js";
 import { getState, setState, subscribe } from "./state.js";
 import { fetchSettings } from "./api.js";
@@ -35,6 +40,8 @@ import {
   initChatController,
   openChat as controllerOpenChat,
   sendMessage as controllerSendMessage,
+  editMessage as controllerEditMessage,
+  deleteMessage as controllerDeleteMessage,
   notifyTypingStart,
   notifyTypingStop,
   destroyChat,
@@ -165,6 +172,16 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   backdrop.hidden = true;
   backdrop.setAttribute("aria-hidden", "true");
 
+  const bubbleCtx: BubbleContext = {
+    visitorId: getState("visitorId"),
+    onEdit: (messageId, _content) => {
+      setState("editingMessageId", messageId);
+    },
+    onDelete: (messageId) => {
+      controllerDeleteMessage(messageId);
+    },
+  };
+
   // eslint-disable-next-line prefer-const
   let chatWindowEl: HTMLElement;
 
@@ -187,6 +204,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
       onTypingStop: notifyTypingStop,
       onClose: closeChat,
     },
+    bubbleCtx,
   );
   const chatWindow = chatWindowEl;
   chatWindow.hidden = !isOpen;
@@ -308,29 +326,94 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   cleanupFns.push(unsubConvStatus);
 
   let lastMessageCount = getState("messages").length;
+  const renderedMessages = new Map<string, ChatMessage>();
+
+  // Initialize rendered messages cache
+  for (const msg of getState("messages")) {
+    renderedMessages.set(msg.id, msg);
+  }
+
   const unsubMessages = subscribe("messages", (messages: ChatMessage[]) => {
     const listEl = getMessageListEl(chatWindow);
     if (!listEl) return;
 
+    // Full reset (conversation change)
     if (messages.length < lastMessageCount) {
       const typingEl = listEl.querySelector(".typing-indicator");
       listEl.innerHTML = "";
       if (typingEl) listEl.appendChild(typingEl);
       lastMessageCount = 0;
+      renderedMessages.clear();
       return;
     }
 
+    // Detect in-place edits/deletes on existing messages
+    for (const msg of messages) {
+      const prev = renderedMessages.get(msg.id);
+      if (prev && prev !== msg) {
+        if (msg.isDeleted && !prev.isDeleted) {
+          markMessageDeleted(listEl, msg.id);
+        } else if (msg.content !== prev.content || msg.editedAt !== prev.editedAt) {
+          updateMessageContent(listEl, msg.id, msg.content, msg.editedAt);
+        }
+      }
+      renderedMessages.set(msg.id, msg);
+    }
+
+    // Append new messages
     for (let i = lastMessageCount; i < messages.length; i++) {
       const msg = messages[i];
       if (msg) {
         while (listEl.children.length >= MAX_MESSAGES)
           listEl.firstChild?.remove();
-        appendMessage(listEl, msg);
+        appendMessage(listEl, msg, bubbleCtx);
       }
     }
     lastMessageCount = messages.length;
   });
   cleanupFns.push(unsubMessages);
+
+  // Edit mode subscription
+  const unsubEditing = subscribe("editingMessageId", (editingId: string | null) => {
+    const listEl = getMessageListEl(chatWindow);
+    if (!listEl) return;
+
+    // Exit any previous edit mode — .message-editing is on the bubble,
+    // but data-id is on the parent .message-row
+    listEl.querySelectorAll(".message-editing").forEach((bubble) => {
+      const row = bubble.closest(".message-row");
+      const msgId = row?.getAttribute("data-id") ?? null;
+      if (msgId && msgId !== editingId) {
+        const msg = getState("messages").find((m) => m.id === msgId);
+        exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt);
+      }
+    });
+
+    // Also handle the case where editingId is null — exit ALL edit modes
+    if (!editingId) {
+      listEl.querySelectorAll(".edit-container").forEach((container) => {
+        const row = container.closest(".message-row");
+        const msgId = row?.getAttribute("data-id") ?? null;
+        if (msgId) {
+          const msg = getState("messages").find((m) => m.id === msgId);
+          exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt);
+        }
+      });
+      return;
+    }
+
+    const msg = getState("messages").find((m) => m.id === editingId);
+    if (msg && !msg.isDeleted) {
+      enterEditMode(
+        listEl,
+        editingId,
+        msg.content,
+        (newContent) => controllerEditMessage(editingId, newContent),
+        () => setState("editingMessageId", null),
+      );
+    }
+  });
+  cleanupFns.push(unsubEditing);
 
   const typingEl = chatWindow.querySelector(".typing-indicator") as HTMLElement | null;
   const unsubTyping = subscribe("typingUser", (typingUser) => {

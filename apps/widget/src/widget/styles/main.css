@@ -190,7 +190,24 @@
   gap: 12px;
 }
 
+/* Message row — full width, hover target for "..." */
+:where(.chat-widget) .message-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+:where(.chat-widget) .message-row-user {
+  flex-direction: row-reverse;
+}
+
+:where(.chat-widget) .message-row-visitor {
+  flex-direction: row;
+}
+
 :where(.chat-widget) .message-bubble {
+  position: relative;
   max-width: 80%;
   padding: 10px 14px;
   border-radius: 12px;
@@ -200,13 +217,11 @@
 :where(.chat-widget) .message-user {
   background: var(--dc-user-bubble, #0ea5e9);
   color: white;
-  align-self: flex-end;
 }
 
 :where(.chat-widget) .message-visitor {
   background: var(--dc-visitor-bubble, #f1f5f9);
   color: var(--dc-text-color, #0f172a);
-  align-self: flex-start;
 }
 
 :where(.chat-widget) .input-area {
@@ -245,6 +260,211 @@
 :where(.chat-widget) .send-btn:hover {
   opacity: 0.9;
 }
+
+/* Message content wrapper */
+:where(.chat-widget) .message-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+:where(.chat-widget) .message-meta {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+:where(.chat-widget) .message-edited-label {
+  font-size: 11px;
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* Deleted message state */
+:where(.chat-widget) .message-deleted {
+  opacity: 0.7;
+}
+
+:where(.chat-widget) .message-deleted-text {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--dc-text-secondary, #64748b);
+}
+
+:where(.chat-widget) .message-user.message-deleted {
+  background: var(--dc-visitor-bubble, #f1f5f9);
+  color: var(--dc-text-color, #0f172a);
+}
+
+/* "..." trigger + dropdown */
+:where(.chat-widget) .message-dropdown-anchor {
+  position: relative;
+  flex-shrink: 0;
+}
+
+:where(.chat-widget) .message-more-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: var(--dc-background-color, #ffffff);
+  color: var(--dc-text-secondary, #64748b);
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* Show "..." on row hover — full line width */
+:where(.chat-widget) .message-row:hover .message-more-btn,
+:where(.chat-widget) .message-more-btn.active {
+  display: flex;
+}
+
+:where(.chat-widget) .message-more-btn:hover {
+  background: #f1f5f9;
+  color: var(--dc-text-color, #0f172a);
+}
+
+:where(.chat-widget) .message-dropdown {
+  display: none;
+  position: absolute;
+  top: 100%;
+  margin-top: 4px;
+  min-width: 120px;
+  background: var(--dc-background-color, #ffffff);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  flex-direction: column;
+  z-index: 2;
+}
+
+:where(.chat-widget) .message-row-user .message-dropdown {
+  right: 0;
+}
+
+:where(.chat-widget) .message-row-visitor .message-dropdown {
+  left: 0;
+}
+
+:where(.chat-widget) .message-dropdown.open {
+  display: flex;
+}
+
+:where(.chat-widget) .dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  color: var(--dc-text-color, #0f172a);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+  text-align: left;
+}
+
+:where(.chat-widget) .dropdown-item:hover {
+  background: #f1f5f9;
+}
+
+:where(.chat-widget) .dropdown-item svg {
+  flex-shrink: 0;
+  color: var(--dc-text-secondary, #64748b);
+}
+
+:where(.chat-widget) .dropdown-item-danger {
+  color: #ef4444;
+}
+
+:where(.chat-widget) .dropdown-item-danger svg {
+  color: #ef4444;
+}
+
+:where(.chat-widget) .dropdown-item-danger:hover {
+  background: #fef2f2;
+}
+
+/* Inline edit mode */
+:where(.chat-widget) .edit-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  max-width: 80%;
+  padding: 8px;
+  background: var(--dc-background-color, #ffffff);
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  position: relative;
+  z-index: 3;
+  margin-left: auto;
+}
+
+:where(.chat-widget) .edit-input {
+  width: 100%;
+  min-height: 40px;
+  max-height: 120px;
+  padding: 8px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  color: var(--dc-text-color, #0f172a);
+  background: var(--dc-background-color, #ffffff);
+}
+
+:where(.chat-widget) .edit-input:focus {
+  outline: none;
+  border-color: var(--dc-primary-color, #0ea5e9);
+}
+
+:where(.chat-widget) .edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+:where(.chat-widget) .edit-save,
+:where(.chat-widget) .edit-cancel {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  pointer-events: auto;
+}
+
+:where(.chat-widget) .edit-save {
+  background: var(--dc-primary-color, #0ea5e9);
+  color: white;
+  border: none;
+}
+
+:where(.chat-widget) .edit-save:hover {
+  opacity: 0.9;
+}
+
+:where(.chat-widget) .edit-cancel {
+  background: var(--dc-background-color, #ffffff);
+  color: var(--dc-text-color, #0f172a);
+  border: 1px solid #e2e8f0;
+}
+
+:where(.chat-widget) .edit-cancel:hover {
+  background: #f1f5f9;
+}
+
 
 /* Connection indicator */
 :where(.chat-widget) .connection-indicator {

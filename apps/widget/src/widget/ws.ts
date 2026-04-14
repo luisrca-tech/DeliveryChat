@@ -164,6 +164,7 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         senderRole: "visitor" | "operator" | "admin";
         content: string;
         createdAt: string;
+        editedAt?: string | null;
       };
 
       const newMsg: ChatMessage = {
@@ -173,6 +174,7 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         senderId: payload.senderId,
         status: "sent",
         createdAt: payload.createdAt,
+        editedAt: payload.editedAt ?? null,
       };
 
       setState("messages", (prev) => [...prev, newMsg]);
@@ -231,6 +233,42 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
       break;
     }
 
+    case "message:edited": {
+      const payload = event.payload as {
+        conversationId: string;
+        messageId: string;
+        content: string;
+        editedAt: string;
+        senderId: string;
+      };
+
+      setState("messages", (prev) =>
+        prev.map((msg) =>
+          msg.id === payload.messageId
+            ? { ...msg, content: payload.content, editedAt: payload.editedAt }
+            : msg,
+        ),
+      );
+      break;
+    }
+
+    case "message:deleted": {
+      const payload = event.payload as {
+        conversationId: string;
+        messageId: string;
+        senderId: string;
+      };
+
+      setState("messages", (prev) =>
+        prev.map((msg) =>
+          msg.id === payload.messageId
+            ? { ...msg, isDeleted: true, content: "" }
+            : msg,
+        ),
+      );
+      break;
+    }
+
     case "messages:sync": {
       const payload = event.payload as {
         conversationId: string;
@@ -240,6 +278,7 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
           senderId: string;
           senderRole: "visitor" | "operator" | "admin";
           createdAt: string;
+          editedAt?: string | null;
         }>;
       };
 
@@ -250,6 +289,7 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         senderId: m.senderId,
         status: "sent" as const,
         createdAt: m.createdAt,
+        editedAt: m.editedAt ?? null,
       }));
 
       setState("messages", (prev) => [...prev, ...syncedMessages]);
