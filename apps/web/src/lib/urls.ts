@@ -11,7 +11,11 @@ export function isDevelopment(): boolean {
   );
 }
 
-function normalizeUrl(raw: string): string {
+function normalizeUrl(raw: string | undefined): string {
+  if (!raw) {
+    throw new Error("URL is required but was not provided");
+  }
+
   return raw.replace(/\/+$/, "");
 }
 
@@ -64,9 +68,11 @@ export function getAdminUrl(tenant: string): string {
 }
 
 export function getApiUrl(): string {
-  if (import.meta.env.DEV || isDevelopment()) {
+  const publicApiUrl = import.meta.env.PUBLIC_API_URL ?? env.PUBLIC_API_URL;
+
+  if (import.meta.env.DEV || isDevelopment() || !publicApiUrl) {
     return "http://localhost:8000";
   }
 
-  return normalizeUrl(env.PUBLIC_API_URL);
+  return normalizeUrl(publicApiUrl);
 }
