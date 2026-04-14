@@ -15,6 +15,7 @@ export type Conversation = {
   closedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  unreadCount: number;
 };
 
 export type ConversationParticipant = {

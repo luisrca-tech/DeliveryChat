@@ -130,6 +130,17 @@ export async function deleteConversation(id: string): Promise<void> {
   if (!res.ok) throw await handleError(res);
 }
 
+export async function markConversationAsRead(
+  id: string,
+): Promise<{ success: boolean }> {
+  const res = await fetch(`${base()}/conversations/${id}/read`, {
+    method: "POST",
+    headers: getTenantHeaders(),
+  });
+  if (!res.ok) throw await handleError(res);
+  return parseJson<{ success: boolean }>(res);
+}
+
 export async function resolveConversation(
   id: string,
 ): Promise<{ conversation: { id: string; status: string } }> {
