@@ -2,12 +2,16 @@ import type { IRoomManager, WSConnection } from "./room-manager.js";
 import { wsClientEventSchema } from "./chat.schemas.js";
 import {
   sendMessage,
+  editMessage,
+  deleteMessage,
   isParticipant,
   getMessagesSince,
   validateSendAuthorization,
   NotAssignedToConversationError,
   ConversationNotFoundError,
   ConversationNotActiveError,
+  MessageNotFoundError,
+  NotMessageSenderError,
 } from "./chat.service.js";
 import type {
   WSServerEvent,
@@ -53,6 +57,12 @@ export function createEventHandler(roomManager: IRoomManager) {
         break;
       case "message:send":
         await handleMessageSend(conn, event.payload, roomManager);
+        break;
+      case "message:edit":
+        await handleMessageEdit(conn, event.payload, roomManager);
+        break;
+      case "message:delete":
+        await handleMessageDelete(conn, event.payload, roomManager);
         break;
       case "typing:start":
         handleTypingStart(conn, event.payload, roomManager);
@@ -198,6 +208,85 @@ async function handleMessageSend(
     JSON.stringify(broadcastEvent),
     conn.id,
   );
+}
+
+async function handleMessageEdit(
+  conn: WSConnection,
+  payload: { conversationId: string; messageId: string; content: string },
+  roomManager: IRoomManager,
+) {
+  try {
+    const updated = await editMessage({
+      messageId: payload.messageId,
+      conversationId: payload.conversationId,
+      senderId: conn.userId,
+      content: payload.content,
+    });
+
+    const broadcastEvent: WSServerEvent = {
+      type: "message:edited",
+      payload: {
+        conversationId: payload.conversationId,
+        messageId: updated.id,
+        content: updated.content,
+        editedAt: updated.editedAt!,
+        senderId: conn.userId,
+      },
+    };
+
+    roomManager.broadcast(
+      payload.conversationId,
+      JSON.stringify(broadcastEvent),
+    );
+  } catch (error) {
+    if (error instanceof MessageNotFoundError) {
+      sendError(conn, "MESSAGE_NOT_FOUND", error.message);
+      return;
+    }
+    if (error instanceof NotMessageSenderError) {
+      sendError(conn, "FORBIDDEN", error.message);
+      return;
+    }
+    throw error;
+  }
+}
+
+async function handleMessageDelete(
+  conn: WSConnection,
+  payload: { conversationId: string; messageId: string },
+  roomManager: IRoomManager,
+) {
+  try {
+    await deleteMessage({
+      messageId: payload.messageId,
+      conversationId: payload.conversationId,
+      senderId: conn.userId,
+    });
+
+    const broadcastEvent: WSServerEvent = {
+      type: "message:deleted",
+      payload: {
+        conversationId: payload.conversationId,
+        messageId: payload.messageId,
+        senderId: conn.userId,
+      },
+    };
+
+    roomManager.broadcast(
+      payload.conversationId,
+      JSON.stringify(broadcastEvent),
+    );
+  } catch (error) {
+    if (error instanceof MessageNotFoundError) {
+      sendError(conn, "MESSAGE_NOT_FOUND", error.message);
+      return;
+    }
+    if (error instanceof NotMessageSenderError) {
+      sendError(conn, "FORBIDDEN", error.message);
+      return;
+    }
+    throw error;
+  }
 }
 
 function handleTypingStart(

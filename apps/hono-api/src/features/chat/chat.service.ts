@@ -35,6 +35,20 @@ export class ParticipantAlreadyExistsError extends Error {
   }
 }
 
+export class MessageNotFoundError extends Error {
+  constructor(messageId: string) {
+    super(`Message not found: ${messageId}`);
+    this.name = "MessageNotFoundError";
+  }
+}
+
+export class NotMessageSenderError extends Error {
+  constructor(messageId: string, userId: string) {
+    super(`User ${userId} is not the sender of message ${messageId}`);
+    this.name = "NotMessageSenderError";
+  }
+}
+
 export class NotAssignedToConversationError extends Error {
   constructor(conversationId: string, userId: string) {
     super(
@@ -58,6 +72,19 @@ interface SendMessageInput {
   conversationId: string;
   senderId: string;
   content: string;
+}
+
+interface EditMessageInput {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+}
+
+interface DeleteMessageInput {
+  messageId: string;
+  conversationId: string;
+  senderId: string;
 }
 
 interface GetMessageHistoryInput {
@@ -137,6 +164,77 @@ export async function sendMessage(input: SendMessageInput) {
   if (!message) throw new Error("Failed to insert message");
 
   return message;
+}
+
+export async function editMessage(input: EditMessageInput) {
+  const [msg] = await db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.id, input.messageId),
+        eq(messages.conversationId, input.conversationId),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!msg) {
+    throw new MessageNotFoundError(input.messageId);
+  }
+
+  if (msg.senderId !== input.senderId) {
+    throw new NotMessageSenderError(input.messageId, input.senderId);
+  }
+
+  const [updated] = await db
+    .update(messages)
+    .set({
+      content: input.content,
+      editedAt: sql`now()`,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(messages.id, input.messageId))
+    .returning();
+
+  if (!updated) throw new Error("Failed to update message");
+
+  return updated;
+}
+
+export async function deleteMessage(input: DeleteMessageInput) {
+  const [msg] = await db
+    .select()
+    .from(messages)
+    .where(
+      and(
+        eq(messages.id, input.messageId),
+        eq(messages.conversationId, input.conversationId),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .limit(1);
+
+  if (!msg) {
+    throw new MessageNotFoundError(input.messageId);
+  }
+
+  if (msg.senderId !== input.senderId) {
+    throw new NotMessageSenderError(input.messageId, input.senderId);
+  }
+
+  const [deleted] = await db
+    .update(messages)
+    .set({
+      deletedAt: sql`now()`,
+      updatedAt: sql`now()`,
+    })
+    .where(eq(messages.id, input.messageId))
+    .returning();
+
+  if (!deleted) throw new Error("Failed to delete message");
+
+  return deleted;
 }
 
 export async function getMessageHistory(input: GetMessageHistoryInput) {

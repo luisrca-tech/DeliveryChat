@@ -29,27 +29,51 @@ vi.mock("../chat.service.js", () => {
     }
   }
 
+  class MessageNotFoundError extends Error {
+    constructor(messageId: string) {
+      super(`Message not found: ${messageId}`);
+      this.name = "MessageNotFoundError";
+    }
+  }
+
+  class NotMessageSenderError extends Error {
+    constructor(messageId: string, userId: string) {
+      super(`User ${userId} is not the sender of message ${messageId}`);
+      this.name = "NotMessageSenderError";
+    }
+  }
+
   return {
     sendMessage: vi.fn(),
+    editMessage: vi.fn(),
+    deleteMessage: vi.fn(),
     isParticipant: vi.fn(),
     getMessagesSince: vi.fn(),
     validateSendAuthorization: vi.fn(),
     NotAssignedToConversationError,
     ConversationNotFoundError,
     ConversationNotActiveError,
+    MessageNotFoundError,
+    NotMessageSenderError,
   };
 });
 
 const {
   sendMessage,
+  editMessage,
+  deleteMessage: deleteMessageService,
   isParticipant,
   getMessagesSince,
   validateSendAuthorization,
   NotAssignedToConversationError,
   ConversationNotActiveError,
+  MessageNotFoundError,
+  NotMessageSenderError,
 } = (await import("../chat.service.js")) as any;
 
 const mockSendMessage = sendMessage as ReturnType<typeof vi.fn>;
+const mockEditMessage = editMessage as ReturnType<typeof vi.fn>;
+const mockDeleteMessage = deleteMessageService as ReturnType<typeof vi.fn>;
 const mockIsParticipant = isParticipant as ReturnType<typeof vi.fn>;
 const mockGetMessagesSince = getMessagesSince as ReturnType<typeof vi.fn>;
 const mockValidateSendAuthorization = validateSendAuthorization as ReturnType<typeof vi.fn>;
@@ -491,6 +515,227 @@ describe("chat.handlers", () => {
         firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
       );
       expect(sentData.type).toBe("pong");
+    });
+  });
+
+  describe("message:edit", () => {
+    const convId = "550e8400-e29b-41d4-a716-446655440000";
+    const msgId = "660e8400-e29b-41d4-a716-446655440000";
+
+    it("broadcasts message:edited to all room participants", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "room:join",
+          payload: { conversationId: convId },
+        }),
+      );
+
+      const conn2 = createMockConnection({
+        id: "conn-2",
+        userId: "user-2",
+        role: "visitor" as const,
+      });
+      roomManager.join(convId, conn2);
+
+      const updatedMessage = {
+        id: msgId,
+        conversationId: convId,
+        senderId: "user-1",
+        content: "Edited content",
+        type: "text",
+        editedAt: "2026-01-01T00:01:00Z",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:01:00Z",
+        deletedAt: null,
+      };
+      mockEditMessage.mockResolvedValue(updatedMessage);
+
+      vi.clearAllMocks();
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:edit",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+            content: "Edited content",
+          },
+        }),
+      );
+
+      // Both connections should receive message:edited (broadcast to all)
+      const conn1Calls = (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls;
+      const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock.calls;
+
+      expect(conn1Calls.length + conn2Calls.length).toBeGreaterThanOrEqual(2);
+
+      const allEvents = [...conn1Calls, ...conn2Calls].map(([arg]) =>
+        JSON.parse(arg as string),
+      );
+      const editedEvents = allEvents.filter((e) => e.type === "message:edited");
+      expect(editedEvents).toHaveLength(2);
+      expect(editedEvents[0].payload.messageId).toBe(msgId);
+      expect(editedEvents[0].payload.content).toBe("Edited content");
+    });
+
+    it("sends FORBIDDEN error when user is not the message sender", async () => {
+      mockEditMessage.mockRejectedValue(
+        new NotMessageSenderError(msgId, "user-1"),
+      );
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:edit",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+            content: "Edited",
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("FORBIDDEN");
+    });
+
+    it("sends MESSAGE_NOT_FOUND error for non-existent message", async () => {
+      mockEditMessage.mockRejectedValue(
+        new MessageNotFoundError(msgId),
+      );
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:edit",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+            content: "Edited",
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("MESSAGE_NOT_FOUND");
+    });
+  });
+
+  describe("message:delete", () => {
+    const convId = "550e8400-e29b-41d4-a716-446655440000";
+    const msgId = "660e8400-e29b-41d4-a716-446655440000";
+
+    it("broadcasts message:deleted to all room participants", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "room:join",
+          payload: { conversationId: convId },
+        }),
+      );
+
+      const conn2 = createMockConnection({
+        id: "conn-2",
+        userId: "user-2",
+        role: "visitor" as const,
+      });
+      roomManager.join(convId, conn2);
+
+      const deletedMessage = {
+        id: msgId,
+        conversationId: convId,
+        senderId: "user-1",
+        content: "Hello",
+        type: "text",
+        editedAt: null,
+        deletedAt: "2026-01-01T00:01:00Z",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:01:00Z",
+      };
+      mockDeleteMessage.mockResolvedValue(deletedMessage);
+
+      vi.clearAllMocks();
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:delete",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+          },
+        }),
+      );
+
+      const conn1Calls = (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls;
+      const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock.calls;
+
+      expect(conn1Calls.length + conn2Calls.length).toBeGreaterThanOrEqual(2);
+
+      const allEvents = [...conn1Calls, ...conn2Calls].map(([arg]) =>
+        JSON.parse(arg as string),
+      );
+      const deletedEvents = allEvents.filter((e) => e.type === "message:deleted");
+      expect(deletedEvents).toHaveLength(2);
+      expect(deletedEvents[0].payload.messageId).toBe(msgId);
+    });
+
+    it("sends FORBIDDEN error when user is not the message sender", async () => {
+      mockDeleteMessage.mockRejectedValue(
+        new NotMessageSenderError(msgId, "user-1"),
+      );
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:delete",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("FORBIDDEN");
+    });
+
+    it("sends MESSAGE_NOT_FOUND error for non-existent message", async () => {
+      mockDeleteMessage.mockRejectedValue(
+        new MessageNotFoundError(msgId),
+      );
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:delete",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("MESSAGE_NOT_FOUND");
     });
   });
 

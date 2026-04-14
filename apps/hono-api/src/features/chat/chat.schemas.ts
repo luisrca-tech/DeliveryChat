@@ -17,6 +17,17 @@ export const messageSendSchema = z.object({
   clientMessageId: z.string().min(1),
 });
 
+export const messageEditSchema = z.object({
+  conversationId: z.string().uuid(),
+  messageId: z.string().uuid(),
+  content: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
+});
+
+export const messageDeleteSchema = z.object({
+  conversationId: z.string().uuid(),
+  messageId: z.string().uuid(),
+});
+
 export const typingStartSchema = z.object({
   conversationId: z.string().uuid(),
 });
@@ -29,6 +40,8 @@ export const wsClientEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("room:join"), payload: roomJoinSchema }),
   z.object({ type: z.literal("room:leave"), payload: roomLeaveSchema }),
   z.object({ type: z.literal("message:send"), payload: messageSendSchema }),
+  z.object({ type: z.literal("message:edit"), payload: messageEditSchema }),
+  z.object({ type: z.literal("message:delete"), payload: messageDeleteSchema }),
   z.object({ type: z.literal("typing:start"), payload: typingStartSchema }),
   z.object({ type: z.literal("typing:stop"), payload: typingStopSchema }),
   z.object({ type: z.literal("ping") }),
