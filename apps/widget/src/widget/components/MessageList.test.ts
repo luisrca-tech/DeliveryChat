@@ -6,7 +6,7 @@ import {
   updateMessageContent,
   type BubbleContext,
 } from "./MessageList.js";
-import type { ChatMessage } from "../types.js";
+import type { ChatMessage } from "../types/index.js";
 
 const HOSTILE_PAYLOADS = [
   `<script>window.__xss = true;</script>`,

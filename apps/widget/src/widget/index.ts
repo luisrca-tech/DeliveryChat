@@ -10,11 +10,7 @@
   }
 })();
 
-import {
-  defaultSettings,
-  type InitOptions,
-  type WidgetSettings,
-} from "./types.js";
+import type { InitOptions, WidgetSettings, DeliveryChatAPI } from "./types/index.js";
 import {
   createShadowHost,
   createShadowRoot,
@@ -47,12 +43,10 @@ import {
   destroyChat,
   startNewChat,
 } from "./chat-controller.js";
-import type { ChatMessage } from "./types.js";
+import type { ChatMessage } from "./types/index.js";
+import { defaultSettings, HOST_ID, MAX_MESSAGES } from "./constants/index.js";
 
 import styles from "./styles/main.css?inline";
-
-const HOST_ID = "delivery-chat-root";
-const MAX_MESSAGES = 100;
 
 let cleanupFns: Array<() => void> = [];
 let autoOpenTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -558,12 +552,6 @@ if (Array.isArray(queue)) {
     }
   }
 }
-
-export type DeliveryChatAPI = {
-  init: (opts: InitOptions) => void;
-  destroy: () => void;
-  queue: unknown[];
-};
 
 const DeliveryChat: DeliveryChatAPI = {
   init: (opts: InitOptions) => void init(opts),
