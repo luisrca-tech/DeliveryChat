@@ -189,7 +189,7 @@ export function markMessageDeleted(
   // Replace content
   const wrapper = row.querySelector(".message-content-wrapper");
   if (wrapper) {
-    wrapper.innerHTML = "";
+    wrapper.replaceChildren();
     const deletedText = document.createElement("span");
     deletedText.className = "message-deleted-text";
     deletedText.textContent = "This message was deleted";
@@ -385,6 +385,7 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
     const moreBtn = document.createElement("button");
     moreBtn.className = "message-more-btn";
     moreBtn.type = "button";
+    // eslint-disable-next-line no-restricted-syntax -- static SVG icon literal
     moreBtn.innerHTML = MORE_ICON;
     moreBtn.setAttribute("aria-label", "Message options");
 
@@ -462,7 +463,18 @@ function createDropdownItem(
   const item = document.createElement("button");
   item.className = "dropdown-item";
   item.type = "button";
-  item.innerHTML = `${iconSvg}<span>${label}</span>`;
+
+  const iconSpan = document.createElement("span");
+  iconSpan.className = "dropdown-item-icon";
+  // eslint-disable-next-line no-restricted-syntax -- static SVG icon literal
+  iconSpan.innerHTML = iconSvg;
+
+  const labelSpan = document.createElement("span");
+  labelSpan.textContent = label;
+
+  item.appendChild(iconSpan);
+  item.appendChild(labelSpan);
+
   item.addEventListener("click", (e) => {
     e.stopPropagation();
     onClick();

@@ -340,7 +340,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     // Full reset (conversation change)
     if (messages.length < lastMessageCount) {
       const typingEl = listEl.querySelector(".typing-indicator");
-      listEl.innerHTML = "";
+      listEl.replaceChildren();
       if (typingEl) listEl.appendChild(typingEl);
       lastMessageCount = 0;
       renderedMessages.clear();
