@@ -69,6 +69,17 @@
         "VERCEL_ENV"
       ]
     },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "env": ["NODE_ENV", "SKIP_ENV_VALIDATION"]
+    },
+    "test:e2e": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "outputs": [],
+      "env": ["NODE_ENV", "DATABASE_URL", "BETTER_AUTH_SECRET", "BETTER_AUTH_URL"]
+    },
     "dev": {
       "cache": false,
       "persistent": true,
