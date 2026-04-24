@@ -14,16 +14,16 @@ Two guarantees for integrators:
 
 ## Build-side: SRI artifact
 
-`apps/widget/scripts/compute-sri.ts` exports two pure functions:
+All embed-build concerns live under `apps/widget/embed-build/`:
 
-- `computeSriHash(content: Buffer)` — returns `"sha384-<base64>"`.
-- `formatSriArtifact({ file, content })` — returns `{ file, algorithm, integrity, bytes }`.
+- `embed-build/sri-artifact.ts` — `writeSriArtifact({ bundlePath, outDir })` reads the bundle, computes the SHA-384 digest, and writes a deterministic `<basename>.sri.json` sidecar (2-space indent, trailing newline). This is the single source of truth for hash algorithm, artifact shape, and serialization format — docs and release scripts consume the sidecar directly, never recompute it by hand.
+- `embed-build/plugins.ts` — the `emit-sri-artifact` and `copy-widget-to-public` Vite plugins. Both run in `writeBundle` in registration order; `emit-sri-artifact` runs first so the sidecar is observable to any follow-up plugin.
 
-The `emit-sri-artifact` Vite plugin in `vite.embed.config.ts` runs in `writeBundle` and writes `dist-embed/widget.iife.js.sri.json`. Documentation and release scripts both consume the artifact (single source of truth — no hand-copying of hashes).
+`vite.embed.config.ts` only wires the plugins; it contains no inline plugin bodies.
 
 ### Determinism
 
-Two clean builds with unchanged source produce an identical hash. Verified by `scripts/build-stability.test.ts`, which spawns `bun run build:embed` twice and asserts the artifact hash is unchanged.
+Two clean builds with unchanged source produce an identical hash. Verified by `embed-build/build-stability.test.ts`, which spawns `bun run build:embed` twice and asserts the artifact hash is unchanged.
 
 ## Runtime: Constructable Stylesheets
 
