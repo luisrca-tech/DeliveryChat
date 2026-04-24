@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { applyCssVars } from "./css-vars.js";
-import { defaultSettings } from "../types.js";
+import { defaultSettings } from "../constants/index.js";
 
 describe("applyCssVars", () => {
   it("applies color variables to root element", () => {

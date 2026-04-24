@@ -8,7 +8,7 @@ import {
   markConversationAsRead,
 } from "./conversation.js";
 import { connectWS, disconnectWS, sendWSMessage } from "./ws.js";
-import type { ChatMessage } from "./types.js";
+import type { ChatMessage } from "./types/index.js";
 import {
   setActiveAppIdForPersistence,
   loadPersistedConversationId,
@@ -16,11 +16,11 @@ import {
   saveLastClientMessageId,
   removeAllConversationKeysForApp,
 } from "./conversation-persistence.js";
+import { TYPING_THROTTLE_MS } from "./constants/index.js";
 
 let appId: string | null = null;
 let initialized = false;
 let lastTypingSent = 0;
-const TYPING_THROTTLE_MS = 2_000;
 
 export async function initChatController(opts: { appId: string }): Promise<void> {
   appId = opts.appId;
@@ -34,7 +34,6 @@ export async function initChatController(opts: { appId: string }): Promise<void>
     setState("conversationId", savedConvId);
     await restoreConversationHistory(appId, savedConvId);
 
-    // Connect WS eagerly so the badge updates in real-time
     connectWS({ apiBaseUrl: getApiBaseUrl(), appId, visitorId });
   }
 
@@ -118,6 +117,7 @@ export function closeChat(): void {
 export async function sendMessage(content: string): Promise<void> {
   if (!initialized || !appId) return;
   if (getState("conversationStatus") === "closed") return;
+  if (getState("rateLimited")) return;
 
   const visitorId = getState("visitorId");
   if (!visitorId) return;
@@ -149,13 +149,11 @@ export async function sendMessage(content: string): Promise<void> {
       setState("conversationStatus", "pending");
       saveConversationId(appId, conversationId);
 
-      // Join the room
       sendWSMessage({
         type: "room:join",
         payload: { conversationId },
       });
     } catch (err) {
-      // Mark message as failed
       setState("messages", (prev) =>
         prev.map((m) =>
           m.id === clientMessageId ? { ...m, status: "failed" as const } : m,
@@ -166,7 +164,6 @@ export async function sendMessage(content: string): Promise<void> {
     }
   }
 
-  // Send via WebSocket
   sendWSMessage({
     type: "message:send",
     payload: { conversationId, content, clientMessageId },
@@ -174,7 +171,6 @@ export async function sendMessage(content: string): Promise<void> {
 
   lastTypingSent = 0;
 
-  // Track last message for reconnection
   saveLastClientMessageId(appId, clientMessageId);
 }
 

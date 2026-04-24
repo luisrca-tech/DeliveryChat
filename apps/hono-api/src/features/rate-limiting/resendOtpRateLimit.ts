@@ -8,6 +8,23 @@ type Entry = {
 
 const store = new Map<string, Entry>();
 
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+setInterval(() => {
+  const now = Date.now();
+  const oneDayAgo = now - 24 * 60 * 60 * 1000;
+  for (const [key, entry] of store) {
+    entry.timestamps = entry.timestamps.filter((t) => t > oneDayAgo);
+    if (entry.timestamps.length === 0) {
+      store.delete(key);
+    }
+  }
+}, CLEANUP_INTERVAL_MS).unref();
+
+export function getStoreSize(): number {
+  return store.size;
+}
+
 function prune(entry: Entry, now: number): void {
   const oneDayAgo = now - 24 * 60 * 60 * 1000;
   entry.timestamps = entry.timestamps.filter((t) => t > oneDayAgo);

@@ -1,12 +1,14 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { getState, setState } from "./state.js";
 
-// Mock conversation-persistence to avoid localStorage issues
 vi.mock("./conversation-persistence.js", () => ({
   clearStaleConversationPersistence: vi.fn(),
 }));
 
-// Track all created WebSocket instances
+vi.mock("./api.js", () => ({
+  fetchWsToken: vi.fn().mockResolvedValue("mock-signed-token"),
+}));
+
 const wsInstances: MockWS[] = [];
 
 class MockWS {
@@ -20,19 +22,24 @@ class MockWS {
   send = vi.fn();
   close = vi.fn();
   readyState = 1;
+  url: string;
 
-  constructor() {
+  constructor(url: string) {
+    this.url = url;
     wsInstances.push(this);
   }
 }
 
 vi.stubGlobal("WebSocket", MockWS);
 
-// Import after mocks
 const { connectWS, disconnectWS } = await import("./ws.js");
 
 function latestWS(): MockWS {
   return wsInstances[wsInstances.length - 1]!;
+}
+
+async function waitForToken(): Promise<void> {
+  await vi.advanceTimersByTimeAsync(0);
 }
 
 describe("WebSocket error classification", () => {
@@ -52,12 +59,13 @@ describe("WebSocket error classification", () => {
     vi.useRealTimers();
   });
 
-  function connect() {
+  async function connect() {
     connectWS({
       apiBaseUrl: "http://localhost:8000",
       appId: "test-app-id",
       visitorId: "test-visitor-id",
     });
+    await waitForToken();
     latestWS().onopen?.();
   }
 
@@ -75,9 +83,18 @@ describe("WebSocket error classification", () => {
     (latestWS().onclose as (event?: unknown) => void)?.(event);
   }
 
+  describe("token-based connection", () => {
+    it("passes the signed token in the WS URL", async () => {
+      await connect();
+      expect(latestWS().url).toContain("token=mock-signed-token");
+      expect(latestWS().url).not.toContain("appId=");
+      expect(latestWS().url).not.toContain("visitorId=");
+    });
+  });
+
   describe("permanent errors (UNAUTHORIZED)", () => {
-    it("sets a permanent connectionError when server sends UNAUTHORIZED error event", () => {
-      connect();
+    it("sets a permanent connectionError when server sends UNAUTHORIZED error event", async () => {
+      await connect();
 
       simulateServerError("UNAUTHORIZED", "Authentication failed");
       simulateClose();
@@ -87,10 +104,8 @@ describe("WebSocket error classification", () => {
       expect(error!.type).toBe("permanent");
     });
 
-    it("detects permanent error from close code 1008 even without error event", () => {
-      connect();
-
-      // Server closes with 1008 but error message was lost in the race
+    it("detects permanent error from close code 1008 even without error event", async () => {
+      await connect();
       simulateClose(1008);
 
       const error = getState("connectionError");
@@ -98,17 +113,16 @@ describe("WebSocket error classification", () => {
       expect(error!.type).toBe("permanent");
     });
 
-    it("shows a generic user message for permanent errors", () => {
-      connect();
-
+    it("shows a generic user message for permanent errors", async () => {
+      await connect();
       simulateClose(1008);
 
       const error = getState("connectionError");
       expect(error!.userMessage).toBe("Chat is temporarily unavailable");
     });
 
-    it("includes a detailed dev message for permanent errors", () => {
-      connect();
+    it("includes a detailed dev message for permanent errors", async () => {
+      await connect();
 
       simulateServerError("UNAUTHORIZED", "Authentication failed");
       simulateClose();
@@ -117,38 +131,56 @@ describe("WebSocket error classification", () => {
       expect(error!.devMessage).toContain("UNAUTHORIZED");
     });
 
-    it("stops reconnecting after a permanent error", () => {
-      connect();
+    it("stops reconnecting after a permanent error", async () => {
+      await connect();
 
       const instanceCountBefore = wsInstances.length;
 
       simulateClose(1008);
 
-      // Advance time well past any backoff delay
-      vi.advanceTimersByTime(60_000);
+      await vi.advanceTimersByTimeAsync(60_000);
 
-      // No new WebSocket connections should have been created
       expect(wsInstances.length).toBe(instanceCountBefore);
+    });
+
+    it("treats INVALID_TOKEN as permanent error", async () => {
+      await connect();
+
+      simulateServerError("INVALID_TOKEN", "Invalid or tampered WebSocket token");
+      simulateClose();
+
+      const error = getState("connectionError");
+      expect(error).not.toBeNull();
+      expect(error!.type).toBe("permanent");
+    });
+
+    it("treats APP_NOT_FOUND as permanent error", async () => {
+      await connect();
+
+      simulateServerError("APP_NOT_FOUND", "Application not found");
+      simulateClose();
+
+      const error = getState("connectionError");
+      expect(error).not.toBeNull();
+      expect(error!.type).toBe("permanent");
     });
   });
 
   describe("temporary errors (network disconnect)", () => {
-    it("does not set connectionError on first disconnect", () => {
-      connect();
+    it("does not set connectionError on first disconnect", async () => {
+      await connect();
       simulateClose();
 
       const error = getState("connectionError");
       expect(error).toBeNull();
     });
 
-    it("sets a temporary connectionError after multiple failed reconnects", () => {
-      connect();
+    it("sets a temporary connectionError after multiple failed reconnects", async () => {
+      await connect();
 
-      // Simulate 5 disconnect/reconnect cycles without successful onopen
       for (let i = 0; i < 5; i++) {
-        simulateClose(); // disconnects, increments reconnectAttempts, schedules reconnect
-        vi.advanceTimersByTime(60_000); // trigger reconnect timer → new WebSocket created
-        // Don't call onopen — simulate failed connections
+        simulateClose();
+        await vi.advanceTimersByTimeAsync(60_000);
       }
 
       const error = getState("connectionError");
@@ -157,35 +189,95 @@ describe("WebSocket error classification", () => {
       expect(error!.userMessage).toContain("Connection lost");
     });
 
-    it("attempts to reconnect after temporary disconnects", () => {
-      connect();
+    it("attempts to reconnect after temporary disconnects", async () => {
+      await connect();
 
       const instanceCountBefore = wsInstances.length;
 
       simulateClose();
-      vi.advanceTimersByTime(5_000);
+      await vi.advanceTimersByTimeAsync(5_000);
 
-      // Should have created at least one new WebSocket
       expect(wsInstances.length).toBeGreaterThan(instanceCountBefore);
     });
   });
 
   describe("error recovery", () => {
-    it("clears connectionError when connection is re-established", () => {
-      connect();
+    it("clears connectionError when connection is re-established", async () => {
+      await connect();
 
-      // Cause multiple failures to set temporary error
       for (let i = 0; i < 5; i++) {
         simulateClose();
-        vi.advanceTimersByTime(60_000);
+        await vi.advanceTimersByTimeAsync(60_000);
       }
 
       expect(getState("connectionError")).not.toBeNull();
 
-      // Simulate successful reconnection
       latestWS().onopen?.();
 
       expect(getState("connectionError")).toBeNull();
+    });
+  });
+
+  describe("rate limiting", () => {
+    function simulateRateLimit(retryAfter = 3) {
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "error",
+          payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter },
+        }),
+      });
+    }
+
+    it("sets rateLimited state on RATE_LIMITED error", async () => {
+      await connect();
+      expect(getState("rateLimited")).toBe(false);
+
+      simulateRateLimit(5);
+
+      expect(getState("rateLimited")).toBe(true);
+      expect(getState("rateLimitRetryAfter")).toBe(5);
+    });
+
+    it("clears rateLimited state after retryAfter seconds", async () => {
+      await connect();
+      simulateRateLimit(3);
+
+      expect(getState("rateLimited")).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(3_000);
+
+      expect(getState("rateLimited")).toBe(false);
+      expect(getState("rateLimitRetryAfter")).toBeNull();
+    });
+
+    it("marks pending messages as failed on rate limit", async () => {
+      await connect();
+      setState("messages", [
+        { id: "m1", content: "hi", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+        { id: "m2", content: "ok", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2026-01-01T00:00:01Z" },
+      ]);
+
+      simulateRateLimit(2);
+
+      const msgs = getState("messages");
+      expect(msgs[0]!.status).toBe("failed");
+      expect(msgs[1]!.status).toBe("sent");
+    });
+
+    it("defaults retryAfter to 5 when not provided", async () => {
+      await connect();
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "error",
+          payload: { code: "RATE_LIMITED", message: "Rate limit exceeded" },
+        }),
+      });
+
+      expect(getState("rateLimited")).toBe(true);
+      expect(getState("rateLimitRetryAfter")).toBe(5);
+
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(getState("rateLimited")).toBe(false);
     });
   });
 });

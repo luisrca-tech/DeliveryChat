@@ -2,7 +2,6 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
   hashApiKey,
   generateRawKey,
-  validateOrigin,
   createApiKey,
   verifyApiKey,
   ApiKeyLimitError,
@@ -46,46 +45,6 @@ describe("generateRawKey", () => {
     const keys = new Set<string>();
     for (let i = 0; i < 100; i++) keys.add(generateRawKey());
     expect(keys.size).toBe(100);
-  });
-});
-
-describe("validateOrigin", () => {
-  it("returns true when origin is null or undefined", () => {
-    expect(validateOrigin(null, "example.com")).toBe(true);
-    expect(validateOrigin(undefined, "example.com")).toBe(true);
-  });
-
-  it("allows exact domain match", () => {
-    expect(validateOrigin("https://example.com", "example.com")).toBe(true);
-    expect(validateOrigin("https://example.com/path", "example.com")).toBe(
-      true,
-    );
-  });
-
-  it("allows subdomain match", () => {
-    expect(validateOrigin("https://app.example.com", "example.com")).toBe(true);
-    expect(validateOrigin("https://foo.bar.example.com", "example.com")).toBe(
-      true,
-    );
-  });
-
-  it("blocks mismatched domain", () => {
-    expect(validateOrigin("https://evil.com", "example.com")).toBe(false);
-    expect(validateOrigin("https://example.evil.com", "example.com")).toBe(
-      false,
-    );
-  });
-
-  it("handles wildcard domain *.example.com", () => {
-    expect(validateOrigin("https://app.example.com", "*.example.com")).toBe(
-      true,
-    );
-    expect(validateOrigin("https://example.com", "*.example.com")).toBe(true);
-    expect(validateOrigin("https://evil.com", "*.example.com")).toBe(false);
-  });
-
-  it("returns false for invalid origin URL", () => {
-    expect(validateOrigin("not-a-url", "example.com")).toBe(false);
   });
 });
 
@@ -154,91 +113,81 @@ describe("verifyApiKey", () => {
     vi.mocked(db.select).mockReset();
   });
 
-  it("returns not_found for unknown key", async () => {
+  function mockQueryReturning(rows: unknown[]) {
     vi.mocked(db.select).mockReturnValue({
       from: vi.fn().mockReturnValue({
         innerJoin: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([]),
+            limit: vi.fn().mockResolvedValue(rows),
           }),
         }),
       }),
     } as never);
+  }
 
+  it("returns not_found for unknown key", async () => {
+    mockQueryReturning([]);
     const result = await verifyApiKey("dk_live_unknown");
     expect(result).toEqual({ valid: false, reason: "not_found" });
   });
 
   it("returns revoked for revoked key", async () => {
-    vi.mocked(db.select).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        innerJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: "key_1",
-                applicationId: "app-1",
-                revokedAt: new Date(),
-                expiresAt: null,
-                appDomain: "example.com",
-              },
-            ]),
-          }),
-        }),
-      }),
-    } as never);
-
+    mockQueryReturning([
+      {
+        id: "key_1",
+        applicationId: "app-1",
+        environment: "live",
+        revokedAt: new Date(),
+        expiresAt: null,
+        appDomain: "example.com",
+        appAllowedOrigins: ["example.com"],
+        appOrganizationId: "org-1",
+      },
+    ]);
     const result = await verifyApiKey("dk_live_valid");
     expect(result).toEqual({ valid: false, reason: "revoked" });
   });
 
   it("returns expired for expired key", async () => {
-    vi.mocked(db.select).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        innerJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: "key_1",
-                applicationId: "app-1",
-                revokedAt: null,
-                expiresAt: new Date("2020-01-01"),
-                appDomain: "example.com",
-              },
-            ]),
-          }),
-        }),
-      }),
-    } as never);
-
+    mockQueryReturning([
+      {
+        id: "key_1",
+        applicationId: "app-1",
+        environment: "live",
+        revokedAt: null,
+        expiresAt: new Date("2020-01-01"),
+        appDomain: "example.com",
+        appAllowedOrigins: ["example.com"],
+        appOrganizationId: "org-1",
+      },
+    ]);
     const result = await verifyApiKey("dk_live_valid");
     expect(result).toEqual({ valid: false, reason: "expired" });
   });
 
-  it("returns valid for active key", async () => {
-    vi.mocked(db.select).mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        innerJoin: vi.fn().mockReturnValue({
-          where: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue([
-              {
-                id: "key_1",
-                applicationId: "app-1",
-                revokedAt: null,
-                expiresAt: null,
-                appDomain: "example.com",
-              },
-            ]),
-          }),
-        }),
-      }),
-    } as never);
-
-    const result = await verifyApiKey("dk_live_valid");
+  it("returns valid with allowed origins and environment for active key", async () => {
+    mockQueryReturning([
+      {
+        id: "key_1",
+        applicationId: "app-1",
+        environment: "test",
+        revokedAt: null,
+        expiresAt: null,
+        appDomain: "example.com",
+        appAllowedOrigins: ["example.com", "*.example.com"],
+        appOrganizationId: "org-1",
+      },
+    ]);
+    const result = await verifyApiKey("dk_test_valid");
     expect(result).toEqual({
       valid: true,
-      application: { id: "app-1", domain: "example.com" },
-      apiKey: { id: "key_1" },
+      application: {
+        id: "app-1",
+        domain: "example.com",
+        allowedOrigins: ["example.com", "*.example.com"],
+        organizationId: "org-1",
+      },
+      apiKey: { id: "key_1", environment: "test" },
     });
   });
 });

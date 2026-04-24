@@ -30,6 +30,7 @@ export type UpdateApplicationInput = {
   name?: string;
   description?: string;
   settings?: Record<string, unknown>;
+  allowedOrigins?: string[];
 };
 
 export async function getApplicationSettings(
@@ -77,6 +78,8 @@ export async function updateApplication(
   if (data.name !== undefined) updates.name = data.name;
   if (data.description !== undefined) updates.description = data.description;
   if (data.settings !== undefined) updates.settings = data.settings;
+  if (data.allowedOrigins !== undefined)
+    updates.allowedOrigins = data.allowedOrigins;
 
   const [updated] = await db
     .update(applications)

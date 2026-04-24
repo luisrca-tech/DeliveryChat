@@ -3,6 +3,8 @@ import { zValidator } from "@hono/zod-validator";
 import { and, eq, isNull, desc } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { messages } from "../db/schema/messages.js";
+import { signWsToken } from "../lib/security/wsToken.js";
+import { env } from "../env.js";
 import { user } from "../db/schema/users.js";
 import { conversations } from "../db/schema/conversations.js";
 import { getApplicationSettings } from "../features/applications/application.service.js";
@@ -12,6 +14,8 @@ import {
   markAsRead,
 } from "../features/chat/chat.service.js";
 import { requireWidgetAuth, getWidgetAuth } from "../lib/middleware/widgetAuth.js";
+import { createVisitorRateLimitMiddleware } from "../lib/middleware/visitorRateLimit.js";
+import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import {
   createWidgetConversationSchema,
@@ -41,6 +45,43 @@ export const widgetRoute = new Hono()
       "Cache-Control": "public, max-age=300",
     });
   })
+
+  .post(
+    "/ws-token",
+    requireWidgetAuth(),
+    async (c) => {
+      const widgetAuth = getWidgetAuth(c);
+      if (!widgetAuth) {
+        return jsonError(c, HTTP_STATUS.UNAUTHORIZED, ERROR_MESSAGES.UNAUTHORIZED);
+      }
+
+      const visitorId = c.req.header("X-Visitor-Id")?.trim();
+      if (!visitorId) {
+        return jsonError(
+          c,
+          HTTP_STATUS.BAD_REQUEST,
+          ERROR_MESSAGES.BAD_REQUEST,
+          "X-Visitor-Id header required",
+        );
+      }
+
+      const origin = c.req.header("Origin") ?? "";
+
+      const token = signWsToken(
+        {
+          appId: widgetAuth.application.id,
+          origin,
+          visitorId,
+        },
+        env.WS_TOKEN_SECRET,
+      );
+
+      return c.json({ token });
+    },
+  )
+
+  .use("/conversations/*", createVisitorRateLimitMiddleware(sharedVisitorRateLimiter))
+  .use("/conversations", createVisitorRateLimitMiddleware(sharedVisitorRateLimiter))
 
   // POST /conversations — create a support conversation from widget
   .post(

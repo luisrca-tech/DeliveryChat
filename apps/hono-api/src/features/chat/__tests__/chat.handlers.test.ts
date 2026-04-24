@@ -2,6 +2,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { InMemoryRoomManager } from "../room-manager.js";
 import type { WSConnection } from "../room-manager.js";
 import { createEventHandler } from "../chat.handlers.js";
+import { createVisitorWsRateLimiter } from "../../../lib/middleware/visitorRateLimit.js";
+
+vi.mock("../../../db/index.js", () => ({
+  db: {
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ assignedTo: null }]),
+        }),
+      }),
+    }),
+  },
+}));
+
+vi.mock("../../../db/schema/conversations.js", () => ({
+  conversations: { id: "id", assignedTo: "assignedTo" },
+}));
 
 vi.mock("../chat.service.js", () => {
   class NotAssignedToConversationError extends Error {
@@ -736,6 +753,111 @@ describe("chat.handlers", () => {
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("MESSAGE_NOT_FOUND");
+    });
+  });
+
+  describe("message:send rate limiting", () => {
+    const convId = "550e8400-e29b-41d4-a716-446655440000";
+
+    function sendMsg(h: ReturnType<typeof createEventHandler>, c: WSConnection) {
+      return h(
+        c,
+        JSON.stringify({
+          type: "message:send",
+          payload: {
+            conversationId: convId,
+            content: "Hello!",
+            clientMessageId: crypto.randomUUID(),
+          },
+        }),
+      );
+    }
+
+    it("rejects visitor message when rate limit exceeded", async () => {
+      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
+      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
+      const visitorConn = createMockConnection({ role: "visitor" as const, userId: "visitor-1" });
+
+      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockSendMessage.mockResolvedValue({
+        id: "msg-1", conversationId: convId, senderId: "visitor-1",
+        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+      });
+
+      await sendMsg(rateLimitedHandler, visitorConn);
+      vi.clearAllMocks();
+
+      await sendMsg(rateLimitedHandler, visitorConn);
+
+      const sentData = JSON.parse(
+        firstWsSendPayload(visitorConn.ws.send as ReturnType<typeof vi.fn>),
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("RATE_LIMITED");
+      expect(sentData.payload.retryAfter).toBeGreaterThan(0);
+      expect(mockSendMessage).not.toHaveBeenCalled();
+    });
+
+    it("allows operator messages regardless of visitor rate limit state", async () => {
+      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
+      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
+
+      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockSendMessage.mockResolvedValue({
+        id: "msg-1", conversationId: convId, senderId: "user-1",
+        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+      });
+
+      const operatorConn = createMockConnection({ role: "operator" as const });
+
+      await sendMsg(rateLimitedHandler, operatorConn);
+      await sendMsg(rateLimitedHandler, operatorConn);
+      await sendMsg(rateLimitedHandler, operatorConn);
+
+      expect(mockSendMessage).toHaveBeenCalledTimes(3);
+    });
+
+    it("allows admin messages regardless of visitor rate limit state", async () => {
+      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
+      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
+
+      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockSendMessage.mockResolvedValue({
+        id: "msg-1", conversationId: convId, senderId: "user-1",
+        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+      });
+
+      const adminConn = createMockConnection({ role: "admin" as const });
+
+      await sendMsg(rateLimitedHandler, adminConn);
+      await sendMsg(rateLimitedHandler, adminConn);
+
+      expect(mockSendMessage).toHaveBeenCalledTimes(2);
+    });
+
+    it("does not persist rate-limited message to the database", async () => {
+      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
+      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
+      const visitorConn = createMockConnection({ role: "visitor" as const, userId: "visitor-1" });
+
+      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockSendMessage.mockResolvedValue({
+        id: "msg-1", conversationId: convId, senderId: "visitor-1",
+        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+      });
+
+      await sendMsg(rateLimitedHandler, visitorConn);
+      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+
+      vi.clearAllMocks();
+      await sendMsg(rateLimitedHandler, visitorConn);
+
+      expect(mockValidateSendAuthorization).not.toHaveBeenCalled();
+      expect(mockSendMessage).not.toHaveBeenCalled();
     });
   });
 

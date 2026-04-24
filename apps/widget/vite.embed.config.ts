@@ -1,30 +1,18 @@
-import { copyFileSync, mkdirSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, type Plugin } from "vite";
-import { resolve } from "path";
+import { defineConfig } from "vite";
+import { join, resolve } from "node:path";
+import { copyWidgetToPublic, emitSriArtifact } from "./embed-build/plugins";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
-
-function copyWidgetToPublic(): Plugin {
-  return {
-    name: "copy-widget-to-public",
-    writeBundle() {
-      const src = join(root, "dist-embed", "widget.iife.js");
-      const dest = join(root, "public", "widget.js");
-      mkdirSync(dirname(dest), { recursive: true });
-      copyFileSync(src, dest);
-      console.log("[embed] copied to public/widget.js");
-    },
-  };
-}
+const outDir = join(root, "dist-embed");
+const publicDir = join(root, "public");
 
 export default defineConfig({
   envPrefix: "VITE_",
-  plugins: [copyWidgetToPublic()],
+  plugins: [emitSriArtifact(outDir), copyWidgetToPublic(outDir, publicDir)],
   build: {
     lib: {
-      entry: resolve(__dirname, "src/widget/index.ts"),
+      entry: resolve(root, "src/widget/index.ts"),
       name: "DeliveryChat",
       fileName: "widget",
       formats: ["iife"],

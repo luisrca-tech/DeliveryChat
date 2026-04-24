@@ -1,14 +1,26 @@
 import { Hono } from "hono";
 import { getUpgradeWebSocket } from "../lib/ws.js";
 import { authenticateWebSocket } from "../lib/middleware/wsAuth.js";
+import { createWsUpgradeRateLimitMiddleware } from "../lib/middleware/wsRateLimit.js";
+import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
 import { InMemoryRoomManager } from "../features/chat/room-manager.js";
 import { createEventHandler } from "../features/chat/chat.handlers.js";
 import type { WSConnection } from "../features/chat/room-manager.js";
 
 const roomManager = new InMemoryRoomManager();
-const handleEvent = createEventHandler(roomManager);
+const handleEvent = createEventHandler(roomManager, { visitorRateLimiter: sharedVisitorRateLimiter });
+
+const WS_ERROR_MESSAGES: Record<string, string> = {
+  invalid_token: "Invalid or tampered WebSocket token",
+  expired_token: "WebSocket token has expired",
+  origin_mismatch: "Token origin does not match connection origin",
+  app_not_found: "Application not found",
+  unauthorized: "Authentication failed",
+};
 
 export const wsRoute = new Hono();
+
+wsRoute.use("/ws", createWsUpgradeRateLimitMiddleware());
 
 wsRoute.get("/ws", async (c, next) => {
   const upgradeWebSocket = getUpgradeWebSocket();
@@ -23,32 +35,48 @@ wsRoute.get("/ws", async (c, next) => {
         authReady = (async () => {
           const authResult = await authenticateWebSocket(c);
 
-          if (!authResult) {
+          if ("error" in authResult) {
             ws.send(
               JSON.stringify({
                 type: "error",
                 payload: {
-                  code: "UNAUTHORIZED",
-                  message: "Authentication failed",
+                  code: authResult.error.toUpperCase(),
+                  message:
+                    WS_ERROR_MESSAGES[authResult.error] ??
+                    "Authentication failed",
                 },
               }),
             );
-            ws.close(1008, "Unauthorized");
+            ws.close(1008, authResult.error);
             return;
           }
 
           connection = {
             id: crypto.randomUUID(),
-            userId: authResult.userId,
-            userName: authResult.userName,
-            organizationId: authResult.organizationId,
-            role: authResult.role,
+            userId: authResult.user.userId,
+            userName: authResult.user.userName,
+            organizationId: authResult.user.organizationId,
+            role: authResult.user.role,
+            applicationId: authResult.user.applicationId,
             ws,
           };
 
-          roomManager.registerConnection(connection);
+          const registered = roomManager.registerConnection(connection);
+          if (!registered) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                payload: {
+                  code: "CONNECTION_LIMIT",
+                  message: "Too many concurrent connections",
+                },
+              }),
+            );
+            ws.close(4009, "connection_limit");
+            connection = null;
+            return;
+          }
 
-          // Process any messages that arrived during auth
           for (const msg of pendingMessages) {
             await handleEvent(connection, msg);
           }
@@ -63,12 +91,10 @@ wsRoute.get("/ws", async (c, next) => {
             : event.data.toString();
 
         if (!connection) {
-          // Auth still in progress — queue the message
           pendingMessages.push(data);
           return;
         }
 
-        // Ensure auth has completed
         if (authReady) await authReady;
 
         if (connection) {

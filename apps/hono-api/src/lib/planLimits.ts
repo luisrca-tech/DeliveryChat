@@ -19,6 +19,12 @@ export const RATE_LIMITS = {
   ENTERPRISE: { perSecond: 50, perMinute: 1000, perHour: 10000 },
 } as const;
 
+export const VISITOR_RATE_LIMITS = {
+  perSecond: 3,
+  perMinute: 30,
+  perHour: 200,
+} as const;
+
 export type RateLimitConfig = {
   perSecond: number;
   perMinute: number;

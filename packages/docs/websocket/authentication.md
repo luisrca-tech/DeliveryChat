@@ -9,7 +9,7 @@ WebSocket connections support two authentication paths depending on the client t
 ```
 Client connects to GET /v1/ws
         │
-        ├── Has appId + visitorId query params?
+        ├── Has ?token= query param?
         │     YES → Widget Authentication (Path A)
         │     NO  → Session Authentication (Path B)
         │
@@ -19,45 +19,65 @@ Client connects to GET /v1/ws
 
 ## Path A: Widget Authentication (Visitors)
 
-Used by the embeddable chat widget. Visitors are anonymous Better Auth users identified by `visitorId`.
+Used by the embeddable chat widget. Visitors are anonymous Better Auth users. Authentication is a two-step process: first acquire a short-lived token via HTTP, then present it on WS upgrade.
 
-### Query Parameters
-
-| Param | Required | Description |
-|---|---|---|
-| `appId` | Yes | Application ID (UUID) registered in the `applications` table |
-| `visitorId` | Yes | Anonymous user ID from Better Auth's anonymous plugin |
-
-### Validation Flow
+### Step 1: Acquire a WS Token
 
 ```
-1. Validate appId exists in `applications` table
-     └── FAIL → error: UNAUTHORIZED ("Invalid application")
-
-2. Validate Origin header matches application's registered domain
-     └── FAIL → error: UNAUTHORIZED ("Origin not allowed")
-     └── EXCEPTION: localhost origins bypass check in non-production env
-
-3. Return AuthenticatedWSUser:
-     {
-       userId: visitorId,
-       userName: null,
-       organizationId: application.organizationId,
-       role: "visitor",
-       authType: "widget",
-       applicationId: appId
-     }
+POST /v1/widget/ws-token
+Headers:
+  X-App-Id: <application-uuid>
+  X-Visitor-Id: <visitor-uuid>
+  Origin: https://integrator-site.com
 ```
 
-### Widget Connection URL
+The endpoint validates the app ID and (optionally) the `Origin` against the application's allowed-origins list via `requireWidgetAuth()`, then signs an HMAC-SHA256 token binding:
+- `appId` — the application UUID
+- `origin` — the `Origin` header value (or `""` if absent)
+- `visitorId` — the anonymous visitor ID
+
+**Response:**
+```json
+{ "token": "<base64url-payload>.<base64url-signature>" }
+```
+
+**Token structure (`WsTokenPayload`):**
+```typescript
+{
+  appId: string;
+  origin: string;
+  visitorId: string;
+  iat: number;  // issued-at (unix seconds)
+  exp: number;  // expires-at (iat + 120s)
+}
+```
+
+### Step 2: Connect with Token
 
 ```
-ws[s]://api.example.com/v1/ws?appId={uuid}&visitorId={visitorId}
+GET /v1/ws?token=<ws-token>
 ```
 
-### Origin Validation
+**Verification flow:**
+1. Split token into `payload.signature`, verify HMAC-SHA256 with `WS_TOKEN_SECRET`
+   - FAIL → error: `INVALID_TOKEN`
+2. Check `exp` against current time
+   - FAIL → error: `EXPIRED_TOKEN`
+3. Compare `payload.origin` with connection's `Origin` header
+   - FAIL → error: `ORIGIN_MISMATCH`
+4. Look up `payload.appId` in the `applications` table
+   - FAIL → error: `APP_NOT_FOUND`
+5. Return `AuthenticatedWSUser` with `role: "visitor"`, `authType: "widget"`
 
-The widget's domain must match the `domain` field in the `applications` table. This prevents unauthorized sites from connecting to a tenant's WebSocket. In development, `localhost` origins bypass this check when `NODE_ENV !== "production"`.
+### Token Properties
+
+| Property | Value |
+|---|---|
+| Algorithm | HMAC-SHA256 |
+| TTL | 120 seconds |
+| Binding | `(appId, origin, visitorId)` |
+| Transport | Query string (`?token=`) — required because the browser WebSocket API does not support custom headers |
+| Replay | Not prevented within TTL window (accepted residual risk) |
 
 ## Path B: Session Authentication (Admin/Operators)
 
@@ -67,7 +87,7 @@ Used by the admin dashboard. Authenticated via Better Auth session tokens.
 
 | Param | Required | Description |
 |---|---|---|
-| `sessionToken` | Optional | Session token (alternative to cookie) |
+| `sessionToken` | Optional | Session token (alternative to cookie-based auth) |
 | `tenant` | Optional | Tenant slug (alternative to `X-Tenant-Slug` header) |
 
 ### Headers (alternatives to query params)
@@ -79,33 +99,16 @@ Used by the admin dashboard. Authenticated via Better Auth session tokens.
 
 ### Validation Flow
 
-```
-1. Call auth.api.getSession() with session token/cookie
-     └── FAIL → error: UNAUTHORIZED ("Invalid session")
-
+1. Call `auth.api.getSession()` with session token/cookie
+   - FAIL → error: `UNAUTHORIZED`
 2. Resolve tenant slug (query param or header)
-     └── FAIL → error: UNAUTHORIZED ("Tenant required")
-
+   - FAIL → error: `UNAUTHORIZED`
 3. Look up organization by slug
-     └── FAIL → error: UNAUTHORIZED ("Organization not found")
-
+   - FAIL → error: `UNAUTHORIZED`
 4. Verify user is an active member of the organization
-     └── FAIL → error: UNAUTHORIZED ("Not a member")
-
-5. Map role:
-     - super_admin → "admin" (WebSocket context)
-     - admin → "admin"
-     - operator → "operator"
-
-6. Return AuthenticatedWSUser:
-     {
-       userId: session.user.id,
-       userName: session.user.name,
-       organizationId: organization.id,
-       role: mappedRole,
-       authType: "session"
-     }
-```
+   - FAIL → error: `UNAUTHORIZED`
+5. Map role: `super_admin` → `"admin"`, others passed through
+6. Return `AuthenticatedWSUser` with `authType: "session"`
 
 ### Admin Connection URL
 
@@ -114,8 +117,6 @@ wss://api.example.com/v1/ws?tenant={slug}&sessionToken={token}
 ```
 
 ## AuthenticatedWSUser Interface
-
-The result of successful authentication, attached to every WebSocket connection:
 
 ```typescript
 interface AuthenticatedWSUser {
@@ -128,22 +129,16 @@ interface AuthenticatedWSUser {
 }
 ```
 
-## WSConnection
+## Rate Limiting & Connection Cap
 
-Each authenticated connection is represented as:
-
-```typescript
-interface WSConnection {
-  id: string;              // Unique connection ID (UUID)
-  ws: WSContext;           // Hono WebSocket context (send/close methods)
-  user: AuthenticatedWSUser;
-}
-```
+- **WS upgrade rate limit:** IP-based rate limiter on the `/v1/ws` endpoint (5/s, 30/min, 200/hr) prevents connection spam before the upgrade occurs.
+- **Per-user connection cap:** `InMemoryRoomManager` enforces a maximum of 5 concurrent connections per user. Exceeding the cap closes the connection with code `4009 connection_limit`.
 
 ## Security Considerations
 
-1. **Origin validation** prevents unauthorized domains from connecting via widget auth
-2. **Organization membership** is verified for session auth — a valid session from another tenant is rejected
-3. **Role mapping** ensures the WebSocket context uses the correct participant roles for authorization checks in event handlers
-4. **No cross-tenant access** — connections are scoped to a single organization via the room manager
-5. **Localhost bypass** only applies in non-production environments for development convenience
+1. **Token binding** prevents cross-origin replay — the signed `origin` must match the connection's `Origin` header
+2. **Short TTL (120s)** limits the window for token theft and replay
+3. **Organization membership** is verified for session auth — a valid session from another tenant is rejected
+4. **Role mapping** ensures the WebSocket context uses the correct participant roles
+5. **No cross-tenant access** — connections are scoped to a single organization via the room manager
+6. **Token in query string** is a standard WebSocket limitation — mitigated by short TTL and single-purpose tokens

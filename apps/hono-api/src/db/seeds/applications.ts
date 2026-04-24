@@ -12,6 +12,7 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
     id: string;
     organizationId: string;
     domain: string;
+    allowedOrigins: string[];
     name: string;
     description: string;
     settings: Record<string, unknown>;
@@ -25,6 +26,7 @@ function buildApplicationSeedValues(tenantMap: TenantMap) {
         id: randomUUID(),
         organizationId,
         domain,
+        allowedOrigins: [domain],
         name: faker.commerce.productName(),
         description: faker.company.catchPhrase(),
         settings: {},

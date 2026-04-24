@@ -53,7 +53,12 @@ export async function listConversations(
   const params = new URLSearchParams();
   params.set("limit", String(filters.limit));
   params.set("offset", String(filters.offset));
-  if (filters.status) params.set("status", filters.status);
+  if (filters.status) {
+    const statuses = Array.isArray(filters.status)
+      ? filters.status
+      : [filters.status];
+    statuses.forEach((s) => params.append("status", s));
+  }
   if (filters.applicationId) params.set("applicationId", filters.applicationId);
   if (filters.assignedTo) params.set("assignedTo", filters.assignedTo);
 

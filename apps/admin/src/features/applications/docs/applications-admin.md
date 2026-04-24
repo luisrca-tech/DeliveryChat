@@ -13,8 +13,9 @@
 1. **List**: Table shows all applications with name, domain, description, and created date.
 2. **Search**: Client-side filter by name, domain, or description.
 3. **Create**: Dialog with name (required), domain (required, lowercase letters/numbers/hyphens), and optional description. Domain must be unique.
-4. **Edit**: Dialog with domain read-only, name and description editable.
-5. **Delete**: Confirmation dialog shows active API key count. Warns "This will also revoke X active API keys" when applicable.
+4. **Edit**: Dialog with domain read-only, name and description editable. Includes an "Allowed Domains" section for managing the origin allow-list.
+5. **Allowed Domains**: Inline multi-entry input with add/remove actions. Each entry is validated against `DOMAIN_REGEX` (from `@repo/types`). Supports wildcard subdomains (`*.example.com`). Entries are lowercased, duplicates are rejected with inline feedback. The list is sent as `allowedOrigins: string[]` in the PATCH request.
+6. **Delete**: Confirmation dialog shows active API key count. Warns "This will also revoke X active API keys" when applicable.
 
 ## Error Handling
 

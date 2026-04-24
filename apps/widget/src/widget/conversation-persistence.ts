@@ -1,7 +1,5 @@
 import { setState } from "./state.js";
-
-const CONV_STORAGE_PREFIX = "dc_conv_";
-const LAST_MSG_STORAGE_PREFIX = "dc_lastmsg_";
+import { CONV_STORAGE_PREFIX, LAST_MSG_STORAGE_PREFIX } from "./constants/index.js";
 
 let activeAppId: string | null = null;
 
