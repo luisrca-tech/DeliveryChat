@@ -8,10 +8,6 @@ vi.mock("../../auth.js", () => ({
   },
 }));
 
-vi.mock("../../../features/api-keys/api-key.service.js", () => ({
-  validateOrigin: vi.fn(),
-}));
-
 vi.mock("../../../db/index.js", () => ({
   db: {
     select: vi.fn(),
@@ -19,15 +15,28 @@ vi.mock("../../../db/index.js", () => ({
 }));
 
 const { auth } = await import("../../auth.js");
-const { validateOrigin } = await import(
-  "../../../features/api-keys/api-key.service.js"
-);
 const { db } = await import("../../../db/index.js");
 const { authenticateWebSocket } = await import("../wsAuth.js");
 
 const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
-const mockValidateOrigin = validateOrigin as unknown as ReturnType<typeof vi.fn>;
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
+
+type AppRow = {
+  id: string;
+  domain: string;
+  allowedOrigins: string[];
+  organizationId: string;
+};
+
+function appRow(overrides: Partial<AppRow> = {}): AppRow {
+  return {
+    id: "app-1",
+    domain: "example.com",
+    allowedOrigins: ["example.com"],
+    organizationId: "org-1",
+    ...overrides,
+  };
+}
 
 function chainMock(result: unknown) {
   const chain: Record<string, unknown> = {};
@@ -72,10 +81,8 @@ describe("authenticateWebSocket", () => {
       });
 
       mockSelect.mockReturnValue(
-        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+        chainMock([appRow()]),
       );
-
-      mockValidateOrigin.mockReturnValue(true);
 
       const result = await authenticateWebSocket(c);
 
@@ -113,10 +120,8 @@ describe("authenticateWebSocket", () => {
       });
 
       mockSelect.mockReturnValue(
-        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+        chainMock([appRow()]),
       );
-
-      mockValidateOrigin.mockReturnValue(false);
 
       const result = await authenticateWebSocket(c);
       expect(result).toBeNull();
@@ -137,15 +142,13 @@ describe("authenticateWebSocket", () => {
       });
 
       mockSelect.mockReturnValue(
-        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+        chainMock([appRow()]),
       );
 
       const result = await authenticateWebSocket(c);
 
       expect(result).not.toBeNull();
       expect(result!.authType).toBe("widget");
-      expect(mockValidateOrigin).not.toHaveBeenCalled();
-
       process.env.NODE_ENV = originalEnv;
     });
 
@@ -164,10 +167,8 @@ describe("authenticateWebSocket", () => {
       });
 
       mockSelect.mockReturnValue(
-        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+        chainMock([appRow()]),
       );
-
-      mockValidateOrigin.mockReturnValue(false);
 
       const result = await authenticateWebSocket(c);
       expect(result).toBeNull();
@@ -184,14 +185,13 @@ describe("authenticateWebSocket", () => {
       });
 
       mockSelect.mockReturnValue(
-        chainMock([{ id: "app-1", domain: "example.com", organizationId: "org-1" }]),
+        chainMock([appRow()]),
       );
 
       const result = await authenticateWebSocket(c);
 
       expect(result).not.toBeNull();
       expect(result!.authType).toBe("widget");
-      expect(mockValidateOrigin).not.toHaveBeenCalled();
     });
 
     it("falls through to session auth when only appId is provided without visitorId", async () => {

@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   index,
   jsonb,
@@ -19,6 +20,10 @@ export const applications = createTable(
       .references(() => organization.id),
     name: varchar("name", { length: 255 }).notNull(),
     domain: varchar("domain", { length: 255 }).notNull(),
+    allowedOrigins: text("allowed_origins")
+      .array()
+      .notNull()
+      .default(sql`'{}'::text[]`),
     description: text("description"),
     settings: jsonb("settings").default({}).notNull(),
     deletedAt: timestamp("deleted_at"),

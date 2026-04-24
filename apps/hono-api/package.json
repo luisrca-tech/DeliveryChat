@@ -40,7 +40,8 @@
     "test:e2e": "infisical run --path=/hono-api -- npx playwright test --config=playwright.config.ts",
     "test:cleanup": "infisical run --path=/hono-api -- tsx scripts/test-cleanup.ts",
     "cron:trial-ending": "tsx scripts/cron-trial-ending.ts",
-    "cron:cleanup": "tsx scripts/cron-cleanup.ts"
+    "cron:cleanup": "tsx scripts/cron-cleanup.ts",
+    "backfill:allowed-origins": "infisical run --path=/hono-api -- tsx scripts/backfill-allowed-origins.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",

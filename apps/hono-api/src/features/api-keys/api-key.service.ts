@@ -41,26 +41,6 @@ export function generateRawKey(environment: KeyEnvironment = "live"): string {
   return prefix + random;
 }
 
-export function validateOrigin(
-  origin: string | null | undefined,
-  allowedDomain: string,
-): boolean {
-  if (!origin) return true;
-  let host: string;
-  try {
-    const url = new URL(origin);
-    host = url.hostname.toLowerCase();
-  } catch {
-    return false;
-  }
-  const domain = allowedDomain.toLowerCase();
-  if (domain.startsWith("*.")) {
-    const base = domain.slice(2);
-    return host === base || host.endsWith("." + base);
-  }
-  return host === domain || host.endsWith("." + domain);
-}
-
 export type CreateApiKeyInput = {
   applicationId: string;
   name?: string;
@@ -228,8 +208,12 @@ export async function regenerateApiKey(
 export type VerifyApiKeyResult =
   | {
       valid: true;
-      application: { id: string; domain: string };
-      apiKey: { id: string };
+      application: {
+        id: string;
+        domain: string;
+        allowedOrigins: string[];
+      };
+      apiKey: { id: string; environment: KeyEnvironment };
     }
   | { valid: false; reason: "not_found" | "revoked" | "expired" };
 
@@ -241,9 +225,11 @@ export async function verifyApiKey(
     .select({
       id: apiKeys.id,
       applicationId: apiKeys.applicationId,
+      environment: apiKeys.environment,
       revokedAt: apiKeys.revokedAt,
       expiresAt: apiKeys.expiresAt,
       appDomain: applications.domain,
+      appAllowedOrigins: applications.allowedOrigins,
     })
     .from(apiKeys)
     .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
@@ -257,8 +243,12 @@ export async function verifyApiKey(
 
   return {
     valid: true,
-    application: { id: row.applicationId, domain: row.appDomain },
-    apiKey: { id: row.id },
+    application: {
+      id: row.applicationId,
+      domain: row.appDomain,
+      allowedOrigins: row.appAllowedOrigins,
+    },
+    apiKey: { id: row.id, environment: row.environment },
   };
 }
 

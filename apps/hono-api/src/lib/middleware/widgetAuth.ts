@@ -2,11 +2,11 @@ import type { MiddlewareHandler } from "hono";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { applications } from "../../db/schema/applications.js";
-import { validateOrigin } from "../../features/api-keys/api-key.service.js";
+import { matchesAllowedOrigin } from "../security/originMatcher.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 
 export type WidgetAuthContext = {
-  application: { id: string; domain: string };
+  application: { id: string; domain: string; allowedOrigins: string[] };
   organizationId: string;
 };
 
@@ -15,15 +15,6 @@ const UUID_REGEX =
 
 function isValidUuid(value: string): boolean {
   return UUID_REGEX.test(value);
-}
-
-function isLocalhostOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin);
-    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  } catch {
-    return false;
-  }
 }
 
 export function requireWidgetAuth(): MiddlewareHandler {
@@ -51,6 +42,7 @@ export function requireWidgetAuth(): MiddlewareHandler {
       .select({
         id: applications.id,
         domain: applications.domain,
+        allowedOrigins: applications.allowedOrigins,
         organizationId: applications.organizationId,
       })
       .from(applications)
@@ -66,27 +58,29 @@ export function requireWidgetAuth(): MiddlewareHandler {
       );
     }
 
-    const origin = c.req.header("Origin") ?? null;
+    const origin = c.req.header("Origin");
 
     if (origin) {
-      const isLocalhost = isLocalhostOrigin(origin);
-      const bypassForLocalhost =
-        isLocalhost && process.env.NODE_ENV !== "production";
-
-      if (!bypassForLocalhost) {
-        if (!validateOrigin(origin, application.domain)) {
-          return jsonError(
-            c,
-            HTTP_STATUS.FORBIDDEN,
-            ERROR_MESSAGES.FORBIDDEN,
-            "Domain not allowed",
-          );
-        }
+      const allowed = matchesAllowedOrigin(origin, {
+        allowedOrigins: application.allowedOrigins,
+        testMode: process.env.NODE_ENV !== "production",
+      });
+      if (!allowed) {
+        return jsonError(
+          c,
+          HTTP_STATUS.FORBIDDEN,
+          "origin_not_allowed",
+          "Origin is not in the application allow-list",
+        );
       }
     }
 
     c.set("widgetAuth", {
-      application: { id: application.id, domain: application.domain },
+      application: {
+        id: application.id,
+        domain: application.domain,
+        allowedOrigins: application.allowedOrigins,
+      },
       organizationId: application.organizationId,
     } satisfies WidgetAuthContext);
 

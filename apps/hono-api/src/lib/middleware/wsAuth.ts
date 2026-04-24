@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { auth } from "../auth.js";
-import { validateOrigin } from "../../features/api-keys/api-key.service.js";
+import { matchesAllowedOrigin } from "../security/originMatcher.js";
 import { db } from "../../db/index.js";
 import { member } from "../../db/schema/member.js";
 import { applications } from "../../db/schema/applications.js";
@@ -36,15 +36,6 @@ export async function authenticateWebSocket(
   return authenticateWithSession(c);
 }
 
-function isLocalhostOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin);
-    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  } catch {
-    return false;
-  }
-}
-
 async function authenticateWidget(
   c: Context,
   appId: string,
@@ -54,6 +45,7 @@ async function authenticateWidget(
     .select({
       id: applications.id,
       domain: applications.domain,
+      allowedOrigins: applications.allowedOrigins,
       organizationId: applications.organizationId,
     })
     .from(applications)
@@ -65,12 +57,11 @@ async function authenticateWidget(
   const origin = c.req.header("Origin");
 
   if (origin) {
-    const bypassForLocalhost =
-      isLocalhostOrigin(origin) && process.env.NODE_ENV !== "production";
-
-    if (!bypassForLocalhost && !validateOrigin(origin, app.domain)) {
-      return null;
-    }
+    const allowed = matchesAllowedOrigin(origin, {
+      allowedOrigins: app.allowedOrigins,
+      testMode: process.env.NODE_ENV !== "production",
+    });
+    if (!allowed) return null;
   }
 
   return {
