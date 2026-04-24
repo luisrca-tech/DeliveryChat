@@ -63,7 +63,7 @@ export type MessagesListResponse = {
 };
 
 export type ConversationFilters = {
-  status?: ConversationStatus;
+  status?: ConversationStatus | ConversationStatus[];
   applicationId?: string;
   assignedTo?: "me";
   limit: number;
