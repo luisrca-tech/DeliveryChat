@@ -5,11 +5,12 @@ import {
 } from "../../features/api-keys/api-key.service.js";
 import { enforceOrigin } from "../security/originMatcher.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
+import type { ResolvedApplication } from "./resolveApplication.js";
 
 const KEY_REGEX = /^dk_(live|test)_[a-zA-Z0-9]{32}$/;
 
 export type ApiAuthContext = {
-  application: { id: string; domain: string; allowedOrigins: string[] };
+  application: ResolvedApplication;
   apiKey: { id: string; environment: "live" | "test" };
 };
 

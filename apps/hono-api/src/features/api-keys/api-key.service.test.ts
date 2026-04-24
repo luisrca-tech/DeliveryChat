@@ -141,6 +141,7 @@ describe("verifyApiKey", () => {
         expiresAt: null,
         appDomain: "example.com",
         appAllowedOrigins: ["example.com"],
+        appOrganizationId: "org-1",
       },
     ]);
     const result = await verifyApiKey("dk_live_valid");
@@ -157,6 +158,7 @@ describe("verifyApiKey", () => {
         expiresAt: new Date("2020-01-01"),
         appDomain: "example.com",
         appAllowedOrigins: ["example.com"],
+        appOrganizationId: "org-1",
       },
     ]);
     const result = await verifyApiKey("dk_live_valid");
@@ -173,6 +175,7 @@ describe("verifyApiKey", () => {
         expiresAt: null,
         appDomain: "example.com",
         appAllowedOrigins: ["example.com", "*.example.com"],
+        appOrganizationId: "org-1",
       },
     ]);
     const result = await verifyApiKey("dk_test_valid");
@@ -182,6 +185,7 @@ describe("verifyApiKey", () => {
         id: "app-1",
         domain: "example.com",
         allowedOrigins: ["example.com", "*.example.com"],
+        organizationId: "org-1",
       },
       apiKey: { id: "key_1", environment: "test" },
     });

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+// Kept local because hono-api only resolves @repo/types for type-only imports at runtime.
+// Canonical source: packages/types/src/validation/domain.ts
 const DOMAIN_REGEX =
   /^(\*\.)?[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$/;
 

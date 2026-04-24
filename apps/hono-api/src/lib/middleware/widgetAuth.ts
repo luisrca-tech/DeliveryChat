@@ -1,10 +1,13 @@
 import type { MiddlewareHandler } from "hono";
-import { resolveApplicationById } from "./resolveApplication.js";
+import {
+  resolveApplicationById,
+  type ResolvedApplication,
+} from "./resolveApplication.js";
 import { enforceOrigin } from "../security/originMatcher.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 
 export type WidgetAuthContext = {
-  application: { id: string; domain: string; allowedOrigins: string[] };
+  application: ResolvedApplication;
   organizationId: string;
 };
 
@@ -45,11 +48,7 @@ export function requireWidgetAuth(): MiddlewareHandler {
     }
 
     c.set("widgetAuth", {
-      application: {
-        id: application.id,
-        domain: application.domain,
-        allowedOrigins: application.allowedOrigins,
-      },
+      application,
       organizationId: application.organizationId,
     } satisfies WidgetAuthContext);
 

@@ -32,6 +32,7 @@ function validResult(overrides: {
       id: "app-1",
       domain: "example.com",
       allowedOrigins: overrides.allowedOrigins ?? ["example.com"],
+      organizationId: "org-1",
     },
     apiKey: { id: "key-1", environment: overrides.environment ?? "live" },
   };
@@ -162,6 +163,7 @@ describe("requireApiKeyAuth", () => {
         id: "app-1",
         domain: "example.com",
         allowedOrigins: ["example.com"],
+        organizationId: "org-1",
       },
       apiKey: { id: "key-1", environment: "live" },
     });

@@ -4,6 +4,7 @@ import { db } from "../../db/index.js";
 import { apiKeys } from "../../db/schema/apiKeys.js";
 import { applications } from "../../db/schema/applications.js";
 import { keyEnvironmentEnum } from "../../db/schema/enums/keyEnvironmentEnum.js";
+import type { ResolvedApplication } from "../../lib/middleware/resolveApplication.js";
 
 type KeyEnvironment = (typeof keyEnvironmentEnum.enumValues)[number];
 
@@ -208,11 +209,7 @@ export async function regenerateApiKey(
 export type VerifyApiKeyResult =
   | {
       valid: true;
-      application: {
-        id: string;
-        domain: string;
-        allowedOrigins: string[];
-      };
+      application: ResolvedApplication;
       apiKey: { id: string; environment: KeyEnvironment };
     }
   | { valid: false; reason: "not_found" | "revoked" | "expired" };
@@ -230,6 +227,7 @@ export async function verifyApiKey(
       expiresAt: apiKeys.expiresAt,
       appDomain: applications.domain,
       appAllowedOrigins: applications.allowedOrigins,
+      appOrganizationId: applications.organizationId,
     })
     .from(apiKeys)
     .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
@@ -247,6 +245,7 @@ export async function verifyApiKey(
       id: row.applicationId,
       domain: row.appDomain,
       allowedOrigins: row.appAllowedOrigins,
+      organizationId: row.appOrganizationId,
     },
     apiKey: { id: row.id, environment: row.environment },
   };

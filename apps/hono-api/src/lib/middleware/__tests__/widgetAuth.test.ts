@@ -124,6 +124,7 @@ describe("requireWidgetAuth", () => {
         id: APP_ID,
         domain: "example.com",
         allowedOrigins: ["example.com", "*.example.com"],
+        organizationId: "org-1",
       },
       organizationId: "org-1",
     });
