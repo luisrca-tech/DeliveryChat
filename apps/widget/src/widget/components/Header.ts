@@ -1,5 +1,6 @@
 import type { WidgetSettings } from "../types/index.js";
 import { isValidLogoUrl } from "../utils/logo-url.js";
+import { setTrustedInnerHTML } from "../utils/trusted-html.js";
 import { CLOSE_ICON } from "../constants/icons.js";
 
 export function createHeader(
@@ -33,8 +34,7 @@ export function createHeader(
   closeBtn.type = "button";
   closeBtn.className = "header-close";
   closeBtn.setAttribute("aria-label", "Close chat");
-  // eslint-disable-next-line no-restricted-syntax -- static SVG icon constant
-  closeBtn.innerHTML = CLOSE_ICON;
+  setTrustedInnerHTML(closeBtn, CLOSE_ICON);
   if (onClose) {
     closeBtn.addEventListener("click", onClose);
   }

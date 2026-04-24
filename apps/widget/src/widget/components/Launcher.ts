@@ -1,4 +1,5 @@
 import { isValidLauncherImageUrl } from "../utils/logo-url.js";
+import { setTrustedInnerHTML } from "../utils/trusted-html.js";
 import { ICON_SVGS } from "../constants/icons.js";
 
 function createBadge(): HTMLSpanElement {
@@ -33,8 +34,7 @@ export function createLauncher(settings: {
   }
 
   const icon = settings.icon ?? "chat";
-  // eslint-disable-next-line no-restricted-syntax -- static SVG icon constant
-  btn.innerHTML = ICON_SVGS[icon];
+  setTrustedInnerHTML(btn, ICON_SVGS[icon]);
   btn.appendChild(createBadge());
 
   return btn;

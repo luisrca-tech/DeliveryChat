@@ -37,7 +37,7 @@ export default [
           selector:
             "AssignmentExpression[left.type='MemberExpression'][left.property.name='innerHTML']",
           message:
-            "Avoid innerHTML. Use textContent, replaceChildren(), or DOM construction. Static SVG icon writes may be whitelisted with an inline eslint-disable-next-line.",
+            "Avoid innerHTML. Use textContent, replaceChildren(), or DOM construction. For trusted static HTML (e.g. build-time SVG icons), route through setTrustedInnerHTML + TrustedStaticHTML from utils/trusted-html.ts instead of an inline eslint-disable.",
         },
         {
           selector:

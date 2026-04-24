@@ -5,6 +5,7 @@ import {
   EDIT_ICON,
   DELETE_ICON,
 } from "../constants/icons.js";
+import { setTrustedInnerHTML, type TrustedStaticHTML } from "../utils/trusted-html.js";
 import {
   LONG_PRESS_MS,
   EDIT_WINDOW_MS,
@@ -361,8 +362,7 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
     const moreBtn = document.createElement("button");
     moreBtn.className = "message-more-btn";
     moreBtn.type = "button";
-    // eslint-disable-next-line no-restricted-syntax -- static SVG icon constant
-    moreBtn.innerHTML = MORE_ICON;
+    setTrustedInnerHTML(moreBtn, MORE_ICON);
     moreBtn.setAttribute("aria-label", "Message options");
 
     const dropdownAnchor = document.createElement("div");
@@ -425,7 +425,7 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
 }
 
 function createDropdownItem(
-  iconSvg: string,
+  iconSvg: TrustedStaticHTML,
   label: string,
   onClick: () => void,
 ): HTMLElement {
@@ -435,8 +435,7 @@ function createDropdownItem(
 
   const iconSpan = document.createElement("span");
   iconSpan.className = "dropdown-item-icon";
-  // eslint-disable-next-line no-restricted-syntax -- static SVG icon constant
-  iconSpan.innerHTML = iconSvg;
+  setTrustedInnerHTML(iconSpan, iconSvg);
 
   const labelSpan = document.createElement("span");
   labelSpan.textContent = label;
