@@ -45,6 +45,44 @@ describe("listConversationsQuerySchema", () => {
       expect(result.data.offset).toBe(0);
     }
   });
+
+  it("coerces a single status string to a one-element array", () => {
+    const result = listConversationsQuerySchema.safeParse({ status: "active" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toEqual(["active"]);
+    }
+  });
+
+  it("accepts multiple status values as an array", () => {
+    const result = listConversationsQuerySchema.safeParse({
+      status: ["pending", "active"],
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toEqual(["pending", "active"]);
+    }
+  });
+
+  it("rejects invalid status values", () => {
+    const result = listConversationsQuerySchema.safeParse({ status: "unknown" });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects arrays containing invalid status values", () => {
+    const result = listConversationsQuerySchema.safeParse({
+      status: ["pending", "invalid"],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("returns undefined status when omitted", () => {
+    const result = listConversationsQuerySchema.safeParse({ limit: "10" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.status).toBeUndefined();
+    }
+  });
 });
 
 describe("updateConversationSubjectSchema", () => {

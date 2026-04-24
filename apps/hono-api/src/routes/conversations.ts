@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, or, isNull, desc, sql } from "drizzle-orm";
+import { and, eq, or, inArray, isNull, desc, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { conversations } from "../db/schema/conversations.js";
 import { messages } from "../db/schema/messages.js";
@@ -52,7 +52,7 @@ export const conversationsRoute = new Hono()
         eq(conversations.organizationId, organization.id),
         isNull(conversations.deletedAt),
       ];
-      if (status) conditions.push(eq(conversations.status, status));
+      if (status) conditions.push(inArray(conversations.status, status));
       if (applicationId)
         conditions.push(eq(conversations.applicationId, applicationId));
 
