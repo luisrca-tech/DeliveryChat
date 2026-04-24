@@ -1,9 +1,16 @@
 import { z } from "zod";
 
+const conversationStatusEnum = z.enum(["pending", "active", "closed"]);
+
 export const listConversationsQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).optional().default(20),
   offset: z.coerce.number().int().min(0).optional().default(0),
-  status: z.enum(["pending", "active", "closed"]).optional(),
+  status: z
+    .union([conversationStatusEnum, z.array(conversationStatusEnum)])
+    .optional()
+    .transform((v) =>
+      v === undefined ? undefined : Array.isArray(v) ? v : [v],
+    ),
   applicationId: z.string().uuid().optional(),
   assignedTo: z.enum(["me"]).optional(),
 });

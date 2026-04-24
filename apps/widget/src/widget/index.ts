@@ -10,17 +10,14 @@
   }
 })();
 
-import {
-  defaultSettings,
-  type InitOptions,
-  type WidgetSettings,
-} from "./types.js";
+import type { InitOptions, WidgetSettings, DeliveryChatAPI } from "./types/index.js";
 import {
   createShadowHost,
   createShadowRoot,
   destroyHost,
 } from "./utils/shadow-dom.js";
 import { applyCssVars } from "./utils/css-vars.js";
+import { injectShadowStyles } from "./utils/inject-styles.js";
 import { createLauncher } from "./components/Launcher.js";
 import {
   createChatWindow,
@@ -47,12 +44,10 @@ import {
   destroyChat,
   startNewChat,
 } from "./chat-controller.js";
-import type { ChatMessage } from "./types.js";
+import type { ChatMessage } from "./types/index.js";
+import { defaultSettings, HOST_ID, MAX_MESSAGES } from "./constants/index.js";
 
 import styles from "./styles/main.css?inline";
-
-const HOST_ID = "delivery-chat-root";
-const MAX_MESSAGES = 100;
 
 let cleanupFns: Array<() => void> = [];
 let autoOpenTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -195,7 +190,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     launcher.focus();
   };
 
-  chatWindowEl = createChatWindow(
+  const chatWindowResult = createChatWindow(
     settings,
     getState("messages"),
     {
@@ -206,6 +201,8 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     },
     bubbleCtx,
   );
+  chatWindowEl = chatWindowResult.el;
+  cleanupFns.push(() => chatWindowResult.destroy());
   const chatWindow = chatWindowEl;
   chatWindow.hidden = !isOpen;
 
@@ -340,7 +337,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     // Full reset (conversation change)
     if (messages.length < lastMessageCount) {
       const typingEl = listEl.querySelector(".typing-indicator");
-      listEl.innerHTML = "";
+      listEl.replaceChildren();
       if (typingEl) listEl.appendChild(typingEl);
       lastMessageCount = 0;
       renderedMessages.clear();
@@ -518,9 +515,7 @@ async function init(opts: InitOptions): Promise<void> {
   const host = createShadowHost();
   const shadow = createShadowRoot(host);
 
-  const style = document.createElement("style");
-  style.textContent = styles;
-  shadow.appendChild(style);
+  injectShadowStyles(shadow, styles);
 
   render(shadow, settings);
 
@@ -558,12 +553,6 @@ if (Array.isArray(queue)) {
     }
   }
 }
-
-export type DeliveryChatAPI = {
-  init: (opts: InitOptions) => void;
-  destroy: () => void;
-  queue: unknown[];
-};
 
 const DeliveryChat: DeliveryChatAPI = {
   init: (opts: InitOptions) => void init(opts),

@@ -115,6 +115,8 @@ export const billingRoute = new Hono()
           c.req.raw.headers,
         );
 
+        const isAlreadyTrialing = organization.planStatus === "trialing";
+
         const baseParams: Stripe.Checkout.SessionCreateParams = {
           mode: "subscription",
           line_items: [{ price, quantity: 1 }],
@@ -124,7 +126,7 @@ export const billingRoute = new Hono()
           billing_address_collection: "required",
           metadata: { plan: planUpper },
           subscription_data: {
-            trial_period_days: 14,
+            ...(isAlreadyTrialing ? {} : { trial_period_days: 14 }),
             metadata: { plan: planUpper },
           },
           ...(organization.stripeCustomerId

@@ -38,45 +38,6 @@ export type WidgetSettings = {
   };
 };
 
-export const defaultSettings: WidgetSettings = {
-  colors: {
-    primary: "#0ea5e9",
-    background: "#ffffff",
-    text: "#0f172a",
-    textSecondary: "#64748b",
-    userBubble: "#0ea5e9",
-    visitorBubble: "#f1f5f9",
-  },
-  font: {
-    family: "system-ui, -apple-system, sans-serif",
-    size: "14px",
-  },
-  position: {
-    corner: "bottom-right",
-    offset: "6px",
-  },
-  appearance: {
-    borderRadius: "12px",
-    shadow:
-      "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
-    width: "380px",
-    height: "500px",
-  },
-  header: {
-    title: "Chat with us",
-    subtitle: "We typically reply within minutes",
-    showLogo: true,
-  },
-  launcher: {
-    icon: "chat",
-    label: "Open chat",
-  },
-  behavior: {
-    autoOpen: false,
-    autoOpenDelay: 5000,
-  },
-};
-
 export type InitOptions = {
   appId: string;
   apiBaseUrl?: string;
@@ -84,7 +45,6 @@ export type InitOptions = {
   autoOpen?: boolean;
   autoOpenDelay?: number;
   colors?: Partial<WidgetSettings["colors"]>;
-  /** Set to `null` to use the default SVG icon instead of an image. */
   launcherLogoUrl?: string | null;
 };
 
@@ -100,3 +60,27 @@ export type ChatMessage = {
 };
 
 export type ConversationStatus = "pending" | "active" | "closed";
+
+export type TypingUser = {
+  userId: string;
+  userName: string | null;
+  senderRole: string;
+} | null;
+
+export type ConnectionError = {
+  type: "permanent" | "temporary";
+  userMessage: string;
+  devMessage: string;
+} | null;
+
+export type BubbleContext = {
+  visitorId: string | null;
+  onEdit: (messageId: string, content: string) => void;
+  onDelete: (messageId: string) => void;
+};
+
+export type DeliveryChatAPI = {
+  init: (opts: InitOptions) => void;
+  destroy: () => void;
+  queue: unknown[];
+};

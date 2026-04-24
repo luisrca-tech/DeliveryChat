@@ -5,7 +5,11 @@ Vanilla JS chat widget with Shadow DOM, CSS variables, and public settings API.
 ## Embed
 
 ```html
-<script src="https://your-cdn.com/widget.js"></script>
+<script
+  src="https://your-cdn.com/widget.js"
+  integrity="sha384-<emitted-hash>"
+  crossorigin="anonymous"
+></script>
 <script>
   DeliveryChat.init({
     appId: "550e8400-e29b-41d4-a716-446655440000",
@@ -15,6 +19,8 @@ Vanilla JS chat widget with Shadow DOM, CSS variables, and public settings API.
   });
 </script>
 ```
+
+> The `integrity` value is published in `dist-embed/widget.iife.js.sri.json` after each build. Always source it from the artifact, never hand-copy it. See `packages/docs/security/integrator-guide.md` for the recommended host-page CSP.
 
 ## Init Options
 
@@ -59,4 +65,6 @@ Set `VITE_API_BASE_URL` in `.env` before building (see `apps/widget/.env.example
 bun run build:embed
 ```
 
-Output: `dist-embed/widget.iife.js`
+Output:
+- `dist-embed/widget.iife.js` — the bundle
+- `dist-embed/widget.iife.js.sri.json` — `{ file, algorithm, integrity, bytes }` artifact consumed by docs and release automation when publishing the embed snippet

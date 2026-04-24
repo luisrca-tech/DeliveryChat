@@ -23,11 +23,12 @@ The `processedEvents` table provides idempotency — each Stripe webhook event I
 
 **Endpoint:** `POST /v1/webhooks/stripe`
 
-Handles three events inside atomic database transactions:
-- **`invoice.paid`** — Updates plan and status to `active`
+Handles five events inside atomic database transactions:
+- **`invoice.paid`** — Sets status to `active`, syncs `plan` from subscription metadata via Stripe API
 - **`invoice.payment_failed`** — Sets status to `past_due`
-- **`customer.subscription.deleted`** — Resets to `FREE` plan
-- **`customer.subscription.updated`** — Syncs `trial_end` into `trialEndsAt` when status is `trialing`
+- **`customer.subscription.created`** — Syncs `plan`, `stripeSubscriptionId`, `planStatus`, and `trialEndsAt` from the new subscription
+- **`customer.subscription.deleted`** — Resets to `FREE` plan with `canceled` status
+- **`customer.subscription.updated`** — Syncs `planStatus`, `trialEndsAt`, and `plan` from subscription metadata
 
 Each event is verified via Stripe signature (`SIGNING_STRIPE_SECRET_KEY`) and checked against `processedEvents` for idempotency.
 
@@ -46,7 +47,9 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 ### Trial System
 
 - On organization creation: `planStatus = "trialing"`, `trialEndsAt = now + 14 days`, `billingEmail = user.email`
-- Stripe trial sync: `customer.subscription.updated` persists Stripe `trial_end` into `trialEndsAt`
+- Checkout during trial: `trial_period_days` is omitted so the subscription activates immediately (no double trial). `checkout.session.completed` sets `planStatus = "active"` when the org was already trialing.
+- Checkout without trial: includes `trial_period_days: 14` for first-time purchases
+- Plan sync redundancy: `plan` is synced from `subscription.metadata.plan` in `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `invoice.paid` — if any single event fails, the others recover the plan tier
 - Enforcement: expired trial returns `402 Payment Required`, allowing only `super_admin` recovery routes
 
 ### Enterprise Hybrid Workflow

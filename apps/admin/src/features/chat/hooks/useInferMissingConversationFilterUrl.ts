@@ -10,7 +10,7 @@ function inferFilterForUrl(
 ): string {
   const isAdmin =
     currentUserRole === "admin" || currentUserRole === "super_admin";
-  if (conversation.status === "pending") return "queue";
+  if (conversation.status === "pending") return isAdmin ? "all" : "queue";
   if (conversation.status === "closed") return "closed";
   if (conversation.status === "active") {
     if (isAdmin) return "all";

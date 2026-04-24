@@ -1,37 +1,44 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import type { AuthorizeResult } from "../resolveApplication.js";
 
-vi.mock("../../../db/index.js", () => ({
-  db: {
-    select: vi.fn(),
-  },
+vi.mock("../resolveApplication.js", () => ({
+  resolveAndEnforceOrigin: vi.fn(),
 }));
 
-vi.mock("../../../features/api-keys/api-key.service.js", () => ({
-  validateOrigin: vi.fn(),
-}));
-
-const { db } = await import("../../../db/index.js");
-const { validateOrigin } = await import(
-  "../../../features/api-keys/api-key.service.js"
-);
+const { resolveAndEnforceOrigin } = await import("../resolveApplication.js");
 const { requireWidgetAuth, getWidgetAuth } = await import("../widgetAuth.js");
 
-const mockSelect = db.select as unknown as ReturnType<typeof vi.fn>;
-const mockValidateOrigin = validateOrigin as unknown as ReturnType<
-  typeof vi.fn
->;
+const mockAuthorize = resolveAndEnforceOrigin as unknown as ReturnType<typeof vi.fn>;
 
-function chainMock(result: unknown) {
-  const chain: Record<string, unknown> = {};
-  for (const method of ["from", "where", "limit"]) {
-    chain[method] = vi.fn(() => chain);
-  }
-  chain.then = (
-    resolve: (v: unknown) => void,
-    reject: (e: unknown) => void,
-  ) => Promise.resolve(result).then(resolve, reject);
-  return chain;
+type AppRow = {
+  id: string;
+  domain: string;
+  allowedOrigins: string[];
+  organizationId: string;
+};
+
+function appRow(overrides: Partial<AppRow> = {}): AppRow {
+  return {
+    id: "00000000-0000-0000-0000-000000000001",
+    domain: "example.com",
+    allowedOrigins: ["example.com"],
+    organizationId: "org-1",
+    ...overrides,
+  };
+}
+
+function authorizedResult(app: AppRow = appRow()): AuthorizeResult {
+  return { authorized: true, application: app };
+}
+
+function rejectedResult(overrides: Partial<{ status: 403 | 404; error: string; message: string }> = {}): AuthorizeResult {
+  return {
+    authorized: false,
+    status: overrides.status ?? 403,
+    error: overrides.error ?? "origin_not_allowed",
+    message: overrides.message ?? "Origin is not in the application allow-list",
+  };
 }
 
 function createApp() {
@@ -41,244 +48,134 @@ function createApp() {
     const auth = getWidgetAuth(c);
     return c.json({ auth });
   });
-  app.post("/test", async (c) => {
-    const auth = getWidgetAuth(c);
-    return c.json({ auth });
-  });
   return app;
 }
 
 describe("requireWidgetAuth", () => {
+  const APP_ID = "00000000-0000-0000-0000-000000000001";
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
   it("returns 401 when X-App-Id header is missing", async () => {
-    const app = createApp();
-    const res = await app.request("/test", {
-      method: "GET",
-    });
-
+    const res = await createApp().request("/test", { method: "GET" });
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe("Unauthorized");
   });
 
-  it("returns 404 when appId is not a valid UUID", async () => {
-    const app = createApp();
-    const res = await app.request("/test", {
+  it("returns 404 when application is not found", async () => {
+    mockAuthorize.mockResolvedValue(rejectedResult({ status: 404, error: "app_not_found", message: "Application not found" }));
+    const res = await createApp().request("/test", {
       method: "GET",
-      headers: { "X-App-Id": "not-a-uuid" },
+      headers: { "X-App-Id": APP_ID },
     });
-
     expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Not Found");
-    // DB must not be queried for malformed IDs
-    expect(mockSelect).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when application is not found in the database", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+  it("returns 403 with origin_not_allowed when origin is rejected", async () => {
+    mockAuthorize.mockResolvedValue(rejectedResult());
 
-    const app = createApp();
-    const res = await app.request("/test", {
-      method: "GET",
-      headers: { "X-App-Id": "00000000-0000-0000-0000-000000000000" },
-    });
-
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Not Found");
-  });
-
-  it("returns 404 when application is soft-deleted", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
-
-    const app = createApp();
-    const res = await app.request("/test", {
-      method: "GET",
-      headers: { "X-App-Id": "00000000-0000-0000-0000-000000000002" },
-    });
-
-    expect(res.status).toBe(404);
-    const body = await res.json();
-    expect(body.error).toBe("Not Found");
-  });
-
-  it("returns 403 when origin does not match registered domain", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        { id: "00000000-0000-0000-0000-000000000001", domain: "example.com", organizationId: "org-1" },
-      ]),
-    );
-    mockValidateOrigin.mockReturnValue(false);
-
-    const app = createApp();
-    const res = await app.request("/test", {
+    const res = await createApp().request("/test", {
       method: "GET",
       headers: {
-        "X-App-Id": "00000000-0000-0000-0000-000000000001",
+        "X-App-Id": APP_ID,
         Origin: "https://evil.com",
       },
     });
 
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toBe("Forbidden");
-    expect(mockValidateOrigin).toHaveBeenCalledWith(
-      "https://evil.com",
-      "example.com",
-    );
+    expect(body.error).toBe("origin_not_allowed");
   });
 
-  it("allows request when origin matches registered domain", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        { id: "00000000-0000-0000-0000-000000000001", domain: "example.com", organizationId: "org-1" },
-      ]),
-    );
-    mockValidateOrigin.mockReturnValue(true);
-
-    const app = createApp();
-    const res = await app.request("/test", {
+  it("allows request when authorization passes", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    const res = await createApp().request("/test", {
       method: "GET",
       headers: {
-        "X-App-Id": "00000000-0000-0000-0000-000000000001",
+        "X-App-Id": APP_ID,
         Origin: "https://example.com",
       },
     });
-
     expect(res.status).toBe(200);
-    expect(mockValidateOrigin).toHaveBeenCalledWith(
-      "https://example.com",
-      "example.com",
-    );
   });
 
-  it("allows request when origin matches subdomain of registered domain", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        { id: "00000000-0000-0000-0000-000000000001", domain: "example.com", organizationId: "org-1" },
-      ]),
-    );
-    mockValidateOrigin.mockReturnValue(true);
-
-    const app = createApp();
-    const res = await app.request("/test", {
+  it("allows request when Origin header is missing", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    const res = await createApp().request("/test", {
       method: "GET",
-      headers: {
-        "X-App-Id": "00000000-0000-0000-0000-000000000001",
-        Origin: "https://shop.example.com",
-      },
+      headers: { "X-App-Id": APP_ID },
     });
-
     expect(res.status).toBe(200);
-    expect(mockValidateOrigin).toHaveBeenCalledWith(
-      "https://shop.example.com",
-      "example.com",
-    );
   });
 
-  it("allows localhost origins in non-production environments", async () => {
-    const original = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
-
-    mockSelect.mockReturnValue(
-      chainMock([
-        { id: "00000000-0000-0000-0000-000000000001", domain: "example.com", organizationId: "org-1" },
-      ]),
-    );
-    // validateOrigin would return false for localhost vs example.com,
-    // but the middleware should bypass domain validation for localhost in dev
-    mockValidateOrigin.mockReturnValue(false);
-
-    const app = createApp();
-    const res = await app.request("/test", {
+  it("sets widgetAuth context with application data", async () => {
+    const app = appRow({ allowedOrigins: ["example.com", "*.example.com"] });
+    mockAuthorize.mockResolvedValue(authorizedResult(app));
+    const res = await createApp().request("/test", {
       method: "GET",
       headers: {
-        "X-App-Id": "00000000-0000-0000-0000-000000000001",
-        Origin: "http://localhost:3001",
-      },
-    });
-
-    expect(res.status).toBe(200);
-    expect(mockValidateOrigin).not.toHaveBeenCalled();
-
-    process.env.NODE_ENV = original;
-  });
-
-  it("rejects localhost origin in production", async () => {
-    const original = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-
-    mockSelect.mockReturnValue(
-      chainMock([
-        { id: "00000000-0000-0000-0000-000000000001", domain: "example.com", organizationId: "org-1" },
-      ]),
-    );
-    mockValidateOrigin.mockReturnValue(false);
-
-    const app = createApp();
-    const res = await app.request("/test", {
-      method: "GET",
-      headers: {
-        "X-App-Id": "00000000-0000-0000-0000-000000000001",
-        Origin: "http://localhost:3001",
-      },
-    });
-
-    expect(res.status).toBe(403);
-    expect(mockValidateOrigin).toHaveBeenCalledWith(
-      "http://localhost:3001",
-      "example.com",
-    );
-
-    process.env.NODE_ENV = original;
-  });
-
-  it("allows request when no Origin header at all", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        { id: "00000000-0000-0000-0000-000000000001", domain: "example.com", organizationId: "org-1" },
-      ]),
-    );
-
-    const app = createApp();
-    const res = await app.request("/test", {
-      method: "GET",
-      headers: {
-        "X-App-Id": "00000000-0000-0000-0000-000000000001",
-      },
-    });
-
-    expect(res.status).toBe(200);
-    // validateOrigin should not be called when there is no origin
-    expect(mockValidateOrigin).not.toHaveBeenCalled();
-  });
-
-  it("sets widgetAuth context correctly on success", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        { id: "00000000-0000-0000-0000-000000000001", domain: "example.com", organizationId: "org-1" },
-      ]),
-    );
-    mockValidateOrigin.mockReturnValue(true);
-
-    const app = createApp();
-    const res = await app.request("/test", {
-      method: "GET",
-      headers: {
-        "X-App-Id": "00000000-0000-0000-0000-000000000001",
+        "X-App-Id": APP_ID,
         Origin: "https://example.com",
       },
     });
-
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.auth).toEqual({
-      application: { id: "00000000-0000-0000-0000-000000000001", domain: "example.com" },
+      application: app,
       organizationId: "org-1",
     });
+  });
+
+  it("passes appId and origin to resolveAndEnforceOrigin", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    await createApp().request("/test", {
+      method: "GET",
+      headers: {
+        "X-App-Id": APP_ID,
+        Origin: "https://example.com",
+      },
+    });
+    expect(mockAuthorize).toHaveBeenCalledWith(APP_ID, "https://example.com");
+  });
+
+  it("sets Access-Control-Allow-Origin to the validated origin", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    const res = await createApp().request("/test", {
+      method: "GET",
+      headers: {
+        "X-App-Id": APP_ID,
+        Origin: "https://example.com",
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://example.com",
+    );
+  });
+
+  it("does not set CORS header when origin is missing", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    const res = await createApp().request("/test", {
+      method: "GET",
+      headers: { "X-App-Id": APP_ID },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("does not set CORS header when authorization fails", async () => {
+    mockAuthorize.mockResolvedValue(rejectedResult());
+    const res = await createApp().request("/test", {
+      method: "GET",
+      headers: {
+        "X-App-Id": APP_ID,
+        Origin: "https://evil.com",
+      },
+    });
+    expect(res.status).toBe(403);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
   });
 });

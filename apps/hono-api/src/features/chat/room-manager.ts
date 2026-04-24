@@ -7,6 +7,7 @@ export interface WSConnection {
   userName: string | null;
   organizationId: string;
   role: ParticipantRole;
+  applicationId?: string;
   ws: WSContext;
 }
 
@@ -21,7 +22,7 @@ export interface IRoomManager {
   getConnections(conversationId: string): WSConnection[];
   getUserRooms(userId: string): string[];
   disconnectUser(userId: string): void;
-  registerConnection(connection: WSConnection): void;
+  registerConnection(connection: WSConnection): boolean;
   unregisterConnection(connectionId: string, organizationId: string): void;
   broadcastToOrganization(
     organizationId: string,
@@ -31,10 +32,29 @@ export interface IRoomManager {
   getOrganizationConnections(organizationId: string): WSConnection[];
 }
 
+export interface RoomManagerConfig {
+  maxConnectionsPerUser?: number;
+  maxConnectionLifetimeMs?: number;
+}
+
+const DEFAULT_MAX_CONNECTIONS_PER_USER = 5;
+const DEFAULT_MAX_CONNECTION_LIFETIME_MS = 8 * 60 * 60 * 1000; // 8 hours
+
 export class InMemoryRoomManager implements IRoomManager {
   private rooms = new Map<string, Map<string, WSConnection>>();
   private userConnections = new Map<string, Set<string>>();
   private orgConnections = new Map<string, Map<string, WSConnection>>();
+  private userConnectionCount = new Map<string, Set<string>>();
+  private connectionTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private maxConnectionsPerUser: number;
+  private maxConnectionLifetimeMs: number;
+
+  constructor(config?: RoomManagerConfig) {
+    this.maxConnectionsPerUser =
+      config?.maxConnectionsPerUser ?? DEFAULT_MAX_CONNECTIONS_PER_USER;
+    this.maxConnectionLifetimeMs =
+      config?.maxConnectionLifetimeMs ?? DEFAULT_MAX_CONNECTION_LIFETIME_MS;
+  }
 
   join(conversationId: string, connection: WSConnection): void {
     if (!this.rooms.has(conversationId)) {
@@ -141,22 +161,87 @@ export class InMemoryRoomManager implements IRoomManager {
     this.userConnections.delete(userId);
   }
 
-  registerConnection(connection: WSConnection): void {
+  registerConnection(connection: WSConnection): boolean {
+    const userId = connection.userId;
+    const currentCount = this.userConnectionCount.get(userId)?.size ?? 0;
+
+    if (currentCount >= this.maxConnectionsPerUser) {
+      console.log(`[RoomManager] REGISTER REJECTED connId=${connection.id} userId=${userId} — limit ${this.maxConnectionsPerUser} reached`);
+      return false;
+    }
+
     const orgId = connection.organizationId;
     if (!this.orgConnections.has(orgId)) {
       this.orgConnections.set(orgId, new Map());
     }
     this.orgConnections.get(orgId)!.set(connection.id, connection);
-    console.log(`[RoomManager] REGISTER connId=${connection.id} userId=${connection.userId} role=${connection.role} orgId=${orgId} orgSize=${this.orgConnections.get(orgId)!.size}`);
+
+    if (!this.userConnectionCount.has(userId)) {
+      this.userConnectionCount.set(userId, new Set());
+    }
+    this.userConnectionCount.get(userId)!.add(connection.id);
+
+    console.log(`[RoomManager] REGISTER connId=${connection.id} userId=${userId} role=${connection.role} orgId=${orgId} orgSize=${this.orgConnections.get(orgId)!.size}`);
+
+    const timer = setTimeout(() => {
+      console.log(`[RoomManager] EXPIRED connId=${connection.id} userId=${userId} — max lifetime reached`);
+      connection.ws.close(4008, "session_expired");
+      this.unregisterConnection(connection.id, orgId);
+      this.removeConnectionFromRooms(connection.id, userId);
+    }, this.maxConnectionLifetimeMs);
+
+    this.connectionTimers.set(connection.id, timer);
+
+    return true;
+  }
+
+  private removeConnectionFromRooms(connectionId: string, userId: string): void {
+    const rooms = this.userConnections.get(userId);
+    if (!rooms) return;
+
+    for (const conversationId of rooms) {
+      const room = this.rooms.get(conversationId);
+      if (!room) continue;
+
+      room.delete(connectionId);
+      if (room.size === 0) {
+        this.rooms.delete(conversationId);
+      }
+    }
+
+    if (this.userConnectionCount.get(userId)?.size === 0) {
+      this.userConnections.delete(userId);
+    }
+  }
+
+  getUserConnectionCount(userId: string): number {
+    return this.userConnectionCount.get(userId)?.size ?? 0;
   }
 
   unregisterConnection(connectionId: string, organizationId: string): void {
+    const timer = this.connectionTimers.get(connectionId);
+    if (timer) {
+      clearTimeout(timer);
+      this.connectionTimers.delete(connectionId);
+    }
+
     const orgMap = this.orgConnections.get(organizationId);
     if (!orgMap) return;
 
+    const connection = orgMap.get(connectionId);
     orgMap.delete(connectionId);
     if (orgMap.size === 0) {
       this.orgConnections.delete(organizationId);
+    }
+
+    if (connection) {
+      const userConns = this.userConnectionCount.get(connection.userId);
+      if (userConns) {
+        userConns.delete(connectionId);
+        if (userConns.size === 0) {
+          this.userConnectionCount.delete(connection.userId);
+        }
+      }
     }
   }
 

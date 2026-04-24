@@ -16,6 +16,19 @@ import {
 } from "../lib/email/index.js";
 import { formatDate } from "../utils/date.js";
 
+const VALID_PLANS = ["BASIC", "PREMIUM", "ENTERPRISE"] as const;
+type ValidPlan = (typeof VALID_PLANS)[number];
+
+function extractPlanFromMetadata(
+  metadata: Record<string, string> | null | undefined,
+): ValidPlan | null {
+  const plan = metadata?.plan;
+  if (plan && VALID_PLANS.includes(plan as ValidPlan)) {
+    return plan as ValidPlan;
+  }
+  return null;
+}
+
 function formatMoney(amountMinor: number | null | undefined): string | null {
   if (typeof amountMinor !== "number" || !Number.isFinite(amountMinor)) {
     return null;
@@ -129,10 +142,27 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             }
           }
 
+          let invoicePlan: ValidPlan | null = null;
+          const subscriptionId = invoice.subscription as string | null;
+          if (subscriptionId) {
+            try {
+              const sub = await stripe.subscriptions.retrieve(subscriptionId);
+              invoicePlan = extractPlanFromMetadata(
+                sub.metadata as Record<string, string>,
+              );
+            } catch (err) {
+              console.error(
+                `[Webhook] invoice.paid: Failed to retrieve subscription ${subscriptionId}:`,
+                err,
+              );
+            }
+          }
+
           await tx
             .update(organization)
             .set({
               planStatus: "active",
+              ...(invoicePlan ? { plan: invoicePlan } : {}),
               updatedAt: new Date().toISOString(),
             })
             .where(eq(organization.id, org.id));
@@ -241,6 +271,7 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
           await tx
             .update(organization)
             .set({
+              plan: "FREE",
               planStatus: "canceled",
               stripeSubscriptionId: null,
               updatedAt: new Date().toISOString(),
@@ -339,6 +370,10 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             }
           }
 
+          const metadataPlan = extractPlanFromMetadata(
+            subscription.metadata as Record<string, string>,
+          );
+
           await tx
             .update(organization)
             .set({
@@ -346,6 +381,7 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
               stripeSubscriptionId: subscription.id,
               cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
               trialEndsAt,
+              ...(metadataPlan ? { plan: metadataPlan } : {}),
               updatedAt: new Date().toISOString(),
             })
             .where(eq(organization.id, org.id));
@@ -396,12 +432,15 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             return;
           }
 
+          const checkoutPlanStatus =
+            org.planStatus === "trialing" ? "active" : "trialing";
+
           await tx
             .update(organization)
             .set({
               stripeCustomerId: customerId,
               stripeSubscriptionId: subscriptionId || null,
-              planStatus: "trialing",
+              planStatus: checkoutPlanStatus,
               ...(selectedPlan === "BASIC" ||
               selectedPlan === "PREMIUM" ||
               selectedPlan === "ENTERPRISE"
@@ -412,7 +451,60 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
             .where(eq(organization.id, org.id));
 
           console.info(
-            `[Webhook] checkout.session.completed: Updated org ${org.id} with Stripe IDs, set to trialing`,
+            `[Webhook] checkout.session.completed: Updated org ${org.id} with Stripe IDs, set to ${checkoutPlanStatus}`,
+          );
+            break;
+          }
+
+          case "customer.subscription.created": {
+            const subscription = event.data.object as Stripe.Subscription;
+            const customerId = subscription.customer as string;
+
+          if (!customerId) {
+            console.error(
+              "[Webhook] customer.subscription.created: Missing customer ID",
+            );
+            return;
+          }
+
+          const [org] = await tx
+            .select()
+            .from(organization)
+            .where(eq(organization.stripeCustomerId, customerId))
+            .limit(1);
+
+          if (!org) {
+            console.error(
+              `[Webhook] customer.subscription.created: Organization not found for customer ${customerId}`,
+            );
+            return;
+          }
+
+          const createdPlanStatus =
+            subscription.status === "trialing" ? "trialing" : "active";
+
+          const createdTrialEndsAt =
+            createdPlanStatus === "trialing" && subscription.trial_end
+              ? new Date(subscription.trial_end * 1000).toISOString()
+              : null;
+
+          const createdPlan = extractPlanFromMetadata(
+            subscription.metadata as Record<string, string>,
+          );
+
+          await tx
+            .update(organization)
+            .set({
+              stripeSubscriptionId: subscription.id,
+              planStatus: createdPlanStatus,
+              ...(createdTrialEndsAt ? { trialEndsAt: createdTrialEndsAt } : {}),
+              ...(createdPlan ? { plan: createdPlan } : {}),
+              updatedAt: new Date().toISOString(),
+            })
+            .where(eq(organization.id, org.id));
+
+          console.info(
+            `[Webhook] customer.subscription.created: Synced org ${org.id} with subscription ${subscription.id}`,
           );
             break;
           }

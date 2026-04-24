@@ -1,4 +1,4 @@
-import type { WidgetSettings } from "../types.js";
+import type { WidgetSettings } from "../types/index.js";
 
 const VAR_PREFIX = "--dc-";
 

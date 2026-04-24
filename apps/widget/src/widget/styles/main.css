@@ -275,6 +275,20 @@
   opacity: 0.9;
 }
 
+:where(.chat-widget) .send-btn--disabled,
+:where(.chat-widget) .send-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+:where(.chat-widget) .rate-limit-notice {
+  padding: 6px 12px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+}
+
 /* Message content wrapper */
 :where(.chat-widget) .message-content-wrapper {
   display: flex;

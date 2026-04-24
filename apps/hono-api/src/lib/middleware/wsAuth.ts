@@ -1,11 +1,12 @@
 import type { Context } from "hono";
 import { auth } from "../auth.js";
-import { validateOrigin } from "../../features/api-keys/api-key.service.js";
+import { verifyWsToken } from "../security/wsToken.js";
+import { resolveApplicationById } from "./resolveApplication.js";
 import { db } from "../../db/index.js";
 import { member } from "../../db/schema/member.js";
-import { applications } from "../../db/schema/applications.js";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { organization } from "../../db/schema/organization.js";
+import { env } from "../../env.js";
 import type { ParticipantRole } from "@repo/types";
 
 export interface AuthenticatedWSUser {
@@ -23,63 +24,59 @@ type SessionWithUser = SessionResult & {
   data?: { user?: { id: string; name?: string } };
 };
 
+export type WsAuthError =
+  | "invalid_token"
+  | "expired_token"
+  | "origin_mismatch"
+  | "app_not_found"
+  | "unauthorized";
+
 export async function authenticateWebSocket(
   c: Context,
-): Promise<AuthenticatedWSUser | null> {
-  const appId = c.req.query("appId");
-  const visitorId = c.req.query("visitorId");
+): Promise<{ user: AuthenticatedWSUser } | { error: WsAuthError }> {
+  const token = c.req.query("token");
 
-  if (appId && visitorId) {
-    return authenticateWidget(c, appId, visitorId);
+  if (token) {
+    return authenticateWithToken(c, token);
   }
 
-  return authenticateWithSession(c);
+  const user = await authenticateWithSession(c);
+  if (!user) return { error: "unauthorized" };
+  return { user };
 }
 
-function isLocalhostOrigin(origin: string): boolean {
-  try {
-    const url = new URL(origin);
-    return url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  } catch {
-    return false;
-  }
-}
-
-async function authenticateWidget(
+async function authenticateWithToken(
   c: Context,
-  appId: string,
-  visitorId: string,
-): Promise<AuthenticatedWSUser | null> {
-  const [app] = await db
-    .select({
-      id: applications.id,
-      domain: applications.domain,
-      organizationId: applications.organizationId,
-    })
-    .from(applications)
-    .where(and(eq(applications.id, appId), isNull(applications.deletedAt)))
-    .limit(1);
+  token: string,
+): Promise<{ user: AuthenticatedWSUser } | { error: WsAuthError }> {
+  const origin = c.req.header("Origin") ?? "";
 
-  if (!app) return null;
+  const result = verifyWsToken(token, env.WS_TOKEN_SECRET, {
+    expectedOrigin: origin,
+  });
 
-  const origin = c.req.header("Origin");
-
-  if (origin) {
-    const bypassForLocalhost =
-      isLocalhostOrigin(origin) && process.env.NODE_ENV !== "production";
-
-    if (!bypassForLocalhost && !validateOrigin(origin, app.domain)) {
-      return null;
-    }
+  if (!result.valid) {
+    const errorMap: Record<string, WsAuthError> = {
+      malformed_token: "invalid_token",
+      invalid_signature: "invalid_token",
+      token_expired: "expired_token",
+      origin_mismatch: "origin_mismatch",
+    };
+    return { error: errorMap[result.error] ?? "invalid_token" };
   }
+
+  const app = await resolveApplicationById(result.payload.appId);
+  if (!app) return { error: "app_not_found" };
 
   return {
-    userId: visitorId,
-    userName: null,
-    organizationId: app.organizationId,
-    role: "visitor",
-    authType: "widget",
-    applicationId: appId,
+    user: {
+      userId: result.payload.visitorId,
+      userName: null,
+      organizationId: app.organizationId,
+      role: "visitor",
+      authType: "widget",
+      applicationId: result.payload.appId,
+    },
   };
 }
 

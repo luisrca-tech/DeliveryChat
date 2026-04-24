@@ -1,7 +1,16 @@
 import { setState, getState } from "./state.js";
-import type { ConnectionError } from "./state.js";
-import type { ChatMessage } from "./types.js";
+import type { ConnectionError, ChatMessage } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
+import { fetchWsToken } from "./api.js";
+import {
+  PING_INTERVAL,
+  RECONNECT_BASE_DELAY,
+  RECONNECT_MAX_DELAY,
+  WS_TYPING_TIMEOUT_MS,
+  RECONNECT_WARN_THRESHOLD,
+  PERMANENT_ERROR_CODES,
+  PERMANENT_CLOSE_CODES,
+} from "./constants/index.js";
 
 type WSConfig = {
   apiBaseUrl: string;
@@ -9,25 +18,12 @@ type WSConfig = {
   visitorId: string;
 };
 
-const PING_INTERVAL = 25_000;
-const RECONNECT_BASE_DELAY = 1_000;
-const RECONNECT_MAX_DELAY = 30_000;
-const TYPING_TIMEOUT_MS = 3_000;
-const RECONNECT_WARN_THRESHOLD = 5;
-
-const PERMANENT_ERROR_CODES = new Set([
-  "UNAUTHORIZED",
-]);
-
-const PERMANENT_CLOSE_CODES = new Set([
-  1008, // Policy Violation — server rejected auth
-]);
-
 let ws: WebSocket | null = null;
 let config: WSConfig | null = null;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let typingTimer: ReturnType<typeof setTimeout> | null = null;
+let rateLimitTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalClose = false;
 let lastServerErrorCode: string | null = null;
@@ -65,17 +61,20 @@ export function sendWSMessage(event: object): void {
   ws.send(JSON.stringify(event));
 }
 
-function buildWsUrl(cfg: WSConfig): string {
-  const protocol = cfg.apiBaseUrl.startsWith("https") ? "wss" : "ws";
-  const host = cfg.apiBaseUrl.replace(/^https?:\/\//, "");
-  return `${protocol}://${host}/v1/ws?appId=${encodeURIComponent(cfg.appId)}&visitorId=${encodeURIComponent(cfg.visitorId)}`;
+function buildWsUrl(baseUrl: string, token: string): string {
+  const protocol = baseUrl.startsWith("https") ? "wss" : "ws";
+  const host = baseUrl.replace(/^https?:\/\//, "");
+  return `${protocol}://${host}/v1/ws?token=${encodeURIComponent(token)}`;
 }
 
-function createConnection(): void {
+async function createConnection(): Promise<void> {
   if (!config) return;
 
   try {
-    ws = new WebSocket(buildWsUrl(config));
+    const token = await fetchWsToken(config.apiBaseUrl, config.appId, config.visitorId);
+    if (intentionalClose || !config) return;
+
+    ws = new WebSocket(buildWsUrl(config.apiBaseUrl, token));
 
     ws.onopen = () => {
       reconnectAttempts = 0;
@@ -84,7 +83,6 @@ function createConnection(): void {
       setState("connectionError", null);
       startPing();
 
-      // Join conversation room if we have one
       const convId = getState("conversationId");
       if (convId) {
         const lastMsg = getState("messages").at(-1);
@@ -118,7 +116,6 @@ function createConnection(): void {
         (lastServerErrorCode && PERMANENT_ERROR_CODES.has(lastServerErrorCode)) ||
         (closeCode !== undefined && PERMANENT_CLOSE_CODES.has(closeCode));
 
-      // Permanent error — stop reconnecting, alert user
       if (isPermanent) {
         const errorCode = lastServerErrorCode ?? `close_${closeCode}`;
         const error: ConnectionError = {
@@ -131,7 +128,6 @@ function createConnection(): void {
         return;
       }
 
-      // Temporary error — keep reconnecting but warn after threshold
       reconnectAttempts++;
       if (reconnectAttempts >= RECONNECT_WARN_THRESHOLD) {
         const error: ConnectionError = {
@@ -147,7 +143,6 @@ function createConnection(): void {
     };
 
     ws.onerror = () => {
-      // onclose fires after onerror
     };
   } catch {
     scheduleReconnect();
@@ -209,7 +204,7 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         senderRole: payload.senderRole,
       });
       if (typingTimer) clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => setState("typingUser", null), TYPING_TIMEOUT_MS);
+      typingTimer = setTimeout(() => setState("typingUser", null), WS_TYPING_TIMEOUT_MS);
       break;
     }
 
@@ -312,7 +307,6 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
     }
 
     case "pong":
-      // Heartbeat response — no action needed
       break;
 
     case "conversation:accepted": {
@@ -340,10 +334,31 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
     }
 
     case "error": {
-      const payload = event.payload as { code: string; message: string };
+      const payload = event.payload as { code: string; message: string; retryAfter?: number };
 
-      // Capture error code so onclose can classify it
       lastServerErrorCode = payload.code;
+
+      if (payload.code === "RATE_LIMITED") {
+        const retryAfter = payload.retryAfter ?? 5;
+        setState("rateLimited", true);
+        setState("rateLimitRetryAfter", retryAfter);
+
+        setState("messages", (prev) =>
+          prev.map((msg) =>
+            msg.status === "pending"
+              ? { ...msg, status: "failed" as const }
+              : msg,
+          ),
+        );
+
+        if (rateLimitTimer) clearTimeout(rateLimitTimer);
+        rateLimitTimer = setTimeout(() => {
+          rateLimitTimer = null;
+          setState("rateLimited", false);
+          setState("rateLimitRetryAfter", null);
+        }, retryAfter * 1_000);
+        break;
+      }
 
       if (
         payload.code === "CONVERSATION_NOT_ACTIVE" ||
@@ -395,6 +410,10 @@ function cleanup(): void {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
+  }
+  if (rateLimitTimer) {
+    clearTimeout(rateLimitTimer);
+    rateLimitTimer = null;
   }
   if (ws) {
     ws.onopen = null;

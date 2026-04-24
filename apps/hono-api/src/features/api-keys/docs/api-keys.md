@@ -29,7 +29,15 @@ Keys are hashed with SHA-256 (not bcrypt) for verification. SHA-256 is determini
 
 ### Origin Validation
 
-For iframe/widget routes, `requireApiKeyAuth({ validateOriginHeader: true })` validates the `Origin` header against `applications.domain`. Supports exact match, subdomains, and wildcard (`*.example.com`).
+`requireApiKeyAuth()` validates the `Origin` header on every request against `applications.allowedOrigins` (a Postgres `text[]` allow-list, one entry per accepted domain). Enforcement is always on; there is no opt-out.
+
+- **Live keys (`dk_live_*`)** — strict: the origin must match an allow-list entry.
+- **Test keys (`dk_test_*`)** — strict against the allow-list **plus** localhost leniency: `http(s)://localhost`, `http(s)://localhost:*`, and `*.localhost` are accepted.
+- **Missing `Origin` header** — rejected (403 `origin_not_allowed`). If server-to-server use of API keys is ever added, this needs a deliberate carve-out.
+
+Matching rules (exact match, implicit `www`, `*.` leading wildcard, case-insensitive, no subdomain leakage on non-wildcard entries) live in `src/lib/security/originMatcher.ts`. See `packages/docs/security/origin-enforcement.md` for the full semantics and test matrix.
+
+A rejected origin returns HTTP 403 with body `{ "error": "origin_not_allowed" }` — distinguishable from other auth errors.
 
 ## Architecture
 
