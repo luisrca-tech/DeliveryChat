@@ -1,0 +1,1 @@
+ALTER TABLE "delivery_chat_applications" ADD COLUMN "allowed_origins" text[] DEFAULT '{}'::text[] NOT NULL;
