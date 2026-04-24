@@ -1,9 +1,8 @@
 import type { MiddlewareHandler } from "hono";
 import {
-  resolveApplicationById,
+  resolveAndEnforceOrigin,
   type ResolvedApplication,
 } from "./resolveApplication.js";
-import { enforceOrigin } from "../security/originMatcher.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 
 export type WidgetAuthContext = {
@@ -23,33 +22,15 @@ export function requireWidgetAuth(): MiddlewareHandler {
       );
     }
 
-    const application = await resolveApplicationById(appId);
+    const result = await resolveAndEnforceOrigin(appId, c.req.header("Origin"));
 
-    if (!application) {
-      return jsonError(
-        c,
-        HTTP_STATUS.NOT_FOUND,
-        ERROR_MESSAGES.NOT_FOUND,
-        "Application not found",
-      );
-    }
-
-    const originCheck = enforceOrigin({
-      origin: c.req.header("Origin"),
-      allowedOrigins: application.allowedOrigins,
-    });
-    if (!originCheck.allowed) {
-      return jsonError(
-        c,
-        HTTP_STATUS.FORBIDDEN,
-        originCheck.error,
-        originCheck.message,
-      );
+    if (!result.authorized) {
+      return jsonError(c, result.status, result.error, result.message);
     }
 
     c.set("widgetAuth", {
-      application,
-      organizationId: application.organizationId,
+      application: result.application,
+      organizationId: result.application.organizationId,
     } satisfies WidgetAuthContext);
 
     await next();

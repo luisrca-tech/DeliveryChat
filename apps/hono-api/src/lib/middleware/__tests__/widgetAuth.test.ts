@@ -1,14 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import type { AuthorizeResult } from "../resolveApplication.js";
 
 vi.mock("../resolveApplication.js", () => ({
-  resolveApplicationById: vi.fn(),
+  resolveAndEnforceOrigin: vi.fn(),
 }));
 
-const { resolveApplicationById } = await import("../resolveApplication.js");
+const { resolveAndEnforceOrigin } = await import("../resolveApplication.js");
 const { requireWidgetAuth, getWidgetAuth } = await import("../widgetAuth.js");
 
-const mockResolve = resolveApplicationById as unknown as ReturnType<typeof vi.fn>;
+const mockAuthorize = resolveAndEnforceOrigin as unknown as ReturnType<typeof vi.fn>;
 
 type AppRow = {
   id: string;
@@ -24,6 +25,19 @@ function appRow(overrides: Partial<AppRow> = {}): AppRow {
     allowedOrigins: ["example.com"],
     organizationId: "org-1",
     ...overrides,
+  };
+}
+
+function authorizedResult(app: AppRow = appRow()): AuthorizeResult {
+  return { authorized: true, application: app };
+}
+
+function rejectedResult(overrides: Partial<{ status: 403 | 404; error: string; message: string }> = {}): AuthorizeResult {
+  return {
+    authorized: false,
+    status: overrides.status ?? 403,
+    error: overrides.error ?? "origin_not_allowed",
+    message: overrides.message ?? "Origin is not in the application allow-list",
   };
 }
 
@@ -51,17 +65,8 @@ describe("requireWidgetAuth", () => {
     expect(body.error).toBe("Unauthorized");
   });
 
-  it("returns 404 when application is not found (invalid UUID or missing)", async () => {
-    mockResolve.mockResolvedValue(null);
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: { "X-App-Id": "not-a-uuid" },
-    });
-    expect(res.status).toBe(404);
-  });
-
-  it("returns 404 when application is not found in DB", async () => {
-    mockResolve.mockResolvedValue(null);
+  it("returns 404 when application is not found", async () => {
+    mockAuthorize.mockResolvedValue(rejectedResult({ status: 404, error: "app_not_found", message: "Application not found" }));
     const res = await createApp().request("/test", {
       method: "GET",
       headers: { "X-App-Id": APP_ID },
@@ -69,8 +74,8 @@ describe("requireWidgetAuth", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns 403 with origin_not_allowed when enforceOrigin rejects", async () => {
-    mockResolve.mockResolvedValue(appRow());
+  it("returns 403 with origin_not_allowed when origin is rejected", async () => {
+    mockAuthorize.mockResolvedValue(rejectedResult());
 
     const res = await createApp().request("/test", {
       method: "GET",
@@ -85,8 +90,8 @@ describe("requireWidgetAuth", () => {
     expect(body.error).toBe("origin_not_allowed");
   });
 
-  it("allows request when enforceOrigin passes", async () => {
-    mockResolve.mockResolvedValue(appRow());
+  it("allows request when authorization passes", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
     const res = await createApp().request("/test", {
       method: "GET",
       headers: {
@@ -97,8 +102,8 @@ describe("requireWidgetAuth", () => {
     expect(res.status).toBe(200);
   });
 
-  it("allows request when Origin header is missing (requireOrigin=false)", async () => {
-    mockResolve.mockResolvedValue(appRow());
+  it("allows request when Origin header is missing", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
     const res = await createApp().request("/test", {
       method: "GET",
       headers: { "X-App-Id": APP_ID },
@@ -106,10 +111,9 @@ describe("requireWidgetAuth", () => {
     expect(res.status).toBe(200);
   });
 
-  it("sets widgetAuth context with allowedOrigins", async () => {
-    mockResolve.mockResolvedValue(
-      appRow({ allowedOrigins: ["example.com", "*.example.com"] }),
-    );
+  it("sets widgetAuth context with application data", async () => {
+    const app = appRow({ allowedOrigins: ["example.com", "*.example.com"] });
+    mockAuthorize.mockResolvedValue(authorizedResult(app));
     const res = await createApp().request("/test", {
       method: "GET",
       headers: {
@@ -120,13 +124,20 @@ describe("requireWidgetAuth", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.auth).toEqual({
-      application: {
-        id: APP_ID,
-        domain: "example.com",
-        allowedOrigins: ["example.com", "*.example.com"],
-        organizationId: "org-1",
-      },
+      application: app,
       organizationId: "org-1",
     });
+  });
+
+  it("passes appId and origin to resolveAndEnforceOrigin", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    await createApp().request("/test", {
+      method: "GET",
+      headers: {
+        "X-App-Id": APP_ID,
+        Origin: "https://example.com",
+      },
+    });
+    expect(mockAuthorize).toHaveBeenCalledWith(APP_ID, "https://example.com");
   });
 });
