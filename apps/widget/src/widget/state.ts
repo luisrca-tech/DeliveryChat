@@ -1,18 +1,12 @@
-import type { WidgetSettings, ChatMessage, ConversationStatus } from "./types.js";
+import type {
+  WidgetSettings,
+  ChatMessage,
+  ConversationStatus,
+  TypingUser,
+  ConnectionError,
+} from "./types/index.js";
 
 type Listener<T> = (value: T) => void;
-
-export type TypingUser = {
-  userId: string;
-  userName: string | null;
-  senderRole: string;
-} | null;
-
-export type ConnectionError = {
-  type: "permanent" | "temporary";
-  userMessage: string;
-  devMessage: string;
-} | null;
 
 type State = {
   settings: WidgetSettings;

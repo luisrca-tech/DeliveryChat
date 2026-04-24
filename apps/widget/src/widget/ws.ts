@@ -1,27 +1,21 @@
 import { setState, getState } from "./state.js";
-import type { ConnectionError } from "./state.js";
-import type { ChatMessage } from "./types.js";
+import type { ConnectionError, ChatMessage } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
+import {
+  PING_INTERVAL,
+  RECONNECT_BASE_DELAY,
+  RECONNECT_MAX_DELAY,
+  WS_TYPING_TIMEOUT_MS,
+  RECONNECT_WARN_THRESHOLD,
+  PERMANENT_ERROR_CODES,
+  PERMANENT_CLOSE_CODES,
+} from "./constants/index.js";
 
 type WSConfig = {
   apiBaseUrl: string;
   appId: string;
   visitorId: string;
 };
-
-const PING_INTERVAL = 25_000;
-const RECONNECT_BASE_DELAY = 1_000;
-const RECONNECT_MAX_DELAY = 30_000;
-const TYPING_TIMEOUT_MS = 3_000;
-const RECONNECT_WARN_THRESHOLD = 5;
-
-const PERMANENT_ERROR_CODES = new Set([
-  "UNAUTHORIZED",
-]);
-
-const PERMANENT_CLOSE_CODES = new Set([
-  1008, // Policy Violation — server rejected auth
-]);
 
 let ws: WebSocket | null = null;
 let config: WSConfig | null = null;
@@ -84,7 +78,6 @@ function createConnection(): void {
       setState("connectionError", null);
       startPing();
 
-      // Join conversation room if we have one
       const convId = getState("conversationId");
       if (convId) {
         const lastMsg = getState("messages").at(-1);
@@ -118,7 +111,6 @@ function createConnection(): void {
         (lastServerErrorCode && PERMANENT_ERROR_CODES.has(lastServerErrorCode)) ||
         (closeCode !== undefined && PERMANENT_CLOSE_CODES.has(closeCode));
 
-      // Permanent error — stop reconnecting, alert user
       if (isPermanent) {
         const errorCode = lastServerErrorCode ?? `close_${closeCode}`;
         const error: ConnectionError = {
@@ -131,7 +123,6 @@ function createConnection(): void {
         return;
       }
 
-      // Temporary error — keep reconnecting but warn after threshold
       reconnectAttempts++;
       if (reconnectAttempts >= RECONNECT_WARN_THRESHOLD) {
         const error: ConnectionError = {
@@ -147,7 +138,6 @@ function createConnection(): void {
     };
 
     ws.onerror = () => {
-      // onclose fires after onerror
     };
   } catch {
     scheduleReconnect();
@@ -209,7 +199,7 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         senderRole: payload.senderRole,
       });
       if (typingTimer) clearTimeout(typingTimer);
-      typingTimer = setTimeout(() => setState("typingUser", null), TYPING_TIMEOUT_MS);
+      typingTimer = setTimeout(() => setState("typingUser", null), WS_TYPING_TIMEOUT_MS);
       break;
     }
 
@@ -312,7 +302,6 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
     }
 
     case "pong":
-      // Heartbeat response — no action needed
       break;
 
     case "conversation:accepted": {
@@ -342,7 +331,6 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
     case "error": {
       const payload = event.payload as { code: string; message: string };
 
-      // Capture error code so onclose can classify it
       lastServerErrorCode = payload.code;
 
       if (

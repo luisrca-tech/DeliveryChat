@@ -1,31 +1,17 @@
-import type { ChatMessage } from "../types.js";
+import type { ChatMessage, BubbleContext } from "../types/index.js";
+import {
+  MORE_ICON,
+  COPY_ICON,
+  EDIT_ICON,
+  DELETE_ICON,
+} from "../constants/icons.js";
+import {
+  LONG_PRESS_MS,
+  EDIT_WINDOW_MS,
+  DELETE_WINDOW_MS,
+} from "../constants/index.js";
 
-// ── SVG Icons (14x14, Lucide-style) ──
-
-const MORE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></svg>`;
-
-const COPY_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`;
-
-const EDIT_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`;
-
-const DELETE_ICON = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`;
-
-// ── Time windows ──
-
-const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const DELETE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
-
-// ── Types ──
-
-export type BubbleContext = {
-  visitorId: string | null;
-  onEdit: (messageId: string, content: string) => void;
-  onDelete: (messageId: string) => void;
-};
-
-// ── Long-press support ──
-
-const LONG_PRESS_MS = 500;
+export type { BubbleContext };
 
 function attachLongPress(
   el: HTMLElement,
@@ -64,7 +50,6 @@ function attachLongPress(
   );
 }
 
-// ── Dropdown dismiss helper ──
 
 function dismissAllDropdowns(root: HTMLElement): void {
   root.querySelectorAll(".message-dropdown.open").forEach((el) => {
@@ -75,7 +60,6 @@ function dismissAllDropdowns(root: HTMLElement): void {
   });
 }
 
-// ── Public API ──
 
 export function createMessageList(
   messages: ChatMessage[],
@@ -189,7 +173,7 @@ export function markMessageDeleted(
   // Replace content
   const wrapper = row.querySelector(".message-content-wrapper");
   if (wrapper) {
-    wrapper.innerHTML = "";
+    wrapper.replaceChildren();
     const deletedText = document.createElement("span");
     deletedText.className = "message-deleted-text";
     deletedText.textContent = "This message was deleted";
@@ -319,24 +303,19 @@ export function exitEditMode(
   }
 }
 
-// ── Private ──
-
 function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement): HTMLElement {
   const isVisitor = msg.senderRole === "visitor";
 
-  // Row wrapper — full width, hover target for "..."
   const row = document.createElement("div");
   row.className = `message-row ${isVisitor ? "message-row-user" : "message-row-visitor"}`;
   row.setAttribute("data-id", msg.id);
   row.setAttribute("data-sender-id", msg.senderId);
 
-  // Bubble
   const bubble = document.createElement("div");
   const roleClass = isVisitor ? "message-user" : "message-visitor";
   const statusClass = msg.status === "pending" ? "message-pending" : "";
   bubble.className = `message-bubble ${roleClass} ${statusClass}`.trim();
 
-  // Deleted message
   if (msg.isDeleted) {
     bubble.classList.add("message-deleted");
     const wrapper = document.createElement("div");
@@ -350,7 +329,6 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
     return row;
   }
 
-  // Content wrapper
   const wrapper = document.createElement("div");
   wrapper.className = "message-content-wrapper";
 
@@ -372,7 +350,6 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
   bubble.appendChild(wrapper);
   row.appendChild(bubble);
 
-  // "..." trigger + dropdown (only for visitor's own sent messages)
   const isOwnMessage = isVisitor && msg.senderId === ctx.visitorId;
   const isActionable = isOwnMessage && msg.status === "sent";
 
@@ -381,21 +358,19 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
     const canEdit = messageAge < EDIT_WINDOW_MS;
     const canDelete = messageAge < DELETE_WINDOW_MS;
 
-    // "..." button — lives in the row, beside the bubble
     const moreBtn = document.createElement("button");
     moreBtn.className = "message-more-btn";
     moreBtn.type = "button";
+    // eslint-disable-next-line no-restricted-syntax -- static SVG icon constant
     moreBtn.innerHTML = MORE_ICON;
     moreBtn.setAttribute("aria-label", "Message options");
 
-    // Dropdown menu — anchored to the "..." button
     const dropdownAnchor = document.createElement("div");
     dropdownAnchor.className = "message-dropdown-anchor";
 
     const dropdown = document.createElement("div");
     dropdown.className = "message-dropdown";
 
-    // Copy
     const copyItem = createDropdownItem(COPY_ICON, "Copy", () => {
       navigator.clipboard.writeText(msg.content);
       dropdown.classList.remove("open");
@@ -403,7 +378,6 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
     });
     dropdown.appendChild(copyItem);
 
-    // Edit (within 15 min)
     if (canEdit) {
       const editItem = createDropdownItem(EDIT_ICON, "Edit", () => {
         dropdown.classList.remove("open");
@@ -434,16 +408,12 @@ function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement)
     dropdownAnchor.appendChild(moreBtn);
     dropdownAnchor.appendChild(dropdown);
 
-    // "..." always on the left side of the bubble
-    // row-reverse for user msgs: DOM order after bubble = visually left
-    // row for visitor msgs: DOM order before bubble = visually left
     if (isVisitor) {
       row.appendChild(dropdownAnchor);
     } else {
       row.insertBefore(dropdownAnchor, bubble);
     }
 
-    // Mobile long-press
     attachLongPress(row, () => {
       dismissAllDropdowns(listEl);
       dropdown.classList.add("open");
@@ -462,7 +432,18 @@ function createDropdownItem(
   const item = document.createElement("button");
   item.className = "dropdown-item";
   item.type = "button";
-  item.innerHTML = `${iconSvg}<span>${label}</span>`;
+
+  const iconSpan = document.createElement("span");
+  iconSpan.className = "dropdown-item-icon";
+  // eslint-disable-next-line no-restricted-syntax -- static SVG icon constant
+  iconSpan.innerHTML = iconSvg;
+
+  const labelSpan = document.createElement("span");
+  labelSpan.textContent = label;
+
+  item.appendChild(iconSpan);
+  item.appendChild(labelSpan);
+
   item.addEventListener("click", (e) => {
     e.stopPropagation();
     onClick();

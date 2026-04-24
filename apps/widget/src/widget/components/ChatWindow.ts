@@ -1,4 +1,4 @@
-import type { WidgetSettings, ChatMessage } from "../types.js";
+import type { WidgetSettings, ChatMessage, BubbleContext } from "../types/index.js";
 import { createHeader } from "./Header.js";
 import {
   createMessageList,
@@ -8,7 +8,6 @@ import {
   markMessageDeleted,
   enterEditMode,
   exitEditMode,
-  type BubbleContext,
 } from "./MessageList.js";
 import { createInputArea } from "./InputArea.js";
 import { createConnectionIndicator } from "./ConnectionIndicator.js";
@@ -40,13 +39,11 @@ export function createChatWindow(
     onTypingStop: callbacks.onTypingStop,
   });
 
-  // Typing indicator element (lives inside message list, at the bottom)
   const typingIndicator = document.createElement("div");
   typingIndicator.className = "typing-indicator";
   typingIndicator.hidden = true;
   messageList.appendChild(typingIndicator);
 
-  // Place connection indicator inside header
   header.appendChild(connectionIndicator);
 
   container.appendChild(header);

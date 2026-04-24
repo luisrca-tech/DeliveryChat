@@ -1,10 +1,10 @@
+import { TYPING_THROTTLE_MS } from "../constants/index.js";
+
 type InputCallbacks = {
   onSend: (text: string) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
 };
-
-const TYPING_THROTTLE_MS = 2_000;
 
 export function createInputArea(
   callbacks: InputCallbacks,

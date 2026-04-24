@@ -11,6 +11,8 @@
     "build": "turbo run build",
     "dev": "turbo run dev --filter='./apps/*' --output-logs=full",
     "lint": "turbo run lint",
+    "test": "turbo run test",
+    "test:e2e": "turbo run test:e2e",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "stripe:listen": "stripe listen --forward-to localhost:8000/v1/webhooks/stripe",
