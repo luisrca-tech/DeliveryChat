@@ -3,7 +3,7 @@ import {
   verifyApiKey,
   touchLastUsed,
 } from "../../features/api-keys/api-key.service.js";
-import { matchesAllowedOrigin } from "../security/originMatcher.js";
+import { enforceOrigin } from "../security/originMatcher.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../http.js";
 
 const KEY_REGEX = /^dk_(live|test)_[a-zA-Z0-9]{32}$/;
@@ -74,17 +74,18 @@ export function requireApiKeyAuth(): MiddlewareHandler {
       );
     }
 
-    const origin = c.req.header("Origin");
-    const allowed = matchesAllowedOrigin(origin, {
+    const originCheck = enforceOrigin({
+      origin: c.req.header("Origin"),
       allowedOrigins: result.application.allowedOrigins,
-      testMode: result.apiKey.environment === "test",
+      keyEnvironment: result.apiKey.environment,
+      requireOrigin: true,
     });
-    if (!allowed) {
+    if (!originCheck.allowed) {
       return jsonError(
         c,
         HTTP_STATUS.FORBIDDEN,
-        "origin_not_allowed",
-        "Origin is not in the application allow-list",
+        originCheck.error,
+        originCheck.message,
       );
     }
 

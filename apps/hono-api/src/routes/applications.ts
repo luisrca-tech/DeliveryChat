@@ -109,6 +109,7 @@ export const applicationsRoute = new Hono()
           .insert(applications)
           .values({
             ...data,
+            allowedOrigins: [data.domain],
             organizationId: organization.id,
             id: crypto.randomUUID(),
           })

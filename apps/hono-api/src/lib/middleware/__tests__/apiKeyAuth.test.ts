@@ -90,7 +90,7 @@ describe("requireApiKeyAuth", () => {
     expect(res.status).toBe(401);
   });
 
-  it("allows live key with exact origin in allow-list", async () => {
+  it("allows request when enforceOrigin passes", async () => {
     mockVerify.mockResolvedValue(validResult());
     const res = await createApp().request("/test", {
       method: "GET",
@@ -103,72 +103,12 @@ describe("requireApiKeyAuth", () => {
     expect(res.status).toBe(200);
   });
 
-  it("allows live key with wildcard entry covering subdomain", async () => {
-    mockVerify.mockResolvedValue(
-      validResult({ allowedOrigins: ["*.example.com"] }),
-    );
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${validLiveKey()}`,
-        "X-App-Id": "app-1",
-        Origin: "https://shop.example.com",
-      },
-    });
-    expect(res.status).toBe(200);
-  });
-
-  it("rejects live key with localhost origin (no test-mode leniency)", async () => {
+  it("returns 403 with origin_not_allowed when enforceOrigin rejects", async () => {
     mockVerify.mockResolvedValue(validResult());
     const res = await createApp().request("/test", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${validLiveKey()}`,
-        "X-App-Id": "app-1",
-        Origin: "http://localhost:3000",
-      },
-    });
-    expect(res.status).toBe(403);
-    const body = await res.json();
-    expect(body.error).toBe("origin_not_allowed");
-  });
-
-  it("allows test key with localhost origin", async () => {
-    mockVerify.mockResolvedValue(
-      validResult({ environment: "test" }),
-    );
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${validTestKey()}`,
-        "X-App-Id": "app-1",
-        Origin: "http://localhost:3001",
-      },
-    });
-    expect(res.status).toBe(200);
-  });
-
-  it("allows test key with *.localhost", async () => {
-    mockVerify.mockResolvedValue(
-      validResult({ environment: "test" }),
-    );
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${validTestKey()}`,
-        "X-App-Id": "app-1",
-        Origin: "http://tenant.localhost:3000",
-      },
-    });
-    expect(res.status).toBe(200);
-  });
-
-  it("rejects test key with disallowed origin", async () => {
-    mockVerify.mockResolvedValue(validResult({ environment: "test" }));
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${validTestKey()}`,
         "X-App-Id": "app-1",
         Origin: "https://evil.com",
       },
@@ -178,7 +118,7 @@ describe("requireApiKeyAuth", () => {
     expect(body.error).toBe("origin_not_allowed");
   });
 
-  it("rejects when Origin header is missing (every call must be origin-checked)", async () => {
+  it("rejects when Origin header is missing (requireOrigin=true)", async () => {
     mockVerify.mockResolvedValue(validResult());
     const res = await createApp().request("/test", {
       method: "GET",
@@ -190,6 +130,19 @@ describe("requireApiKeyAuth", () => {
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe("origin_not_allowed");
+  });
+
+  it("passes keyEnvironment to enforceOrigin for testMode derivation", async () => {
+    mockVerify.mockResolvedValue(validResult({ environment: "test" }));
+    const res = await createApp().request("/test", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${validTestKey()}`,
+        "X-App-Id": "app-1",
+        Origin: "http://localhost:3001",
+      },
+    });
+    expect(res.status).toBe(200);
   });
 
   it("passes application and apiKey context on success", async () => {

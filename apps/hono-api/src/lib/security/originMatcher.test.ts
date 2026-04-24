@@ -1,5 +1,5 @@
-import { describe, it, expect } from "vitest";
-import { matchesAllowedOrigin } from "./originMatcher.js";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { matchesAllowedOrigin, enforceOrigin } from "./originMatcher.js";
 
 describe("matchesAllowedOrigin", () => {
   describe("empty / missing inputs", () => {
@@ -255,6 +255,137 @@ describe("matchesAllowedOrigin", () => {
           testMode: false,
         }),
       ).toBe(true);
+    });
+  });
+
+  describe("defensive handling", () => {
+    it("returns false when allowedOrigins is null", () => {
+      expect(
+        matchesAllowedOrigin("https://example.com", {
+          allowedOrigins: null as unknown as string[],
+          testMode: false,
+        }),
+      ).toBe(false);
+    });
+
+    it("returns false when allowedOrigins is undefined", () => {
+      expect(
+        matchesAllowedOrigin("https://example.com", {
+          allowedOrigins: undefined as unknown as string[],
+          testMode: false,
+        }),
+      ).toBe(false);
+    });
+  });
+});
+
+describe("enforceOrigin", () => {
+  const originalEnv = process.env.NODE_ENV;
+
+  beforeEach(() => {
+    process.env.NODE_ENV = originalEnv;
+  });
+
+  describe("missing origin", () => {
+    it("allows when origin is missing and requireOrigin is false", () => {
+      const result = enforceOrigin({
+        origin: null,
+        allowedOrigins: ["example.com"],
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it("rejects when origin is missing and requireOrigin is true", () => {
+      const result = enforceOrigin({
+        origin: null,
+        allowedOrigins: ["example.com"],
+        requireOrigin: true,
+      });
+      expect(result).toEqual({
+        allowed: false,
+        error: "origin_not_allowed",
+        message: "Origin header is required",
+      });
+    });
+  });
+
+  describe("testMode derivation from keyEnvironment", () => {
+    it("allows localhost when keyEnvironment is test", () => {
+      process.env.NODE_ENV = "production";
+      const result = enforceOrigin({
+        origin: "http://localhost:3001",
+        allowedOrigins: ["example.com"],
+        keyEnvironment: "test",
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it("rejects localhost when keyEnvironment is live", () => {
+      process.env.NODE_ENV = "development";
+      const result = enforceOrigin({
+        origin: "http://localhost:3001",
+        allowedOrigins: ["example.com"],
+        keyEnvironment: "live",
+      });
+      expect(result).toEqual({
+        allowed: false,
+        error: "origin_not_allowed",
+        message: "Origin is not in the application allow-list",
+      });
+    });
+  });
+
+  describe("testMode fallback to NODE_ENV when no keyEnvironment", () => {
+    it("allows localhost in non-production", () => {
+      process.env.NODE_ENV = "development";
+      const result = enforceOrigin({
+        origin: "http://localhost:3001",
+        allowedOrigins: ["example.com"],
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it("rejects localhost in production", () => {
+      process.env.NODE_ENV = "production";
+      const result = enforceOrigin({
+        origin: "http://localhost:3001",
+        allowedOrigins: ["example.com"],
+      });
+      expect(result).toEqual({
+        allowed: false,
+        error: "origin_not_allowed",
+        message: "Origin is not in the application allow-list",
+      });
+    });
+  });
+
+  describe("allowed origins matching", () => {
+    it("allows exact match", () => {
+      const result = enforceOrigin({
+        origin: "https://example.com",
+        allowedOrigins: ["example.com"],
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it("rejects disallowed origin", () => {
+      const result = enforceOrigin({
+        origin: "https://evil.com",
+        allowedOrigins: ["example.com"],
+      });
+      expect(result).toEqual({
+        allowed: false,
+        error: "origin_not_allowed",
+        message: "Origin is not in the application allow-list",
+      });
+    });
+
+    it("allows wildcard match", () => {
+      const result = enforceOrigin({
+        origin: "https://shop.example.com",
+        allowedOrigins: ["*.example.com"],
+      });
+      expect(result).toEqual({ allowed: true });
     });
   });
 });

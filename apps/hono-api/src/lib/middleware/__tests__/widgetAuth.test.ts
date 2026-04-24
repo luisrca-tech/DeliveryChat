@@ -1,28 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 
-vi.mock("../../../db/index.js", () => ({
-  db: {
-    select: vi.fn(),
-  },
+vi.mock("../resolveApplication.js", () => ({
+  resolveApplicationById: vi.fn(),
 }));
 
-const { db } = await import("../../../db/index.js");
+const { resolveApplicationById } = await import("../resolveApplication.js");
 const { requireWidgetAuth, getWidgetAuth } = await import("../widgetAuth.js");
 
-const mockSelect = db.select as unknown as ReturnType<typeof vi.fn>;
-
-function chainMock(result: unknown) {
-  const chain: Record<string, unknown> = {};
-  for (const method of ["from", "where", "limit"]) {
-    chain[method] = vi.fn(() => chain);
-  }
-  chain.then = (
-    resolve: (v: unknown) => void,
-    reject: (e: unknown) => void,
-  ) => Promise.resolve(result).then(resolve, reject);
-  return chain;
-}
+const mockResolve = resolveApplicationById as unknown as ReturnType<typeof vi.fn>;
 
 type AppRow = {
   id: string;
@@ -65,17 +51,17 @@ describe("requireWidgetAuth", () => {
     expect(body.error).toBe("Unauthorized");
   });
 
-  it("returns 404 when appId is not a valid UUID", async () => {
+  it("returns 404 when application is not found (invalid UUID or missing)", async () => {
+    mockResolve.mockResolvedValue(null);
     const res = await createApp().request("/test", {
       method: "GET",
       headers: { "X-App-Id": "not-a-uuid" },
     });
     expect(res.status).toBe(404);
-    expect(mockSelect).not.toHaveBeenCalled();
   });
 
-  it("returns 404 when application is not found", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+  it("returns 404 when application is not found in DB", async () => {
+    mockResolve.mockResolvedValue(null);
     const res = await createApp().request("/test", {
       method: "GET",
       headers: { "X-App-Id": APP_ID },
@@ -83,8 +69,8 @@ describe("requireWidgetAuth", () => {
     expect(res.status).toBe(404);
   });
 
-  it("returns 403 with origin_not_allowed when origin is outside allow-list", async () => {
-    mockSelect.mockReturnValue(chainMock([appRow()]));
+  it("returns 403 with origin_not_allowed when enforceOrigin rejects", async () => {
+    mockResolve.mockResolvedValue(appRow());
 
     const res = await createApp().request("/test", {
       method: "GET",
@@ -99,8 +85,8 @@ describe("requireWidgetAuth", () => {
     expect(body.error).toBe("origin_not_allowed");
   });
 
-  it("allows request when origin exactly matches an allow-list entry", async () => {
-    mockSelect.mockReturnValue(chainMock([appRow()]));
+  it("allows request when enforceOrigin passes", async () => {
+    mockResolve.mockResolvedValue(appRow());
     const res = await createApp().request("/test", {
       method: "GET",
       headers: {
@@ -111,68 +97,8 @@ describe("requireWidgetAuth", () => {
     expect(res.status).toBe(200);
   });
 
-  it("allows wildcard entry for subdomain", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([appRow({ allowedOrigins: ["*.example.com"] })]),
-    );
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        "X-App-Id": APP_ID,
-        Origin: "https://shop.example.com",
-      },
-    });
-    expect(res.status).toBe(200);
-  });
-
-  it("rejects subdomain when entry is non-wildcard", async () => {
-    mockSelect.mockReturnValue(chainMock([appRow()]));
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        "X-App-Id": APP_ID,
-        Origin: "https://evil.example.com",
-      },
-    });
-    expect(res.status).toBe(403);
-  });
-
-  it("allows localhost in non-production for dev ergonomics", async () => {
-    const original = process.env.NODE_ENV;
-    process.env.NODE_ENV = "development";
-
-    mockSelect.mockReturnValue(chainMock([appRow()]));
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        "X-App-Id": APP_ID,
-        Origin: "http://localhost:3001",
-      },
-    });
-    expect(res.status).toBe(200);
-
-    process.env.NODE_ENV = original;
-  });
-
-  it("rejects localhost in production unless explicitly in allow-list", async () => {
-    const original = process.env.NODE_ENV;
-    process.env.NODE_ENV = "production";
-
-    mockSelect.mockReturnValue(chainMock([appRow()]));
-    const res = await createApp().request("/test", {
-      method: "GET",
-      headers: {
-        "X-App-Id": APP_ID,
-        Origin: "http://localhost:3001",
-      },
-    });
-    expect(res.status).toBe(403);
-
-    process.env.NODE_ENV = original;
-  });
-
-  it("allows request when Origin header is missing", async () => {
-    mockSelect.mockReturnValue(chainMock([appRow()]));
+  it("allows request when Origin header is missing (requireOrigin=false)", async () => {
+    mockResolve.mockResolvedValue(appRow());
     const res = await createApp().request("/test", {
       method: "GET",
       headers: { "X-App-Id": APP_ID },
@@ -181,8 +107,8 @@ describe("requireWidgetAuth", () => {
   });
 
   it("sets widgetAuth context with allowedOrigins", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([appRow({ allowedOrigins: ["example.com", "*.example.com"] })]),
+    mockResolve.mockResolvedValue(
+      appRow({ allowedOrigins: ["example.com", "*.example.com"] }),
     );
     const res = await createApp().request("/test", {
       method: "GET",

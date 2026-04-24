@@ -8,6 +8,10 @@ vi.mock("../../auth.js", () => ({
   },
 }));
 
+vi.mock("../resolveApplication.js", () => ({
+  resolveApplicationById: vi.fn(),
+}));
+
 vi.mock("../../../db/index.js", () => ({
   db: {
     select: vi.fn(),
@@ -16,10 +20,12 @@ vi.mock("../../../db/index.js", () => ({
 
 const { auth } = await import("../../auth.js");
 const { db } = await import("../../../db/index.js");
+const { resolveApplicationById } = await import("../resolveApplication.js");
 const { authenticateWebSocket } = await import("../wsAuth.js");
 
 const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
+const mockResolve = resolveApplicationById as unknown as ReturnType<typeof vi.fn>;
 
 type AppRow = {
   id: string;
@@ -80,9 +86,7 @@ describe("authenticateWebSocket", () => {
         },
       });
 
-      mockSelect.mockReturnValue(
-        chainMock([appRow()]),
-      );
+      mockResolve.mockResolvedValue(appRow());
 
       const result = await authenticateWebSocket(c);
 
@@ -102,13 +106,13 @@ describe("authenticateWebSocket", () => {
         },
       });
 
-      mockSelect.mockReturnValue(chainMock([]));
+      mockResolve.mockResolvedValue(null);
 
       const result = await authenticateWebSocket(c);
       expect(result).toBeNull();
     });
 
-    it("rejects when origin does not match application domain", async () => {
+    it("returns null when enforceOrigin rejects", async () => {
       const c = createMockContext({
         query: {
           appId: "app-1",
@@ -119,61 +123,10 @@ describe("authenticateWebSocket", () => {
         },
       });
 
-      mockSelect.mockReturnValue(
-        chainMock([appRow()]),
-      );
+      mockResolve.mockResolvedValue(appRow());
 
       const result = await authenticateWebSocket(c);
       expect(result).toBeNull();
-    });
-
-    it("allows localhost origin in non-production environment", async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "development";
-
-      const c = createMockContext({
-        query: {
-          appId: "app-1",
-          visitorId: "visitor-123",
-        },
-        headers: {
-          Origin: "http://localhost:3000",
-        },
-      });
-
-      mockSelect.mockReturnValue(
-        chainMock([appRow()]),
-      );
-
-      const result = await authenticateWebSocket(c);
-
-      expect(result).not.toBeNull();
-      expect(result!.authType).toBe("widget");
-      process.env.NODE_ENV = originalEnv;
-    });
-
-    it("rejects localhost origin in production environment", async () => {
-      const originalEnv = process.env.NODE_ENV;
-      process.env.NODE_ENV = "production";
-
-      const c = createMockContext({
-        query: {
-          appId: "app-1",
-          visitorId: "visitor-123",
-        },
-        headers: {
-          Origin: "http://localhost:3000",
-        },
-      });
-
-      mockSelect.mockReturnValue(
-        chainMock([appRow()]),
-      );
-
-      const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
-
-      process.env.NODE_ENV = originalEnv;
     });
 
     it("allows connection when no Origin header is present", async () => {
@@ -184,9 +137,7 @@ describe("authenticateWebSocket", () => {
         },
       });
 
-      mockSelect.mockReturnValue(
-        chainMock([appRow()]),
-      );
+      mockResolve.mockResolvedValue(appRow());
 
       const result = await authenticateWebSocket(c);
 

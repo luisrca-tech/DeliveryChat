@@ -1,10 +1,10 @@
 import type { Context } from "hono";
 import { auth } from "../auth.js";
-import { matchesAllowedOrigin } from "../security/originMatcher.js";
+import { enforceOrigin } from "../security/originMatcher.js";
+import { resolveApplicationById } from "./resolveApplication.js";
 import { db } from "../../db/index.js";
 import { member } from "../../db/schema/member.js";
-import { applications } from "../../db/schema/applications.js";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { organization } from "../../db/schema/organization.js";
 import type { ParticipantRole } from "@repo/types";
 
@@ -41,28 +41,15 @@ async function authenticateWidget(
   appId: string,
   visitorId: string,
 ): Promise<AuthenticatedWSUser | null> {
-  const [app] = await db
-    .select({
-      id: applications.id,
-      domain: applications.domain,
-      allowedOrigins: applications.allowedOrigins,
-      organizationId: applications.organizationId,
-    })
-    .from(applications)
-    .where(and(eq(applications.id, appId), isNull(applications.deletedAt)))
-    .limit(1);
+  const app = await resolveApplicationById(appId);
 
   if (!app) return null;
 
-  const origin = c.req.header("Origin");
-
-  if (origin) {
-    const allowed = matchesAllowedOrigin(origin, {
-      allowedOrigins: app.allowedOrigins,
-      testMode: process.env.NODE_ENV !== "production",
-    });
-    if (!allowed) return null;
-  }
+  const originCheck = enforceOrigin({
+    origin: c.req.header("Origin"),
+    allowedOrigins: app.allowedOrigins,
+  });
+  if (!originCheck.allowed) return null;
 
   return {
     userId: visitorId,
