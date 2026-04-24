@@ -20,6 +20,8 @@ type State = {
   typingUser: TypingUser;
   editingMessageId: string | null;
   unreadCount: number;
+  rateLimited: boolean;
+  rateLimitRetryAfter: number | null;
 };
 
 const listeners: Map<keyof State, Set<Listener<unknown>>> = new Map();
@@ -36,6 +38,8 @@ let state: State = {
   typingUser: null,
   editingMessageId: null,
   unreadCount: 0,
+  rateLimited: false,
+  rateLimitRetryAfter: null,
 };
 
 export function getState<K extends keyof State>(key: K): State[K] {

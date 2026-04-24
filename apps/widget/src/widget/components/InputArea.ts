@@ -1,4 +1,5 @@
 import { TYPING_THROTTLE_MS } from "../constants/index.js";
+import { subscribe } from "../state.js";
 
 type InputCallbacks = {
   onSend: (text: string) => void;
@@ -12,6 +13,12 @@ export function createInputArea(
   const container = document.createElement("div");
   container.className = "input-area";
 
+  const rateLimitNotice = document.createElement("div");
+  rateLimitNotice.className = "rate-limit-notice";
+  rateLimitNotice.textContent =
+    "You're sending messages too fast. Please wait a moment.";
+  rateLimitNotice.style.display = "none";
+
   const input = document.createElement("input");
   input.type = "text";
   input.placeholder = "Type a message...";
@@ -23,8 +30,10 @@ export function createInputArea(
   btn.textContent = "Send";
 
   let lastTypingSent = 0;
+  let isRateLimited = false;
 
   const send = () => {
+    if (isRateLimited) return;
     const text = input.value.trim();
     if (text) {
       callbacks.onSend(text);
@@ -52,10 +61,18 @@ export function createInputArea(
     if (e.key === "Enter") send();
   });
 
+  subscribe("rateLimited", (limited) => {
+    isRateLimited = limited;
+    btn.disabled = limited;
+    btn.classList.toggle("send-btn--disabled", limited);
+    rateLimitNotice.style.display = limited ? "block" : "none";
+  });
+
   const row = document.createElement("div");
   row.className = "input-row";
   row.appendChild(input);
   row.appendChild(btn);
+  container.appendChild(rateLimitNotice);
   container.appendChild(row);
 
   return container;

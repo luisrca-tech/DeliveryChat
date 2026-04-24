@@ -15,7 +15,7 @@ import {
 } from "../features/chat/chat.service.js";
 import { requireWidgetAuth, getWidgetAuth } from "../lib/middleware/widgetAuth.js";
 import { createVisitorRateLimitMiddleware } from "../lib/middleware/visitorRateLimit.js";
-import { VISITOR_RATE_LIMITS } from "../lib/planLimits.js";
+import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import {
   createWidgetConversationSchema,
@@ -80,8 +80,8 @@ export const widgetRoute = new Hono()
     },
   )
 
-  .use("/conversations/*", createVisitorRateLimitMiddleware(VISITOR_RATE_LIMITS))
-  .use("/conversations", createVisitorRateLimitMiddleware(VISITOR_RATE_LIMITS))
+  .use("/conversations/*", createVisitorRateLimitMiddleware(sharedVisitorRateLimiter))
+  .use("/conversations", createVisitorRateLimitMiddleware(sharedVisitorRateLimiter))
 
   // POST /conversations — create a support conversation from widget
   .post(

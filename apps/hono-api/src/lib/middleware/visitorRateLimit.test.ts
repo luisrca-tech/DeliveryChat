@@ -1,21 +1,22 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
-import { createVisitorRateLimitMiddleware } from "./visitorRateLimit.js";
+import {
+  createVisitorRateLimitMiddleware,
+  createVisitorWsRateLimiter,
+} from "./visitorRateLimit.js";
 
 function createTestApp(opts?: {
   perSecond?: number;
   perMinute?: number;
   perHour?: number;
 }) {
+  const limiter = createVisitorWsRateLimiter({
+    perSecond: opts?.perSecond ?? 100,
+    perMinute: opts?.perMinute ?? 100,
+    perHour: opts?.perHour ?? 100,
+  });
   const app = new Hono();
-  app.use(
-    "*",
-    createVisitorRateLimitMiddleware({
-      perSecond: opts?.perSecond ?? 100,
-      perMinute: opts?.perMinute ?? 100,
-      perHour: opts?.perHour ?? 100,
-    }),
-  );
+  app.use("*", createVisitorRateLimitMiddleware(limiter));
   app.get("/test", (c) => c.json({ ok: true }));
   return app;
 }

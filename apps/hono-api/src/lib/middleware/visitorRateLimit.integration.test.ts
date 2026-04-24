@@ -1,9 +1,24 @@
 import { describe, it, expect } from "vitest";
 import { Hono } from "hono";
-import { createVisitorRateLimitMiddleware } from "./visitorRateLimit.js";
+import {
+  createVisitorRateLimitMiddleware,
+  createVisitorWsRateLimiter,
+} from "./visitorRateLimit.js";
 
 function makeRequest(app: Hono, headers: Record<string, string>) {
   return app.request("/test", { headers });
+}
+
+function createLimiter(opts?: {
+  perSecond?: number;
+  perMinute?: number;
+  perHour?: number;
+}) {
+  return createVisitorWsRateLimiter({
+    perSecond: opts?.perSecond ?? 100,
+    perMinute: opts?.perMinute ?? 100,
+    perHour: opts?.perHour ?? 100,
+  });
 }
 
 describe("visitor rate limit composition behavior", () => {
@@ -13,11 +28,9 @@ describe("visitor rate limit composition behavior", () => {
     let tenantLimiterCalled = false;
     app.use(
       "*",
-      createVisitorRateLimitMiddleware({
-        perSecond: 2,
-        perMinute: 100,
-        perHour: 1000,
-      }),
+      createVisitorRateLimitMiddleware(
+        createLimiter({ perSecond: 2 }),
+      ),
     );
 
     app.use("*", async (_c, next) => {
@@ -43,11 +56,9 @@ describe("visitor rate limit composition behavior", () => {
 
     app.use(
       "*",
-      createVisitorRateLimitMiddleware({
-        perSecond: 1,
-        perMinute: 100,
-        perHour: 1000,
-      }),
+      createVisitorRateLimitMiddleware(
+        createLimiter({ perSecond: 1 }),
+      ),
     );
 
     app.get("/test", (c) => c.json({ ok: true }));
@@ -69,11 +80,9 @@ describe("visitor rate limit composition behavior", () => {
     const app = new Hono();
     app.use(
       "*",
-      createVisitorRateLimitMiddleware({
-        perSecond: 1,
-        perMinute: 100,
-        perHour: 1000,
-      }),
+      createVisitorRateLimitMiddleware(
+        createLimiter({ perSecond: 1 }),
+      ),
     );
     app.get("/test", (c) => c.json({ ok: true }));
 
@@ -92,11 +101,9 @@ describe("visitor rate limit composition behavior", () => {
     const app = new Hono();
     app.use(
       "*",
-      createVisitorRateLimitMiddleware({
-        perSecond: 1,
-        perMinute: 100,
-        perHour: 1000,
-      }),
+      createVisitorRateLimitMiddleware(
+        createLimiter({ perSecond: 1 }),
+      ),
     );
     app.get("/test", (c) => c.json({ ok: true }));
 
@@ -108,5 +115,14 @@ describe("visitor rate limit composition behavior", () => {
 
     const r3 = await makeRequest(app, { "X-App-Id": "appA", "X-Visitor-Id": "v1" });
     expect(r3.status).toBe(429);
+  });
+
+  it("HTTP and WS share the same budget via shared limiter instance", () => {
+    const limiter = createLimiter({ perSecond: 2 });
+
+    const key = "visitor:app1:visitor1";
+    expect(limiter.check(key).allowed).toBe(true);
+    expect(limiter.check(key).allowed).toBe(true);
+    expect(limiter.check(key).allowed).toBe(false);
   });
 });

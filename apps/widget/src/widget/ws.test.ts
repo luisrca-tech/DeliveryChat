@@ -217,4 +217,67 @@ describe("WebSocket error classification", () => {
       expect(getState("connectionError")).toBeNull();
     });
   });
+
+  describe("rate limiting", () => {
+    function simulateRateLimit(retryAfter = 3) {
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "error",
+          payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter },
+        }),
+      });
+    }
+
+    it("sets rateLimited state on RATE_LIMITED error", async () => {
+      await connect();
+      expect(getState("rateLimited")).toBe(false);
+
+      simulateRateLimit(5);
+
+      expect(getState("rateLimited")).toBe(true);
+      expect(getState("rateLimitRetryAfter")).toBe(5);
+    });
+
+    it("clears rateLimited state after retryAfter seconds", async () => {
+      await connect();
+      simulateRateLimit(3);
+
+      expect(getState("rateLimited")).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(3_000);
+
+      expect(getState("rateLimited")).toBe(false);
+      expect(getState("rateLimitRetryAfter")).toBeNull();
+    });
+
+    it("marks pending messages as failed on rate limit", async () => {
+      await connect();
+      setState("messages", [
+        { id: "m1", content: "hi", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+        { id: "m2", content: "ok", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2026-01-01T00:00:01Z" },
+      ]);
+
+      simulateRateLimit(2);
+
+      const msgs = getState("messages");
+      expect(msgs[0]!.status).toBe("failed");
+      expect(msgs[1]!.status).toBe("sent");
+    });
+
+    it("defaults retryAfter to 5 when not provided", async () => {
+      await connect();
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "error",
+          payload: { code: "RATE_LIMITED", message: "Rate limit exceeded" },
+        }),
+      });
+
+      expect(getState("rateLimited")).toBe(true);
+      expect(getState("rateLimitRetryAfter")).toBe(5);
+
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(getState("rateLimited")).toBe(false);
+    });
+  });
 });

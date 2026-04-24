@@ -56,6 +56,10 @@ vi.mock("./../../routes/ws.js", () => ({
 }));
 vi.mock("../../lib/middleware/visitorRateLimit.js", () => ({
   createVisitorRateLimitMiddleware: () => async (_c: any, next: () => Promise<void>) => next(),
+  createVisitorWsRateLimiter: () => ({ check: () => ({ allowed: true }) }),
+}));
+vi.mock("../../lib/middleware/visitorRateLimitInstance.js", () => ({
+  sharedVisitorRateLimiter: { check: () => ({ allowed: true }) },
 }));
 vi.mock("../../lib/planLimits.js", () => ({
   VISITOR_RATE_LIMITS: { perSecond: 10, perMinute: 60, perHour: 600 },

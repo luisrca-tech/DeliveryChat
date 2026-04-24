@@ -117,6 +117,7 @@ export function closeChat(): void {
 export async function sendMessage(content: string): Promise<void> {
   if (!initialized || !appId) return;
   if (getState("conversationStatus") === "closed") return;
+  if (getState("rateLimited")) return;
 
   const visitorId = getState("visitorId");
   if (!visitorId) return;

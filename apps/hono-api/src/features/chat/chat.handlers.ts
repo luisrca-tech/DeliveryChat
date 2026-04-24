@@ -20,6 +20,15 @@ import type {
   WSServerEvent,
   MessageNewPayload,
 } from "@repo/types";
+import type { RateLimitCheckResult } from "../../lib/middleware/visitorRateLimit.js";
+
+type VisitorRateLimiter = {
+  check(key: string): RateLimitCheckResult;
+};
+
+type EventHandlerOptions = {
+  visitorRateLimiter?: VisitorRateLimiter;
+};
 
 function sendEvent(conn: WSConnection, event: WSServerEvent) {
   conn.ws.send(JSON.stringify(event));
@@ -29,7 +38,23 @@ function sendError(conn: WSConnection, code: string, message: string) {
   sendEvent(conn, { type: "error", payload: { code, message } });
 }
 
-export function createEventHandler(roomManager: IRoomManager) {
+function sendRateLimitError(conn: WSConnection, retryAfter: number) {
+  conn.ws.send(
+    JSON.stringify({
+      type: "error",
+      payload: {
+        code: "RATE_LIMITED",
+        message: "Rate limit exceeded. Please wait before sending another message.",
+        retryAfter,
+      },
+    }),
+  );
+}
+
+export function createEventHandler(
+  roomManager: IRoomManager,
+  options?: EventHandlerOptions,
+) {
   return async function handleMessage(
     conn: WSConnection,
     raw: string,
@@ -59,6 +84,14 @@ export function createEventHandler(roomManager: IRoomManager) {
         handleRoomLeave(conn, event.payload, roomManager);
         break;
       case "message:send":
+        if (conn.role === "visitor" && options?.visitorRateLimiter) {
+          const key = `visitor:${conn.organizationId}:${conn.userId}`;
+          const check = options.visitorRateLimiter.check(key);
+          if (!check.allowed) {
+            sendRateLimitError(conn, check.retryAfter);
+            return;
+          }
+        }
         await handleMessageSend(conn, event.payload, roomManager);
         break;
       case "message:edit":

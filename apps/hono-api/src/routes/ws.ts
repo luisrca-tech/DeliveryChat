@@ -2,12 +2,13 @@ import { Hono } from "hono";
 import { getUpgradeWebSocket } from "../lib/ws.js";
 import { authenticateWebSocket } from "../lib/middleware/wsAuth.js";
 import { createWsUpgradeRateLimitMiddleware } from "../lib/middleware/wsRateLimit.js";
+import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
 import { InMemoryRoomManager } from "../features/chat/room-manager.js";
 import { createEventHandler } from "../features/chat/chat.handlers.js";
 import type { WSConnection } from "../features/chat/room-manager.js";
 
 const roomManager = new InMemoryRoomManager();
-const handleEvent = createEventHandler(roomManager);
+const handleEvent = createEventHandler(roomManager, { visitorRateLimiter: sharedVisitorRateLimiter });
 
 const WS_ERROR_MESSAGES: Record<string, string> = {
   invalid_token: "Invalid or tampered WebSocket token",

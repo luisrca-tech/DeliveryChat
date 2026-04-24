@@ -333,9 +333,29 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
     }
 
     case "error": {
-      const payload = event.payload as { code: string; message: string };
+      const payload = event.payload as { code: string; message: string; retryAfter?: number };
 
       lastServerErrorCode = payload.code;
+
+      if (payload.code === "RATE_LIMITED") {
+        const retryAfter = payload.retryAfter ?? 5;
+        setState("rateLimited", true);
+        setState("rateLimitRetryAfter", retryAfter);
+
+        setState("messages", (prev) =>
+          prev.map((msg) =>
+            msg.status === "pending"
+              ? { ...msg, status: "failed" as const }
+              : msg,
+          ),
+        );
+
+        setTimeout(() => {
+          setState("rateLimited", false);
+          setState("rateLimitRetryAfter", null);
+        }, retryAfter * 1_000);
+        break;
+      }
 
       if (
         payload.code === "CONVERSATION_NOT_ACTIVE" ||

@@ -213,6 +213,20 @@ describe("sendMessage", () => {
 
     expect(getState("messages")).toEqual([]);
   });
+
+  it("does not send a message when rate-limited", async () => {
+    const appId = "44444444-4444-4444-4444-444444444444";
+    await initChatController({ appId });
+
+    setState("conversationStatus", "active");
+    setState("visitorId", "visitor-1");
+    setState("conversationId", "conv-1");
+    setState("rateLimited", true);
+
+    await sendMessage("hello");
+
+    expect(getState("messages")).toEqual([]);
+  });
 });
 
 describe("startNewChat", () => {
