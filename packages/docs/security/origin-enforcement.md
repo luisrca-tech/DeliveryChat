@@ -1,7 +1,7 @@
 # Origin Enforcement
 
-**Slice:** Phase 3a — `feature/security-origin-allowlist-server`
-**Status:** Server-side foundation (admin UI arrives in Phase 3b)
+**Slice:** Phase 3a + 3b — `feature/security-origin-allowlist-server` / `feature/security-origin-allowlist-admin`
+**Status:** Complete (server + admin UI)
 **Last updated:** 2026-04-23
 
 ---
@@ -88,6 +88,22 @@ The script scans `applications`, identifies rows where `allowedOrigins = '{}'`, 
 | test | `example.com` | `http://tenant.localhost` | 200 |
 | test | `example.com` | `https://evil.com` | 403 |
 | — | — | (missing) | 403 (apiKeyAuth) / 200 (widgetAuth) |
+
+## Admin UI (Phase 3b)
+
+The application edit dialog in `apps/admin` includes an "Allowed Domains" section where admins can manage the origin allow-list per application.
+
+### Validation
+
+- Each entry is validated client-side against `DOMAIN_REGEX` (from `@repo/types`).
+- Entries are lowercased on input.
+- Duplicates are rejected with inline error feedback.
+- Wildcard entries (`*.example.com`) are accepted.
+- Server-side validation mirrors the client rules via `updateApplicationSchema`.
+
+### API
+
+`PATCH /applications/:id` accepts an optional `allowedOrigins: string[]` field. The schema validates each entry against `DOMAIN_REGEX`, lowercases all entries, and rejects duplicates.
 
 ## Residual risks surfaced by this slice
 

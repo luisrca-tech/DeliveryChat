@@ -167,6 +167,33 @@ describe("updateApplication", () => {
     });
     expect(result).toEqual(updatedApp);
   });
+
+  it("passes allowedOrigins to update when provided", async () => {
+    const origins = ["example.com", "*.example.com"];
+    const updatedApp = { ...mockApp, allowedOrigins: origins };
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([mockApp]),
+        }),
+      }),
+    } as never);
+
+    const mockSet = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([updatedApp]),
+      }),
+    });
+    vi.mocked(db.update).mockReturnValue({ set: mockSet } as never);
+
+    const result = await updateApplication("app-123", "org-1", {
+      allowedOrigins: origins,
+    });
+    expect(result).toEqual(updatedApp);
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ allowedOrigins: origins }),
+    );
+  });
 });
 
 describe("countActiveApiKeys", () => {

@@ -48,6 +48,7 @@ export const applicationsRoute = new Hono()
             id: applications.id,
             name: applications.name,
             domain: applications.domain,
+            allowedOrigins: applications.allowedOrigins,
             description: applications.description,
             organizationId: applications.organizationId,
             settings: applications.settings,

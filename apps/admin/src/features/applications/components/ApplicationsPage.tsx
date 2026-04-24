@@ -58,7 +58,11 @@ export function ApplicationsPage() {
   );
 
   const handleUpdate = useCallback(
-    async (body: { name?: string; description?: string }) => {
+    async (body: {
+      name?: string;
+      description?: string;
+      allowedOrigins?: string[];
+    }) => {
       if (!editApp) return;
       try {
         await updateMutation.mutateAsync({ id: editApp.id, body });

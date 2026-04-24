@@ -2,6 +2,7 @@ export type Application = {
   id: string;
   name: string;
   domain: string;
+  allowedOrigins: string[];
   description: string | null;
   organizationId: string;
   settings: Record<string, unknown>;
@@ -21,6 +22,7 @@ export type UpdateApplicationRequest = {
   name?: string;
   description?: string;
   settings?: Record<string, unknown>;
+  allowedOrigins?: string[];
 };
 
 export type ApplicationsListResponse = {

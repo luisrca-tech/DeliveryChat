@@ -27,6 +27,12 @@ async function handleError(res: Response): Promise<never> {
   if (res.status === HTTP_STATUS.CONFLICT) {
     throw new ApplicationDomainConflictError(message);
   }
+  if (
+    res.status === HTTP_STATUS.FORBIDDEN &&
+    err?.error === "origin_not_allowed"
+  ) {
+    throw new OriginNotAllowedError(message);
+  }
 
   throw new Error(message);
 }
@@ -42,6 +48,13 @@ export class ApplicationDomainConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ApplicationDomainConflictError";
+  }
+}
+
+export class OriginNotAllowedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OriginNotAllowedError";
   }
 }
 
