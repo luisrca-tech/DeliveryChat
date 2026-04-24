@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: "jsdom",
-    include: ["src/widget/**/*.test.ts", "scripts/**/*.test.ts"],
+    include: ["src/widget/**/*.test.ts", "embed-build/**/*.test.ts"],
   },
 });

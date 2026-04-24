@@ -1,48 +1,18 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, type Plugin } from "vite";
-import { resolve } from "path";
-import { formatSriArtifact } from "./scripts/compute-sri";
+import { defineConfig } from "vite";
+import { join, resolve } from "node:path";
+import { copyWidgetToPublic, emitSriArtifact } from "./embed-build/plugins";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
-
-function copyWidgetToPublic(): Plugin {
-  return {
-    name: "copy-widget-to-public",
-    writeBundle() {
-      const src = join(root, "dist-embed", "widget.iife.js");
-      const dest = join(root, "public", "widget.js");
-      mkdirSync(dirname(dest), { recursive: true });
-      copyFileSync(src, dest);
-      console.log("[embed] copied to public/widget.js");
-    },
-  };
-}
-
-function emitSriArtifact(): Plugin {
-  return {
-    name: "emit-sri-artifact",
-    writeBundle() {
-      const bundlePath = join(root, "dist-embed", "widget.iife.js");
-      const artifactPath = join(root, "dist-embed", "widget.iife.js.sri.json");
-      const content = readFileSync(bundlePath);
-      const artifact = formatSriArtifact({
-        file: "widget.iife.js",
-        content,
-      });
-      writeFileSync(artifactPath, `${JSON.stringify(artifact, null, 2)}\n`);
-      console.log(`[embed] emitted SRI artifact: ${artifact.integrity}`);
-    },
-  };
-}
+const outDir = join(root, "dist-embed");
+const publicDir = join(root, "public");
 
 export default defineConfig({
   envPrefix: "VITE_",
-  plugins: [emitSriArtifact(), copyWidgetToPublic()],
+  plugins: [emitSriArtifact(outDir), copyWidgetToPublic(outDir, publicDir)],
   build: {
     lib: {
-      entry: resolve(__dirname, "src/widget/index.ts"),
+      entry: resolve(root, "src/widget/index.ts"),
       name: "DeliveryChat",
       fileName: "widget",
       formats: ["iife"],

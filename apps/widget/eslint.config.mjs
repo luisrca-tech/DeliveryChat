@@ -5,7 +5,11 @@ import globals from "globals";
 export default [
   ...config,
   {
-    files: ["scripts/**/*.{js,ts}", "vite.embed.config.ts"],
+    files: [
+      "scripts/**/*.{js,ts}",
+      "embed-build/**/*.{js,ts}",
+      "vite.embed.config.ts",
+    ],
     languageOptions: {
       globals: { ...globals.node },
     },

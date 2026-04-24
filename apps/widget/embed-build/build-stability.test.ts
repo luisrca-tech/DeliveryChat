@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { spawnSync } from "node:child_process";
-import { readFileSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -26,14 +26,18 @@ function readArtifact(): { integrity: string; bytes: number } {
 }
 
 describe("widget build stability", () => {
-  it("produces an identical SRI hash across two clean builds with unchanged source", { timeout: 60_000 }, () => {
-    runBuild();
-    expect(existsSync(artifactPath)).toBe(true);
-    const first = readArtifact();
-    runBuild();
-    const second = readArtifact();
-    expect(second.integrity).toBe(first.integrity);
-    expect(second.bytes).toBe(first.bytes);
-    expect(first.integrity).toMatch(/^sha384-[A-Za-z0-9+/]+=*$/);
-  });
+  it(
+    "produces an identical SRI hash across two clean builds with unchanged source",
+    { timeout: 60_000 },
+    () => {
+      runBuild();
+      expect(existsSync(artifactPath)).toBe(true);
+      const first = readArtifact();
+      runBuild();
+      const second = readArtifact();
+      expect(second.integrity).toBe(first.integrity);
+      expect(second.bytes).toBe(first.bytes);
+      expect(first.integrity).toMatch(/^sha384-[A-Za-z0-9+/]+=*$/);
+    },
+  );
 });
