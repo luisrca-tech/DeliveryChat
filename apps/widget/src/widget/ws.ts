@@ -23,6 +23,7 @@ let config: WSConfig | null = null;
 let pingTimer: ReturnType<typeof setInterval> | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let typingTimer: ReturnType<typeof setTimeout> | null = null;
+let rateLimitTimer: ReturnType<typeof setTimeout> | null = null;
 let reconnectAttempts = 0;
 let intentionalClose = false;
 let lastServerErrorCode: string | null = null;
@@ -350,7 +351,9 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
           ),
         );
 
-        setTimeout(() => {
+        if (rateLimitTimer) clearTimeout(rateLimitTimer);
+        rateLimitTimer = setTimeout(() => {
+          rateLimitTimer = null;
           setState("rateLimited", false);
           setState("rateLimitRetryAfter", null);
         }, retryAfter * 1_000);
@@ -407,6 +410,10 @@ function cleanup(): void {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
+  }
+  if (rateLimitTimer) {
+    clearTimeout(rateLimitTimer);
+    rateLimitTimer = null;
   }
   if (ws) {
     ws.onopen = null;

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -53,12 +53,12 @@ export function EditApplicationDialog({
   const [allowedOrigins, setAllowedOrigins] = useState<string[]>([]);
   const [newOrigin, setNewOrigin] = useState("");
   const [originError, setOriginError] = useState<string | null>(null);
-  const [originsInitialized, setOriginsInitialized] = useState(false);
 
-  if (application && !originsInitialized) {
-    setAllowedOrigins(application.allowedOrigins ?? []);
-    setOriginsInitialized(true);
-  }
+  useEffect(() => {
+    if (application) {
+      setAllowedOrigins(application.allowedOrigins ?? []);
+    }
+  }, [application?.id]);
 
   const form = useForm<EditApplicationFormValues>({
     resolver: zodResolver(schema),
@@ -114,7 +114,6 @@ export function EditApplicationDialog({
 
   const handleOpenChange = (open: boolean) => {
     if (!open) {
-      setOriginsInitialized(false);
       setNewOrigin("");
       setOriginError(null);
     }

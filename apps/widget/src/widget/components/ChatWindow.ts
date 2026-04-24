@@ -19,12 +19,17 @@ type ChatWindowCallbacks = {
   onClose?: () => void;
 };
 
+type ChatWindowResult = {
+  el: HTMLElement;
+  destroy: () => void;
+};
+
 export function createChatWindow(
   settings: WidgetSettings,
   messages: ChatMessage[],
   callbacks: ChatWindowCallbacks,
   bubbleCtx: BubbleContext,
-): HTMLElement {
+): ChatWindowResult {
   const container = document.createElement("div");
   container.className = "chat-window";
   container.setAttribute("role", "dialog");
@@ -48,9 +53,12 @@ export function createChatWindow(
 
   container.appendChild(header);
   container.appendChild(messageList);
-  container.appendChild(inputArea);
+  container.appendChild(inputArea.el);
 
-  return container;
+  return {
+    el: container,
+    destroy: () => inputArea.destroy(),
+  };
 }
 
 export function getMessageListEl(chatWindow: HTMLElement): HTMLElement | null {

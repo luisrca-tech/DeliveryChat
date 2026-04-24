@@ -57,6 +57,7 @@ wsRoute.get("/ws", async (c, next) => {
             userName: authResult.user.userName,
             organizationId: authResult.user.organizationId,
             role: authResult.user.role,
+            applicationId: authResult.user.applicationId,
             ws,
           };
 

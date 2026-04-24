@@ -190,7 +190,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     launcher.focus();
   };
 
-  chatWindowEl = createChatWindow(
+  const chatWindowResult = createChatWindow(
     settings,
     getState("messages"),
     {
@@ -201,6 +201,8 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     },
     bubbleCtx,
   );
+  chatWindowEl = chatWindowResult.el;
+  cleanupFns.push(() => chatWindowResult.destroy());
   const chatWindow = chatWindowEl;
   chatWindow.hidden = !isOpen;
 

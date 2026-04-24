@@ -85,7 +85,8 @@ export function createEventHandler(
         break;
       case "message:send":
         if (conn.role === "visitor" && options?.visitorRateLimiter) {
-          const key = `visitor:${conn.organizationId}:${conn.userId}`;
+          const appId = conn.applicationId ?? conn.organizationId;
+          const key = `visitor:${appId}:${conn.userId}`;
           const check = options.visitorRateLimiter.check(key);
           if (!check.allowed) {
             sendRateLimitError(conn, check.retryAfter);

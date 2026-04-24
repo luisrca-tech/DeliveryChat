@@ -7,9 +7,14 @@ type InputCallbacks = {
   onTypingStop: () => void;
 };
 
+type InputAreaResult = {
+  el: HTMLElement;
+  destroy: () => void;
+};
+
 export function createInputArea(
   callbacks: InputCallbacks,
-): HTMLElement {
+): InputAreaResult {
   const container = document.createElement("div");
   container.className = "input-area";
 
@@ -61,7 +66,7 @@ export function createInputArea(
     if (e.key === "Enter") send();
   });
 
-  subscribe("rateLimited", (limited) => {
+  const unsubscribe = subscribe("rateLimited", (limited) => {
     isRateLimited = limited;
     btn.disabled = limited;
     btn.classList.toggle("send-btn--disabled", limited);
@@ -75,5 +80,8 @@ export function createInputArea(
   container.appendChild(rateLimitNotice);
   container.appendChild(row);
 
-  return container;
+  return {
+    el: container,
+    destroy: () => unsubscribe(),
+  };
 }

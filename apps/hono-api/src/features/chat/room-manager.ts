@@ -7,6 +7,7 @@ export interface WSConnection {
   userName: string | null;
   organizationId: string;
   role: ParticipantRole;
+  applicationId?: string;
   ws: WSContext;
 }
 
@@ -186,12 +187,31 @@ export class InMemoryRoomManager implements IRoomManager {
       console.log(`[RoomManager] EXPIRED connId=${connection.id} userId=${userId} — max lifetime reached`);
       connection.ws.close(4008, "session_expired");
       this.unregisterConnection(connection.id, orgId);
-      this.disconnectUser(userId);
+      this.removeConnectionFromRooms(connection.id, userId);
     }, this.maxConnectionLifetimeMs);
 
     this.connectionTimers.set(connection.id, timer);
 
     return true;
+  }
+
+  private removeConnectionFromRooms(connectionId: string, userId: string): void {
+    const rooms = this.userConnections.get(userId);
+    if (!rooms) return;
+
+    for (const conversationId of rooms) {
+      const room = this.rooms.get(conversationId);
+      if (!room) continue;
+
+      room.delete(connectionId);
+      if (room.size === 0) {
+        this.rooms.delete(conversationId);
+      }
+    }
+
+    if (this.userConnectionCount.get(userId)?.size === 0) {
+      this.userConnections.delete(userId);
+    }
   }
 
   getUserConnectionCount(userId: string): number {

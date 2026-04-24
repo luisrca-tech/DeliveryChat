@@ -26,13 +26,12 @@ Used by the embeddable chat widget. Visitors are anonymous Better Auth users. Au
 ```
 POST /v1/widget/ws-token
 Headers:
-  Authorization: Bearer dk_(live|test)_[32chars]
   X-App-Id: <application-uuid>
   X-Visitor-Id: <visitor-uuid>
   Origin: https://integrator-site.com
 ```
 
-The endpoint validates the API key and app ID via `requireWidgetAuth()`, then signs an HMAC-SHA256 token binding:
+The endpoint validates the app ID and (optionally) the `Origin` against the application's allowed-origins list via `requireWidgetAuth()`, then signs an HMAC-SHA256 token binding:
 - `appId` — the application UUID
 - `origin` — the `Origin` header value (or `""` if absent)
 - `visitorId` — the anonymous visitor ID

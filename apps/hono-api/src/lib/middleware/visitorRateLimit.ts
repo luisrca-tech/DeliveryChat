@@ -26,8 +26,23 @@ const WINDOWS: readonly {
   { name: "hour", windowMs: 3_600_000, key: "perHour" },
 ];
 
+const CLEANUP_INTERVAL_MS = 60_000;
+
 export function createVisitorWsRateLimiter(config: VisitorRateLimitConfig) {
   const stores: Map<string, WindowEntry>[] = WINDOWS.map(() => new Map());
+
+  const cleanupTimer = setInterval(() => {
+    const now = Date.now();
+    for (const store of stores) {
+      for (const [k, entry] of store) {
+        if (now >= entry.resetAt) store.delete(k);
+      }
+    }
+  }, CLEANUP_INTERVAL_MS);
+
+  if (typeof cleanupTimer === "object" && "unref" in cleanupTimer) {
+    cleanupTimer.unref();
+  }
 
   return {
     check(key: string): RateLimitCheckResult {
