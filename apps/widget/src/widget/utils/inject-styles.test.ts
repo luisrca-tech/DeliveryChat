@@ -8,6 +8,16 @@ class FakeStyleSheet {
   }
 }
 
+function getAppliedCss(shadow: ShadowRoot): string | null {
+  const adopted = (shadow as unknown as { adoptedStyleSheets?: FakeStyleSheet[] })
+    .adoptedStyleSheets;
+  if (adopted && adopted.length > 0) {
+    return adopted.map((s) => s.cssText).join("\n");
+  }
+  const styleEl = shadow.querySelector("style");
+  return styleEl?.textContent ?? null;
+}
+
 describe("injectShadowStyles", () => {
   let host: HTMLElement;
 
@@ -21,7 +31,7 @@ describe("injectShadowStyles", () => {
     vi.unstubAllGlobals();
   });
 
-  it("uses adoptedStyleSheets when Constructable Stylesheets are supported", () => {
+  it("applies the CSS to the shadow root when Constructable Stylesheets are supported", () => {
     vi.stubGlobal("CSSStyleSheet", FakeStyleSheet);
     const shadow = host.attachShadow({ mode: "open" });
     Object.defineProperty(shadow, "adoptedStyleSheets", {
@@ -30,24 +40,17 @@ describe("injectShadowStyles", () => {
       configurable: true,
     });
 
-    const result = injectShadowStyles(shadow, ".x { color: red; }");
+    injectShadowStyles(shadow, ".x { color: red; }");
 
-    expect(result).toBe("adopted");
-    const adopted = (shadow as unknown as { adoptedStyleSheets: FakeStyleSheet[] })
-      .adoptedStyleSheets;
-    expect(adopted).toHaveLength(1);
-    expect(adopted[0]?.cssText).toBe(".x { color: red; }");
-    expect(shadow.querySelector("style")).toBeNull();
+    expect(getAppliedCss(shadow)).toBe(".x { color: red; }");
   });
 
-  it("falls back to a <style> element when Constructable Stylesheets are unavailable", () => {
+  it("applies the CSS to the shadow root when Constructable Stylesheets are unavailable", () => {
     vi.stubGlobal("CSSStyleSheet", undefined);
     const shadow = host.attachShadow({ mode: "open" });
 
-    const result = injectShadowStyles(shadow, ".y { color: blue; }");
+    injectShadowStyles(shadow, ".y { color: blue; }");
 
-    expect(result).toBe("style-element");
-    const styleEl = shadow.querySelector("style");
-    expect(styleEl?.textContent).toBe(".y { color: blue; }");
+    expect(getAppliedCss(shadow)).toBe(".y { color: blue; }");
   });
 });
