@@ -1,6 +1,6 @@
 # Security Roadmap — Widget Hardening
 
-**Status:** Phases 1–2 complete (2026-04-23); Phase 3a server-side origin allow-list complete (2026-04-23) — Phases 3b–5 pending
+**Status:** All phases complete (2026-04-23)
 **Date:** 2026-04-18 (last updated 2026-04-23)
 **Plan file:** `plans/widget-security-hardening-execution.md`
 
@@ -17,6 +17,7 @@ This roadmap captures the agreed-upon controls, ordered by delivery, that bring 
 - **Architecture:** Shadow DOM + harden. Iframe migration deferred until a future feature requires it (authenticated visitors, sensitive data at rest in the widget, payments flowing through the widget).
 - **Origin enforcement:** Per-application allow-list (`applications.allowedOrigins: text[]`), strict for `dk_live_*` keys, lenient-on-localhost for `dk_test_*` keys.
 - **Rendering rule:** All dynamic content uses `textContent`; `innerHTML`/`insertAdjacentHTML`/`outerHTML` are reserved for static strings only, enforced by lint.
+- **WS token:** HMAC-SHA256 signed token bound to `(appId, origin, visitorId)` with short TTL. Replaces query-param-only visitor auth.
 
 ## What Shadow DOM protects — and what it does not
 
@@ -38,11 +39,11 @@ Each slice ships on its own feature branch and PR.
 1. ✅ **Content safety + lint enforcement + threat-model skeleton** — `feature/security-content-safety` (complete 2026-04-23)
 2. ✅ **Loader supply chain (SRI) + published CSP recommendation** — `feature/security-loader-integrity` (complete 2026-04-23)
 3a. ✅ **Origin allow-list — server** — `feature/security-origin-allowlist-server` (complete 2026-04-23)
-3b. ⬜ **Origin allow-list — admin UI** — `feature/security-origin-allowlist-admin`
-4. ⬜ **Per-visitor abuse protection + `window.DeliveryChat` surface minimization** — `feature/security-abuse-protection`
-5. ⬜ **WebSocket token binding audit + final threat-model doc** — `feature/security-ws-and-threat-model`
+3b. ✅ **Origin allow-list — admin UI** — `feature/security-origin-allowlist-admin` (complete 2026-04-23)
+4. ✅ **Per-visitor abuse protection + `window.DeliveryChat` surface minimization** — `feature/security-abuse-protection` (complete 2026-04-23)
+5. ✅ **WebSocket token binding + final threat-model doc** — `feature/security-ws-and-threat-model` (complete 2026-04-23)
 
-Full rationale, per-slice scope, and tests are in `docs/superpowers/plans/widget-security-hardening.md`.
+Full rationale, per-slice scope, and tests are in `plans/widget-security-hardening-execution.md`.
 
 ## Documentation layout
 

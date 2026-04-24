@@ -48,7 +48,11 @@ export const RECONNECT_BASE_DELAY = 1_000;
 export const RECONNECT_MAX_DELAY = 30_000;
 export const WS_TYPING_TIMEOUT_MS = 3_000;
 export const RECONNECT_WARN_THRESHOLD = 5;
-export const PERMANENT_ERROR_CODES = new Set(["UNAUTHORIZED"]);
+export const PERMANENT_ERROR_CODES = new Set([
+  "UNAUTHORIZED",
+  "INVALID_TOKEN",
+  "APP_NOT_FOUND",
+]);
 export const PERMANENT_CLOSE_CODES = new Set([
   1008,
 ]);

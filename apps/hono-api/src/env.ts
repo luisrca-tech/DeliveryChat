@@ -31,6 +31,7 @@ export const env = createEnv({
       .enum(["true", "false"])
       .optional()
       .transform((v) => v === "true"),
+    WS_TOKEN_SECRET: z.string().min(32),
   },
   client: {
     // Add client-side env vars here if needed
@@ -52,6 +53,7 @@ export const env = createEnv({
     STRIPE_PREMIUM_PRICE_KEY: process.env.STRIPE_PREMIUM_PRICE_KEY,
     STRIPE_ENTERPRISE_PRODUCT_KEY: process.env.STRIPE_ENTERPRISE_PRODUCT_KEY,
     STRIPE_AUTOMATIC_TAX_ENABLED: process.env.STRIPE_AUTOMATIC_TAX_ENABLED,
+    WS_TOKEN_SECRET: process.env.WS_TOKEN_SECRET,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

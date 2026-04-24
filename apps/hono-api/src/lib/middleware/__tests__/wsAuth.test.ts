@@ -1,4 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { signWsToken } from "../../security/wsToken.js";
+
+const TEST_SECRET = "test-ws-token-secret-that-is-at-least-32-chars";
 
 vi.mock("../../auth.js", () => ({
   auth: {
@@ -15,6 +18,12 @@ vi.mock("../resolveApplication.js", () => ({
 vi.mock("../../../db/index.js", () => ({
   db: {
     select: vi.fn(),
+  },
+}));
+
+vi.mock("../../../env.js", () => ({
+  env: {
+    WS_TOKEN_SECRET: TEST_SECRET,
   },
 }));
 
@@ -74,96 +83,134 @@ describe("authenticateWebSocket", () => {
     vi.clearAllMocks();
   });
 
-  describe("widget auth", () => {
-    it("authenticates with valid appId and visitorId", async () => {
+  describe("token auth (widget)", () => {
+    it("authenticates with a valid signed token", async () => {
+      const token = signWsToken(
+        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        TEST_SECRET,
+      );
+
       const c = createMockContext({
-        query: {
-          appId: "app-1",
-          visitorId: "visitor-123",
-        },
-        headers: {
-          Origin: "https://example.com",
-        },
+        query: { token },
+        headers: { Origin: "https://example.com" },
       });
 
       mockResolve.mockResolvedValue(appRow());
 
       const result = await authenticateWebSocket(c);
 
-      expect(result).not.toBeNull();
-      expect(result!.userId).toBe("visitor-123");
-      expect(result!.organizationId).toBe("org-1");
-      expect(result!.role).toBe("visitor");
-      expect(result!.authType).toBe("widget");
-      expect(result!.applicationId).toBe("app-1");
+      expect("user" in result).toBe(true);
+      if (!("user" in result)) return;
+      expect(result.user.userId).toBe("visitor-123");
+      expect(result.user.organizationId).toBe("org-1");
+      expect(result.user.role).toBe("visitor");
+      expect(result.user.authType).toBe("widget");
+      expect(result.user.applicationId).toBe("app-1");
+    });
+
+    it("rejects a tampered signature", async () => {
+      const token = signWsToken(
+        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        TEST_SECRET,
+      );
+
+      const tampered = token.slice(0, -2) + "XX";
+      const c = createMockContext({
+        query: { token: tampered },
+        headers: { Origin: "https://example.com" },
+      });
+
+      const result = await authenticateWebSocket(c);
+      expect("error" in result).toBe(true);
+      if (!("error" in result)) return;
+      expect(result.error).toBe("invalid_token");
+    });
+
+    it("rejects a token signed with a different secret", async () => {
+      const token = signWsToken(
+        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        "wrong-secret-key-that-is-long-enough",
+      );
+
+      const c = createMockContext({
+        query: { token },
+        headers: { Origin: "https://example.com" },
+      });
+
+      const result = await authenticateWebSocket(c);
+      expect("error" in result).toBe(true);
+      if (!("error" in result)) return;
+      expect(result.error).toBe("invalid_token");
+    });
+
+    it("rejects an expired token", async () => {
+      const token = signWsToken(
+        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        TEST_SECRET,
+        { ttlSeconds: -1 },
+      );
+
+      const c = createMockContext({
+        query: { token },
+        headers: { Origin: "https://example.com" },
+      });
+
+      const result = await authenticateWebSocket(c);
+      expect("error" in result).toBe(true);
+      if (!("error" in result)) return;
+      expect(result.error).toBe("expired_token");
+    });
+
+    it("rejects when origin does not match token", async () => {
+      const token = signWsToken(
+        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        TEST_SECRET,
+      );
+
+      const c = createMockContext({
+        query: { token },
+        headers: { Origin: "https://evil.com" },
+      });
+
+      const result = await authenticateWebSocket(c);
+      expect("error" in result).toBe(true);
+      if (!("error" in result)) return;
+      expect(result.error).toBe("origin_mismatch");
     });
 
     it("rejects when application is not found", async () => {
+      const token = signWsToken(
+        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        TEST_SECRET,
+      );
+
       const c = createMockContext({
-        query: {
-          appId: "app-nonexistent",
-          visitorId: "visitor-123",
-        },
+        query: { token },
+        headers: { Origin: "https://example.com" },
       });
 
       mockResolve.mockResolvedValue(null);
 
       const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
+      expect("error" in result).toBe(true);
+      if (!("error" in result)) return;
+      expect(result.error).toBe("app_not_found");
     });
 
-    it("returns null when enforceOrigin rejects", async () => {
+    it("rejects replay from different origin after expiry", async () => {
+      const token = signWsToken(
+        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        TEST_SECRET,
+        { ttlSeconds: -1 },
+      );
+
       const c = createMockContext({
-        query: {
-          appId: "app-1",
-          visitorId: "visitor-123",
-        },
-        headers: {
-          Origin: "https://evil.com",
-        },
+        query: { token },
+        headers: { Origin: "https://attacker.com" },
       });
 
-      mockResolve.mockResolvedValue(appRow());
-
       const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
-    });
-
-    it("allows connection when no Origin header is present", async () => {
-      const c = createMockContext({
-        query: {
-          appId: "app-1",
-          visitorId: "visitor-123",
-        },
-      });
-
-      mockResolve.mockResolvedValue(appRow());
-
-      const result = await authenticateWebSocket(c);
-
-      expect(result).not.toBeNull();
-      expect(result!.authType).toBe("widget");
-    });
-
-    it("falls through to session auth when only appId is provided without visitorId", async () => {
-      const c = createMockContext({
-        query: {
-          appId: "app-1",
-        },
-        headers: {
-          "X-Tenant-Slug": "acme",
-        },
-      });
-
-      mockGetSession.mockResolvedValue({ user: { id: "user-1" } });
-      mockSelect
-        .mockReturnValueOnce(chainMock([{ id: "org-1" }]))
-        .mockReturnValueOnce(chainMock([{ role: "admin" }]));
-
-      const result = await authenticateWebSocket(c);
-
-      expect(result).not.toBeNull();
-      expect(result!.authType).toBe("session");
+      expect("error" in result).toBe(true);
     });
   });
 
@@ -180,9 +227,7 @@ describe("authenticateWebSocket", () => {
         user: { id: "user-1" },
       });
 
-      // First select: organization lookup
       const orgChain = chainMock([{ id: "org-1" }]);
-      // Second select: member lookup
       const memberChain = chainMock([{ role: "admin" }]);
 
       mockSelect
@@ -191,11 +236,12 @@ describe("authenticateWebSocket", () => {
 
       const result = await authenticateWebSocket(c);
 
-      expect(result).not.toBeNull();
-      expect(result!.userId).toBe("user-1");
-      expect(result!.organizationId).toBe("org-1");
-      expect(result!.role).toBe("admin");
-      expect(result!.authType).toBe("session");
+      expect("user" in result).toBe(true);
+      if (!("user" in result)) return;
+      expect(result.user.userId).toBe("user-1");
+      expect(result.user.organizationId).toBe("org-1");
+      expect(result.user.role).toBe("admin");
+      expect(result.user.authType).toBe("session");
     });
 
     it("maps super_admin role to admin", async () => {
@@ -209,10 +255,12 @@ describe("authenticateWebSocket", () => {
         .mockReturnValueOnce(chainMock([{ role: "super_admin" }]));
 
       const result = await authenticateWebSocket(c);
-      expect(result!.role).toBe("admin");
+      expect("user" in result).toBe(true);
+      if (!("user" in result)) return;
+      expect(result.user.role).toBe("admin");
     });
 
-    it("rejects when no session exists", async () => {
+    it("returns error when no session exists", async () => {
       const c = createMockContext({
         headers: { "X-Tenant-Slug": "acme" },
       });
@@ -220,19 +268,21 @@ describe("authenticateWebSocket", () => {
       mockGetSession.mockResolvedValue(null);
 
       const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
+      expect("error" in result).toBe(true);
+      if (!("error" in result)) return;
+      expect(result.error).toBe("unauthorized");
     });
 
-    it("rejects when no tenant slug provided", async () => {
+    it("returns error when no tenant slug provided", async () => {
       const c = createMockContext({ headers: {} });
 
       mockGetSession.mockResolvedValue({ user: { id: "user-1" } });
 
       const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
+      expect("error" in result).toBe(true);
     });
 
-    it("rejects when user is not a member of the organization", async () => {
+    it("returns error when user is not a member of the organization", async () => {
       const c = createMockContext({
         headers: { "X-Tenant-Slug": "acme" },
       });
@@ -243,10 +293,10 @@ describe("authenticateWebSocket", () => {
         .mockReturnValueOnce(chainMock([]));
 
       const result = await authenticateWebSocket(c);
-      expect(result).toBeNull();
+      expect("error" in result).toBe(true);
     });
 
-    it("authenticates with sessionToken query param (cross-origin admin)", async () => {
+    it("authenticates with sessionToken query param", async () => {
       const c = createMockContext({
         query: { sessionToken: "bearer-token-123", tenant: "acme" },
       });
@@ -258,12 +308,12 @@ describe("authenticateWebSocket", () => {
 
       const result = await authenticateWebSocket(c);
 
-      expect(result).not.toBeNull();
-      expect(result!.userId).toBe("user-1");
-      expect(result!.role).toBe("operator");
-      expect(result!.authType).toBe("session");
+      expect("user" in result).toBe(true);
+      if (!("user" in result)) return;
+      expect(result.user.userId).toBe("user-1");
+      expect(result.user.role).toBe("operator");
+      expect(result.user.authType).toBe("session");
 
-      // Verify getSession was called with the Authorization header
       expect(mockGetSession).toHaveBeenCalledWith(
         expect.objectContaining({
           headers: expect.any(Headers),

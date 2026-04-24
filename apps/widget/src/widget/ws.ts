@@ -1,6 +1,7 @@
 import { setState, getState } from "./state.js";
 import type { ConnectionError, ChatMessage } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
+import { fetchWsToken } from "./api.js";
 import {
   PING_INTERVAL,
   RECONNECT_BASE_DELAY,
@@ -59,17 +60,20 @@ export function sendWSMessage(event: object): void {
   ws.send(JSON.stringify(event));
 }
 
-function buildWsUrl(cfg: WSConfig): string {
-  const protocol = cfg.apiBaseUrl.startsWith("https") ? "wss" : "ws";
-  const host = cfg.apiBaseUrl.replace(/^https?:\/\//, "");
-  return `${protocol}://${host}/v1/ws?appId=${encodeURIComponent(cfg.appId)}&visitorId=${encodeURIComponent(cfg.visitorId)}`;
+function buildWsUrl(baseUrl: string, token: string): string {
+  const protocol = baseUrl.startsWith("https") ? "wss" : "ws";
+  const host = baseUrl.replace(/^https?:\/\//, "");
+  return `${protocol}://${host}/v1/ws?token=${encodeURIComponent(token)}`;
 }
 
-function createConnection(): void {
+async function createConnection(): Promise<void> {
   if (!config) return;
 
   try {
-    ws = new WebSocket(buildWsUrl(config));
+    const token = await fetchWsToken(config.apiBaseUrl, config.appId, config.visitorId);
+    if (intentionalClose || !config) return;
+
+    ws = new WebSocket(buildWsUrl(config.apiBaseUrl, token));
 
     ws.onopen = () => {
       reconnectAttempts = 0;

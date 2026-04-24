@@ -20,7 +20,7 @@ Durable decisions that apply across all phases:
 - **Documentation layout.** New top-level folder `packages/docs/security/` holds `security-roadmap.md`, `threat-model.md`, `origin-enforcement.md`, and `integrator-guide.md`. Per-slice feature documentation is created under the relevant `apps/*/src/features/*/docs/`.
 - **Delivery shape.** Six slices. One feature branch and one PR per slice, each executed through the full XP cycle (Planning → Design → Tests → Coding → Listening).
 - **Database workflow.** The user runs `db:generate` and `db:migrate` manually. The plan never runs them autonomously.
-
+ 
 ---
 
 ## Phase 1: Content safety (`feature/security-content-safety`) — ✅ Complete (2026-04-23)
@@ -120,7 +120,7 @@ Per-visitor rate-limit middleware composed with the existing per-tenant limiter,
 
 ---
 
-## Phase 5: WebSocket binding & threat model (`feature/security-ws-and-threat-model`)
+## Phase 5: WebSocket binding & threat model (`feature/security-ws-and-threat-model`) — ✅ Complete (2026-04-23)
 
 **User stories:** 3, 21, 22, 29, 30
 
@@ -130,11 +130,11 @@ Replace query-param-only WS visitor auth with a signed short-lived token bound t
 
 ### Acceptance criteria
 
-- [ ] Server endpoint issues a signed short-lived WS token bound to `(appId, origin, visitorId)` with an explicit short TTL
-- [ ] Signing secret loaded via Infisical; never hardcoded; never logged
-- [ ] WS upgrade validates signature, expiry, and origin claim; each mismatch returns a distinct error code
-- [ ] Tests cover: issuance, successful binding, expired-token rejection, origin-mismatch rejection, replay-after-expiry rejection, tampered-signature rejection
-- [ ] Integration test drives a visitor through token issuance → WS upgrade → message exchange
-- [ ] `packages/docs/security/threat-model.md` finalized: four directional threats, controls, residual risks, wildcard surface guidance
-- [ ] Feature docs updated under the chat feature folder
-- [ ] `packages/docs/security/security-roadmap.md` updated to mark Phases 1–5 complete
+- [x] Server endpoint issues a signed short-lived WS token bound to `(appId, origin, visitorId)` with an explicit short TTL
+- [x] Signing secret loaded via Infisical; never hardcoded; never logged
+- [x] WS upgrade validates signature, expiry, and origin claim; each mismatch returns a distinct error code
+- [x] Tests cover: issuance, successful binding, expired-token rejection, origin-mismatch rejection, replay-after-expiry rejection, tampered-signature rejection
+- [x] Integration test drives a visitor through token issuance → WS upgrade → message exchange
+- [x] `packages/docs/security/threat-model.md` finalized: four directional threats, controls, residual risks, wildcard surface guidance
+- [x] Feature docs updated under the chat feature folder
+- [x] `packages/docs/security/security-roadmap.md` updated to mark Phases 1–5 complete
