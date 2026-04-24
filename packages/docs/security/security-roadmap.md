@@ -1,6 +1,6 @@
 # Security Roadmap — Widget Hardening
 
-**Status:** Phase 1 complete (2026-04-23) — Phases 2–5 pending
+**Status:** Phases 1–2 complete (2026-04-23) — Phases 3–5 pending
 **Date:** 2026-04-18 (last updated 2026-04-23)
 **Plan file:** `plans/widget-security-hardening-execution.md`
 
@@ -36,7 +36,7 @@ Shadow DOM is a **style/DOM scoping mechanism**, not a security boundary. This r
 Each slice ships on its own feature branch and PR.
 
 1. ✅ **Content safety + lint enforcement + threat-model skeleton** — `feature/security-content-safety` (complete 2026-04-23)
-2. ⬜ **Loader supply chain (SRI) + published CSP recommendation** — `feature/security-loader-integrity`
+2. ✅ **Loader supply chain (SRI) + published CSP recommendation** — `feature/security-loader-integrity` (complete 2026-04-23)
 3a. ⬜ **Origin allow-list — server** — `feature/security-origin-allowlist-server`
 3b. ⬜ **Origin allow-list — admin UI** — `feature/security-origin-allowlist-admin`
 4. ⬜ **Per-visitor abuse protection + `window.DeliveryChat` surface minimization** — `feature/security-abuse-protection`

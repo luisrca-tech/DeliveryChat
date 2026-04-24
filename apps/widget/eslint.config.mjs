@@ -1,10 +1,17 @@
 import { config } from "@repo/eslint-config/react-internal";
+import globals from "globals";
 
 /** @type {import("eslint").Linter.Config[]} */
 export default [
   ...config,
   {
-    ignores: [".react-router/**", "build/**"],
+    files: ["scripts/**/*.{js,ts}", "vite.embed.config.ts"],
+    languageOptions: {
+      globals: { ...globals.node },
+    },
+  },
+  {
+    ignores: [".react-router/**", "build/**", "dist-embed/**", "public/widget.js"],
   },
   {
     rules: {

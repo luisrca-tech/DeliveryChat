@@ -32,8 +32,8 @@ Malicious or compromised host page code attempts to exfiltrate widget state, imp
 |---|---|---|
 | Host injects HTML via widget DOM attributes (reflected XSS through config) | **Rendering discipline** — `textContent` for all dynamic content; ESLint ban on dynamic `innerHTML` / `outerHTML` / `insertAdjacentHTML` | — |
 | Host reads API key or WS token from widget memory / `window.DeliveryChat` | Public surface audit (planned) | Phase 4 — `window.DeliveryChat` exposes only `init`, `destroy`, `queue`; no tokens, keys, or identifiers |
-| Host-served script is swapped for a malicious payload (supply-chain) | — | Phase 2 — SRI hash in embed snippet, deterministic build hash artifact |
-| Host CSP is looser than recommended | Published integrator guide (planned) | Phase 2 — `integrator-guide.md` publishes recommended CSP and SRI snippet |
+| Host-served script is swapped for a malicious payload (supply-chain) | — | ✅ Phase 2 — SHA-384 SRI artifact emitted by build (`widget.iife.js.sri.json`); embed snippet documents `integrity=` and `crossorigin="anonymous"` |
+| Host CSP is looser than recommended | Published integrator guide (planned) | ✅ Phase 2 — [`integrator-guide.md`](./integrator-guide.md) publishes the recommended CSP (`style-src 'self'` is sufficient — widget uses `adoptedStyleSheets`) |
 
 ### 2. Widget → Host page
 
@@ -42,7 +42,7 @@ Defensive direction: widget must not introduce XSS sinks, inline handlers, or CS
 | Threat | Phase 1 control | Later slice |
 |---|---|---|
 | Widget renders hostile operator/admin message content as HTML, escaping Shadow DOM into host context | **Rendering discipline** — `textContent` only; static SVG icons are the sole sanctioned `innerHTML` writes, each marked with an inline lint justification | — |
-| Widget requires `unsafe-inline` / `unsafe-eval` in host CSP | — | Phase 2 — no inline scripts/styles injected; runtime audit |
+| Widget requires `unsafe-inline` / `unsafe-eval` in host CSP | — | ✅ Phase 2 — no inline scripts; Shadow-root styles injected via Constructable Stylesheets (`adoptedStyleSheets`); audit checklist in [`apps/widget/src/widget/docs/loader-integrity.md`](../../apps/widget/src/widget/docs/loader-integrity.md) |
 | Widget exposes mutable globals host can hijack | Partial via public surface audit | Phase 4 — `window.DeliveryChat` surface locked to `init` / `destroy` / `queue` |
 
 ### 3. Visitor → Operator / Admin
@@ -77,7 +77,7 @@ Operator content is author-trusted but not author-controlled for rendering purpo
 | Rendering discipline + lint (widget) | Phase 1 | ✅ this slice |
 | Rendering discipline + lint (admin) | Phase 1 | ✅ this slice |
 | Threat model skeleton | Phase 1 | ✅ this slice |
-| SRI + CSP guidance | Phase 2 | ⬜ pending |
+| SRI + CSP guidance | Phase 2 | ✅ |
 | Origin allow-list (server) | Phase 3a | ⬜ pending |
 | Origin allow-list (admin UI) | Phase 3b | ⬜ pending |
 | Per-visitor rate limit | Phase 4 | ⬜ pending |

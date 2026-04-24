@@ -17,6 +17,7 @@ import {
   destroyHost,
 } from "./utils/shadow-dom.js";
 import { applyCssVars } from "./utils/css-vars.js";
+import { injectShadowStyles } from "./utils/inject-styles.js";
 import { createLauncher } from "./components/Launcher.js";
 import {
   createChatWindow,
@@ -512,9 +513,7 @@ async function init(opts: InitOptions): Promise<void> {
   const host = createShadowHost();
   const shadow = createShadowRoot(host);
 
-  const style = document.createElement("style");
-  style.textContent = styles;
-  shadow.appendChild(style);
+  injectShadowStyles(shadow, styles);
 
   render(shadow, settings);
 
