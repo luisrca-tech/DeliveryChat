@@ -26,7 +26,8 @@ app.use(
   cors({
     origin: (origin, c) => {
       if (c.req.path.startsWith("/v1/widget/")) {
-        return origin ?? "*";
+        if (c.req.method === "OPTIONS") return origin ?? "*";
+        return null;
       }
 
       if (!origin) return origin;

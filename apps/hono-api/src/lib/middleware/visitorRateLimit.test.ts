@@ -95,21 +95,61 @@ describe("createVisitorRateLimitMiddleware", () => {
     });
   });
 
-  describe("missing headers", () => {
-    it("passes through when X-Visitor-Id is absent", async () => {
+  describe("missing headers — IP fallback", () => {
+    it("rate limits by IP when X-Visitor-Id is absent", async () => {
       const app = createTestApp({ perSecond: 1 });
-      const res = await app.request("/test", {
-        headers: { "X-App-Id": "app1" },
+
+      const res1 = await app.request("/test", {
+        headers: { "X-App-Id": "app1", "X-Forwarded-For": "10.0.0.1" },
       });
-      expect(res.status).toBe(200);
+      expect(res1.status).toBe(200);
+
+      const res2 = await app.request("/test", {
+        headers: { "X-App-Id": "app1", "X-Forwarded-For": "10.0.0.1" },
+      });
+      expect(res2.status).toBe(429);
     });
 
-    it("passes through when X-App-Id is absent", async () => {
+    it("rate limits by IP when X-App-Id is absent", async () => {
       const app = createTestApp({ perSecond: 1 });
-      const res = await app.request("/test", {
-        headers: { "X-Visitor-Id": "visitor1" },
+
+      const res1 = await app.request("/test", {
+        headers: { "X-Visitor-Id": "visitor1", "X-Forwarded-For": "10.0.0.2" },
       });
-      expect(res.status).toBe(200);
+      expect(res1.status).toBe(200);
+
+      const res2 = await app.request("/test", {
+        headers: { "X-Visitor-Id": "visitor1", "X-Forwarded-For": "10.0.0.2" },
+      });
+      expect(res2.status).toBe(429);
+    });
+
+    it("rate limits by IP when both headers are absent", async () => {
+      const app = createTestApp({ perSecond: 1 });
+
+      const res1 = await app.request("/test", {
+        headers: { "X-Forwarded-For": "10.0.0.3" },
+      });
+      expect(res1.status).toBe(200);
+
+      const res2 = await app.request("/test", {
+        headers: { "X-Forwarded-For": "10.0.0.3" },
+      });
+      expect(res2.status).toBe(429);
+    });
+
+    it("different IPs have independent budgets when headers are missing", async () => {
+      const app = createTestApp({ perSecond: 1 });
+
+      const res1 = await app.request("/test", {
+        headers: { "X-Forwarded-For": "10.0.0.4" },
+      });
+      expect(res1.status).toBe(200);
+
+      const res2 = await app.request("/test", {
+        headers: { "X-Forwarded-For": "10.0.0.5" },
+      });
+      expect(res2.status).toBe(200);
     });
   });
 });

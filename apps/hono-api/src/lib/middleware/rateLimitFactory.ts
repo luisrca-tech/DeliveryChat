@@ -44,9 +44,20 @@ export function createRateLimiter(opts: RateLimiterOptions): MiddlewareHandler {
       standardHeaders: "draft-6",
       skip: (c) => opts.keyGenerator(c) === null,
       handler: async (c) => {
-        const retryAfter = Math.ceil(w.windowMs / 1_000);
         const limits = await resolveLimits(opts, c);
         opts.onExceeded?.(c, w.name, limits[w.key]);
+
+        const key = opts.keyGenerator(c);
+        let retryAfter = Math.ceil(w.windowMs / 1_000);
+        if (key) {
+          const info = await stores[i]!.get?.(key);
+          if (info?.resetTime) {
+            const remaining = Math.ceil(
+              (info.resetTime.getTime() - Date.now()) / 1_000,
+            );
+            if (remaining > 0) retryAfter = remaining;
+          }
+        }
 
         c.status(HTTP_STATUS.TOO_MANY_REQUESTS);
         c.header("Retry-After", String(retryAfter));

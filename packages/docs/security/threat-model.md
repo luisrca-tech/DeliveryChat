@@ -55,6 +55,7 @@ Visitor is anonymous and untrusted. Anything they type will eventually be render
 | Visitor submits HTML/JS in message content; admin UI interprets it as markup | **Admin rendering discipline** — zero `dangerouslySetInnerHTML` in `apps/admin/src/`, enforced by ESLint | 1 ✅ |
 | Visitor spams messages to burn a tenant's per-org rate budget | **Per-visitor rate limiter** — independent per-second/minute/hour windows keyed by `(appId, visitorId)`, composed with per-tenant limiter | 4 ✅ |
 | Visitor replays / forges a WebSocket session from a different origin | **Signed WS token** — HMAC-SHA256 token bound to `(appId, origin, visitorId)` with short TTL; verified on WS upgrade with origin binding, signature check, and expiry enforcement | 5 ✅ |
+| Visitor opens excessive concurrent WS connections to exhaust server resources | **Connection cap** — `InMemoryRoomManager` enforces max 5 concurrent connections per user; excess connections closed with `4009 connection_limit`. **WS upgrade rate limit** — IP-based rate limiter (5/s, 30/min, 200/hr) on `/v1/ws` prevents upgrade spam | 6 ✅ |
 | Visitor impersonates another visitor by guessing visitorId | **Token binding** — visitorId is embedded in the signed token; the server verifies the token signature, so a forged visitorId requires forging the HMAC | 5 ✅ |
 
 ### 4. Operator / Admin → Visitor
@@ -82,6 +83,12 @@ Operator content is author-trusted but not author-controlled for rendering purpo
 
 7. **WS token in query string.** WebSocket connections pass the token as `?token=...` in the URL because the browser `WebSocket` API does not support custom headers on upgrade requests. This means the token appears in access logs, reverse-proxy logs, and potentially browser history. Mitigated by: (a) 120-second TTL — tokens are short-lived and non-renewable, (b) tokens are single-purpose (valid only for WS upgrade, not API calls), (c) tokens are HMAC-signed and bound to a specific `(appId, origin, visitorId)` tuple. This is a standard WebSocket limitation shared by most real-time platforms.
 
+8. **Same-origin WS token replay within TTL window.** A valid WS token can be reused unlimited times within its 120-second TTL from the same origin. Cross-origin replay is prevented by the origin binding. Same-origin replay from a compromised host page is unprotected but impractical to exploit: (a) the 120s TTL limits the attack window, (b) origin binding prevents cross-origin use, (c) appId binding scopes the token to a single application, (d) the connection cap (max 5 per user) limits resource impact. If replay protection is needed later, add a nonce/jti field with an in-memory set of consumed token IDs cleaned on TTL expiry.
+
+9. **`/widget/settings/:appId` has no origin check.** This public endpoint returns non-sensitive display settings (colors, position, greeting text) for a given application ID without auth or origin validation. This allows enumeration of active app IDs, but the returned data is designed for public display and contains no secrets, billing info, or internal identifiers. The risk is accepted because: (a) settings are non-sensitive display config, (b) adding auth would break the widget initialization flow where settings are fetched before any auth context exists, (c) the appId is a UUID, making brute-force enumeration impractical.
+
+10. **WS connections outlive token TTL.** Token is validated only during `onOpen`. Once connected, the session persists. Mitigated by: (a) maximum connection lifetime of 8 hours enforced by `InMemoryRoomManager` — expired connections are closed with code `4008 session_expired`, prompting the widget to reconnect with a fresh token, (b) the `disconnectUser()` method clears all rooms for the expired user.
+
 ## Control status
 
 | Control | Phase | Status |
@@ -94,4 +101,6 @@ Operator content is author-trusted but not author-controlled for rendering purpo
 | Per-visitor rate limit | 4 | ✅ |
 | `window.DeliveryChat` surface lock | 4 | ✅ |
 | Signed WS token | 5 | ✅ |
+| WS connection cap + upgrade rate limit | 6 | ✅ |
+| WS connection lifetime (8h max) | 6 | ✅ |
 | Finalized threat model | 5 | ✅ |

@@ -140,4 +140,42 @@ describe("requireWidgetAuth", () => {
     });
     expect(mockAuthorize).toHaveBeenCalledWith(APP_ID, "https://example.com");
   });
+
+  it("sets Access-Control-Allow-Origin to the validated origin", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    const res = await createApp().request("/test", {
+      method: "GET",
+      headers: {
+        "X-App-Id": APP_ID,
+        Origin: "https://example.com",
+      },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBe(
+      "https://example.com",
+    );
+  });
+
+  it("does not set CORS header when origin is missing", async () => {
+    mockAuthorize.mockResolvedValue(authorizedResult());
+    const res = await createApp().request("/test", {
+      method: "GET",
+      headers: { "X-App-Id": APP_ID },
+    });
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
+
+  it("does not set CORS header when authorization fails", async () => {
+    mockAuthorize.mockResolvedValue(rejectedResult());
+    const res = await createApp().request("/test", {
+      method: "GET",
+      headers: {
+        "X-App-Id": APP_ID,
+        Origin: "https://evil.com",
+      },
+    });
+    expect(res.status).toBe(403);
+    expect(res.headers.get("Access-Control-Allow-Origin")).toBeNull();
+  });
 });

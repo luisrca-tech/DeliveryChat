@@ -33,6 +33,12 @@ export function requireWidgetAuth(): MiddlewareHandler {
       organizationId: result.application.organizationId,
     } satisfies WidgetAuthContext);
 
+    const origin = c.req.header("Origin");
+    if (origin) {
+      c.header("Access-Control-Allow-Origin", origin);
+      c.header("Access-Control-Allow-Credentials", "true");
+    }
+
     await next();
   };
 }

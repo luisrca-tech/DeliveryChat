@@ -335,4 +335,116 @@ describe("InMemoryRoomManager", () => {
       expect(manager.getOrganizationConnections("org-unknown")).toEqual([]);
     });
   });
+
+  describe("connection cap", () => {
+    it("rejects registration when user exceeds max connections", () => {
+      const manager5 = new InMemoryRoomManager({ maxConnectionsPerUser: 2 });
+
+      const conn1 = createMockConnection({ userId: "user-1" });
+      const conn2 = createMockConnection({ userId: "user-1" });
+      const conn3 = createMockConnection({ userId: "user-1" });
+
+      expect(manager5.registerConnection(conn1)).toBe(true);
+      expect(manager5.registerConnection(conn2)).toBe(true);
+      expect(manager5.registerConnection(conn3)).toBe(false);
+
+      expect(manager5.getOrganizationConnections("org-1")).toHaveLength(2);
+    });
+
+    it("allows connections from different users independently", () => {
+      const manager5 = new InMemoryRoomManager({ maxConnectionsPerUser: 1 });
+
+      const conn1 = createMockConnection({ userId: "user-1" });
+      const conn2 = createMockConnection({ userId: "user-2" });
+
+      expect(manager5.registerConnection(conn1)).toBe(true);
+      expect(manager5.registerConnection(conn2)).toBe(true);
+    });
+
+    it("allows new connection after previous one is unregistered", () => {
+      const manager5 = new InMemoryRoomManager({ maxConnectionsPerUser: 1 });
+
+      const conn1 = createMockConnection({ userId: "user-1" });
+      expect(manager5.registerConnection(conn1)).toBe(true);
+
+      manager5.unregisterConnection(conn1.id, conn1.organizationId);
+
+      const conn2 = createMockConnection({ userId: "user-1" });
+      expect(manager5.registerConnection(conn2)).toBe(true);
+    });
+
+    it("uses default cap of 5 when no config provided", () => {
+      const defaultManager = new InMemoryRoomManager();
+      const conns = Array.from({ length: 6 }, (_, i) =>
+        createMockConnection({ userId: "user-1" }),
+      );
+
+      for (let i = 0; i < 5; i++) {
+        expect(defaultManager.registerConnection(conns[i]!)).toBe(true);
+      }
+      expect(defaultManager.registerConnection(conns[5]!)).toBe(false);
+    });
+
+    it("returns user connection count", () => {
+      const conn1 = createMockConnection({ userId: "user-1" });
+      const conn2 = createMockConnection({ userId: "user-1" });
+      manager.registerConnection(conn1);
+      manager.registerConnection(conn2);
+
+      expect(manager.getUserConnectionCount("user-1")).toBe(2);
+      expect(manager.getUserConnectionCount("user-unknown")).toBe(0);
+    });
+  });
+
+  describe("connection lifetime", () => {
+    it("closes connections that exceed max lifetime", () => {
+      vi.useFakeTimers();
+      const maxLifetimeMs = 1000;
+      const mgr = new InMemoryRoomManager({ maxConnectionLifetimeMs: maxLifetimeMs });
+
+      const conn = createMockConnection({ userId: "user-1" });
+      mgr.registerConnection(conn);
+
+      expect(mgr.getOrganizationConnections("org-1")).toHaveLength(1);
+
+      vi.advanceTimersByTime(maxLifetimeMs + 100);
+
+      expect(conn.ws.close).toHaveBeenCalledWith(4008, "session_expired");
+      expect(mgr.getOrganizationConnections("org-1")).toHaveLength(0);
+
+      vi.useRealTimers();
+    });
+
+    it("does not close connections before max lifetime", () => {
+      vi.useFakeTimers();
+      const maxLifetimeMs = 5000;
+      const mgr = new InMemoryRoomManager({ maxConnectionLifetimeMs: maxLifetimeMs });
+
+      const conn = createMockConnection({ userId: "user-1" });
+      mgr.registerConnection(conn);
+
+      vi.advanceTimersByTime(maxLifetimeMs - 100);
+
+      expect(conn.ws.close).not.toHaveBeenCalled();
+      expect(mgr.getOrganizationConnections("org-1")).toHaveLength(1);
+
+      vi.useRealTimers();
+    });
+
+    it("cleans up timer when connection is unregistered early", () => {
+      vi.useFakeTimers();
+      const maxLifetimeMs = 1000;
+      const mgr = new InMemoryRoomManager({ maxConnectionLifetimeMs: maxLifetimeMs });
+
+      const conn = createMockConnection({ userId: "user-1" });
+      mgr.registerConnection(conn);
+      mgr.unregisterConnection(conn.id, conn.organizationId);
+
+      vi.advanceTimersByTime(maxLifetimeMs + 100);
+
+      expect(conn.ws.close).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+  });
 });

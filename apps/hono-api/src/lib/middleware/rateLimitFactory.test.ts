@@ -114,6 +114,24 @@ describe("createRateLimiter", () => {
     });
   });
 
+  describe("Retry-After accuracy", () => {
+    it("returns actual remaining time, not full window duration", async () => {
+      const app = createTestApp({
+        cause: "per_test",
+        limits: { perSecond: 1, perMinute: 1, perHour: 1000 },
+        keyGenerator: (c) => c.req.header("X-Key") ?? null,
+      });
+
+      await makeRequest(app, { "X-Key": "k1" });
+      const res = await makeRequest(app, { "X-Key": "k1" });
+      expect(res.status).toBe(429);
+
+      const retryAfter = Number(res.headers.get("Retry-After"));
+      expect(retryAfter).toBeLessThanOrEqual(60);
+      expect(retryAfter).toBeGreaterThan(0);
+    });
+  });
+
   describe("onExceeded callback", () => {
     it("calls onExceeded when limit is hit", async () => {
       const onExceeded = vi.fn();

@@ -16,8 +16,13 @@ export function createVisitorRateLimitMiddleware(
     keyGenerator: (c) => {
       const appId = c.req.header("X-App-Id")?.trim();
       const visitorId = c.req.header("X-Visitor-Id")?.trim();
-      if (!appId || !visitorId) return null;
-      return `visitor:${appId}:${visitorId}`;
+      if (appId && visitorId) return `visitor:${appId}:${visitorId}`;
+
+      const ip =
+        c.req.header("CF-Connecting-IP") ??
+        c.req.header("X-Forwarded-For")?.split(",")[0]?.trim() ??
+        "unknown";
+      return `visitor-ip:${ip}`;
     },
   });
 }

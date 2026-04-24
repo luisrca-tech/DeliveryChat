@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { getUpgradeWebSocket } from "../lib/ws.js";
 import { authenticateWebSocket } from "../lib/middleware/wsAuth.js";
+import { createWsUpgradeRateLimitMiddleware } from "../lib/middleware/wsRateLimit.js";
 import { InMemoryRoomManager } from "../features/chat/room-manager.js";
 import { createEventHandler } from "../features/chat/chat.handlers.js";
 import type { WSConnection } from "../features/chat/room-manager.js";
@@ -17,6 +18,8 @@ const WS_ERROR_MESSAGES: Record<string, string> = {
 };
 
 export const wsRoute = new Hono();
+
+wsRoute.use("/ws", createWsUpgradeRateLimitMiddleware());
 
 wsRoute.get("/ws", async (c, next) => {
   const upgradeWebSocket = getUpgradeWebSocket();
@@ -56,7 +59,21 @@ wsRoute.get("/ws", async (c, next) => {
             ws,
           };
 
-          roomManager.registerConnection(connection);
+          const registered = roomManager.registerConnection(connection);
+          if (!registered) {
+            ws.send(
+              JSON.stringify({
+                type: "error",
+                payload: {
+                  code: "CONNECTION_LIMIT",
+                  message: "Too many concurrent connections",
+                },
+              }),
+            );
+            ws.close(4009, "connection_limit");
+            connection = null;
+            return;
+          }
 
           for (const msg of pendingMessages) {
             await handleEvent(connection, msg);
