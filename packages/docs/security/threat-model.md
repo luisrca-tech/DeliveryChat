@@ -1,7 +1,7 @@
 # Threat Model — Widget
 
 **Status:** Finalized (Phase 5 complete)
-**Last updated:** 2026-04-23
+**Last updated:** 2026-04-24
 **Related:** [security-roadmap.md](./security-roadmap.md)
 
 ---
@@ -77,6 +77,10 @@ Operator content is author-trusted but not author-controlled for rendering purpo
 4. **WS token secret is shared across all tenants.** A single `WS_TOKEN_SECRET` signs all visitor tokens. If compromised, an attacker could forge tokens for any application. Mitigation: secret is stored in Infisical, rotated periodically, never logged or hardcoded.
 
 5. **Visitor identity is localStorage-based.** `visitorId` is a random UUID stored in `localStorage`. Clearing storage creates a new identity. This is acceptable for anonymous support chat — no sensitive data is tied to visitor identity.
+
+6. **Empty-origin WS token replay.** When no `Origin` header is present (e.g. non-browser clients, some proxy configurations), `POST /widget/ws-token` signs a token with `origin: ""`. On WS upgrade, `wsAuth.ts` also falls back to `""`, so the origin binding passes. A token signed without an origin can be replayed from any context where `Origin` is absent. Mitigated by: (a) the 120-second TTL limits the replay window, (b) the token is also bound to `appId` and `visitorId`, (c) the widget auth middleware still enforces app existence and allowed-origins on the initial HTTP request. Future hardening: reject empty-origin token requests for live-key contexts once `widgetAuth` gains key-environment awareness.
+
+7. **WS token in query string.** WebSocket connections pass the token as `?token=...` in the URL because the browser `WebSocket` API does not support custom headers on upgrade requests. This means the token appears in access logs, reverse-proxy logs, and potentially browser history. Mitigated by: (a) 120-second TTL — tokens are short-lived and non-renewable, (b) tokens are single-purpose (valid only for WS upgrade, not API calls), (c) tokens are HMAC-signed and bound to a specific `(appId, origin, visitorId)` tuple. This is a standard WebSocket limitation shared by most real-time platforms.
 
 ## Control status
 

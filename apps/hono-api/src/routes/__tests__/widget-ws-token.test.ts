@@ -117,7 +117,7 @@ describe("POST /widget/ws-token", () => {
     expect(res.status).toBe(401);
   });
 
-  it("includes empty origin when Origin header is absent", async () => {
+  it("signs token with empty origin when Origin header is absent (accepted residual risk)", async () => {
     const res = await app.request("/widget/ws-token", {
       method: "POST",
       headers: {

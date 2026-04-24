@@ -23,28 +23,28 @@
 
 ## Fix 2: Empty-Origin Token Gap
 
-**Status:** 🔲 Pending
+**Status:** ✅ Done
 
 **Problem:** When no `Origin` header is present, `POST /widget/ws-token` signs a token with `origin: ""`. On WS upgrade, `wsAuth.ts` also falls back to `""`. This means a token signed without an origin can be replayed from any context where the browser omits `Origin`.
 
-**Fix:** Document this as a residual risk in `threat-model.md`. Optionally, reject empty-origin token requests in production (live keys only), keeping test-mode leniency.
+**Fix:** Documented as residual risk #6 in `threat-model.md`. Code-level rejection for live keys deferred — `widgetAuth` does not currently have key-environment awareness, so the guard cannot distinguish live from test context. The 120s TTL + appId/visitorId binding mitigate the risk.
 
-**Files affected:**
-- `packages/docs/security/threat-model.md`
-- Optionally: `apps/hono-api/src/routes/widget.ts` (ws-token endpoint)
+**Files changed:**
+- `packages/docs/security/threat-model.md` — added residual risk #6
+- `apps/hono-api/src/routes/__tests__/widget-ws-token.test.ts` — clarified test name
 
 ---
 
 ## Fix 3: Token-in-Query-String Logging Risk
 
-**Status:** 🔲 Pending
+**Status:** ✅ Done
 
 **Problem:** WS tokens appear in the URL (`?token=...`), visible in access logs, proxy logs, and browser history. With 120s TTL this is low-risk but undocumented.
 
-**Fix:** Add to `threat-model.md` residual risks section. No code change needed — this is a standard WebSocket limitation.
+**Fix:** Documented as residual risk #7 in `threat-model.md`. No code change needed — this is a standard WebSocket limitation.
 
-**Files affected:**
-- `packages/docs/security/threat-model.md`
+**Files changed:**
+- `packages/docs/security/threat-model.md` — added residual risk #7
 
 ---
 
