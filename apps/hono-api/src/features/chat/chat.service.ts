@@ -1,4 +1,4 @@
-import { eq, ne, and, sql, isNull, desc } from "drizzle-orm";
+import { eq, ne, and, sql, isNull, desc, inArray } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
@@ -609,6 +609,64 @@ export async function getUnreadCountForVisitor(
     .where(and(...whereConditions));
 
   return countRow?.count ?? 0;
+}
+
+// ── Bulk Unread Counts ──
+
+export async function getBulkUnreadCounts(
+  conversationIds: string[],
+  userId: string,
+): Promise<Map<string, number>> {
+  if (conversationIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      conversationId: messages.conversationId,
+      count: sql<number>`count(distinct ${messages.id})::int`,
+    })
+    .from(messages)
+    .innerJoin(
+      conversationParticipants,
+      and(
+        eq(conversationParticipants.conversationId, messages.conversationId),
+        eq(conversationParticipants.userId, messages.senderId),
+        eq(conversationParticipants.role, "visitor"),
+      ),
+    )
+    .leftJoin(
+      sql`lateral (
+        select ${conversationParticipants.lastReadMessageId} as last_read_id
+        from ${conversationParticipants} cp2
+        where cp2.conversation_id = ${messages.conversationId}
+          and cp2.user_id = ${userId}
+          and cp2.left_at is null
+        limit 1
+      ) as reader`,
+      sql`true`,
+    )
+    .leftJoin(
+      sql`lateral (
+        select created_at as cutoff
+        from ${messages} m2
+        where m2.id = reader.last_read_id
+        limit 1
+      ) as cutoff_msg`,
+      sql`true`,
+    )
+    .where(
+      and(
+        inArray(messages.conversationId, conversationIds),
+        isNull(messages.deletedAt),
+        sql`(cutoff_msg.cutoff is null or ${messages.createdAt} > cutoff_msg.cutoff)`,
+      ),
+    )
+    .groupBy(messages.conversationId);
+
+  const result = new Map<string, number>();
+  for (const row of rows) {
+    result.set(row.conversationId, row.count);
+  }
+  return result;
 }
 
 // ── Mark as Read ──

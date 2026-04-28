@@ -19,7 +19,7 @@ import {
   softDeleteConversation,
   updateConversationSubject,
   addParticipant,
-  getUnreadCount,
+  getBulkUnreadCounts,
   markAsRead,
 } from "../features/chat/chat.service.js";
 import {
@@ -86,15 +86,19 @@ export const conversationsRoute = new Hono()
         .from(conversations)
         .where(and(...conditions));
 
-      const conversationsWithUnread = await Promise.all(
-        result.map(async (conv) => ({
-          ...conv,
-          unreadCount:
-            conv.assignedTo === authUser.id
-              ? await getUnreadCount(conv.id, authUser.id)
-              : 0,
-        })),
-      );
+      const assignedIds = result
+        .filter((conv) => conv.assignedTo === authUser.id)
+        .map((conv) => conv.id);
+
+      const unreadCounts =
+        assignedIds.length > 0
+          ? await getBulkUnreadCounts(assignedIds, authUser.id)
+          : new Map<string, number>();
+
+      const conversationsWithUnread = result.map((conv) => ({
+        ...conv,
+        unreadCount: unreadCounts.get(conv.id) ?? 0,
+      }));
 
       return c.json({
         conversations: conversationsWithUnread,

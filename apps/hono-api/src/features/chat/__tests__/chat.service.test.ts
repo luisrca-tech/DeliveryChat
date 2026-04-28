@@ -28,6 +28,7 @@ function chainMock(result: unknown) {
     "innerJoin",
     "leftJoin",
     "orderBy",
+    "groupBy",
     "limit",
     "offset",
     "values",
@@ -64,6 +65,7 @@ const {
   deleteMessage,
   getUnreadCount,
   getUnreadCountForVisitor,
+  getBulkUnreadCounts,
   markAsRead,
   ConversationNotFoundError,
   ConversationNotActiveError,
@@ -957,6 +959,53 @@ describe("chat.service", () => {
 
       const result = await getUnreadCountForVisitor("conv-1", "visitor-unknown");
       expect(result).toBe(0);
+    });
+  });
+
+  describe("getBulkUnreadCounts", () => {
+    it("returns empty map for empty conversation list", async () => {
+      const result = await getBulkUnreadCounts([], "user-1");
+      expect(result).toEqual(new Map());
+      expect(mockSelect).not.toHaveBeenCalled();
+    });
+
+    it("returns unread counts for multiple conversations", async () => {
+      const queryResult = [
+        { conversationId: "conv-1", count: 5 },
+        { conversationId: "conv-2", count: 0 },
+        { conversationId: "conv-3", count: 12 },
+      ];
+
+      const chain = chainMock(queryResult);
+      mockSelect.mockReturnValueOnce(chain);
+
+      const result = await getBulkUnreadCounts(
+        ["conv-1", "conv-2", "conv-3"],
+        "user-1",
+      );
+
+      expect(result).toEqual(
+        new Map([
+          ["conv-1", 5],
+          ["conv-2", 0],
+          ["conv-3", 12],
+        ]),
+      );
+    });
+
+    it("returns 0 for conversations not in query result", async () => {
+      const queryResult = [{ conversationId: "conv-1", count: 3 }];
+
+      const chain = chainMock(queryResult);
+      mockSelect.mockReturnValueOnce(chain);
+
+      const result = await getBulkUnreadCounts(
+        ["conv-1", "conv-2"],
+        "user-1",
+      );
+
+      expect(result.get("conv-1")).toBe(3);
+      expect(result.get("conv-2")).toBeUndefined();
     });
   });
 });
