@@ -6,13 +6,7 @@ import { createVisitorWsRateLimiter } from "../../../lib/middleware/visitorRateL
 
 vi.mock("../../../db/index.js", () => ({
   db: {
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ assignedTo: null }]),
-        }),
-      }),
-    }),
+    select: vi.fn(),
   },
 }));
 
@@ -241,11 +235,12 @@ describe("chat.handlers", () => {
   });
 
   describe("message:send", () => {
-    it("persists message and broadcasts to room", async () => {
+    const convData = { status: "active", assignedTo: "user-1", organizationId: "org-1" };
+
+    it("persists message and broadcasts to room with assignedTo from validation", async () => {
       mockIsParticipant.mockResolvedValue(true);
       const convId = "550e8400-e29b-41d4-a716-446655440000";
 
-      // Join room first
       await handler(
         conn,
         JSON.stringify({
@@ -254,7 +249,6 @@ describe("chat.handlers", () => {
         }),
       );
 
-      // Add another connection to the room
       const conn2 = createMockConnection({
         id: "conn-2",
         userId: "user-2",
@@ -272,9 +266,12 @@ describe("chat.handlers", () => {
         updatedAt: "2026-01-01T00:00:00Z",
         deletedAt: null,
       };
+      mockValidateSendAuthorization.mockResolvedValue(convData);
       mockSendMessage.mockResolvedValue(savedMessage);
 
       vi.clearAllMocks();
+      mockValidateSendAuthorization.mockResolvedValue(convData);
+      mockSendMessage.mockResolvedValue(savedMessage);
 
       await handler(
         conn,
@@ -288,26 +285,54 @@ describe("chat.handlers", () => {
         }),
       );
 
-      // Sender should receive message:ack
       const senderCalls = (conn.ws.send as ReturnType<typeof vi.fn>).mock
         .calls;
       expect(senderCalls.length).toBeGreaterThanOrEqual(1);
-      const ackArg = senderCalls[0]?.[0];
-      expect(typeof ackArg).toBe("string");
-      const ackEvent = JSON.parse(ackArg as string);
+      const ackEvent = JSON.parse(senderCalls[0]?.[0] as string);
       expect(ackEvent.type).toBe("message:ack");
       expect(ackEvent.payload.clientMessageId).toBe("client-msg-1");
       expect(ackEvent.payload.serverMessageId).toBe("msg-1");
 
-      // Other connection should receive message:new
       const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock
         .calls;
       expect(conn2Calls.length).toBeGreaterThanOrEqual(1);
-      const newArg = conn2Calls[0]?.[0];
-      expect(typeof newArg).toBe("string");
-      const newMsgEvent = JSON.parse(newArg as string);
+      const newMsgEvent = JSON.parse(conn2Calls[0]?.[0] as string);
       expect(newMsgEvent.type).toBe("message:new");
       expect(newMsgEvent.payload.content).toBe("Hello!");
+      expect(newMsgEvent.payload.assignedTo).toBe("user-1");
+    });
+
+    it("passes conversation data from validation to sendMessage", async () => {
+      mockValidateSendAuthorization.mockResolvedValue(convData);
+      const convId = "550e8400-e29b-41d4-a716-446655440000";
+      const savedMessage = {
+        id: "msg-1",
+        conversationId: convId,
+        senderId: "user-1",
+        content: "Hello!",
+        type: "text",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        deletedAt: null,
+      };
+      mockSendMessage.mockResolvedValue(savedMessage);
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:send",
+          payload: {
+            conversationId: convId,
+            content: "Hello!",
+            clientMessageId: "client-msg-pass",
+          },
+        }),
+      );
+
+      expect(mockSendMessage).toHaveBeenCalledWith(
+        { conversationId: convId, senderId: "user-1", content: "Hello!" },
+        convData,
+      );
     });
 
     it("sends error for invalid payload", async () => {
@@ -354,7 +379,7 @@ describe("chat.handlers", () => {
     });
 
     it("sends CONVERSATION_NOT_ACTIVE when conversation is closed", async () => {
-      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockValidateSendAuthorization.mockResolvedValue(convData);
       mockSendMessage.mockRejectedValue(
         new ConversationNotActiveError(
           "550e8400-e29b-41d4-a716-446655440000",
@@ -385,7 +410,7 @@ describe("chat.handlers", () => {
     });
 
     it("calls validateSendAuthorization before sendMessage", async () => {
-      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockValidateSendAuthorization.mockResolvedValue(convData);
       const convId = "550e8400-e29b-41d4-a716-446655440000";
       const savedMessage = {
         id: "msg-1",
@@ -778,7 +803,7 @@ describe("chat.handlers", () => {
       const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
       const visitorConn = createMockConnection({ role: "visitor" as const, userId: "visitor-1" });
 
-      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
       mockSendMessage.mockResolvedValue({
         id: "msg-1", conversationId: convId, senderId: "visitor-1",
         content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
@@ -803,7 +828,7 @@ describe("chat.handlers", () => {
       const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
       const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
 
-      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
       mockSendMessage.mockResolvedValue({
         id: "msg-1", conversationId: convId, senderId: "user-1",
         content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
@@ -823,7 +848,7 @@ describe("chat.handlers", () => {
       const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
       const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
 
-      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
       mockSendMessage.mockResolvedValue({
         id: "msg-1", conversationId: convId, senderId: "user-1",
         content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
@@ -843,7 +868,7 @@ describe("chat.handlers", () => {
       const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
       const visitorConn = createMockConnection({ role: "visitor" as const, userId: "visitor-1" });
 
-      mockValidateSendAuthorization.mockResolvedValue(undefined);
+      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
       mockSendMessage.mockResolvedValue({
         id: "msg-1", conversationId: convId, senderId: "visitor-1",
         content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
