@@ -81,12 +81,12 @@ The current user's ID must be available to the mutation hooks (passed as a param
 
 ### Acceptance criteria
 
-- [ ] Clicking Accept instantly moves the conversation from queue to active in the UI
-- [ ] Clicking Leave instantly moves the conversation from active back to queue in the UI
-- [ ] Clicking Resolve instantly removes the conversation from the active list in the UI
-- [ ] If the server returns an error, the UI rolls back to the previous state
-- [ ] The final server-reconciled state matches what the optimistic update predicted (no flicker)
-- [ ] Existing tests pass; new tests cover optimistic updates and rollback scenarios
+- [x] Clicking Accept instantly moves the conversation from queue to active in the UI
+- [x] Clicking Leave instantly moves the conversation from active back to queue in the UI
+- [x] Clicking Resolve instantly removes the conversation from the active list in the UI
+- [x] If the server returns an error, the UI rolls back to the previous state
+- [x] The final server-reconciled state matches what the optimistic update predicted (no flicker)
+- [x] Existing tests pass; new tests cover optimistic updates and rollback scenarios
 
 ---
 

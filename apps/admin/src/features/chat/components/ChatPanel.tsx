@@ -47,7 +47,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
 
   const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId, ws.registerAckedId);
   const { editMessage, deleteMessage } = useMessageActions(ws.sendEvent);
-  const acceptMutation = useAcceptConversationMutation();
+  const acceptMutation = useAcceptConversationMutation(currentUserId);
 
   if (!conversationId) {
     return (
