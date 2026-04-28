@@ -330,6 +330,53 @@ describe("InMemoryRoomManager", () => {
     });
   });
 
+  describe("broadcastToStaff", () => {
+    it("sends event only to admin and operator connections, not visitors", () => {
+      const admin = createMockConnection({ organizationId: "org-1", userId: "admin-1", role: "admin" });
+      const operator = createMockConnection({ organizationId: "org-1", userId: "op-1", role: "operator" });
+      const visitor = createMockConnection({ organizationId: "org-1", userId: "visitor-1", role: "visitor" });
+      manager.registerConnection(admin);
+      manager.registerConnection(operator);
+      manager.registerConnection(visitor);
+
+      const event = JSON.stringify({ type: "message:new", payload: { id: "msg-1" } });
+      manager.broadcastToStaff("org-1", event);
+
+      expect(admin.ws.send).toHaveBeenCalledWith(event);
+      expect(operator.ws.send).toHaveBeenCalledWith(event);
+      expect(visitor.ws.send).not.toHaveBeenCalled();
+    });
+
+    it("excludes a specific connection when requested", () => {
+      const admin = createMockConnection({ organizationId: "org-1", userId: "admin-1", role: "admin" });
+      const operator = createMockConnection({ organizationId: "org-1", userId: "op-1", role: "operator" });
+      manager.registerConnection(admin);
+      manager.registerConnection(operator);
+
+      const event = JSON.stringify({ type: "message:new", payload: { id: "msg-1" } });
+      manager.broadcastToStaff("org-1", event, admin.id);
+
+      expect(admin.ws.send).not.toHaveBeenCalled();
+      expect(operator.ws.send).toHaveBeenCalledWith(event);
+    });
+
+    it("does nothing for an organization with no connections", () => {
+      expect(() =>
+        manager.broadcastToStaff("org-999", JSON.stringify({ type: "test" })),
+      ).not.toThrow();
+    });
+
+    it("does nothing when only visitors are connected", () => {
+      const visitor = createMockConnection({ organizationId: "org-1", userId: "visitor-1", role: "visitor" });
+      manager.registerConnection(visitor);
+
+      const event = JSON.stringify({ type: "message:new", payload: { id: "msg-1" } });
+      manager.broadcastToStaff("org-1", event);
+
+      expect(visitor.ws.send).not.toHaveBeenCalled();
+    });
+  });
+
   describe("getOrganizationConnections", () => {
     it("returns empty array for unknown organization", () => {
       expect(manager.getOrganizationConnections("org-unknown")).toEqual([]);

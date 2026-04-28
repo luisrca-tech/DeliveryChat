@@ -162,6 +162,8 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         editedAt?: string | null;
       };
 
+      if (payload.conversationId !== getState("conversationId")) break;
+
       const newMsg: ChatMessage = {
         id: payload.id,
         content: payload.content,
@@ -248,6 +250,8 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         senderId: string;
       };
 
+      if (payload.conversationId !== getState("conversationId")) break;
+
       setState("messages", (prev) =>
         prev.map((msg) =>
           msg.id === payload.messageId
@@ -264,6 +268,8 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         messageId: string;
         senderId: string;
       };
+
+      if (payload.conversationId !== getState("conversationId")) break;
 
       setState("messages", (prev) =>
         prev.map((msg) =>
@@ -287,6 +293,8 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
           editedAt?: string | null;
         }>;
       };
+
+      if (payload.conversationId !== getState("conversationId")) break;
 
       const syncedMessages: ChatMessage[] = payload.messages.map((m) => ({
         id: m.id,

@@ -253,8 +253,8 @@ async function handleMessageSend(
   // Broadcast to participants in the room
   roomManager.broadcast(payload.conversationId, eventStr, conn.id);
 
-  // Also notify all org staff (for unread badges on conversations they're not viewing)
-  roomManager.broadcastToOrganization(conn.organizationId, eventStr, conn.id);
+  // Notify org staff (for unread badges on conversations they're not viewing)
+  roomManager.broadcastToStaff(conn.organizationId, eventStr, conn.id);
 }
 
 async function handleMessageEdit(

@@ -218,6 +218,98 @@ describe("WebSocket error classification", () => {
     });
   });
 
+  describe("conversation isolation", () => {
+    it("ignores message:new events from a different conversation", async () => {
+      await connect();
+      setState("conversationId", "conv-mine");
+      setState("messages", []);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:new",
+          payload: {
+            id: "msg-other",
+            conversationId: "conv-other",
+            senderId: "admin-1",
+            senderRole: "admin",
+            content: "Hello from another conversation",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+        }),
+      });
+
+      expect(getState("messages")).toHaveLength(0);
+    });
+
+    it("accepts message:new events matching the current conversation", async () => {
+      await connect();
+      setState("conversationId", "conv-mine");
+      setState("messages", []);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:new",
+          payload: {
+            id: "msg-mine",
+            conversationId: "conv-mine",
+            senderId: "admin-1",
+            senderRole: "admin",
+            content: "Hello from my conversation",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+        }),
+      });
+
+      expect(getState("messages")).toHaveLength(1);
+      expect(getState("messages")[0]!.id).toBe("msg-mine");
+    });
+
+    it("ignores message:edited events from a different conversation", async () => {
+      await connect();
+      setState("conversationId", "conv-mine");
+      setState("messages", [
+        { id: "msg-1", content: "original", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+      ]);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:edited",
+          payload: {
+            conversationId: "conv-other",
+            messageId: "msg-1",
+            content: "edited by other conv",
+            editedAt: "2026-01-01T00:01:00Z",
+            senderId: "a1",
+          },
+        }),
+      });
+
+      expect(getState("messages")[0]!.content).toBe("original");
+    });
+
+    it("ignores message:deleted events from a different conversation", async () => {
+      await connect();
+      setState("conversationId", "conv-mine");
+      setState("messages", [
+        { id: "msg-1", content: "still here", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+      ]);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:deleted",
+          payload: {
+            conversationId: "conv-other",
+            messageId: "msg-1",
+            senderId: "a1",
+          },
+        }),
+      });
+
+      expect(getState("messages")[0]!.content).toBe("still here");
+      expect(getState("messages")[0]!.isDeleted).toBeUndefined();
+    });
+  });
+
   describe("rate limiting", () => {
     function simulateRateLimit(retryAfter = 3) {
       latestWS().onmessage?.({

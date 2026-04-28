@@ -29,6 +29,11 @@ export interface IRoomManager {
     event: string,
     excludeConnectionId?: string,
   ): void;
+  broadcastToStaff(
+    organizationId: string,
+    event: string,
+    excludeConnectionId?: string,
+  ): void;
   getOrganizationConnections(organizationId: string): WSConnection[];
 }
 
@@ -255,6 +260,21 @@ export class InMemoryRoomManager implements IRoomManager {
 
     for (const [connId, conn] of orgMap) {
       if (connId !== excludeConnectionId) {
+        conn.ws.send(event);
+      }
+    }
+  }
+
+  broadcastToStaff(
+    organizationId: string,
+    event: string,
+    excludeConnectionId?: string,
+  ): void {
+    const orgMap = this.orgConnections.get(organizationId);
+    if (!orgMap) return;
+
+    for (const [connId, conn] of orgMap) {
+      if (connId !== excludeConnectionId && conn.role !== "visitor") {
         conn.ws.send(event);
       }
     }
