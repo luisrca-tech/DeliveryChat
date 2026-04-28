@@ -100,6 +100,6 @@ Change the message list auto-scroll from `behavior: "smooth"` to `behavior: "ins
 
 ### Acceptance criteria
 
-- [ ] New messages scroll into view instantly without animation
-- [ ] Rapid message delivery (multiple messages in quick succession) does not cause scroll jank
-- [ ] Manual scroll position is preserved when the user is reading history (no forced scroll-to-bottom)
+- [x] New messages scroll into view instantly without animation
+- [x] Rapid message delivery (multiple messages in quick succession) does not cause scroll jank
+- [x] Manual scroll position is preserved when the user is reading history (no forced scroll-to-bottom)
