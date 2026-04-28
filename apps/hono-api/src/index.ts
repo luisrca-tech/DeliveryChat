@@ -13,6 +13,7 @@ import { env } from "./env.js";
 import { isOriginAllowed } from "./lib/corsPatterns.js";
 import { initWebSocket } from "./lib/ws.js";
 import { wsRoute } from "./routes/ws.js";
+import { queryMonitorMiddleware } from "./lib/middleware/queryMonitor.js";
 
 
 const app = new Hono();
@@ -20,6 +21,7 @@ const app = new Hono();
 const { injectWebSocket } = initWebSocket(app);
 
 app.use("*", logger());
+app.use("*", queryMonitorMiddleware());
 
 app.use(
   "*",
