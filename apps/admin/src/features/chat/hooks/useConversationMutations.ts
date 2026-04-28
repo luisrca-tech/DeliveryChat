@@ -6,115 +6,58 @@ import {
   deleteConversation,
   updateConversationSubject,
 } from "../lib/conversations.client";
-import { conversationsQueryKeys } from "./useConversationsQuery";
 import {
   applyOptimisticAccept,
   applyOptimisticLeave,
   applyOptimisticResolve,
 } from "../lib/optimisticConversationUpdates";
-import type { ConversationsListResponse } from "../types/chat.types";
-
-type QueryCacheSnapshot = [readonly unknown[], ConversationsListResponse | undefined][];
-
-function snapshotListQueries(queryClient: ReturnType<typeof useQueryClient>): QueryCacheSnapshot {
-  return queryClient.getQueriesData<ConversationsListResponse>({
-    queryKey: conversationsQueryKeys.all(),
-  });
-}
-
-function rollbackFromSnapshot(queryClient: ReturnType<typeof useQueryClient>, snapshot: QueryCacheSnapshot) {
-  for (const [key, data] of snapshot) {
-    queryClient.setQueryData(key, data);
-  }
-}
+import { buildConversationMutationOptions } from "../lib/conversationMutationFactory";
 
 export function useAcceptConversationMutation(currentUserId: string) {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => acceptConversation(id),
-    onMutate: async (conversationId) => {
-      await queryClient.cancelQueries({ queryKey: conversationsQueryKeys.all() });
-      const snapshot = snapshotListQueries(queryClient);
-      queryClient.setQueriesData<ConversationsListResponse>(
-        { queryKey: conversationsQueryKeys.all() },
-        (old) => old ? applyOptimisticAccept(old, conversationId, currentUserId) : old,
-      );
-      return { snapshot };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.snapshot) rollbackFromSnapshot(queryClient, context.snapshot);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() });
-    },
-  });
+  return useMutation(
+    buildConversationMutationOptions(queryClient, {
+      mutationFn: (id: string) => acceptConversation(id),
+      optimisticUpdater: (data, id) => applyOptimisticAccept(data, id, currentUserId),
+    }),
+  );
 }
 
 export function useLeaveConversationMutation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => leaveConversation(id),
-    onMutate: async (conversationId) => {
-      await queryClient.cancelQueries({ queryKey: conversationsQueryKeys.all() });
-      const snapshot = snapshotListQueries(queryClient);
-      queryClient.setQueriesData<ConversationsListResponse>(
-        { queryKey: conversationsQueryKeys.all() },
-        (old) => old ? applyOptimisticLeave(old, conversationId) : old,
-      );
-      return { snapshot };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.snapshot) rollbackFromSnapshot(queryClient, context.snapshot);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() });
-    },
-  });
+  return useMutation(
+    buildConversationMutationOptions(queryClient, {
+      mutationFn: (id: string) => leaveConversation(id),
+      optimisticUpdater: (data, id) => applyOptimisticLeave(data, id),
+    }),
+  );
 }
 
 export function useResolveConversationMutation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => resolveConversation(id),
-    onMutate: async (conversationId) => {
-      await queryClient.cancelQueries({ queryKey: conversationsQueryKeys.all() });
-      const snapshot = snapshotListQueries(queryClient);
-      queryClient.setQueriesData<ConversationsListResponse>(
-        { queryKey: conversationsQueryKeys.all() },
-        (old) => old ? applyOptimisticResolve(old, conversationId) : old,
-      );
-      return { snapshot };
-    },
-    onError: (_err, _vars, context) => {
-      if (context?.snapshot) rollbackFromSnapshot(queryClient, context.snapshot);
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() });
-    },
-  });
+  return useMutation(
+    buildConversationMutationOptions(queryClient, {
+      mutationFn: (id: string) => resolveConversation(id),
+      optimisticUpdater: (data, id) => applyOptimisticResolve(data, id),
+    }),
+  );
 }
 
 export function useUpdateSubjectMutation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, subject }: { id: string; subject: string }) =>
-      updateConversationSubject(id, subject),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: conversationsQueryKeys.all(),
-      });
-    },
-  });
+  return useMutation(
+    buildConversationMutationOptions(queryClient, {
+      mutationFn: ({ id, subject }: { id: string; subject: string }) =>
+        updateConversationSubject(id, subject),
+    }),
+  );
 }
 
 export function useDeleteConversationMutation() {
   const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => deleteConversation(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: conversationsQueryKeys.all(),
-      });
-    },
-  });
+  return useMutation(
+    buildConversationMutationOptions(queryClient, {
+      mutationFn: (id: string) => deleteConversation(id),
+    }),
+  );
 }
