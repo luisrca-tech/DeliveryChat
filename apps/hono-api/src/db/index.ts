@@ -2,6 +2,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema/index.js";
 import { env } from "../env.js";
+import { QueryCountingLogger } from "./queryLogger.js";
 
 const globalForDb = globalThis as unknown as {
   conn: postgres.Sql | undefined;
@@ -37,4 +38,7 @@ try {
 const conn = globalForDb.conn ?? postgres(databaseUrl, { ssl: "require" });
 if (process.env.NODE_ENV !== "production") globalForDb.conn = conn;
 
-export const db = drizzle(conn, { schema: { ...schema } });
+export const db = drizzle(conn, {
+  schema: { ...schema },
+  logger: new QueryCountingLogger(),
+});
