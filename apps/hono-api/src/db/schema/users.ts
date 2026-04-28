@@ -1,4 +1,4 @@
-import { boolean, text, varchar } from "drizzle-orm/pg-core";
+import { boolean, index, text, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import {
@@ -8,20 +8,24 @@ import {
 } from "./customTypes";
 import { statusEnum } from "./enums/statusEnum";
 
-export const user = createTable("user", {
-  id: text("id").primaryKey(),
-  name: varchar("name", { length: 255 }).notNull(),
-  email: varchar("email", { length: 255 }).notNull(),
-  emailVerified: emailVerifiedTimestamp("email_verified"),
-  image: varchar("image", { length: 500 }),
-  isAnonymous: boolean("is_anonymous").notNull().default(false),
-  status: statusEnum("status").notNull().default("PENDING_VERIFICATION"),
-  pendingExpiresAt: timestampStringNullable("pending_expires_at"),
-  expiredAt: timestampStringNullable("expired_at"),
-  createdAt: timestampString("created_at")
-    .default(sql`now()`)
-    .notNull(),
-  updatedAt: timestampString("updated_at")
-    .default(sql`now()`)
-    .notNull(),
-});
+export const user = createTable(
+  "user",
+  {
+    id: text("id").primaryKey(),
+    name: varchar("name", { length: 255 }).notNull(),
+    email: varchar("email", { length: 255 }).notNull(),
+    emailVerified: emailVerifiedTimestamp("email_verified"),
+    image: varchar("image", { length: 500 }),
+    isAnonymous: boolean("is_anonymous").notNull().default(false),
+    status: statusEnum("status").notNull().default("PENDING_VERIFICATION"),
+    pendingExpiresAt: timestampStringNullable("pending_expires_at"),
+    expiredAt: timestampStringNullable("expired_at"),
+    createdAt: timestampString("created_at")
+      .default(sql`now()`)
+      .notNull(),
+    updatedAt: timestampString("updated_at")
+      .default(sql`now()`)
+      .notNull(),
+  },
+  (table) => [index("user_status_idx").on(table.status)],
+);

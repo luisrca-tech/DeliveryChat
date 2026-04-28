@@ -148,6 +148,13 @@
       "when": 1776992740259,
       "tag": "0023_flawless_preak",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1777405966587,
+      "tag": "0024_add-indexes-at-tables",
+      "breakpoints": true
     }
   ]
 }
