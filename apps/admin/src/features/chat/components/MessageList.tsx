@@ -24,14 +24,12 @@ export function MessageList({
   onDeleteMessage,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
-  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(messages.length);
   const isNearBottomRef = useRef(true);
 
   useEffect(() => {
-    const viewport = scrollAreaRef.current?.querySelector(
-      "[data-radix-scroll-area-viewport]",
-    ) as HTMLElement | null;
+    const viewport = viewportRef.current;
     if (!viewport) return;
 
     const handleScroll = () => {
@@ -70,7 +68,7 @@ export function MessageList({
   }
 
   return (
-    <ScrollArea ref={scrollAreaRef} className="flex-1">
+    <ScrollArea viewportRef={viewportRef} className="flex-1">
       <div className="p-4 space-y-3">
         {messages.map((msg) => (
           <MessageBubble

@@ -205,9 +205,9 @@ Update MessageList to use the new `viewportRef` prop instead of the DOM selector
 
 ### Acceptance criteria
 
-- [ ] `ScrollArea` in `@repo/ui` accepts an optional `viewportRef` prop forwarded to the Radix `Viewport` element
-- [ ] MessageList uses `viewportRef` instead of `querySelector("[data-radix-scroll-area-viewport]")`
-- [ ] No DOM query selectors targeting Radix internal attributes remain in the codebase
-- [ ] Scroll-position preservation still works (user reading history is not yanked to bottom)
-- [ ] Existing tests pass
-- [ ] Feature documentation updated
+- [x] `ScrollArea` in `@repo/ui` accepts an optional `viewportRef` prop forwarded to the Radix `Viewport` element
+- [x] MessageList uses `viewportRef` instead of `querySelector("[data-radix-scroll-area-viewport]")`
+- [x] No DOM query selectors targeting Radix internal attributes remain in the codebase
+- [x] Scroll-position preservation still works (user reading history is not yanked to bottom)
+- [x] Existing tests pass
+- [x] Feature documentation updated
