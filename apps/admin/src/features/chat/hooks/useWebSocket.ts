@@ -6,8 +6,11 @@ import { getSubdomain } from "@/lib/subdomain";
 import { getBearerToken } from "@/lib/bearerToken";
 import { conversationsQueryKeys } from "./useConversationsQuery";
 import { markConversationAsRead } from "../lib/conversations.client";
+import { handleMessageNew } from "./handleMessageNew";
+import { handleMessageEdited } from "./handleMessageEdited";
+import { handleMessageDeleted } from "./handleMessageDeleted";
+import { handleConversationLifecycle, type ConversationLifecycleEventType } from "./handleConversationLifecycle";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
-import type { Message } from "../types/chat.types";
 
 type WSMessageHandler = (event: WSServerEvent) => void;
 
@@ -71,68 +74,24 @@ export function useWebSocket(activeConversationId: string | null) {
       url: wsUrl,
       onEvent: (event) => {
         if (event.type === "message:new") {
-          const msg = event.payload;
+          const result = handleMessageNew(event.payload, {
+            activeConversationId: activeConvRef.current,
+            processedMsgIds: processedMsgIds.current,
+            messagesQueryKey: (id) => conversationsQueryKeys.messages(id, 50, 0),
+            invalidateQueries: () =>
+              queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() }),
+            setQueryData: (key, updater) => queryClient.setQueryData(key, updater),
+            markAsRead: markConversationAsRead,
+          });
 
-          // Dedup: org broadcast + room broadcast can deliver the same message twice
-          if (processedMsgIds.current.has(msg.id)) return;
-          processedMsgIds.current.add(msg.id);
-          // Prevent memory leak: cap at 500 entries
-          if (processedMsgIds.current.size > 500) {
-            const first = processedMsgIds.current.values().next().value;
-            if (first) processedMsgIds.current.delete(first);
-          }
-
-          const newMessage: Message = {
-            id: msg.id,
-            conversationId: msg.conversationId,
-            senderId: msg.senderId,
-            senderName: msg.senderName,
-            senderRole: msg.senderRole,
-            type: msg.type,
-            content: msg.content,
-            createdAt: msg.createdAt,
-            editedAt: msg.editedAt ?? null,
-          };
-
-          queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
-            conversationsQueryKeys.messages(msg.conversationId, 50, 0),
-            (old) => {
-              if (!old) return { messages: [newMessage], limit: 50, offset: 0 };
-              // Dedup: skip if message already exists (org broadcast + room broadcast)
-              if (old.messages.some((m) => m.id === msg.id)) return old;
-              return {
-                ...old,
-                messages: [newMessage, ...old.messages],
-              };
-            },
-          );
-
-          if (
-            msg.senderRole === "visitor" &&
-            msg.conversationId === activeConvRef.current
-          ) {
-            // User is viewing this conversation — mark as read, then refresh list
-            markConversationAsRead(msg.conversationId)
-              .then(() =>
-                queryClient.invalidateQueries({
-                  queryKey: conversationsQueryKeys.all(),
-                }),
-              )
-              .catch(console.error);
-          } else {
-            // Not the active conversation — refresh list from server
-            queryClient.invalidateQueries({
-              queryKey: conversationsQueryKeys.all(),
-            });
-          }
-
-          // Clear typing indicator when the typing user sends a message
-          setTypingUser((current) =>
-            current?.userId === msg.senderId ? null : current,
-          );
-          if (typingTimerRef.current) {
-            clearTimeout(typingTimerRef.current);
-            typingTimerRef.current = null;
+          if (result.clearTypingForSender) {
+            setTypingUser((current) =>
+              current?.userId === event.payload.senderId ? null : current,
+            );
+            if (typingTimerRef.current) {
+              clearTimeout(typingTimerRef.current);
+              typingTimerRef.current = null;
+            }
           }
         }
 
@@ -158,51 +117,29 @@ export function useWebSocket(activeConversationId: string | null) {
           }
         }
 
+        const cacheDeps = {
+          messagesQueryKey: (id: string) => conversationsQueryKeys.messages(id, 50, 0),
+          setQueryData: (key: readonly unknown[], updater: (old: unknown) => unknown) =>
+            queryClient.setQueryData(key, updater),
+        };
+
         if (event.type === "message:edited") {
-          const { conversationId, messageId, content, editedAt } = event.payload;
-          queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
-            conversationsQueryKeys.messages(conversationId, 50, 0),
-            (old) => {
-              if (!old) return old;
-              return {
-                ...old,
-                messages: old.messages.map((msg) =>
-                  msg.id === messageId
-                    ? { ...msg, content, editedAt }
-                    : msg,
-                ),
-              };
-            },
-          );
+          handleMessageEdited(event.payload, cacheDeps);
         }
 
         if (event.type === "message:deleted") {
-          const { conversationId, messageId } = event.payload;
-          queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
-            conversationsQueryKeys.messages(conversationId, 50, 0),
-            (old) => {
-              if (!old) return old;
-              return {
-                ...old,
-                messages: old.messages.map((msg) =>
-                  msg.id === messageId
-                    ? { ...msg, isDeleted: true, content: "" }
-                    : msg,
-                ),
-              };
-            },
-          );
+          handleMessageDeleted(event.payload, cacheDeps);
         }
 
-        // Conversation lifecycle events — invalidate list so queue updates
         if (
           event.type === "conversation:new" ||
           event.type === "conversation:accepted" ||
           event.type === "conversation:released" ||
           event.type === "conversation:resolved"
         ) {
-          queryClient.invalidateQueries({
-            queryKey: conversationsQueryKeys.all(),
+          handleConversationLifecycle(event.type as ConversationLifecycleEventType, {
+            invalidateQueries: () =>
+              queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() }),
           });
         }
 

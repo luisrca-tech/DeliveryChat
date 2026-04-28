@@ -1,6 +1,3 @@
-import { eq } from "drizzle-orm";
-import { db } from "../../db/index.js";
-import { conversations } from "../../db/schema/conversations.js";
 import type { IRoomManager, WSConnection } from "./room-manager.js";
 import { wsClientEventSchema } from "./chat.schemas.js";
 import {
@@ -171,8 +168,9 @@ async function handleMessageSend(
   payload: { conversationId: string; content: string; clientMessageId: string },
   roomManager: IRoomManager,
 ) {
+  let conversationData;
   try {
-    await validateSendAuthorization(
+    conversationData = await validateSendAuthorization(
       payload.conversationId,
       conn.userId,
       conn.role,
@@ -189,11 +187,14 @@ async function handleMessageSend(
 
   let message;
   try {
-    message = await sendMessage({
-      conversationId: payload.conversationId,
-      senderId: conn.userId,
-      content: payload.content,
-    });
+    message = await sendMessage(
+      {
+        conversationId: payload.conversationId,
+        senderId: conn.userId,
+        content: payload.content,
+      },
+      conversationData,
+    );
   } catch (error) {
     const msg = error instanceof Error ? error.message : "Unknown error";
     if (
@@ -215,7 +216,6 @@ async function handleMessageSend(
 
   console.log(`[WS:Handler] message persisted msgId=${message.id} — broadcasting to room`);
 
-  // ACK to sender
   sendEvent(conn, {
     type: "message:ack",
     payload: {
@@ -225,14 +225,6 @@ async function handleMessageSend(
     },
   });
 
-  // Fetch assignedTo for the broadcast payload
-  const [conv] = await db
-    .select({ assignedTo: conversations.assignedTo })
-    .from(conversations)
-    .where(eq(conversations.id, payload.conversationId))
-    .limit(1);
-
-  // Broadcast to other participants in the room
   const broadcastEvent: WSServerEvent = {
     type: "message:new",
     payload: {
@@ -244,16 +236,14 @@ async function handleMessageSend(
       content: message.content,
       type: message.type as "text" | "system",
       createdAt: message.createdAt,
-      assignedTo: conv?.assignedTo ?? null,
+      assignedTo: conversationData.assignedTo,
     },
   };
 
   const eventStr = JSON.stringify(broadcastEvent);
 
-  // Broadcast to participants in the room
   roomManager.broadcast(payload.conversationId, eventStr, conn.id);
 
-  // Notify org staff (for unread badges on conversations they're not viewing)
   roomManager.broadcastToStaff(conn.organizationId, eventStr, conn.id);
 }
 

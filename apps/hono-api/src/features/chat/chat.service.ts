@@ -130,25 +130,30 @@ export async function createConversation(input: CreateConversationInput) {
   });
 }
 
-export async function sendMessage(input: SendMessageInput) {
-  const [conversation] = await db
-    .select({
-      status: conversations.status,
-      organizationId: conversations.organizationId,
-    })
-    .from(conversations)
-    .where(eq(conversations.id, input.conversationId))
-    .limit(1);
+export async function sendMessage(
+  input: SendMessageInput,
+  conversationData?: ConversationData,
+) {
+  if (!conversationData) {
+    const [conversation] = await db
+      .select({
+        status: conversations.status,
+        organizationId: conversations.organizationId,
+      })
+      .from(conversations)
+      .where(eq(conversations.id, input.conversationId))
+      .limit(1);
 
-  if (!conversation) {
-    throw new ConversationNotFoundError(input.conversationId);
-  }
+    if (!conversation) {
+      throw new ConversationNotFoundError(input.conversationId);
+    }
 
-  if (conversation.status !== "active" && conversation.status !== "pending") {
-    throw new ConversationNotActiveError(
-      input.conversationId,
-      conversation.status,
-    );
+    if (conversation.status !== "active" && conversation.status !== "pending") {
+      throw new ConversationNotActiveError(
+        input.conversationId,
+        conversation.status,
+      );
+    }
   }
 
   const [message] = await db
@@ -162,6 +167,11 @@ export async function sendMessage(input: SendMessageInput) {
     .returning();
 
   if (!message) throw new Error("Failed to insert message");
+
+  await db
+    .update(conversations)
+    .set({ updatedAt: sql`now()` })
+    .where(eq(conversations.id, input.conversationId));
 
   return message;
 }
@@ -332,11 +342,17 @@ export async function isParticipant(
   return !!row;
 }
 
+export interface ConversationData {
+  status: string;
+  assignedTo: string | null;
+  organizationId: string;
+}
+
 export async function validateSendAuthorization(
   conversationId: string,
   senderId: string,
   senderRole: ParticipantRole,
-): Promise<void> {
+): Promise<ConversationData> {
   const [conversation] = await db
     .select({
       status: conversations.status,
@@ -356,13 +372,14 @@ export async function validateSendAuthorization(
     if (!participantExists) {
       throw new NotAssignedToConversationError(conversationId, senderId);
     }
-    return;
+    return conversation;
   }
 
-  // Staff (operator, admin): must be the assignedTo user
   if (conversation.assignedTo !== senderId) {
     throw new NotAssignedToConversationError(conversationId, senderId);
   }
+
+  return conversation;
 }
 
 export async function acceptConversation(
