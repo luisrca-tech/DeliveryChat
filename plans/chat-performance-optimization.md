@@ -103,3 +103,111 @@ Change the message list auto-scroll from `behavior: "smooth"` to `behavior: "ins
 - [x] New messages scroll into view instantly without animation
 - [x] Rapid message delivery (multiple messages in quick succession) does not cause scroll jank
 - [x] Manual scroll position is preserved when the user is reading history (no forced scroll-to-bottom)
+
+---
+
+## Phase 5: Optimistic Mutation Factory
+
+**User stories**: 4, 5, 6 (structural improvement to Phase 3)
+
+### What to build
+
+Replace the three identical snapshot → apply → rollback → invalidate blocks in the conversation mutation hooks with a single factory function. Each optimistic mutation becomes a one-liner that passes only its API call and updater function.
+
+The factory encapsulates:
+- Canceling in-flight queries before mutation
+- Snapshotting all conversation cache entries
+- Applying the optimistic updater via `setQueriesData`
+- Rolling back to the snapshot on error
+- Invalidating all conversation queries on settle
+
+The three existing optimistic mutations (`accept`, `leave`, `resolve`) and the two non-optimistic mutations (`updateSubject`, `delete`) both go through the factory — the non-optimistic ones simply omit the updater parameter.
+
+### Acceptance criteria
+
+- [ ] A single factory function produces all five conversation mutation hooks
+- [ ] Each mutation hook is defined in ≤ 5 lines (API call + optional updater)
+- [ ] The snapshot/rollback/invalidation logic exists in exactly one place
+- [ ] `useAcceptConversationMutation` still accepts `currentUserId` and the optimistic updater uses it
+- [ ] Existing tests pass; new tests cover the factory's snapshot and rollback behavior
+- [ ] Feature documentation updated
+
+---
+
+## Phase 6: WebSocket Event Handler Extraction
+
+**User stories**: 3, 8 (structural improvement to Phase 2)
+
+### What to build
+
+Extract the three inline cache-mutating event handlers from the WebSocket hook into pure testable functions, following the same dependency-injection pattern used for `handleMessageNew` in Phase 2.
+
+The handlers to extract:
+- **`message:edited`** — updates a message's content and `editedAt` in the messages cache via `setQueryData`
+- **`message:deleted`** — marks a message as deleted in the messages cache via `setQueryData`
+- **`conversation:*` lifecycle** — fires `invalidateQueries` for `conversation:new`, `conversation:accepted`, `conversation:released`, `conversation:resolved`
+
+Each extracted function receives its dependencies (query keys, cache setters) as parameters and returns any side-effect signals the hook needs (like clearing typing state).
+
+The typing event handlers (`typing:start`, `typing:stop`) remain inline since they only touch local React state and have no cache interaction.
+
+### Acceptance criteria
+
+- [ ] `handleMessageEdited` is a pure function with injected deps and dedicated tests
+- [ ] `handleMessageDeleted` is a pure function with injected deps and dedicated tests
+- [ ] `handleConversationLifecycle` is a pure function with injected deps and dedicated tests
+- [ ] The WebSocket hook's `onEvent` callback delegates to the extracted functions
+- [ ] The `onEvent` callback is ≤ 40 lines (down from ~100)
+- [ ] Existing tests pass; each new handler has ≥ 3 test cases
+- [ ] Feature documentation added
+
+---
+
+## Phase 7: Conversation Action Hooks
+
+**User stories**: 4, 5, 6, 9 (structural improvement to Phase 3)
+
+### What to build
+
+Unify the three duplicated `try/catch → mutateAsync → navigate → toast → optional side-effect` patterns in ChatPanel and ChatHeader into dedicated action hooks that each encapsulate the full side-effect chain.
+
+The three action hooks:
+- **`useAcceptAction`** — accepts a conversation: mutation + navigate to "mine" filter + toast + WebSocket room join + conflict error handling
+- **`useLeaveAction`** — leaves a conversation: mutation + navigate away + toast + close dialog
+- **`useResolveAction`** — resolves a conversation: mutation + navigate away + toast + close dialog
+
+Each hook returns a single `execute(conversationId)` function and an `isPending` flag. The components call `execute()` and the hook handles everything else internally.
+
+The hooks access navigation context, WebSocket handle, and current user info from their own hook calls rather than receiving them as props, reducing the parameter surface.
+
+### Acceptance criteria
+
+- [x] `useAcceptAction` encapsulates mutation + navigation + toast + WS room join + conflict error
+- [x] `useLeaveAction` encapsulates mutation + navigation + toast
+- [x] `useResolveAction` encapsulates mutation + navigation + toast
+- [x] ChatPanel's `handleAccept` is replaced by a single `acceptAction.execute(id)` call
+- [x] ChatHeader's `handleLeave` and `handleResolve` are replaced by single `execute(id)` calls
+- [x] `ConversationConflictError` handling lives inside the hook, not the component
+- [x] Existing tests pass; new tests cover success and error paths for each action hook
+- [x] Feature documentation added
+
+---
+
+## Phase 8: ScrollArea Viewport Ref
+
+**User stories**: 7 (structural improvement to Phase 4)
+
+### What to build
+
+Expose a `viewportRef` prop from the shared `ScrollArea` component in `@repo/ui` so consumers can access the scroll viewport element directly, eliminating the `[data-radix-scroll-area-viewport]` DOM query selector that couples MessageList to Radix's internal attribute naming.
+
+Update MessageList to use the new `viewportRef` prop instead of the DOM selector for scroll-position tracking.
+
+### Acceptance criteria
+
+- [ ] `ScrollArea` in `@repo/ui` accepts an optional `viewportRef` prop forwarded to the Radix `Viewport` element
+- [ ] MessageList uses `viewportRef` instead of `querySelector("[data-radix-scroll-area-viewport]")`
+- [ ] No DOM query selectors targeting Radix internal attributes remain in the codebase
+- [ ] Scroll-position preservation still works (user reading history is not yanked to bottom)
+- [ ] Existing tests pass
+- [ ] Feature documentation updated

@@ -1,20 +1,15 @@
 import { MessageSquareOff, UserCheck } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { authClient } from "@/lib/authClient";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
-import { useNavigate } from "@tanstack/react-router";
 import { useConversationMessagesQuery, useConversationDetailQuery } from "../hooks/useConversationsQuery";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useMessageActions } from "../hooks/useMessageActions";
-import { useAcceptConversationMutation } from "../hooks/useConversationMutations";
-import { ConversationConflictError } from "../lib/conversations.client";
-import { navigateSearchAfterAccept } from "../lib/conversationSearchNavigation";
+import { useAcceptAction } from "../hooks/useConversationActions";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
 import type { TypingUser } from "../hooks/useWebSocket";
-import { Route } from "@/routes/_system/conversations";
 
 type WSHandle = {
   isConnected: boolean;
@@ -36,8 +31,6 @@ type Props = {
 };
 
 export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
-  const navigate = useNavigate({ from: Route.fullPath });
-  const { filter: urlFilter } = Route.useSearch();
   const { data: sessionInfo, isPending: sessionPending } = authClient.useSession();
   const currentUserId = sessionInfo?.user?.id ?? "";
 
@@ -47,7 +40,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
 
   const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId, ws.registerAckedId);
   const { editMessage, deleteMessage } = useMessageActions(ws.sendEvent);
-  const acceptMutation = useAcceptConversationMutation(currentUserId);
+  const acceptAction = useAcceptAction(currentUserRole, ws.setActiveRoom);
 
   if (!conversationId) {
     return (
@@ -75,26 +68,6 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
     !sessionPending &&
     !!currentUserId &&
     (!isStaff || isAssignedToMe);
-
-  const handleAccept = async () => {
-    try {
-      await acceptMutation.mutateAsync(conversationId);
-      navigateSearchAfterAccept(
-        navigate,
-        conversationId,
-        currentUserRole,
-        urlFilter,
-      );
-      toast.success("Conversation accepted");
-      ws.setActiveRoom(conversationId, undefined, true);
-    } catch (error) {
-      if (error instanceof ConversationConflictError) {
-        toast.error("Already taken by another operator");
-      } else {
-        toast.error("Failed to accept conversation");
-      }
-    }
-  };
 
   return (
     <div className="flex-1 flex min-w-0">
@@ -125,11 +98,11 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
             </p>
             <Button
               size="sm"
-              onClick={handleAccept}
-              disabled={acceptMutation.isPending}
+              onClick={() => acceptAction.execute(conversationId)}
+              disabled={acceptAction.isPending}
             >
               <UserCheck className="mr-2 h-4 w-4" />
-              {acceptMutation.isPending ? "Accepting..." : "Accept"}
+              {acceptAction.isPending ? "Accepting..." : "Accept"}
             </Button>
           </div>
         )}

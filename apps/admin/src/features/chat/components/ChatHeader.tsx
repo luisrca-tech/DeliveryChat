@@ -1,10 +1,4 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "@tanstack/react-router";
-import { Route } from "@/routes/_system/conversations";
-import {
-  navigateSearchAfterLeave,
-  navigateSearchAfterResolve,
-} from "../lib/conversationSearchNavigation";
 import { MessageSquare, LogOut, CheckCircle, MoreVertical, Pencil, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
@@ -16,11 +10,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import {
-  useLeaveConversationMutation,
-  useResolveConversationMutation,
-  useUpdateSubjectMutation,
-} from "../hooks/useConversationMutations";
+import { useUpdateSubjectMutation } from "../hooks/useConversationMutations";
+import { useLeaveAction, useResolveAction } from "../hooks/useConversationActions";
 import type { ConversationWithParticipants } from "../types/chat.types";
 
 type Props = {
@@ -35,11 +26,9 @@ const statusColors: Record<string, string> = {
 };
 
 export function ChatHeader({ conversation, currentUserId }: Props) {
-  const navigate = useNavigate({ from: Route.fullPath });
-  const { filter: urlFilter } = Route.useSearch();
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
-  const leaveMutation = useLeaveConversationMutation();
-  const resolveMutation = useResolveConversationMutation();
+  const leaveAction = useLeaveAction();
+  const resolveAction = useResolveAction();
   const updateSubjectMutation = useUpdateSubjectMutation();
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
@@ -77,25 +66,13 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
   };
 
   const handleLeave = async () => {
-    try {
-      await leaveMutation.mutateAsync(conversation.id);
-      navigateSearchAfterLeave(navigate, conversation.id, urlFilter);
-      setIsLeaveDialogOpen(false);
-      toast.success("Left conversation — returned to queue");
-    } catch {
-      toast.error("Failed to leave conversation");
-    }
+    const ok = await leaveAction.execute(conversation.id);
+    if (ok) setIsLeaveDialogOpen(false);
   };
 
   const handleResolve = async () => {
-    try {
-      await resolveMutation.mutateAsync(conversation.id);
-      navigateSearchAfterResolve(navigate, conversation.id, urlFilter);
-      setIsResolveDialogOpen(false);
-      toast.success("Conversation marked as solved");
-    } catch {
-      toast.error("Failed to resolve conversation");
-    }
+    const ok = await resolveAction.execute(conversation.id);
+    if (ok) setIsResolveDialogOpen(false);
   };
 
   return (
@@ -202,7 +179,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
             onConfirm={handleLeave}
             confirmLabel="Leave Chat"
             variant="destructive"
-            isLoading={leaveMutation.isPending}
+            isLoading={leaveAction.isPending}
           />
 
           <ConfirmDialog
@@ -212,7 +189,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
             description="Are you sure you want to mark this conversation as solved?"
             onConfirm={handleResolve}
             confirmLabel="Mark as Solved"
-            isLoading={resolveMutation.isPending}
+            isLoading={resolveAction.isPending}
           />
         </>
       )}
