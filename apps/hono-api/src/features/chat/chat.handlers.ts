@@ -12,6 +12,7 @@ import {
   ConversationNotActiveError,
   MessageNotFoundError,
   NotMessageSenderError,
+  type ConversationData,
 } from "./chat.service.js";
 import type {
   WSServerEvent,
@@ -168,7 +169,7 @@ async function handleMessageSend(
   payload: { conversationId: string; content: string; clientMessageId: string },
   roomManager: IRoomManager,
 ) {
-  let conversationData;
+  let conversationData: ConversationData;
   try {
     conversationData = await validateSendAuthorization(
       payload.conversationId,

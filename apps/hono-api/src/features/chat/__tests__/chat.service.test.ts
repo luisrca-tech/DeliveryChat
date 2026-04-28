@@ -157,28 +157,35 @@ describe("chat.service", () => {
   });
 
   describe("sendMessage", () => {
-    it("inserts a message, bumps updatedAt, and returns the full row", async () => {
-      const messageRow = {
-        id: "msg-1",
-        conversationId: "conv-1",
-        senderId: "user-1",
-        type: "text" as const,
-        content: "Hello",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-        deletedAt: null,
-      };
+    const messageRow = {
+      id: "msg-1",
+      conversationId: "conv-1",
+      senderId: "user-1",
+      type: "text" as const,
+      content: "Hello",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      deletedAt: null,
+    };
 
+    function mockSendTransaction(txInsertResult: unknown) {
+      mockTransaction.mockImplementation(async (fn: Function) => {
+        const insertChain = chainMock(txInsertResult);
+        const updateChain = chainMock([{}]);
+        const tx = {
+          insert: vi.fn(() => insertChain),
+          update: vi.fn(() => updateChain),
+        };
+        return fn(tx);
+      });
+    }
+
+    it("inserts a message, bumps updatedAt, and returns the full row", async () => {
       const selectChain = chainMock([
         { status: "active", organizationId: "org-1" },
       ]);
       mockSelect.mockReturnValueOnce(selectChain);
-
-      const insertChain = chainMock([messageRow]);
-      mockInsert.mockReturnValueOnce(insertChain);
-
-      const updateChain = chainMock([{}]);
-      mockUpdate.mockReturnValueOnce(updateChain);
+      mockSendTransaction([messageRow]);
 
       const result = await sendMessage({
         conversationId: "conv-1",
@@ -187,7 +194,7 @@ describe("chat.service", () => {
       });
 
       expect(result).toEqual(messageRow);
-      expect(mockUpdate).toHaveBeenCalled();
+      expect(mockTransaction).toHaveBeenCalled();
     });
 
     it("rejects sending to a closed conversation", async () => {
@@ -219,22 +226,7 @@ describe("chat.service", () => {
     });
 
     it("skips SELECT when conversationData is provided", async () => {
-      const messageRow = {
-        id: "msg-1",
-        conversationId: "conv-1",
-        senderId: "user-1",
-        type: "text" as const,
-        content: "Hello",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-        deletedAt: null,
-      };
-
-      const insertChain = chainMock([messageRow]);
-      mockInsert.mockReturnValueOnce(insertChain);
-
-      const updateChain = chainMock([{}]);
-      mockUpdate.mockReturnValueOnce(updateChain);
+      mockSendTransaction([messageRow]);
 
       const result = await sendMessage(
         {
@@ -249,28 +241,25 @@ describe("chat.service", () => {
       expect(mockSelect).not.toHaveBeenCalled();
     });
 
-    it("bumps conversations.updatedAt after inserting the message", async () => {
-      const messageRow = {
-        id: "msg-1",
-        conversationId: "conv-1",
-        senderId: "user-1",
-        type: "text" as const,
-        content: "Hello",
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z",
-        deletedAt: null,
-      };
+    it("rejects sending when pre-fetched conversationData has closed status", async () => {
+      await expect(
+        sendMessage(
+          {
+            conversationId: "conv-1",
+            senderId: "user-1",
+            content: "Hello",
+          },
+          { status: "closed", assignedTo: "user-1", organizationId: "org-1" },
+        ),
+      ).rejects.toThrow(ConversationNotActiveError);
+    });
 
+    it("runs INSERT and updatedAt bump inside a transaction", async () => {
       const selectChain = chainMock([
         { status: "active", organizationId: "org-1" },
       ]);
       mockSelect.mockReturnValueOnce(selectChain);
-
-      const insertChain = chainMock([messageRow]);
-      mockInsert.mockReturnValueOnce(insertChain);
-
-      const updateChain = chainMock([{}]);
-      mockUpdate.mockReturnValueOnce(updateChain);
+      mockSendTransaction([messageRow]);
 
       await sendMessage({
         conversationId: "conv-1",
@@ -278,7 +267,7 @@ describe("chat.service", () => {
         content: "Hello",
       });
 
-      expect(mockUpdate).toHaveBeenCalled();
+      expect(mockTransaction).toHaveBeenCalled();
     });
   });
 

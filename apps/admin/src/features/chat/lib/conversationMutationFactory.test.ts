@@ -83,7 +83,7 @@ describe("buildConversationMutationOptions", () => {
       });
     });
 
-    it("snapshots all conversation cache entries on mutate", async () => {
+    it("snapshots only list-query cache entries on mutate", async () => {
       const options = buildConversationMutationOptions(queryClient as never, {
         mutationFn: vi.fn(),
         optimisticUpdater: (data) => data,
@@ -91,15 +91,18 @@ describe("buildConversationMutationOptions", () => {
 
       const context = await options.onMutate!("conv-1");
 
-      expect(queryClient.getQueriesData).toHaveBeenCalledWith({
-        queryKey: ["conversations"],
-      });
+      const getCall = queryClient.getQueriesData.mock.calls[0]![0];
+      expect(getCall.queryKey).toEqual(["conversations"]);
+      expect(getCall.predicate).toBeTypeOf("function");
+      expect(getCall.predicate({ queryKey: ["conversations", "list", {}] })).toBe(true);
+      expect(getCall.predicate({ queryKey: ["conversations", "detail", "id"] })).toBe(false);
+      expect(getCall.predicate({ queryKey: ["conversations", "messages", "id", 50, 0] })).toBe(false);
       expect(context?.snapshot).toEqual([
         [["conversations"], makeListResponse()],
       ]);
     });
 
-    it("applies the optimistic updater via setQueriesData", async () => {
+    it("applies the optimistic updater only to list queries via setQueriesData", async () => {
       const updater = vi.fn(
         (data: ConversationsListResponse, _id: string) => ({
           ...data,
@@ -118,7 +121,10 @@ describe("buildConversationMutationOptions", () => {
 
       expect(queryClient.setQueriesData).toHaveBeenCalled();
       const setCall = queryClient.setQueriesData.mock.calls[0]!;
-      expect(setCall[0]).toEqual({ queryKey: ["conversations"] });
+      expect(setCall[0].queryKey).toEqual(["conversations"]);
+      expect(setCall[0].predicate).toBeTypeOf("function");
+      expect(setCall[0].predicate({ queryKey: ["conversations", "list", {}] })).toBe(true);
+      expect(setCall[0].predicate({ queryKey: ["conversations", "detail", "id"] })).toBe(false);
 
       const applyFn = setCall[1] as (
         old: ConversationsListResponse | undefined,
