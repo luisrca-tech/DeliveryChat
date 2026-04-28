@@ -83,7 +83,7 @@ export function resolveSignupAction(
   return baseAction;
 }
 
-export function resolveLoginOutcome(user: User): LoginOutcome {
+export function resolveLoginOutcome(user: Pick<User, "status">): LoginOutcome {
   return LOGIN_OUTCOME_MAP[user.status];
 }
 

@@ -15,7 +15,12 @@ import {
   getStatusSpecificErrorMessage,
 } from "../accountLifecycle.js";
 
-type MembershipRow = typeof member.$inferSelect;
+type AuthMembership = {
+  id: string;
+  role: string;
+  userId: string;
+  organizationId: string;
+};
 
 type AuthContext = {
   session: Awaited<ReturnType<typeof auth.api.getSession>>;
@@ -25,7 +30,7 @@ type AuthContext = {
   > extends infer T
     ? NonNullable<T>
     : never;
-  membership: MembershipRow;
+  membership: AuthMembership;
 };
 
 type SessionResult = Awaited<ReturnType<typeof auth.api.getSession>>;
@@ -52,7 +57,11 @@ export function requireTenantAuth(): MiddlewareHandler {
     }
 
     const users = await db
-      .select()
+      .select({
+        id: user.id,
+        name: user.name,
+        status: user.status,
+      })
       .from(user)
       .where(eq(user.id, sessionUser.id))
       .limit(1);
@@ -114,7 +123,12 @@ export function requireTenantAuth(): MiddlewareHandler {
     }
 
     const memberships = await db
-      .select()
+      .select({
+        id: member.id,
+        role: member.role,
+        userId: member.userId,
+        organizationId: member.organizationId,
+      })
       .from(member)
       .where(
         and(

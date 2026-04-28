@@ -244,7 +244,7 @@ async function handleMessageSend(
 
   roomManager.broadcast(payload.conversationId, eventStr, conn.id);
 
-  roomManager.broadcastToOrganization(conn.organizationId, eventStr, conn.id);
+  roomManager.broadcastToStaff(conn.organizationId, eventStr, conn.id);
 }
 
 async function handleMessageEdit(
