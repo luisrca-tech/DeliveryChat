@@ -154,26 +154,36 @@ export async function sendMessage(
         conversation.status,
       );
     }
+  } else if (
+    conversationData.status !== "active" &&
+    conversationData.status !== "pending"
+  ) {
+    throw new ConversationNotActiveError(
+      input.conversationId,
+      conversationData.status,
+    );
   }
 
-  const [message] = await db
-    .insert(messages)
-    .values({
-      id: crypto.randomUUID(),
-      conversationId: input.conversationId,
-      senderId: input.senderId,
-      content: input.content,
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [message] = await tx
+      .insert(messages)
+      .values({
+        id: crypto.randomUUID(),
+        conversationId: input.conversationId,
+        senderId: input.senderId,
+        content: input.content,
+      })
+      .returning();
 
-  if (!message) throw new Error("Failed to insert message");
+    if (!message) throw new Error("Failed to insert message");
 
-  await db
-    .update(conversations)
-    .set({ updatedAt: sql`now()` })
-    .where(eq(conversations.id, input.conversationId));
+    await tx
+      .update(conversations)
+      .set({ updatedAt: sql`now()` })
+      .where(eq(conversations.id, input.conversationId));
 
-  return message;
+    return message;
+  });
 }
 
 export async function editMessage(input: EditMessageInput) {

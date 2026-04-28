@@ -29,16 +29,22 @@ export function buildConversationMutationOptions<TVariables, TData = unknown>(
 
   const updater = config.optimisticUpdater;
 
+  const listPredicate = (query: { queryKey: readonly unknown[] }) =>
+    query.queryKey[1] === "list";
+
   return {
     ...base,
     onMutate: async (variables: TVariables) => {
       await queryClient.cancelQueries({ queryKey });
 
       const snapshot: QueryCacheSnapshot =
-        queryClient.getQueriesData<ConversationsListResponse>({ queryKey });
+        queryClient.getQueriesData<ConversationsListResponse>({
+          queryKey,
+          predicate: listPredicate,
+        });
 
       queryClient.setQueriesData<ConversationsListResponse>(
-        { queryKey },
+        { queryKey, predicate: listPredicate },
         (old) => (old ? updater(old, variables) : old),
       );
 

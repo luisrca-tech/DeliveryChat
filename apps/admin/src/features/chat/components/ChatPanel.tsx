@@ -99,7 +99,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
             <Button
               size="sm"
               onClick={() => acceptAction.execute(conversationId)}
-              disabled={acceptAction.isPending}
+              disabled={acceptAction.isPending || sessionPending || !currentUserId}
             >
               <UserCheck className="mr-2 h-4 w-4" />
               {acceptAction.isPending ? "Accepting..." : "Accept"}
