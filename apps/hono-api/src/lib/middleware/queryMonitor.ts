@@ -5,6 +5,7 @@ const DEFAULT_THRESHOLD = 15;
 
 type QueryMonitorOptions = {
   threshold?: number;
+  routeThresholds?: Record<string, number>;
 };
 
 function resolveThreshold(options?: QueryMonitorOptions): number {
@@ -79,7 +80,8 @@ export function queryMonitorMiddleware(
       return;
     }
 
-    const threshold = resolveThreshold(options);
+    const defaultThreshold = resolveThreshold(options);
+    const routeThresholds = options?.routeThresholds;
 
     await queryCounterStore.run(
       { count: 0, startTime: performance.now(), queries: [] },
@@ -90,6 +92,9 @@ export function queryMonitorMiddleware(
         const duration = Math.round(performance.now() - store.startTime);
         const method = c.req.method;
         const path = new URL(c.req.url).pathname;
+        const routeKey = `${method} ${path}`;
+        const threshold =
+          routeThresholds?.[routeKey] ?? defaultThreshold;
 
         if (shouldEmitServerTiming(c)) {
           c.header(

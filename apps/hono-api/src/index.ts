@@ -21,7 +21,11 @@ const app = new Hono();
 const { injectWebSocket } = initWebSocket(app);
 
 app.use("*", logger());
-app.use("*", queryMonitorMiddleware());
+app.use("*", queryMonitorMiddleware({
+  routeThresholds: {
+    "POST /v1/register": 25,
+  },
+}));
 
 app.use(
   "*",
