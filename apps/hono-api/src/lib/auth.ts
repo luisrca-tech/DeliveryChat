@@ -248,15 +248,6 @@ export const auth = betterAuth({
           return { data: invitation };
         },
         beforeAddMember: async ({ member }) => {
-          // Fallback activation: if the user wasn't activated during signup
-          // (e.g., added manually), activate them here.
-          if (member.userId) {
-            await db
-              .update(user)
-              .set({ status: "ACTIVE" })
-              .where(eq(user.id, member.userId));
-          }
-
           if (member.role === "owner") {
             return {
               data: {

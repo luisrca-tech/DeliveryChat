@@ -341,16 +341,10 @@ export const registerRoute = new Hono().post(
         );
       }
 
-      const userRecord = await db
-        .select()
-        .from(user)
-        .where(eq(user.id, userId))
-        .limit(1);
-
       return c.json({
         status: "OTP_SENT",
         success: true,
-        user: userRecord[0] ?? { id: userId, email, name },
+        user: { id: userId, email, name },
       });
     } catch (error) {
       console.error("[Register] UNHANDLED ERROR in registration flow:", error);
