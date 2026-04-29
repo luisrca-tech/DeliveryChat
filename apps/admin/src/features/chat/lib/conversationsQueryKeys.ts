@@ -1,17 +1,12 @@
 import type { ConversationFilters } from "../types/chat.types";
 
+const ALL_KEY = ["conversations"] as const;
+
 export const conversationsQueryKeys = {
-  all: () => ["conversations"] as const,
+  all: () => ALL_KEY,
   list: (filters: ConversationFilters) =>
-    [...conversationsQueryKeys.all(), "list", filters] as const,
-  detail: (id: string) =>
-    [...conversationsQueryKeys.all(), "detail", id] as const,
+    [...ALL_KEY, "list", filters] as const,
+  detail: (id: string) => [...ALL_KEY, "detail", id] as const,
   messages: (conversationId: string, limit: number, offset: number) =>
-    [
-      ...conversationsQueryKeys.all(),
-      "messages",
-      conversationId,
-      limit,
-      offset,
-    ] as const,
+    [...ALL_KEY, "messages", conversationId, limit, offset] as const,
 };
