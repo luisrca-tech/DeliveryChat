@@ -11,8 +11,8 @@ describe("queryCounterStore", () => {
 
           const entries = getQueryEntries();
           expect(entries).toHaveLength(1);
-          expect(entries[0].sql).toBe("SELECT * FROM users WHERE id = $1");
-          expect(entries[0].timestamp).toBeTypeOf("number");
+          expect(entries[0]!.sql).toBe("SELECT * FROM users WHERE id = $1");
+          expect(entries[0]!.timestamp).toBeTypeOf("number");
         },
       );
     });
@@ -25,8 +25,8 @@ describe("queryCounterStore", () => {
           recordQuery(longSql);
 
           const entries = getQueryEntries();
-          expect(entries[0].sql.length).toBeLessThanOrEqual(203); // 200 + "..."
-          expect(entries[0].sql).toMatch(/\.\.\.$/);
+          expect(entries[0]!.sql.length).toBeLessThanOrEqual(203); // 200 + "..."
+          expect(entries[0]!.sql).toMatch(/\.\.\.$/);
         },
       );
     });
@@ -54,9 +54,9 @@ describe("queryCounterStore", () => {
 
           const entries = getQueryEntries();
           expect(entries).toHaveLength(3);
-          expect(entries[0].sql).toContain("conversations");
-          expect(entries[1].sql).toContain("messages");
-          expect(entries[2].sql).toContain("UPDATE");
+          expect(entries[0]!.sql).toContain("conversations");
+          expect(entries[1]!.sql).toContain("messages");
+          expect(entries[2]!.sql).toContain("UPDATE");
         },
       );
     });
@@ -73,7 +73,7 @@ describe("queryCounterStore", () => {
           recordQuery("SELECT 2");
 
           const entries = getQueryEntries();
-          expect(entries[1].timestamp).toBeGreaterThanOrEqual(entries[0].timestamp);
+          expect(entries[1]!.timestamp).toBeGreaterThanOrEqual(entries[0]!.timestamp);
         },
       );
     });

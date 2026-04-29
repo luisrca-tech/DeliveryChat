@@ -42,7 +42,7 @@ function buildServerTimingHeader(
   ];
 
   for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
+    const entry = entries[i]!;
     const nextTimestamp = entries[i + 1]?.timestamp ?? performance.now();
     const dur = Math.round(nextTimestamp - entry.timestamp);
     parts.push(`db.q${i + 1};dur=${dur};desc="${entry.sql.slice(0, 80)}"`);
@@ -58,7 +58,7 @@ function logQueryBreakdown(
 ): void {
   const entries = getQueryEntries();
   for (let i = 0; i < entries.length; i++) {
-    const entry = entries[i];
+    const entry = entries[i]!;
     const nextTimestamp = entries[i + 1]?.timestamp ?? performance.now();
     const dur = Math.round(nextTimestamp - entry.timestamp);
     const msg = `  [QUERY] q${i + 1} ~${dur}ms — ${entry.sql}`;

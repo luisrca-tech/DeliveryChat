@@ -36,10 +36,10 @@ describe("QueryCountingLogger", () => {
 
       const entries = getQueryEntries();
       expect(entries).toHaveLength(1);
-      expect(entries[0].sql).toBe(
+      expect(entries[0]!.sql).toBe(
         "SELECT * FROM conversations WHERE org_id = $1",
       );
-      expect(entries[0].timestamp).toBeTypeOf("number");
+      expect(entries[0]!.timestamp).toBeTypeOf("number");
     });
   });
 

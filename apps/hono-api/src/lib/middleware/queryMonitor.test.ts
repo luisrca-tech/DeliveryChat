@@ -321,7 +321,7 @@ describe("queryMonitor middleware", () => {
         (call) => typeof call[0] === "string" && call[0].includes("[QUERY]"),
       );
       expect(queryLogCalls).toHaveLength(1);
-      expect(queryLogCalls[0][0]).toContain("SELECT * FROM conversations");
+      expect(queryLogCalls[0]![0]).toContain("SELECT * FROM conversations");
     });
 
     it("logs per-query breakdown when threshold is exceeded", async () => {
