@@ -13,6 +13,8 @@ type Props = {
   onDeleteMessage?: (messageId: string) => void;
 };
 
+const NEAR_BOTTOM_THRESHOLD = 100;
+
 export function MessageList({
   messages,
   isLoading,
@@ -22,12 +24,27 @@ export function MessageList({
   onDeleteMessage,
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
   const prevCountRef = useRef(messages.length);
+  const isNearBottomRef = useRef(true);
 
-  // Auto-scroll on new messages
   useEffect(() => {
-    if (messages.length > prevCountRef.current) {
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      isNearBottomRef.current =
+        scrollHeight - scrollTop - clientHeight < NEAR_BOTTOM_THRESHOLD;
+    };
+
+    viewport.addEventListener("scroll", handleScroll, { passive: true });
+    return () => viewport.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (messages.length > prevCountRef.current && isNearBottomRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "instant" });
     }
     prevCountRef.current = messages.length;
   }, [messages.length]);
@@ -51,7 +68,7 @@ export function MessageList({
   }
 
   return (
-    <ScrollArea className="flex-1">
+    <ScrollArea viewportRef={viewportRef} className="flex-1">
       <div className="p-4 space-y-3">
         {messages.map((msg) => (
           <MessageBubble
