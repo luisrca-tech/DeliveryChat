@@ -130,40 +130,60 @@ export async function createConversation(input: CreateConversationInput) {
   });
 }
 
-export async function sendMessage(input: SendMessageInput) {
-  const [conversation] = await db
-    .select({
-      status: conversations.status,
-      organizationId: conversations.organizationId,
-    })
-    .from(conversations)
-    .where(eq(conversations.id, input.conversationId))
-    .limit(1);
+export async function sendMessage(
+  input: SendMessageInput,
+  conversationData?: ConversationData,
+) {
+  if (!conversationData) {
+    const [conversation] = await db
+      .select({
+        status: conversations.status,
+        organizationId: conversations.organizationId,
+      })
+      .from(conversations)
+      .where(eq(conversations.id, input.conversationId))
+      .limit(1);
 
-  if (!conversation) {
-    throw new ConversationNotFoundError(input.conversationId);
-  }
+    if (!conversation) {
+      throw new ConversationNotFoundError(input.conversationId);
+    }
 
-  if (conversation.status !== "active" && conversation.status !== "pending") {
+    if (conversation.status !== "active" && conversation.status !== "pending") {
+      throw new ConversationNotActiveError(
+        input.conversationId,
+        conversation.status,
+      );
+    }
+  } else if (
+    conversationData.status !== "active" &&
+    conversationData.status !== "pending"
+  ) {
     throw new ConversationNotActiveError(
       input.conversationId,
-      conversation.status,
+      conversationData.status,
     );
   }
 
-  const [message] = await db
-    .insert(messages)
-    .values({
-      id: crypto.randomUUID(),
-      conversationId: input.conversationId,
-      senderId: input.senderId,
-      content: input.content,
-    })
-    .returning();
+  return db.transaction(async (tx) => {
+    const [message] = await tx
+      .insert(messages)
+      .values({
+        id: crypto.randomUUID(),
+        conversationId: input.conversationId,
+        senderId: input.senderId,
+        content: input.content,
+      })
+      .returning();
 
-  if (!message) throw new Error("Failed to insert message");
+    if (!message) throw new Error("Failed to insert message");
 
-  return message;
+    await tx
+      .update(conversations)
+      .set({ updatedAt: sql`now()` })
+      .where(eq(conversations.id, input.conversationId));
+
+    return message;
+  });
 }
 
 export async function editMessage(input: EditMessageInput) {
@@ -332,11 +352,17 @@ export async function isParticipant(
   return !!row;
 }
 
+export interface ConversationData {
+  status: string;
+  assignedTo: string | null;
+  organizationId: string;
+}
+
 export async function validateSendAuthorization(
   conversationId: string,
   senderId: string,
   senderRole: ParticipantRole,
-): Promise<void> {
+): Promise<ConversationData> {
   const [conversation] = await db
     .select({
       status: conversations.status,
@@ -356,13 +382,14 @@ export async function validateSendAuthorization(
     if (!participantExists) {
       throw new NotAssignedToConversationError(conversationId, senderId);
     }
-    return;
+    return conversation;
   }
 
-  // Staff (operator, admin): must be the assignedTo user
   if (conversation.assignedTo !== senderId) {
     throw new NotAssignedToConversationError(conversationId, senderId);
   }
+
+  return conversation;
 }
 
 export async function acceptConversation(
