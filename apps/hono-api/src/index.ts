@@ -56,7 +56,7 @@ app.use(
       "X-App-Id",
       "X-Visitor-Id",
     ],
-    exposeHeaders: ["set-auth-token", "set-auth-jwt"],
+    exposeHeaders: ["set-auth-token", "set-auth-jwt", "Server-Timing"],
     credentials: true,
   }),
 );
