@@ -13,6 +13,7 @@ import {
   getUnreadCountForVisitor,
   markAsRead,
 } from "../features/chat/chat.service.js";
+import { resolveOrCreateVisitor } from "../features/chat/visitor.service.js";
 import { requireWidgetAuth, getWidgetAuth } from "../lib/middleware/widgetAuth.js";
 import { createVisitorRateLimitMiddleware } from "../lib/middleware/visitorRateLimit.js";
 import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
@@ -111,22 +112,7 @@ export const widgetRoute = new Hono()
           );
         }
 
-        // Ensure anonymous user exists for this visitor
-        const [existingUser] = await db
-          .select({ id: user.id })
-          .from(user)
-          .where(eq(user.id, visitorId))
-          .limit(1);
-
-        if (!existingUser) {
-          await db.insert(user).values({
-            id: visitorId,
-            name: "Visitor",
-            email: `${visitorId}@anonymous.deliverychat.online`,
-            isAnonymous: true,
-            status: "ACTIVE",
-          });
-        }
+        await resolveOrCreateVisitor(visitorId);
 
         const conversation = await createConversation({
           organizationId: widgetAuth.organizationId,

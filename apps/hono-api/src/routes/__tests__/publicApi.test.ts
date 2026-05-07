@@ -103,6 +103,12 @@ vi.mock("../../db/schema/conversationParticipants.js", () => ({
   conversationParticipants: {},
 }));
 
+const mockResolveOrCreateVisitor = vi.fn();
+vi.mock("../../features/chat/visitor.service.js", () => ({
+  resolveOrCreateVisitor: (...args: unknown[]) =>
+    mockResolveOrCreateVisitor(...args),
+}));
+
 vi.mock("./../../routes/ws.js", () => ({
   roomManager: { broadcastToOrganization: vi.fn() },
 }));
@@ -150,12 +156,7 @@ describe("Public REST API", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setupValidApiKey();
-    // Default: visitor user already exists
-    mockDbSelect.mockReturnValue({
-      from: () => ({
-        where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-      }),
-    });
+    mockResolveOrCreateVisitor.mockResolvedValue(VALID_VISITOR_ID);
   });
 
   describe("Authentication", () => {
@@ -214,13 +215,6 @@ describe("Public REST API", () => {
 
   describe("POST /v1/api/conversations", () => {
     it("creates a conversation and returns it with participants", async () => {
-      // Mock: user already exists
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
-
       const fakeConversation = {
         id: CONVERSATION_ID,
         organizationId: VALID_ORG_ID,
@@ -269,17 +263,11 @@ describe("Public REST API", () => {
 
       let callCount = 0;
       mockDbSelect.mockImplementation(() => ({
-        from: (table: any) => {
+        from: () => {
           callCount++;
           if (callCount === 1) {
-            // First call: visitor resolution
-            return { where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }) };
-          }
-          if (callCount === 2) {
-            // Second call: list conversations
             return { innerJoin: innerJoinFn };
           }
-          // Third call: count query
           return {
             innerJoin: () => ({
               where: () => [{ total: 1 }],
@@ -304,12 +292,6 @@ describe("Public REST API", () => {
 
   describe("GET /v1/api/conversations/:id", () => {
     it("returns 404 when conversation not found", async () => {
-      // Mock: user exists
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
       mockGetConversationWithParticipants.mockResolvedValue(null);
 
       const res = await app.request(`/v1/api/conversations/${CONVERSATION_ID}`, {
@@ -320,11 +302,7 @@ describe("Public REST API", () => {
     });
 
     it("returns conversation with participants when found and user is participant", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       const fakeConv = {
         id: CONVERSATION_ID,
         organizationId: VALID_ORG_ID,
@@ -344,11 +322,7 @@ describe("Public REST API", () => {
     });
 
     it("returns 404 when visitor is not a participant", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       mockGetConversationWithParticipants.mockResolvedValue({
         id: CONVERSATION_ID,
         organizationId: VALID_ORG_ID,
@@ -366,11 +340,6 @@ describe("Public REST API", () => {
 
   describe("GET /v1/api/conversations/:id/messages", () => {
     it("returns paginated messages", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
       mockIsParticipant.mockResolvedValue(true);
       mockGetMessageHistory.mockResolvedValue([
         { id: MESSAGE_ID, content: "Hello", senderId: VALID_VISITOR_ID },
@@ -390,11 +359,7 @@ describe("Public REST API", () => {
 
   describe("POST /v1/api/conversations/:id/messages", () => {
     it("sends a message and returns it", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       mockIsParticipant.mockResolvedValue(true);
       const fakeMessage = {
         id: MESSAGE_ID,
@@ -422,11 +387,7 @@ describe("Public REST API", () => {
 
   describe("PATCH /v1/api/conversations/:id/messages/:messageId", () => {
     it("edits a message within the time window", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       mockIsParticipant.mockResolvedValue(true);
       const updatedMsg = {
         id: MESSAGE_ID,
@@ -449,11 +410,7 @@ describe("Public REST API", () => {
     });
 
     it("returns 422 when edit window has expired", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       mockIsParticipant.mockResolvedValue(true);
 
       const { MessageEditWindowExpiredError } = await import(
@@ -479,11 +436,7 @@ describe("Public REST API", () => {
 
   describe("DELETE /v1/api/conversations/:id/messages/:messageId", () => {
     it("soft-deletes a message within the time window", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       mockIsParticipant.mockResolvedValue(true);
       mockDeleteMessage.mockResolvedValue({ id: MESSAGE_ID, deletedAt: "2026-01-01T00:01:00Z" });
 
@@ -499,11 +452,7 @@ describe("Public REST API", () => {
 
   describe("POST /v1/api/conversations/:id/read", () => {
     it("marks conversation as read for the visitor", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       mockIsParticipant.mockResolvedValue(true);
       mockMarkAsRead.mockResolvedValue({ lastReadMessageId: MESSAGE_ID });
 
@@ -523,11 +472,7 @@ describe("Public REST API", () => {
 
   describe("GET /v1/api/conversations/:id/unread", () => {
     it("returns unread count for the visitor", async () => {
-      mockDbSelect.mockReturnValue({
-        from: () => ({
-          where: () => ({ limit: () => [{ id: VALID_VISITOR_ID }] }),
-        }),
-      });
+
       mockIsParticipant.mockResolvedValue(true);
       mockGetUnreadCountForVisitor.mockResolvedValue(5);
 

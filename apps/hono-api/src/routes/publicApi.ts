@@ -3,7 +3,6 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { eq, and, isNull, desc, sql } from "drizzle-orm";
 import { db } from "../db/index.js";
-import { user } from "../db/schema/users.js";
 import { conversations } from "../db/schema/conversations.js";
 import { conversationParticipants } from "../db/schema/conversationParticipants.js";
 import { signWsToken } from "../lib/security/wsToken.js";
@@ -24,6 +23,7 @@ import {
 } from "../features/chat/chat.service.js";
 import { mapServiceErrorToResponse } from "../features/chat/error-mapper.js";
 import { requireParticipant } from "../features/chat/participant-guard.js";
+import { resolveOrCreateVisitor } from "../features/chat/visitor.service.js";
 import { roomManager } from "./ws.js";
 import type { WSServerEvent } from "@repo/types";
 
@@ -60,26 +60,6 @@ type VisitorContext = {
   visitorUserId: string;
 };
 
-async function resolveVisitor(visitorId: string): Promise<string> {
-  const [existingUser] = await db
-    .select({ id: user.id })
-    .from(user)
-    .where(eq(user.id, visitorId))
-    .limit(1);
-
-  if (existingUser) return existingUser.id;
-
-  await db.insert(user).values({
-    id: visitorId,
-    name: "Visitor",
-    email: `${visitorId}@anonymous.deliverychat.online`,
-    isAnonymous: true,
-    status: "ACTIVE",
-  });
-
-  return visitorId;
-}
-
 export const publicApiRoute = new Hono<{ Variables: Variables }>()
   .use("*", requireApiKeyAuth())
   .use("*", async (c, next) => {
@@ -103,7 +83,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       );
     }
 
-    const visitorUserId = await resolveVisitor(visitorId);
+    const visitorUserId = await resolveOrCreateVisitor(visitorId);
     c.set("visitor", { visitorId, visitorUserId } satisfies VisitorContext);
     await next();
   })
