@@ -31,7 +31,7 @@ describe("mapServiceErrorToResponse", () => {
     const res = await app.request("/test");
     expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.error).toBe("Not Found");
+    expect(body.error).toBe("not_found");
     expect(body.message).toBe("Message not found");
   });
 
@@ -40,7 +40,7 @@ describe("mapServiceErrorToResponse", () => {
     const res = await app.request("/test");
     expect(res.status).toBe(403);
     const body = await res.json();
-    expect(body.error).toBe("Forbidden");
+    expect(body.error).toBe("forbidden");
   });
 
   it("maps MessageEditWindowExpiredError to 422", async () => {
@@ -58,7 +58,7 @@ describe("mapServiceErrorToResponse", () => {
     const res = await app.request("/test");
     expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.error).toBe("Not Found");
+    expect(body.error).toBe("not_found");
     expect(body.message).toBe("Conversation not found");
   });
 

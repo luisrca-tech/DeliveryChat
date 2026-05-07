@@ -112,8 +112,13 @@ vi.mock("../../features/chat/visitor.service.js", () => ({
     mockResolveOrCreateVisitor(...args),
 }));
 
-vi.mock("./../../routes/ws.js", () => ({
-  roomManager: { broadcastToOrganization: vi.fn() },
+vi.mock("../../features/chat/broadcasting.service.js", () => ({
+  broadcastOrganizationEvent: vi.fn(),
+  broadcastRoomEvent: vi.fn(),
+  buildConversationNewEvent: vi.fn(),
+  buildMessageNewEvent: vi.fn(),
+  buildMessageEditedEvent: vi.fn(),
+  buildMessageDeletedEvent: vi.fn(),
 }));
 
 vi.mock("../../lib/middleware/visitorRateLimit.js", () => ({

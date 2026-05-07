@@ -62,7 +62,7 @@ describe("requireWidgetAuth", () => {
     const res = await createApp().request("/test", { method: "GET" });
     expect(res.status).toBe(401);
     const body = await res.json();
-    expect(body.error).toBe("Unauthorized");
+    expect(body.error).toBe("unauthorized");
   });
 
   it("returns 404 when application is not found", async () => {

@@ -88,9 +88,9 @@ The check lives in the service layer, so all callers (WebSocket handlers and RES
 ### `MessageEditWindowExpiredError`
 
 - **WS Code:** `EDIT_WINDOW_EXPIRED`
-- **HTTP-equivalent:** 403
+- **HTTP-equivalent:** 422
 - **Thrown when:** The message's `createdAt` is 15 or more minutes in the past.
-- **Error properties:** `createdAt` (ISO string of the message), `windowMinutes` (15). Clients can use these to display a meaningful message.
+- **Error properties:** `createdAt` (ISO string of message creation), `expiresAt` (ISO string of when the window closed), `windowMinutes` (15). Clients can use these to display a meaningful message.
 
 ## Handler Flow
 

@@ -51,14 +51,19 @@ export class NotMessageSenderError extends Error {
 
 export class MessageEditWindowExpiredError extends Error {
   public readonly createdAt: string;
+  public readonly expiresAt: string;
   public readonly windowMinutes: number;
 
   constructor(messageId: string, createdAt: string, windowMinutes: number) {
+    const expiresAt = new Date(
+      new Date(createdAt).getTime() + windowMinutes * 60 * 1000,
+    ).toISOString();
     super(
-      `Message ${messageId} can no longer be modified. The ${windowMinutes}-minute edit window expired at ${createdAt}.`,
+      `Message ${messageId} can no longer be modified. The ${windowMinutes}-minute edit window expired at ${expiresAt}.`,
     );
     this.name = "MessageEditWindowExpiredError";
     this.createdAt = createdAt;
+    this.expiresAt = expiresAt;
     this.windowMinutes = windowMinutes;
   }
 }

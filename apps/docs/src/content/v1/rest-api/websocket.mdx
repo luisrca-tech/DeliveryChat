@@ -16,7 +16,8 @@ POST /v1/api/ws-token
 curl -X POST https://api.deliverychat.online/v1/api/ws-token \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
-  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
 ```
 
 ### Response — `200 OK`
@@ -33,17 +34,17 @@ The token encodes your `appId`, `visitorId`, and request origin. It is used to a
 
 ## Connecting
 
-Open a WebSocket connection using the token and app ID as query parameters:
+Open a WebSocket connection using the token as a query parameter:
 
 ```
-wss://api.deliverychat.online/v1/ws?token=eyJhbGci...&appId=your-app-id
+wss://api.deliverychat.online/v1/ws?token=eyJhbGci...
 ```
 
 ### JavaScript Example
 
 ```javascript
 const ws = new WebSocket(
-  `wss://api.deliverychat.online/v1/ws?token=${token}&appId=${appId}`
+  `wss://api.deliverychat.online/v1/ws?token=${token}`
 );
 
 ws.onopen = () => {
@@ -60,8 +61,8 @@ ws.onclose = (event) => {
 };
 ```
 
-<Callout type="info" title="Why query parameters?">
-  WebSocket does not support custom headers during the handshake in browsers. The token and app ID are passed as query parameters instead.
+<Callout type="info" title="Why a query parameter?">
+  WebSocket does not support custom headers during the handshake in browsers. The token is passed as a query parameter instead. The app ID is embedded in the token — you do not need to pass it separately.
 </Callout>
 
 ---
@@ -232,7 +233,23 @@ An error occurred processing your event.
 }
 ```
 
-Error codes: `PARSE_ERROR`, `VALIDATION_ERROR`, `FORBIDDEN`, `UNAUTHORIZED`.
+Error codes:
+
+| Code | When |
+|------|------|
+| `PARSE_ERROR` | Message could not be parsed as JSON |
+| `VALIDATION_ERROR` | Message structure or fields are invalid |
+| `FORBIDDEN` | Not a participant or not authorized for the action |
+| `UNAUTHORIZED` | Authentication failed during connection |
+| `INVALID_TOKEN` | WebSocket token is malformed or tampered |
+| `EXPIRED_TOKEN` | WebSocket token has expired |
+| `ORIGIN_MISMATCH` | Token origin does not match the connection origin |
+| `APP_NOT_FOUND` | Application from the token was not found |
+| `RATE_LIMITED` | Too many messages sent in a short period |
+| `MESSAGE_NOT_FOUND` | Target message for edit/delete does not exist |
+| `EDIT_WINDOW_EXPIRED` | The 15-minute edit/delete window has passed |
+
+This list is exhaustive for the current protocol version.
 
 ### pong
 
@@ -287,7 +304,7 @@ let lastMessageId = localStorage.getItem("lastMessageId");
 let reconnectDelay = 1000;
 
 function connect() {
-  const ws = new WebSocket(`wss://api.deliverychat.online/v1/ws?token=${token}&appId=${appId}`);
+  const ws = new WebSocket(`wss://api.deliverychat.online/v1/ws?token=${token}`);
 
   ws.onopen = () => {
     reconnectDelay = 1000;

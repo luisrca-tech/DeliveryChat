@@ -23,6 +23,7 @@ curl -X POST https://api.deliverychat.online/v1/api/conversations/conv-uuid/mess
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com" \
   -H "Content-Type: application/json" \
   -d '{"content": "Hi, I need help with order #1234"}'
 ```
@@ -71,7 +72,8 @@ Returns paginated messages for a conversation. Soft-deleted messages are exclude
 curl "https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages?limit=50&offset=0" \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
-  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
 ```
 
 ### Response — `200 OK`
@@ -133,6 +135,7 @@ curl -X PATCH https://api.deliverychat.online/v1/api/conversations/conv-uuid/mes
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com" \
   -H "Content-Type: application/json" \
   -d '{"content": "Updated: I need help with order #5678"}'
 ```
@@ -176,7 +179,8 @@ Soft-deletes a message. Same constraints as edit: sender ownership and 15-minute
 curl -X DELETE https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages/msg-uuid \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
-  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
 ```
 
 ### Response — `200 OK`
@@ -208,7 +212,7 @@ When the window has expired, the API returns:
 ```json
 {
   "error": "edit_window_expired",
-  "message": "Edit window expired for message msg-uuid (created at 2025-01-15T10:00:00.000Z, window: 15 minutes)"
+  "message": "Message msg-uuid can no longer be modified. The 15-minute edit window expired at 2025-01-15T10:15:00.000Z."
 }
 ```
 

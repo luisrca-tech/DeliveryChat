@@ -54,7 +54,7 @@ describe("requireParticipant middleware", () => {
     const res = await app.request("/conversations/conv-1");
     expect(res.status).toBe(404);
     const body = await res.json();
-    expect(body.error).toBe("Not Found");
+    expect(body.error).toBe("not_found");
   });
 
   it("applies to sub-routes under /:id/*", async () => {
