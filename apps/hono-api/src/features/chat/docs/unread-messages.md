@@ -19,9 +19,13 @@ No new columns or migrations. Uses the existing `lastReadMessageId` column on `d
 
 ## Service Functions
 
+### `resolveUnreadCutoff(conversationId, userId): Promise<string | null>` (internal)
+
+Shared helper used by both `getUnreadCount` and `getUnreadCountForVisitor`. Looks up the participant's `lastReadMessageId`, resolves it to a `createdAt` timestamp, and returns the cutoff date. Returns `null` if the user is not a participant or has no read position (meaning all messages are unread).
+
 ### `getUnreadCount(conversationId, userId): Promise<number>`
 
-Counts visitor-sent, non-deleted messages after the participant's `lastReadMessageId`. If `lastReadMessageId` is null, all visitor messages are unread.
+Counts visitor-sent, non-deleted messages after the cutoff from `resolveUnreadCutoff`. If cutoff is null, all visitor messages are unread.
 
 Uses `innerJoin` with `conversationParticipants` to resolve sender role (same pattern as `GET /:id/messages`).
 
@@ -52,7 +56,7 @@ Marks the conversation as read for the authenticated user by setting `lastReadMe
 
 #### `getUnreadCountForVisitor(conversationId, visitorUserId): Promise<number>`
 
-Counts non-deleted messages where `senderId != visitorUserId` (operator/admin messages) after the visitor's `lastReadMessageId`. Uses `ne(messages.senderId, visitorUserId)` instead of a role join — simpler since there's only one visitor per conversation.
+Counts non-deleted messages where `senderId != visitorUserId` (operator/admin messages) after the cutoff from `resolveUnreadCutoff`. Uses `ne(messages.senderId, visitorUserId)` instead of a role join — simpler since there's only one visitor per conversation.
 
 ### Widget API Endpoints
 

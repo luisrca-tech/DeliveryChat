@@ -33,6 +33,7 @@ const mockEditMessage = vi.fn();
 const mockDeleteMessage = vi.fn();
 const mockMarkAsRead = vi.fn();
 const mockGetUnreadCountForVisitor = vi.fn();
+const mockListConversationsForVisitor = vi.fn();
 const mockIsParticipant = vi.fn();
 
 vi.mock("../../features/chat/chat.service.js", () => ({
@@ -46,6 +47,8 @@ vi.mock("../../features/chat/chat.service.js", () => ({
   markAsRead: (...args: unknown[]) => mockMarkAsRead(...args),
   getUnreadCountForVisitor: (...args: unknown[]) =>
     mockGetUnreadCountForVisitor(...args),
+  listConversationsForVisitor: (...args: unknown[]) =>
+    mockListConversationsForVisitor(...args),
   isParticipant: (...args: unknown[]) => mockIsParticipant(...args),
   MessageNotFoundError: class MessageNotFoundError extends Error {
     constructor(id: string) {
@@ -253,28 +256,10 @@ describe("Public REST API", () => {
         { id: CONVERSATION_ID, status: "pending", subject: "Test" },
       ];
 
-      const innerJoinFn = vi.fn().mockReturnValue({
-        where: () => ({
-          orderBy: () => ({
-            limit: () => ({ offset: () => fakeConversations }),
-          }),
-        }),
+      mockListConversationsForVisitor.mockResolvedValue({
+        conversations: fakeConversations,
+        total: 1,
       });
-
-      let callCount = 0;
-      mockDbSelect.mockImplementation(() => ({
-        from: () => {
-          callCount++;
-          if (callCount === 1) {
-            return { innerJoin: innerJoinFn };
-          }
-          return {
-            innerJoin: () => ({
-              where: () => [{ total: 1 }],
-            }),
-          };
-        },
-      }));
 
       const res = await app.request("/v1/api/conversations?limit=10&offset=0", {
         method: "GET",

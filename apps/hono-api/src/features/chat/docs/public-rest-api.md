@@ -30,7 +30,7 @@ Creates a new conversation scoped to the application and organization. The visit
 
 ### GET /conversations
 
-Lists conversations where the visitor is an active participant, scoped to the application. Supports offset-based pagination via `limit` (default 20, max 100) and `offset` (default 0) query parameters. Returns `total` count for pagination UI.
+Lists conversations where the visitor is an active participant, scoped to the application. Delegates to `listConversationsForVisitor()` in the service layer. Supports offset-based pagination via `limit` (default 20, max 100) and `offset` (default 0) query parameters. Returns `total` count for pagination UI.
 
 ### GET /conversations/:id
 
@@ -112,4 +112,11 @@ Route handlers call the mapper in their catch blocks instead of repeating `insta
 
 ## Service Layer Reuse
 
-All route handlers delegate to existing functions in `chat.service.ts`. No business logic is duplicated — the REST API is a thin HTTP transport layer over the same service functions used by the WebSocket handlers.
+All route handlers delegate to functions in `chat.service.ts`. No business logic or Drizzle queries exist in `publicApi.ts` — the REST API is a thin HTTP transport layer over the same service functions used by the WebSocket handlers. Key service functions used:
+
+- `listConversationsForVisitor()` — paginated conversation list with total count
+- `createConversation()` / `getConversationWithParticipants()` — conversation lifecycle
+- `sendMessage()` / `editMessage()` / `deleteMessage()` — message CRUD
+- `getMessageHistory()` — paginated message retrieval
+- `markAsRead()` / `getUnreadCountForVisitor()` — read state tracking
+- `resolveOrCreateVisitor()` (from `visitor.service.ts`) — visitor identity resolution

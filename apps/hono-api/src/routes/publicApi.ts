@@ -1,10 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { eq, and, isNull, desc, sql } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { conversations } from "../db/schema/conversations.js";
-import { conversationParticipants } from "../db/schema/conversationParticipants.js";
 import { signWsToken } from "../lib/security/wsToken.js";
 import { env } from "../env.js";
 import { requireApiKeyAuth, getApiAuth } from "../lib/middleware/apiKeyAuth.js";
@@ -20,6 +16,7 @@ import {
   deleteMessage,
   markAsRead,
   getUnreadCountForVisitor,
+  listConversationsForVisitor,
 } from "../features/chat/chat.service.js";
 import { mapServiceErrorToResponse } from "../features/chat/error-mapper.js";
 import { requireParticipant } from "../features/chat/participant-guard.js";
@@ -155,56 +152,17 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
     const visitor = c.get("visitor") as VisitorContext;
     const { limit, offset } = c.req.valid("query");
 
-    const result = await db
-      .select({
-        id: conversations.id,
-        status: conversations.status,
-        subject: conversations.subject,
-        createdAt: conversations.createdAt,
-        updatedAt: conversations.updatedAt,
-      })
-      .from(conversations)
-      .innerJoin(
-        conversationParticipants,
-        and(
-          eq(conversationParticipants.conversationId, conversations.id),
-          eq(conversationParticipants.userId, visitor.visitorUserId),
-          isNull(conversationParticipants.leftAt),
-        ),
-      )
-      .where(
-        and(
-          eq(conversations.applicationId, apiAuth.application.id),
-          eq(conversations.organizationId, apiAuth.application.organizationId),
-          isNull(conversations.deletedAt),
-        ),
-      )
-      .orderBy(desc(conversations.updatedAt))
-      .limit(limit)
-      .offset(offset);
-
-    const [countRow] = await db
-      .select({ total: sql<number>`count(*)::int` })
-      .from(conversations)
-      .innerJoin(
-        conversationParticipants,
-        and(
-          eq(conversationParticipants.conversationId, conversations.id),
-          eq(conversationParticipants.userId, visitor.visitorUserId),
-          isNull(conversationParticipants.leftAt),
-        ),
-      )
-      .where(
-        and(
-          eq(conversations.applicationId, apiAuth.application.id),
-          eq(conversations.organizationId, apiAuth.application.organizationId),
-          isNull(conversations.deletedAt),
-        ),
-      );
+    const result = await listConversationsForVisitor({
+      applicationId: apiAuth.application.id,
+      organizationId: apiAuth.application.organizationId,
+      visitorUserId: visitor.visitorUserId,
+      limit,
+      offset,
+    });
 
     return c.json({
-      conversations: result,
-      total: countRow?.total ?? 0,
+      conversations: result.conversations,
+      total: result.total,
       limit,
       offset,
     });

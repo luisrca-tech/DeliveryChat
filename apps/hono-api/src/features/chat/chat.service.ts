@@ -574,13 +574,63 @@ export async function getMessagesSince(
     .limit(limit);
 }
 
+// ── List Conversations for Visitor ──
+
+export async function listConversationsForVisitor(params: {
+  applicationId: string;
+  organizationId: string;
+  visitorUserId: string;
+  limit: number;
+  offset: number;
+}) {
+  const { applicationId, organizationId, visitorUserId, limit, offset } =
+    params;
+
+  const participantJoin = and(
+    eq(conversationParticipants.conversationId, conversations.id),
+    eq(conversationParticipants.userId, visitorUserId),
+    isNull(conversationParticipants.leftAt),
+  );
+
+  const whereClause = and(
+    eq(conversations.applicationId, applicationId),
+    eq(conversations.organizationId, organizationId),
+    isNull(conversations.deletedAt),
+  );
+
+  const result = await db
+    .select({
+      id: conversations.id,
+      status: conversations.status,
+      subject: conversations.subject,
+      createdAt: conversations.createdAt,
+      updatedAt: conversations.updatedAt,
+    })
+    .from(conversations)
+    .innerJoin(conversationParticipants, participantJoin)
+    .where(whereClause)
+    .orderBy(desc(conversations.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [countRow] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(conversations)
+    .innerJoin(conversationParticipants, participantJoin)
+    .where(whereClause);
+
+  return {
+    conversations: result,
+    total: countRow?.total ?? 0,
+  };
+}
+
 // ── Unread Count ──
 
-export async function getUnreadCount(
+async function resolveUnreadCutoff(
   conversationId: string,
   userId: string,
-): Promise<number> {
-  // Find if the user is a participant (they may not be for pending/queue conversations)
+): Promise<string | null> {
   const [participant] = await db
     .select({ lastReadMessageId: conversationParticipants.lastReadMessageId })
     .from(conversationParticipants)
@@ -593,17 +643,22 @@ export async function getUnreadCount(
     )
     .limit(1);
 
-  // Determine the cutoff: messages after this date are "unread"
-  let afterDate: string | null = null;
-  if (participant?.lastReadMessageId) {
-    const [lastReadMsg] = await db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .where(eq(messages.id, participant.lastReadMessageId))
-      .limit(1);
-    afterDate = lastReadMsg?.createdAt ?? null;
-  }
-  // If no participant or no lastReadMessageId → afterDate stays null → count ALL visitor messages
+  if (!participant?.lastReadMessageId) return null;
+
+  const [lastReadMsg] = await db
+    .select({ createdAt: messages.createdAt })
+    .from(messages)
+    .where(eq(messages.id, participant.lastReadMessageId))
+    .limit(1);
+
+  return lastReadMsg?.createdAt ?? null;
+}
+
+export async function getUnreadCount(
+  conversationId: string,
+  userId: string,
+): Promise<number> {
+  const afterDate = await resolveUnreadCutoff(conversationId, userId);
 
   const whereConditions = [
     eq(messages.conversationId, conversationId),
@@ -629,33 +684,11 @@ export async function getUnreadCount(
   return countRow?.count ?? 0;
 }
 
-// ── Unread Count (Visitor) ──
-
 export async function getUnreadCountForVisitor(
   conversationId: string,
   visitorUserId: string,
 ): Promise<number> {
-  const [participant] = await db
-    .select({ lastReadMessageId: conversationParticipants.lastReadMessageId })
-    .from(conversationParticipants)
-    .where(
-      and(
-        eq(conversationParticipants.conversationId, conversationId),
-        eq(conversationParticipants.userId, visitorUserId),
-        isNull(conversationParticipants.leftAt),
-      ),
-    )
-    .limit(1);
-
-  let afterDate: string | null = null;
-  if (participant?.lastReadMessageId) {
-    const [lastReadMsg] = await db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .where(eq(messages.id, participant.lastReadMessageId))
-      .limit(1);
-    afterDate = lastReadMsg?.createdAt ?? null;
-  }
+  const afterDate = await resolveUnreadCutoff(conversationId, visitorUserId);
 
   const whereConditions = [
     eq(messages.conversationId, conversationId),

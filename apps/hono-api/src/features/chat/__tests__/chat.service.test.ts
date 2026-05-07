@@ -67,6 +67,7 @@ const {
   getUnreadCountForVisitor,
   getBulkUnreadCounts,
   markAsRead,
+  listConversationsForVisitor,
   ConversationNotFoundError,
   ConversationNotActiveError,
   NotAssignedToConversationError,
@@ -1228,6 +1229,81 @@ describe("chat.service", () => {
 
       expect(result.get("conv-1")).toBe(3);
       expect(result.get("conv-2")).toBeUndefined();
+    });
+  });
+
+  describe("listConversationsForVisitor", () => {
+    it("returns paginated conversations for a visitor", async () => {
+      const conversations = [
+        {
+          id: "conv-1",
+          status: "active",
+          subject: "Help",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:01:00.000Z",
+        },
+      ];
+
+      const dataChain = chainMock(conversations);
+      mockSelect.mockReturnValueOnce(dataChain);
+
+      const countChain = chainMock([{ total: 1 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await listConversationsForVisitor({
+        applicationId: "app-1",
+        organizationId: "org-1",
+        visitorUserId: "visitor-1",
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        conversations,
+        total: 1,
+      });
+    });
+
+    it("returns empty list when visitor has no conversations", async () => {
+      const dataChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(dataChain);
+
+      const countChain = chainMock([{ total: 0 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await listConversationsForVisitor({
+        applicationId: "app-1",
+        organizationId: "org-1",
+        visitorUserId: "visitor-1",
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        conversations: [],
+        total: 0,
+      });
+    });
+
+    it("returns 0 total when count row is missing", async () => {
+      const dataChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(dataChain);
+
+      const countChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await listConversationsForVisitor({
+        applicationId: "app-1",
+        organizationId: "org-1",
+        visitorUserId: "visitor-1",
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        conversations: [],
+        total: 0,
+      });
     });
   });
 });
