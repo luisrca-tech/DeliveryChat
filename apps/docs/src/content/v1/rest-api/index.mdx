@@ -213,7 +213,27 @@ app.use((req, res, next) => {
 </Callout>
 
 <Callout type="tip" title="Optional: persist identity for authenticated users">
-  If your users have accounts, you can map your internal <code>userId</code> to a <code>dcVisitorId</code> in your own database. On login, look up the existing mapping — or create one if it doesn't exist — and use that UUID for all API calls. This ensures conversation history survives logout, device changes, and session expiry.
+  <p>If your users have accounts, you can map your internal <code>userId</code> to a <code>dcVisitorId</code> in your own database. On login, look up the existing mapping — or create one if it doesn't exist — and use that UUID for all API calls. This ensures conversation history survives logout, device changes, and session expiry.</p>
+  <CodeBlock language="javascript">
+{`// Look up or create a dcVisitorId for an authenticated user
+async function getOrCreateVisitorId(userId, db) {
+  const existing = await db.query(
+    'SELECT dc_visitor_id FROM user_visitor_ids WHERE user_id = $1',
+    [userId]
+  );
+  if (existing.rows.length > 0) return existing.rows[0].dc_visitor_id;
+
+  const newId = crypto.randomUUID();
+  await db.query(
+    'INSERT INTO user_visitor_ids (user_id, dc_visitor_id) VALUES ($1, $2)',
+    [userId, newId]
+  );
+  return newId;
+}
+
+// Use on login / session start — then store in session for the request lifecycle
+req.session.dcVisitorId = await getOrCreateVisitorId(req.user.id, db);`}
+  </CodeBlock>
 </Callout>
 
 ## Pagination
