@@ -21,8 +21,11 @@ import {
 import { mapServiceErrorToResponse } from "../features/chat/error-mapper.js";
 import { requireParticipant } from "../features/chat/participant-guard.js";
 import { resolveOrCreateVisitor } from "../features/chat/visitor.service.js";
-import { roomManager } from "./ws.js";
-import type { WSServerEvent } from "@repo/types";
+import {
+  buildConversationNewEvent,
+  buildMessageNewEvent,
+  broadcastOrganizationEvent,
+} from "../features/chat/broadcasting.service.js";
 
 type Variables = {
   visitor: VisitorContext;
@@ -121,20 +124,16 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
         participants: [{ userId: visitor.visitorUserId, role: "visitor" }],
       });
 
-      const event: WSServerEvent = {
-        type: "conversation:new",
-        payload: {
+      broadcastOrganizationEvent(
+        apiAuth.application.organizationId,
+        buildConversationNewEvent({
           id: conversation.id,
           organizationId: apiAuth.application.organizationId,
           applicationId: apiAuth.application.id,
           status: "pending",
           subject: subject ?? null,
           createdAt: conversation.createdAt,
-        },
-      };
-      roomManager.broadcastToOrganization(
-        apiAuth.application.organizationId,
-        JSON.stringify(event),
+        }),
       );
 
       const withParticipants = await getConversationWithParticipants(
@@ -219,9 +218,9 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
         });
 
         const apiAuth = getApiAuth(c)!;
-        const event: WSServerEvent = {
-          type: "message:new",
-          payload: {
+        broadcastOrganizationEvent(
+          apiAuth.application.organizationId,
+          buildMessageNewEvent({
             id: message.id,
             conversationId,
             senderId: visitor.visitorUserId,
@@ -230,11 +229,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
             content: message.content,
             type: "text",
             createdAt: message.createdAt,
-          },
-        };
-        roomManager.broadcastToOrganization(
-          apiAuth.application.organizationId,
-          JSON.stringify(event),
+          }),
         );
 
         return c.json({ message }, 201);

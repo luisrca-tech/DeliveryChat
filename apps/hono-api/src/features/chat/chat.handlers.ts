@@ -15,10 +15,14 @@ import {
   MessageEditWindowExpiredError,
   type ConversationData,
 } from "./chat.service.js";
-import type {
-  WSServerEvent,
-  MessageNewPayload,
-} from "@repo/types";
+import type { MessageNewPayload, WSServerEvent } from "@repo/types";
+import {
+  buildMessageNewEvent,
+  buildMessageEditedEvent,
+  buildMessageDeletedEvent,
+  buildTypingStartEvent,
+  buildTypingStopEvent,
+} from "./broadcasting.service.js";
 import type { RateLimitCheckResult } from "../../lib/middleware/visitorRateLimit.js";
 
 type VisitorRateLimiter = {
@@ -227,20 +231,17 @@ async function handleMessageSend(
     },
   });
 
-  const broadcastEvent: WSServerEvent = {
-    type: "message:new",
-    payload: {
-      id: message.id,
-      conversationId: message.conversationId,
-      senderId: message.senderId,
-      senderName: "",
-      senderRole: conn.role,
-      content: message.content,
-      type: message.type as "text" | "system",
-      createdAt: message.createdAt,
-      assignedTo: conversationData.assignedTo,
-    },
-  };
+  const broadcastEvent = buildMessageNewEvent({
+    id: message.id,
+    conversationId: message.conversationId,
+    senderId: message.senderId,
+    senderName: "",
+    senderRole: conn.role,
+    content: message.content,
+    type: message.type as "text" | "system",
+    createdAt: message.createdAt,
+    assignedTo: conversationData.assignedTo,
+  });
 
   const eventStr = JSON.stringify(broadcastEvent);
 
@@ -262,16 +263,13 @@ async function handleMessageEdit(
       content: payload.content,
     });
 
-    const broadcastEvent: WSServerEvent = {
-      type: "message:edited",
-      payload: {
-        conversationId: payload.conversationId,
-        messageId: updated.id,
-        content: updated.content,
-        editedAt: updated.editedAt!,
-        senderId: conn.userId,
-      },
-    };
+    const broadcastEvent = buildMessageEditedEvent({
+      conversationId: payload.conversationId,
+      messageId: updated.id,
+      content: updated.content,
+      editedAt: updated.editedAt!,
+      senderId: conn.userId,
+    });
 
     roomManager.broadcast(
       payload.conversationId,
@@ -306,14 +304,11 @@ async function handleMessageDelete(
       senderId: conn.userId,
     });
 
-    const broadcastEvent: WSServerEvent = {
-      type: "message:deleted",
-      payload: {
-        conversationId: payload.conversationId,
-        messageId: payload.messageId,
-        senderId: conn.userId,
-      },
-    };
+    const broadcastEvent = buildMessageDeletedEvent({
+      conversationId: payload.conversationId,
+      messageId: payload.messageId,
+      senderId: conn.userId,
+    });
 
     roomManager.broadcast(
       payload.conversationId,
@@ -341,15 +336,12 @@ function handleTypingStart(
   payload: { conversationId: string },
   roomManager: IRoomManager,
 ) {
-  const broadcastEvent: WSServerEvent = {
-    type: "typing:start",
-    payload: {
-      conversationId: payload.conversationId,
-      userId: conn.userId,
-      userName: conn.userName,
-      senderRole: conn.role,
-    },
-  };
+  const broadcastEvent = buildTypingStartEvent({
+    conversationId: payload.conversationId,
+    userId: conn.userId,
+    userName: conn.userName,
+    senderRole: conn.role,
+  });
 
   roomManager.broadcast(
     payload.conversationId,
@@ -363,13 +355,10 @@ function handleTypingStop(
   payload: { conversationId: string },
   roomManager: IRoomManager,
 ) {
-  const broadcastEvent: WSServerEvent = {
-    type: "typing:stop",
-    payload: {
-      conversationId: payload.conversationId,
-      userId: conn.userId,
-    },
-  };
+  const broadcastEvent = buildTypingStopEvent({
+    conversationId: payload.conversationId,
+    userId: conn.userId,
+  });
 
   roomManager.broadcast(
     payload.conversationId,
