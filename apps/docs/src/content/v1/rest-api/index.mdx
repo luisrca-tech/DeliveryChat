@@ -21,6 +21,7 @@ Every request requires three headers:
 | `Authorization` | `Bearer dk_live_...` | Your API key ([generate one](/v1/api-keys)) |
 | `X-App-Id` | `app_uuid` | Your application ID. Required alongside the API key as an explicit cross-check — even though the key alone resolves to an application server-side, passing the ID explicitly ensures a mismatched key/app combination is caught immediately. |
 | `X-Visitor-Id` | `uuid` | Server-managed UUID identifying the end user. Generated once per visitor, stored and reused by your backend. |
+| `Origin` | `https://your-domain.com` | The origin of your application. Used to validate requests against your registered domain. |
 
 <Callout type="warning" title="Keep your API key and App ID secret">
   Your API key and `X-App-Id` grant full access to your application's chat data. Never expose them in client-side code — inject them only from your server.

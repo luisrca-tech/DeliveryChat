@@ -2,7 +2,11 @@ import { db } from "../db/index.js";
 import { apiKeys } from "../db/schema/apiKeys.js";
 import { like } from "drizzle-orm";
 
-const prefix = "dk_test_sYXvtyom";
+const prefix = process.argv[2];
+if (!prefix) {
+  console.error("Usage: bun run src/scripts/get-creds.ts <key-prefix>");
+  process.exit(1);
+}
 
 const rows = await db
   .select({ applicationId: apiKeys.applicationId, keyPrefix: apiKeys.keyPrefix })

@@ -88,7 +88,8 @@ Returns conversations where the visitor is an active participant, ordered by mos
 curl "https://api.deliverychat.online/v1/api/conversations?limit=10&offset=0" \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
-  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
 ```
 
 ### Response — `200 OK`
@@ -126,7 +127,8 @@ Returns a single conversation with its participant list. Returns 404 if the conv
 curl https://api.deliverychat.online/v1/api/conversations/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
-  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
 ```
 
 ### Response — `200 OK`

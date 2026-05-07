@@ -33,10 +33,13 @@ export function CodeTabs({ tabs }: CodeTabsProps) {
   return (
     <div className="my-6 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
       <div className="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="flex gap-1">
+        <div className="flex gap-1" role="tablist">
           {tabs.map((tab, i) => (
             <button
               key={i}
+              type="button"
+              role="tab"
+              aria-selected={i === activeIndex}
               onClick={() => setActiveIndex(i)}
               className={`px-3 py-1 text-sm font-medium rounded transition-colors ${
                 i === activeIndex
@@ -55,6 +58,7 @@ export function CodeTabs({ tabs }: CodeTabsProps) {
             </span>
           )}
           <button
+            type="button"
             onClick={copyToClipboard}
             className="text-xs px-3 py-1 rounded hover:bg-gray-200 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400 transition-colors"
             aria-label="Copy code"

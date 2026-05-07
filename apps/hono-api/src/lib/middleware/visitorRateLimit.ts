@@ -100,7 +100,7 @@ export function createVisitorRateLimitMiddleware(
       c.header("X-RateLimit-Remaining", "0");
       c.header("X-RateLimit-Reset", String(Math.ceil(result.resetAt / 1000)));
       return c.json({
-        error: "Rate limit exceeded",
+        error: "rate_limit_exceeded",
         cause: "per_visitor",
         retryAfter: result.retryAfter,
         window: result.window,

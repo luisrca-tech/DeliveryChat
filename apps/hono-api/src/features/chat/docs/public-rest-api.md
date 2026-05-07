@@ -66,7 +66,7 @@ All responses use a consistent JSON envelope:
 
 - **Success**: `{ conversation: {...} }`, `{ messages: [...], limit, offset }`, `{ message: {...} }`, `{ token: "..." }`, `{ success: true }`, `{ unreadCount: N }`
 - **Error**: `{ error: "error_code", message: "Human-readable description" }` via `jsonError()`
-- **Rate limited**: `{ error: "Rate limit exceeded", cause: "per_visitor", retryAfter: N, window: "second"|"minute"|"hour" }`
+- **Rate limited**: `{ error: "rate_limit_exceeded", cause: "per_visitor", retryAfter: N, window: "second"|"minute"|"hour" }`
 
 ## Pagination
 
@@ -102,10 +102,10 @@ Service-layer errors thrown by `chat.service.ts` are mapped to HTTP responses by
 
 | Error Class | HTTP Status | Error Code |
 |---|---|---|
-| `MessageNotFoundError` | 404 | `Not Found` |
-| `NotMessageSenderError` | 403 | `Forbidden` |
+| `MessageNotFoundError` | 404 | `not_found` |
+| `NotMessageSenderError` | 403 | `forbidden` |
 | `MessageEditWindowExpiredError` | 422 | `edit_window_expired` |
-| `ConversationNotFoundError` | 404 | `Not Found` |
+| `ConversationNotFoundError` | 404 | `not_found` |
 | `ConversationNotActiveError` | 422 | `conversation_not_active` |
 
 Route handlers call the mapper in their catch blocks instead of repeating `instanceof` chains. Unknown errors are re-thrown.
