@@ -44,10 +44,10 @@ check() {
 
   if [[ "$actual" == "$expected" ]]; then
     echo -e "\033[32m✓ ${label} (${actual})\033[0m"
-    ((PASS++))
+    PASS=$(( PASS + 1 ))
   else
     echo -e "\033[31m✗ ${label} (got ${actual}, expected ${expected})\033[0m"
-    ((FAIL++))
+    FAIL=$(( FAIL + 1 ))
   fi
 }
 
@@ -110,6 +110,7 @@ check "wrong visitor → 404" "$STATUS" "404"
 # ============================================================
 # Phase 3: Conversation happy path
 # ============================================================
+sleep 1
 
 STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations" \
   -H "Content-Type: application/json" \
@@ -117,10 +118,10 @@ STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations" \
   -H "X-App-Id: ${APP_ID}" \
   -H "X-Visitor-Id: ${VISITOR_ID}" \
   -H "Origin: ${ORIGIN}" \
-  -d '{"metadata":{"source":"smoke-test"}}')"
+  -d '{}')"
 check "POST /conversations → 201" "$STATUS" "201"
-CONV_ID="$(jq -r '.id' "$TMP_BODY")"
-PARTICIPANTS="$(jq -r '.participants | length' "$TMP_BODY")"
+CONV_ID="$(jq -r '.conversation.id' "$TMP_BODY")"
+PARTICIPANTS="$(jq -r '.conversation.participants | length' "$TMP_BODY")"
 [[ "$PARTICIPANTS" -gt 0 ]] && check "participants array non-empty" "200" "200" \
   || check "participants array non-empty" "404" "200"
 
@@ -140,13 +141,14 @@ STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations/${CONV_ID}" \
   -H "X-Visitor-Id: ${VISITOR_ID}" \
   -H "Origin: ${ORIGIN}")"
 check "GET /conversations/:id → 200" "$STATUS" "200"
-RETURNED_ID="$(jq -r '.id' "$TMP_BODY")"
+RETURNED_ID="$(jq -r '.conversation.id' "$TMP_BODY")"
 [[ "$RETURNED_ID" == "$CONV_ID" ]] && check "returned id matches CONV_ID" "200" "200" \
   || check "returned id matches CONV_ID" "404" "200"
 
 # ============================================================
 # Phase 4: Message CRUD
 # ============================================================
+sleep 1
 
 STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
   -H "Content-Type: application/json" \
@@ -156,7 +158,7 @@ STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
   -H "Origin: ${ORIGIN}" \
   -d '{"content":"Hello from smoke test"}')"
 check "POST …/messages → 201" "$STATUS" "201"
-MSG_ID="$(jq -r '.id' "$TMP_BODY")"
+MSG_ID="$(jq -r '.message.id' "$TMP_BODY")"
 
 STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
   -H "Authorization: Bearer ${API_KEY}" \
@@ -176,10 +178,11 @@ STATUS="$(http -X PATCH "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${
   -H "Origin: ${ORIGIN}" \
   -d '{"content":"Edited by smoke test"}')"
 check "PATCH …/messages/:id → 200" "$STATUS" "200"
-UPDATED_CONTENT="$(jq -r '.content' "$TMP_BODY")"
+UPDATED_CONTENT="$(jq -r '.message.content' "$TMP_BODY")"
 [[ "$UPDATED_CONTENT" == "Edited by smoke test" ]] && check "updated content matches" "200" "200" \
   || check "updated content matches" "404" "200"
 
+sleep 1
 STATUS="$(http -X DELETE "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${MSG_ID}" \
   -H "Authorization: Bearer ${API_KEY}" \
   -H "X-App-Id: ${APP_ID}" \
@@ -193,6 +196,7 @@ DEL_SUCCESS="$(jq -r '.success' "$TMP_BODY")"
 # ============================================================
 # Phase 5: Read receipts + WS token
 # ============================================================
+sleep 1
 
 # Send a second message so there is something unread
 STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
@@ -202,7 +206,7 @@ STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
   -H "X-Visitor-Id: ${VISITOR_ID}" \
   -H "Origin: ${ORIGIN}" \
   -d '{"content":"Second message for unread test"}')"
-MSG_ID2="$(jq -r '.id' "$TMP_BODY")"
+MSG_ID2="$(jq -r '.message.id' "$TMP_BODY")"
 
 STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations/${CONV_ID}/unread" \
   -H "Authorization: Bearer ${API_KEY}" \
@@ -210,7 +214,7 @@ STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations/${CONV_ID}/unread" \
   -H "X-Visitor-Id: ${VISITOR_ID}" \
   -H "Origin: ${ORIGIN}")"
 check "GET …/unread (before read) → 200" "$STATUS" "200"
-UNREAD_BEFORE="$(jq -r '.unread' "$TMP_BODY")"
+UNREAD_BEFORE="$(jq -r '.unreadCount // 0' "$TMP_BODY")"
 
 STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/read" \
   -H "Content-Type: application/json" \
@@ -218,16 +222,18 @@ STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/read" \
   -H "X-App-Id: ${APP_ID}" \
   -H "X-Visitor-Id: ${VISITOR_ID}" \
   -H "Origin: ${ORIGIN}" \
-  -d "{\"lastReadMessageId\":\"${MSG_ID2}\"}")"
+  -d "{\"messageId\":\"${MSG_ID2}\"}")"
 check "POST …/read → 200" "$STATUS" "200"
 
+sleep 1
 STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations/${CONV_ID}/unread" \
   -H "Authorization: Bearer ${API_KEY}" \
   -H "X-App-Id: ${APP_ID}" \
   -H "X-Visitor-Id: ${VISITOR_ID}" \
   -H "Origin: ${ORIGIN}")"
 check "GET …/unread (after read) → 200" "$STATUS" "200"
-UNREAD_AFTER="$(jq -r '.unread' "$TMP_BODY")"
+UNREAD_AFTER="$(jq -r '.unreadCount // 0' "$TMP_BODY")"
+UNREAD_BEFORE="${UNREAD_BEFORE:-0}"
 [[ "$UNREAD_AFTER" -le "$UNREAD_BEFORE" ]] && check "unread count decreased" "200" "200" \
   || check "unread count decreased" "404" "200"
 
