@@ -12,6 +12,7 @@ import {
   ConversationNotActiveError,
   MessageNotFoundError,
   NotMessageSenderError,
+  MessageEditWindowExpiredError,
   type ConversationData,
 } from "./chat.service.js";
 import type {
@@ -285,6 +286,10 @@ async function handleMessageEdit(
       sendError(conn, "FORBIDDEN", error.message);
       return;
     }
+    if (error instanceof MessageEditWindowExpiredError) {
+      sendError(conn, "EDIT_WINDOW_EXPIRED", error.message);
+      return;
+    }
     throw error;
   }
 }
@@ -321,6 +326,10 @@ async function handleMessageDelete(
     }
     if (error instanceof NotMessageSenderError) {
       sendError(conn, "FORBIDDEN", error.message);
+      return;
+    }
+    if (error instanceof MessageEditWindowExpiredError) {
+      sendError(conn, "EDIT_WINDOW_EXPIRED", error.message);
       return;
     }
     throw error;

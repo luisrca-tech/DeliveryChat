@@ -20,7 +20,7 @@ interface EditMessageInput {
 1. Query `delivery_chat_messages` by `id` where `deletedAt IS NULL`.
 2. If no row is returned, throw `MessageNotFoundError`.
 3. Compare `msg.senderId` against `input.userId`. If they differ, throw `NotMessageSenderError`.
-4. Verify conversation status is not `closed` (query `delivery_chat_conversations` by `conversationId`).
+4. Check 15-minute time window from `msg.createdAt`. If expired, throw `MessageEditWindowExpiredError`.
 5. Execute update:
    ```sql
    UPDATE delivery_chat_messages
@@ -44,7 +44,7 @@ interface DeleteMessageInput {
 1. Query `delivery_chat_messages` by `id` where `deletedAt IS NULL`.
 2. If no row is returned, throw `MessageNotFoundError`.
 3. Compare `msg.senderId` against `input.userId`. If they differ, throw `NotMessageSenderError`.
-4. Verify conversation status is not `closed`.
+4. Check 15-minute time window from `msg.createdAt`. If expired, throw `MessageEditWindowExpiredError`.
 5. Execute soft delete:
    ```sql
    UPDATE delivery_chat_messages
@@ -53,9 +53,25 @@ interface DeleteMessageInput {
    ```
 6. Return void.
 
-## Error Classes
+## 15-Minute Edit/Delete Time Window
 
-Both errors extend a base `ChatError` class and include a machine-readable `code` property.
+Both `editMessage()` and `deleteMessage()` enforce a 15-minute time window from the message's `createdAt` timestamp. After 15 minutes (inclusive — `elapsed >= 15min` is rejected), the operation is denied with `MessageEditWindowExpiredError`.
+
+**Constant:** `EDIT_WINDOW_MINUTES = 15` (defined in `chat.service.ts`)
+
+**Enforcement logic:**
+```typescript
+const elapsed = Date.now() - new Date(msg.createdAt).getTime();
+if (elapsed >= EDIT_WINDOW_MINUTES * 60 * 1000) {
+  throw new MessageEditWindowExpiredError(messageId, msg.createdAt, EDIT_WINDOW_MINUTES);
+}
+```
+
+**Validation order:** message existence → sender ownership → time window → execute operation.
+
+The check lives in the service layer, so all callers (WebSocket handlers and REST API routes) automatically inherit it.
+
+## Error Classes
 
 ### `MessageNotFoundError`
 
@@ -68,6 +84,13 @@ Both errors extend a base `ChatError` class and include a machine-readable `code
 - **Code:** `NOT_MESSAGE_SENDER`
 - **HTTP-equivalent:** 403
 - **Thrown when:** The authenticated user (`conn.userId`) does not match `msg.senderId`.
+
+### `MessageEditWindowExpiredError`
+
+- **Code:** `EDIT_WINDOW_EXPIRED`
+- **HTTP-equivalent:** 403
+- **Thrown when:** The message's `createdAt` is 15 or more minutes in the past.
+- **Error properties:** `createdAt` (ISO string of the message), `windowMinutes` (15). Clients can use these to display a meaningful message.
 
 ## Handler Flow
 

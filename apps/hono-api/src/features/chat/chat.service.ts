@@ -49,6 +49,20 @@ export class NotMessageSenderError extends Error {
   }
 }
 
+export class MessageEditWindowExpiredError extends Error {
+  public readonly createdAt: string;
+  public readonly windowMinutes: number;
+
+  constructor(messageId: string, createdAt: string, windowMinutes: number) {
+    super(
+      `Message ${messageId} can no longer be modified. The ${windowMinutes}-minute edit window expired at ${createdAt}.`,
+    );
+    this.name = "MessageEditWindowExpiredError";
+    this.createdAt = createdAt;
+    this.windowMinutes = windowMinutes;
+  }
+}
+
 export class NotAssignedToConversationError extends Error {
   constructor(conversationId: string, userId: string) {
     super(
@@ -57,6 +71,10 @@ export class NotAssignedToConversationError extends Error {
     this.name = "NotAssignedToConversationError";
   }
 }
+
+// ── Constants ──
+
+const EDIT_WINDOW_MINUTES = 15;
 
 // ── Types ──
 
@@ -207,6 +225,15 @@ export async function editMessage(input: EditMessageInput) {
     throw new NotMessageSenderError(input.messageId, input.senderId);
   }
 
+  const elapsed = Date.now() - new Date(msg.createdAt).getTime();
+  if (elapsed >= EDIT_WINDOW_MINUTES * 60 * 1000) {
+    throw new MessageEditWindowExpiredError(
+      input.messageId,
+      msg.createdAt,
+      EDIT_WINDOW_MINUTES,
+    );
+  }
+
   const [updated] = await db
     .update(messages)
     .set({
@@ -241,6 +268,15 @@ export async function deleteMessage(input: DeleteMessageInput) {
 
   if (msg.senderId !== input.senderId) {
     throw new NotMessageSenderError(input.messageId, input.senderId);
+  }
+
+  const elapsed = Date.now() - new Date(msg.createdAt).getTime();
+  if (elapsed >= EDIT_WINDOW_MINUTES * 60 * 1000) {
+    throw new MessageEditWindowExpiredError(
+      input.messageId,
+      msg.createdAt,
+      EDIT_WINDOW_MINUTES,
+    );
   }
 
   const [deleted] = await db

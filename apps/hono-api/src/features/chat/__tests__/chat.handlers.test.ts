@@ -54,6 +54,17 @@ vi.mock("../chat.service.js", () => {
     }
   }
 
+  class MessageEditWindowExpiredError extends Error {
+    public readonly createdAt: string;
+    public readonly windowMinutes: number;
+    constructor(messageId: string, createdAt: string, windowMinutes: number) {
+      super(`Message ${messageId} can no longer be modified. The ${windowMinutes}-minute edit window expired at ${createdAt}.`);
+      this.name = "MessageEditWindowExpiredError";
+      this.createdAt = createdAt;
+      this.windowMinutes = windowMinutes;
+    }
+  }
+
   return {
     sendMessage: vi.fn(),
     editMessage: vi.fn(),
@@ -66,6 +77,7 @@ vi.mock("../chat.service.js", () => {
     ConversationNotActiveError,
     MessageNotFoundError,
     NotMessageSenderError,
+    MessageEditWindowExpiredError,
   };
 });
 
@@ -80,6 +92,7 @@ const {
   ConversationNotActiveError,
   MessageNotFoundError,
   NotMessageSenderError,
+  MessageEditWindowExpiredError,
 } = (await import("../chat.service.js")) as any;
 
 const mockSendMessage = sendMessage as ReturnType<typeof vi.fn>;
@@ -671,6 +684,30 @@ describe("chat.handlers", () => {
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("MESSAGE_NOT_FOUND");
     });
+
+    it("sends EDIT_WINDOW_EXPIRED error when time window has passed", async () => {
+      mockEditMessage.mockRejectedValue(
+        new MessageEditWindowExpiredError(msgId, "2026-01-01T00:00:00.000Z", 15),
+      );
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:edit",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+            content: "Too late",
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("EDIT_WINDOW_EXPIRED");
+    });
   });
 
   describe("message:delete", () => {
@@ -778,6 +815,29 @@ describe("chat.handlers", () => {
       );
       expect(sentData.type).toBe("error");
       expect(sentData.payload.code).toBe("MESSAGE_NOT_FOUND");
+    });
+
+    it("sends EDIT_WINDOW_EXPIRED error when time window has passed", async () => {
+      mockDeleteMessage.mockRejectedValue(
+        new MessageEditWindowExpiredError(msgId, "2026-01-01T00:00:00.000Z", 15),
+      );
+
+      await handler(
+        conn,
+        JSON.stringify({
+          type: "message:delete",
+          payload: {
+            conversationId: convId,
+            messageId: msgId,
+          },
+        }),
+      );
+
+      const sentData = JSON.parse(
+        firstWsSendPayload(conn.ws.send as ReturnType<typeof vi.fn>),
+      );
+      expect(sentData.type).toBe("error");
+      expect(sentData.payload.code).toBe("EDIT_WINDOW_EXPIRED");
     });
   });
 
