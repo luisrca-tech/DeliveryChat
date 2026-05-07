@@ -1,0 +1,337 @@
+# WebSocket
+
+The WebSocket protocol enables real-time bidirectional messaging. Use the REST API to get a connection token, then connect via WebSocket for live message updates.
+
+## Getting a Token
+
+Before connecting, request a WebSocket token via the REST API:
+
+```
+POST /v1/api/ws-token
+```
+
+### cURL Example
+
+```bash
+curl -X POST https://api.deliverychat.online/v1/api/ws-token \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+```
+
+### Response — `200 OK`
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiIs..."
+}
+```
+
+The token encodes your `appId`, `visitorId`, and request origin. It is used to authenticate the WebSocket connection.
+
+---
+
+## Connecting
+
+Open a WebSocket connection using the token and app ID as query parameters:
+
+```
+wss://api.deliverychat.online/v1/ws?token=eyJhbGci...&appId=your-app-id
+```
+
+### JavaScript Example
+
+```javascript
+const ws = new WebSocket(
+  `wss://api.deliverychat.online/v1/ws?token=${token}&appId=${appId}`
+);
+
+ws.onopen = () => {
+  console.log("Connected");
+};
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log("Event:", data.type, data.payload);
+};
+
+ws.onclose = (event) => {
+  console.log("Disconnected:", event.code, event.reason);
+};
+```
+
+<Callout type="info" title="Why query parameters?">
+  WebSocket does not support custom headers during the handshake in browsers. The token and app ID are passed as query parameters instead.
+</Callout>
+
+---
+
+## Client Events (Send)
+
+Events you send to the server:
+
+### room:join
+
+Join a conversation room to receive messages.
+
+```json
+{
+  "type": "room:join",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "lastMessageId": "msg-uuid"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `conversationId` | string (UUID) | Yes | Conversation to join |
+| `lastMessageId` | string (UUID) | No | Last message the client has — triggers `messages:sync` for missed messages |
+
+### room:leave
+
+Leave a conversation room.
+
+```json
+{
+  "type": "room:leave",
+  "payload": {
+    "conversationId": "conv-uuid"
+  }
+}
+```
+
+### message:send
+
+Send a message to a conversation.
+
+```json
+{
+  "type": "message:send",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "content": "Hello!",
+    "clientMessageId": "client-generated-uuid"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `conversationId` | string (UUID) | Yes | Target conversation |
+| `content` | string | Yes | Message text (max 10,000 chars) |
+| `clientMessageId` | string | Yes | Client-generated ID for optimistic UI matching |
+
+### ping
+
+Heartbeat to keep the connection alive.
+
+```json
+{
+  "type": "ping"
+}
+```
+
+---
+
+## Server Events (Receive)
+
+Events the server sends to your client:
+
+### message:new
+
+A new message in a room you've joined. Sent to all participants except the sender.
+
+```json
+{
+  "type": "message:new",
+  "payload": {
+    "id": "msg-uuid",
+    "conversationId": "conv-uuid",
+    "senderId": "user-uuid",
+    "senderName": "Support Agent",
+    "senderRole": "operator",
+    "content": "How can I help you?",
+    "type": "text",
+    "createdAt": "2025-01-15T10:31:00.000Z"
+  }
+}
+```
+
+### message:ack
+
+Confirmation that your message was persisted. Sent only to the sender.
+
+```json
+{
+  "type": "message:ack",
+  "payload": {
+    "clientMessageId": "client-generated-uuid",
+    "serverMessageId": "msg-uuid",
+    "createdAt": "2025-01-15T10:30:05.000Z"
+  }
+}
+```
+
+Use `clientMessageId` to match the ACK to your optimistic UI update and replace it with the server-confirmed data.
+
+### messages:sync
+
+Missed messages delivered on reconnection (when `lastMessageId` was provided in `room:join`).
+
+```json
+{
+  "type": "messages:sync",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "messages": [
+      {
+        "id": "msg-uuid-1",
+        "senderId": "operator-uuid",
+        "senderName": "Support Agent",
+        "senderRole": "operator",
+        "content": "Are you still there?",
+        "type": "text",
+        "createdAt": "2025-01-15T10:35:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+### conversation:new
+
+A new conversation was created. Sent to all staff connections in the organization.
+
+```json
+{
+  "type": "conversation:new",
+  "payload": {
+    "id": "conv-uuid",
+    "organizationId": "org-uuid",
+    "applicationId": "app-uuid",
+    "status": "pending",
+    "subject": "Help with my order",
+    "createdAt": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### error
+
+An error occurred processing your event.
+
+```json
+{
+  "type": "error",
+  "payload": {
+    "code": "VALIDATION_ERROR",
+    "message": "Content is required"
+  }
+}
+```
+
+Error codes: `PARSE_ERROR`, `VALIDATION_ERROR`, `FORBIDDEN`, `UNAUTHORIZED`.
+
+### pong
+
+Heartbeat response.
+
+```json
+{
+  "type": "pong"
+}
+```
+
+---
+
+## Reconnection
+
+Clients should implement automatic reconnection with missed-message recovery:
+
+<StepByStep
+  title="Reconnection flow"
+  steps={[
+    {
+      title: "Store the last message ID",
+      content: (
+        <p>After receiving each <code>message:new</code> or <code>message:ack</code>, save the message ID to local storage.</p>
+      )
+    },
+    {
+      title: "Detect disconnection",
+      content: (
+        <p>Listen for the WebSocket <code>close</code> event. Start a reconnection timer with exponential backoff (e.g. 1s, 2s, 4s, 8s, max 30s).</p>
+      )
+    },
+    {
+      title: "Reconnect and rejoin rooms",
+      content: (
+        <p>Open a new WebSocket connection. For each conversation the user was viewing, send <code>room:join</code> with the stored <code>lastMessageId</code>.</p>
+      )
+    },
+    {
+      title: "Process missed messages",
+      content: (
+        <p>The server responds with <code>messages:sync</code> containing all messages sent after your <code>lastMessageId</code>. Merge them into your local state.</p>
+      )
+    }
+  ]}
+/>
+
+### Reconnection Example
+
+```javascript
+let lastMessageId = localStorage.getItem("lastMessageId");
+let reconnectDelay = 1000;
+
+function connect() {
+  const ws = new WebSocket(`wss://api.deliverychat.online/v1/ws?token=${token}&appId=${appId}`);
+
+  ws.onopen = () => {
+    reconnectDelay = 1000;
+    // Rejoin rooms with last known message ID
+    ws.send(JSON.stringify({
+      type: "room:join",
+      payload: { conversationId, lastMessageId }
+    }));
+  };
+
+  ws.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    if (data.type === "message:new") {
+      lastMessageId = data.payload.id;
+      localStorage.setItem("lastMessageId", lastMessageId);
+    }
+
+    if (data.type === "messages:sync") {
+      const messages = data.payload.messages;
+      if (messages.length > 0) {
+        lastMessageId = messages[messages.length - 1].id;
+        localStorage.setItem("lastMessageId", lastMessageId);
+      }
+    }
+  };
+
+  ws.onclose = () => {
+    setTimeout(connect, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 2, 30000);
+  };
+}
+
+connect();
+```
+
+## Heartbeat
+
+Send `ping` events periodically (every 30 seconds recommended) to keep the connection alive. The server responds with `pong`.
+
+```javascript
+setInterval(() => {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: "ping" }));
+  }
+}, 30000);
+```

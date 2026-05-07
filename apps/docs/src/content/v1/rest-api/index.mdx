@@ -1,0 +1,179 @@
+# REST API Quickstart
+
+The Delivery Chat REST API lets you create conversations, send messages, and manage chat from your own backend or client — no widget required.
+
+## Base URL
+
+All API requests go to:
+
+```
+https://api.deliverychat.online/v1/api
+```
+
+The API key identifies your application and organization — no subdomain is needed.
+
+## Authentication
+
+Every request requires two headers:
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `Authorization` | `Bearer dk_live_...` | Your API key ([generate one](/v1/api-keys)) |
+| `X-App-Id` | `app_uuid` | Your application ID |
+| `X-Visitor-Id` | `uuid` | Client-generated UUID identifying the visitor |
+
+<Callout type="warning" title="Keep your API key secret">
+  API keys grant full access to your application's chat data. Never expose them in client-side code — use them only from your server.
+</Callout>
+
+## Quickstart: Send Your First Message
+
+<StepByStep
+  title="Get chatting in 3 steps"
+  steps={[
+    {
+      title: "Get your API key and App ID",
+      content: (
+        <>
+          <p>Go to your dashboard → <strong>Applications</strong> → select your app → <strong>API Keys</strong> → <strong>Create API Key</strong>.</p>
+          <p>Copy both the API key and the App ID.</p>
+        </>
+      )
+    },
+    {
+      title: "Create a conversation",
+      content: (
+        <>
+          <p>Generate a UUID for your visitor and create a conversation:</p>
+          <CodeBlock language="bash" title="Create a conversation">
+{`curl -X POST https://api.deliverychat.online/v1/api/conversations \\
+  -H "Authorization: Bearer dk_live_your_api_key" \\
+  -H "X-App-Id: your-app-id" \\
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \\
+  -H "Content-Type: application/json" \\
+  -d '{"subject": "Help with my order"}'`}
+          </CodeBlock>
+          <p>Response:</p>
+          <CodeBlock language="json" title="Response">
+{`{
+  "conversation": {
+    "id": "conv-uuid",
+    "status": "pending",
+    "subject": "Help with my order",
+    "participants": [
+      { "userId": "550e8400-...", "role": "visitor" }
+    ],
+    "createdAt": "2025-01-15T10:30:00.000Z"
+  }
+}`}
+          </CodeBlock>
+        </>
+      )
+    },
+    {
+      title: "Send a message",
+      content: (
+        <>
+          <p>Use the conversation ID from step 2:</p>
+          <CodeBlock language="bash" title="Send a message">
+{`curl -X POST https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages \\
+  -H "Authorization: Bearer dk_live_your_api_key" \\
+  -H "X-App-Id: your-app-id" \\
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \\
+  -H "Content-Type: application/json" \\
+  -d '{"content": "Hi, I need help with order #1234"}'`}
+          </CodeBlock>
+          <p>Response:</p>
+          <CodeBlock language="json" title="Response">
+{`{
+  "message": {
+    "id": "msg-uuid",
+    "conversationId": "conv-uuid",
+    "senderId": "550e8400-...",
+    "content": "Hi, I need help with order #1234",
+    "createdAt": "2025-01-15T10:30:05.000Z"
+  }
+}`}
+          </CodeBlock>
+          <p>Your message is now visible to operators in the admin dashboard — and if they're online, they'll see it in real-time via WebSocket.</p>
+        </>
+      )
+    }
+  ]}
+/>
+
+## Required Headers
+
+Every request to `/v1/api/*` must include all three headers:
+
+```bash
+curl https://api.deliverychat.online/v1/api/conversations \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+```
+
+### X-Visitor-Id
+
+The `X-Visitor-Id` header is a client-generated UUID (v4) that uniquely identifies the end user. On the first request with a new visitor ID, Delivery Chat automatically creates an anonymous user account.
+
+<Callout type="tip" title="Reuse the visitor ID">
+  Store the visitor ID in your user's session or local storage. Reusing the same ID across requests lets the visitor see their full conversation history.
+</Callout>
+
+## Pagination
+
+List endpoints support offset-based pagination:
+
+| Parameter | Type | Default | Max | Description |
+|-----------|------|---------|-----|-------------|
+| `limit` | integer | 20 | 100 | Number of items per page |
+| `offset` | integer | 0 | — | Number of items to skip |
+
+Example:
+
+```bash
+curl "https://api.deliverychat.online/v1/api/conversations?limit=10&offset=20" \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+```
+
+Response includes pagination metadata:
+
+```json
+{
+  "conversations": [...],
+  "total": 42,
+  "limit": 10,
+  "offset": 20
+}
+```
+
+## Next Steps
+
+<QuickLinks
+  links={[
+    {
+      title: "Conversations",
+      href: "/v1/rest-api/conversations",
+      description: "Create, list, and manage conversations"
+    },
+    {
+      title: "Messages",
+      href: "/v1/rest-api/messages",
+      description: "Send, edit, delete, and fetch messages"
+    },
+    {
+      title: "WebSocket",
+      href: "/v1/rest-api/websocket",
+      description: "Real-time messaging via WebSocket"
+    },
+    {
+      title: "Errors & Rate Limiting",
+      href: "/v1/rest-api/errors",
+      description: "Error codes, HTTP statuses, and rate limits"
+    }
+  ]}
+  columns={2}
+/>
