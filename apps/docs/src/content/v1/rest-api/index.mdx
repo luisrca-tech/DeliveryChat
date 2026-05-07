@@ -10,7 +10,7 @@ All API requests go to:
 https://api.deliverychat.online/v1/api
 ```
 
-The API key identifies your application and organization 
+The API key alone identifies your application and organization, but both headers are required together as a defense-in-depth check — if you accidentally use a key from a different app, the mismatch is caught immediately.
 
 ## Authentication
 
@@ -19,7 +19,7 @@ Every request requires two headers:
 | Header | Value | Description |
 |--------|-------|-------------|
 | `Authorization` | `Bearer dk_live_...` | Your API key ([generate one](/v1/api-keys)) |
-| `X-App-Id` | `app_uuid` | Your application ID |
+| `X-App-Id` | `app_uuid` | Your application ID. Required alongside the API key as an explicit cross-check — even though the key alone resolves to an application server-side, passing the ID explicitly ensures a mismatched key/app combination is caught immediately. |
 | `X-Visitor-Id` | `uuid` | Server-managed UUID identifying the end user. Generated once per visitor, stored and reused by your backend. |
 
 <Callout type="warning" title="Keep your API key and App ID secret">

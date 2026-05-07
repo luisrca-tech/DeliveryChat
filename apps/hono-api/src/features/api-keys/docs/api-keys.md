@@ -6,7 +6,7 @@
 - API key limits are plan-based: FREE=3, BASIC=5, PREMIUM=10, ENTERPRISE=1000 per application.
 - API keys are shown in full only once at creation; afterward only a masked prefix is displayed.
 - Keys can be revoked or regenerated; regeneration atomically invalidates the old key and creates a new one.
-- Keys are scoped to a single application and validated via `X-App-Id` on every request.
+- Keys are scoped to a single application and validated via `X-App-Id` on every request. Even though the API key alone resolves the application server-side, `X-App-Id` is required as an explicit cross-check (defense-in-depth): if a developer accidentally uses a key from a different app, the mismatch is caught immediately with a clear error rather than silently hitting the wrong app's data.
 
 ## Technical Decisions
 
