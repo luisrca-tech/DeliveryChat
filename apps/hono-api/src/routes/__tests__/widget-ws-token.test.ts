@@ -20,7 +20,7 @@ vi.mock("../../lib/middleware/widgetAuth.js", () => {
       return async (c: any, next: () => Promise<void>) => {
         const appId = c.req.header("X-App-Id");
         if (!appId || appId === "invalid") {
-          return c.json({ error: "Unauthorized" }, 401);
+          return c.json({ error: "unauthorized" }, 401);
         }
         storedAuth = {
           application: {

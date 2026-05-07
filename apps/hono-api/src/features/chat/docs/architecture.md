@@ -39,6 +39,7 @@ apps/hono-api/src/
   features/chat/
     room-manager.ts         # IRoomManager + InMemoryRoomManager
     chat.service.ts         # DB operations (createConversation, sendMessage, etc.)
+    visitor.service.ts      # Shared visitor identity resolution (resolveOrCreateVisitor)
     chat.schemas.ts         # Zod schemas for WS event payloads
     chat.handlers.ts        # WS event dispatcher
     __tests__/              # Unit tests

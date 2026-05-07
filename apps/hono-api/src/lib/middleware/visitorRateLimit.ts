@@ -10,7 +10,7 @@ type VisitorRateLimitConfig = {
 
 export type RateLimitCheckResult =
   | { allowed: true }
-  | { allowed: false; retryAfter: number; window: RateLimitWindow };
+  | { allowed: false; retryAfter: number; window: RateLimitWindow; limit: number; resetAt: number };
 
 export type VisitorRateLimiter = ReturnType<typeof createVisitorWsRateLimiter>;
 
@@ -65,7 +65,7 @@ export function createVisitorWsRateLimiter(config: VisitorRateLimitConfig) {
             1,
             Math.ceil((entry.resetAt - now) / 1_000),
           );
-          return { allowed: false, retryAfter, window: w.name };
+          return { allowed: false, retryAfter, window: w.name, limit, resetAt: entry.resetAt };
         }
       }
 
@@ -96,8 +96,11 @@ export function createVisitorRateLimitMiddleware(
     if (!result.allowed) {
       c.status(HTTP_STATUS.TOO_MANY_REQUESTS);
       c.header("Retry-After", String(result.retryAfter));
+      c.header("X-RateLimit-Limit", String(result.limit));
+      c.header("X-RateLimit-Remaining", "0");
+      c.header("X-RateLimit-Reset", String(Math.ceil(result.resetAt / 1000)));
       return c.json({
-        error: "Rate limit exceeded",
+        error: "rate_limit_exceeded",
         cause: "per_visitor",
         retryAfter: result.retryAfter,
         window: result.window,

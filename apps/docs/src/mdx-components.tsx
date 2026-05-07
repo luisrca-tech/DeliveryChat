@@ -11,6 +11,7 @@ import { FeatureList } from "./components/FeatureList";
 import { FAQ } from "./components/FAQ";
 import { ComingSoon } from "./components/ComingSoon";
 import { ComparisonTable } from "./components/ComparisonTable";
+import { CodeTabs } from "./components/CodeTabs";
 
 export function useMDXComponents(
   components: MDXComponents = {},
@@ -30,6 +31,7 @@ export function useMDXComponents(
     FAQ,
     ComingSoon,
     ComparisonTable,
+    CodeTabs,
     ...components,
   };
 }

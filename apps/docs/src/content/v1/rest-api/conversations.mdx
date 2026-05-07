@@ -1,0 +1,225 @@
+# Conversations
+
+Conversations are the top-level container for chat interactions. A visitor creates a conversation, an operator accepts it, and messages flow between them.
+
+## Conversation Lifecycle
+
+| Status | Description |
+|--------|-------------|
+| `pending` | Created by visitor, waiting for an operator to accept |
+| `active` | Accepted by an operator, messages can be exchanged |
+| `closed` | Resolved by the operator |
+
+## Create a Conversation
+
+```
+POST /v1/api/conversations
+```
+
+Creates a new conversation. The visitor is automatically added as the first participant. Operators see the conversation appear in their queue in real-time.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `subject` | string | No | Subject line (1–500 chars) |
+
+### cURL Example
+
+```bash
+curl -X POST https://api.deliverychat.online/v1/api/conversations \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com" \
+  -H "Content-Type: application/json" \
+  -d '{"subject": "Help with my order"}'
+```
+
+### Response — `201 Created`
+
+```json
+{
+  "conversation": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "status": "pending",
+    "subject": "Help with my order",
+    "participants": [
+      {
+        "userId": "550e8400-e29b-41d4-a716-446655440000",
+        "role": "visitor",
+        "joinedAt": "2025-01-15T10:30:00.000Z"
+      }
+    ],
+    "createdAt": "2025-01-15T10:30:00.000Z",
+    "updatedAt": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### Errors
+
+| Status | Error | When |
+|--------|-------|------|
+| 400 | `bad_request` | Missing or invalid request body |
+| 401 | `unauthorized` | Invalid API key or App ID |
+| 429 | `rate_limit_exceeded` | Rate limit exceeded |
+
+---
+
+## List Conversations
+
+```
+GET /v1/api/conversations
+```
+
+Returns conversations where the visitor is an active participant, ordered by most recently updated.
+
+### Query Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `limit` | integer | 20 | Items per page (1–100) |
+| `offset` | integer | 0 | Items to skip |
+
+### cURL Example
+
+```bash
+curl "https://api.deliverychat.online/v1/api/conversations?limit=10&offset=0" \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
+```
+
+### Response — `200 OK`
+
+```json
+{
+  "conversations": [
+    {
+      "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "status": "active",
+      "subject": "Help with my order",
+      "createdAt": "2025-01-15T10:30:00.000Z",
+      "updatedAt": "2025-01-15T10:35:00.000Z"
+    }
+  ],
+  "total": 1,
+  "limit": 10,
+  "offset": 0
+}
+```
+
+---
+
+## Get a Conversation
+
+```
+GET /v1/api/conversations/:id
+```
+
+Returns a single conversation with its participant list. Returns 404 if the conversation doesn't exist or the visitor is not a participant.
+
+### cURL Example
+
+```bash
+curl https://api.deliverychat.online/v1/api/conversations/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
+```
+
+### Response — `200 OK`
+
+```json
+{
+  "conversation": {
+    "id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "status": "active",
+    "subject": "Help with my order",
+    "assignedTo": "operator-uuid",
+    "participants": [
+      { "userId": "550e8400-...", "role": "visitor", "joinedAt": "2025-01-15T10:30:00.000Z" },
+      { "userId": "operator-uuid", "role": "operator", "joinedAt": "2025-01-15T10:31:00.000Z" }
+    ],
+    "createdAt": "2025-01-15T10:30:00.000Z",
+    "updatedAt": "2025-01-15T10:35:00.000Z"
+  }
+}
+```
+
+### Errors
+
+| Status | Error | When |
+|--------|-------|------|
+| 404 | `not_found` | Conversation not found or visitor is not a participant |
+
+---
+
+## Mark as Read
+
+```
+POST /v1/api/conversations/:id/read
+```
+
+Marks the conversation as read up to a specific message. Updates the visitor's `lastReadMessageId`.
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `messageId` | string (UUID) | Yes | ID of the last message the visitor has read |
+
+### cURL Example
+
+```bash
+curl -X POST https://api.deliverychat.online/v1/api/conversations/conv-uuid/read \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Content-Type: application/json" \
+  -d '{"messageId": "msg-uuid"}'
+```
+
+### Response — `200 OK`
+
+```json
+{
+  "success": true
+}
+```
+
+---
+
+## Get Unread Count
+
+```
+GET /v1/api/conversations/:id/unread
+```
+
+Returns the number of staff-sent messages since the visitor's last read position.
+
+### cURL Example
+
+```bash
+curl https://api.deliverychat.online/v1/api/conversations/conv-uuid/unread \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"
+```
+
+### Response — `200 OK`
+
+```json
+{
+  "unreadCount": 3
+}
+```
+
+### Errors
+
+| Status | Error | When |
+|--------|-------|------|
+| 404 | `not_found` | Conversation not found or visitor is not a participant |

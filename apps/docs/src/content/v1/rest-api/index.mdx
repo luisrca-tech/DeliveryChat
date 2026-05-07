@@ -1,0 +1,296 @@
+# REST API Quickstart
+
+The Delivery Chat REST API lets you create conversations, send messages, and manage chat from your own backend or client — no widget required.
+
+## Base URL
+
+All API requests go to:
+
+```
+https://api.deliverychat.online/v1/api
+```
+
+The API key alone identifies your application and organization, but both headers are required together as a defense-in-depth check — if you accidentally use a key from a different app, the mismatch is caught immediately.
+
+## Authentication
+
+Every request requires three headers:
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `Authorization` | `Bearer dk_live_...` | Your API key ([generate one](/v1/api-keys)) |
+| `X-App-Id` | `app_uuid` | Your application ID. Required alongside the API key as an explicit cross-check — even though the key alone resolves to an application server-side, passing the ID explicitly ensures a mismatched key/app combination is caught immediately. |
+| `X-Visitor-Id` | `uuid` | Server-managed UUID identifying the end user. Generated once per visitor, stored and reused by your backend. |
+| `Origin` | `https://your-domain.com` | The origin of your application. Used to validate requests against your registered domain. |
+
+<Callout type="warning" title="Keep your API key and App ID secret">
+  Your API key and `X-App-Id` grant full access to your application's chat data. Never expose them in client-side code — inject them only from your server.
+</Callout>
+
+## Quickstart: Send Your First Message
+
+<Callout type="info" title="Server-proxy architecture">
+  <p>All DeliveryChat API calls must come from <strong>your backend</strong>, not directly from the browser. Your backend acts as a proxy: it injects the credentials and forwards requests to DeliveryChat.</p>
+  <pre style={{fontFamily: "monospace", margin: "8px 0", fontSize: "0.85em"}}>{"Browser  →  Your Backend  →  DeliveryChat API"}</pre>
+  <p style={{marginTop: "8px", marginBottom: 0}}><code>Authorization</code> and <code>X-App-Id</code> are added by your backend only — they must never reach the browser.</p>
+</Callout>
+
+<StepByStep
+  title="Get chatting in 3 steps"
+  steps={[
+    {
+      title: "Get your API key and App ID",
+      content: (
+        <>
+          <p>Go to your dashboard → <strong>Applications</strong> → select your app → <strong>API Keys</strong> → <strong>Create API Key</strong>.</p>
+          <p>Copy both the API key and the App ID.</p>
+        </>
+      )
+    },
+    {
+      title: "Create a conversation",
+      content: (
+        <>
+          <p>Your backend generates a UUID for the visitor server-side and forwards the request to DeliveryChat with all three headers injected.</p>
+          <CodeTabs
+            tabs={[
+              {
+                label: "Your Backend → DeliveryChat",
+                language: "javascript",
+                code: `// Express / Node.js proxy route
+app.post('/api/chat/conversations', async (req, res) => {
+  const visitorId = req.session.dcVisitorId; // server-managed UUID
+
+  const response = await fetch(
+    'https://api.deliverychat.online/v1/api/conversations',
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer dk_live_your_api_key',
+        'X-App-Id': 'your-app-id',
+        'X-Visitor-Id': visitorId,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ subject: req.body.subject }),
+    }
+  );
+
+  const data = await response.json();
+  res.json(data);
+});`
+              },
+              {
+                label: "Your Frontend → Your Backend",
+                language: "javascript",
+                code: `// Browser — calls your own proxy, no DeliveryChat credentials here
+const response = await fetch('/api/chat/conversations', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ subject: 'Help with my order' }),
+});
+
+const { conversation } = await response.json();`
+              }
+            ]}
+          />
+          <p>Response from DeliveryChat:</p>
+          <CodeBlock language="json" title="Response">
+{`{
+  "conversation": {
+    "id": "conv-uuid",
+    "status": "pending",
+    "subject": "Help with my order",
+    "participants": [
+      { "userId": "550e8400-...", "role": "visitor" }
+    ],
+    "createdAt": "2025-01-15T10:30:00.000Z"
+  }
+}`}
+          </CodeBlock>
+        </>
+      )
+    },
+    {
+      title: "Send a message",
+      content: (
+        <>
+          <p>Pass the conversation ID through your proxy endpoint — your backend injects all three headers before forwarding to DeliveryChat.</p>
+          <CodeTabs
+            tabs={[
+              {
+                label: "Your Backend → DeliveryChat",
+                language: "javascript",
+                code: `// Express / Node.js proxy route
+app.post('/api/chat/conversations/:id/messages', async (req, res) => {
+  const visitorId = req.session.dcVisitorId; // server-managed UUID
+
+  const response = await fetch(
+    \`https://api.deliverychat.online/v1/api/conversations/\${req.params.id}/messages\`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer dk_live_your_api_key',
+        'X-App-Id': 'your-app-id',
+        'X-Visitor-Id': visitorId,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content: req.body.content }),
+    }
+  );
+
+  const data = await response.json();
+  res.json(data);
+});`
+              },
+              {
+                label: "Your Frontend → Your Backend",
+                language: "javascript",
+                code: `// Browser — calls your own proxy, no DeliveryChat credentials here
+const response = await fetch(\`/api/chat/conversations/\${conversationId}/messages\`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ content: 'Hi, I need help with order #1234' }),
+});
+
+const { message } = await response.json();`
+              }
+            ]}
+          />
+          <p>Response from DeliveryChat:</p>
+          <CodeBlock language="json" title="Response">
+{`{
+  "message": {
+    "id": "msg-uuid",
+    "conversationId": "conv-uuid",
+    "senderId": "550e8400-...",
+    "content": "Hi, I need help with order #1234",
+    "createdAt": "2025-01-15T10:30:05.000Z"
+  }
+}`}
+          </CodeBlock>
+          <p>Your message is now visible to operators in the admin dashboard — and if they're online, they'll see it in real-time via WebSocket.</p>
+        </>
+      )
+    }
+  ]}
+/>
+
+## Required Headers
+
+Every request to `/v1/api/*` must include all three headers, injected by your backend:
+
+<CodeBlock language="javascript" title="Your backend proxy — inject all three headers">
+{`const response = await fetch('https://api.deliverychat.online/v1/api/conversations', {
+  headers: {
+    'Authorization': 'Bearer dk_live_your_api_key',
+    'X-App-Id': 'your-app-id',
+    'X-Visitor-Id': req.session.dcVisitorId,
+  },
+});`}
+</CodeBlock>
+
+### Managing the Visitor ID
+
+Visitors are your end users — the people chatting through your widget or API integration. They are distinct from the admins and operators who use the DeliveryChat dashboard.
+
+The `X-Visitor-Id` is a UUID (v4) that uniquely identifies an end user. On the first request with a new visitor ID, DeliveryChat automatically creates an anonymous user account for that visitor.
+
+**Default path — anonymous visitors**
+
+Generate the UUID on your server the first time a visitor makes a request, store it in a server-side session, and reuse it on every subsequent request:
+
+<CodeBlock language="javascript" title="Server-side UUID generation and session storage">
+{`// Express example — generate once, reuse across requests
+app.use((req, res, next) => {
+  if (!req.session.dcVisitorId) {
+    req.session.dcVisitorId = crypto.randomUUID();
+  }
+  next();
+});`}
+</CodeBlock>
+
+<Callout type="warning" title="Session expiry resets the visitor identity">
+  If the server-side session expires or the visitor clears their cookies, a new UUID will be generated on their next request. The visitor will no longer have access to their prior conversation history.
+</Callout>
+
+<Callout type="tip" title="Optional: persist identity for authenticated users">
+  <p>If your users have accounts, you can map your internal <code>userId</code> to a <code>dcVisitorId</code> in your own database. On login, look up the existing mapping — or create one if it doesn't exist — and use that UUID for all API calls. This ensures conversation history survives logout, device changes, and session expiry.</p>
+  <CodeBlock language="javascript">
+{`// Look up or create a dcVisitorId for an authenticated user
+async function getOrCreateVisitorId(userId, db) {
+  const existing = await db.query(
+    'SELECT dc_visitor_id FROM user_visitor_ids WHERE user_id = $1',
+    [userId]
+  );
+  if (existing.rows.length > 0) return existing.rows[0].dc_visitor_id;
+
+  const newId = crypto.randomUUID();
+  await db.query(
+    'INSERT INTO user_visitor_ids (user_id, dc_visitor_id) VALUES ($1, $2)',
+    [userId, newId]
+  );
+  return newId;
+}
+
+// Use on login / session start — then store in session for the request lifecycle
+req.session.dcVisitorId = await getOrCreateVisitorId(req.user.id, db);`}
+  </CodeBlock>
+</Callout>
+
+## Pagination
+
+List endpoints support offset-based pagination:
+
+| Parameter | Type | Default | Max | Description |
+|-----------|------|---------|-----|-------------|
+| `limit` | integer | 20 | 100 | Number of items per page |
+| `offset` | integer | 0 | — | Number of items to skip |
+
+Example:
+
+```bash
+curl "https://api.deliverychat.online/v1/api/conversations?limit=10&offset=20" \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com"
+```
+
+Response includes pagination metadata:
+
+```json
+{
+  "conversations": [...],
+  "total": 42,
+  "limit": 10,
+  "offset": 20
+}
+```
+
+## Next Steps
+
+<QuickLinks
+  links={[
+    {
+      title: "Conversations",
+      href: "/v1/rest-api/conversations",
+      description: "Create, list, and manage conversations"
+    },
+    {
+      title: "Messages",
+      href: "/v1/rest-api/messages",
+      description: "Send, edit, delete, and fetch messages"
+    },
+    {
+      title: "WebSocket",
+      href: "/v1/rest-api/websocket",
+      description: "Real-time messaging via WebSocket"
+    },
+    {
+      title: "Errors & Rate Limiting",
+      href: "/v1/rest-api/errors",
+      description: "Error codes, HTTP statuses, and rate limits"
+    }
+  ]}
+  columns={2}
+/>

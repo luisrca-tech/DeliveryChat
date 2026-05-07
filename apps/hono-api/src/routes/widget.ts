@@ -13,6 +13,7 @@ import {
   getUnreadCountForVisitor,
   markAsRead,
 } from "../features/chat/chat.service.js";
+import { resolveOrCreateVisitor } from "../features/chat/visitor.service.js";
 import { requireWidgetAuth, getWidgetAuth } from "../lib/middleware/widgetAuth.js";
 import { createVisitorRateLimitMiddleware } from "../lib/middleware/visitorRateLimit.js";
 import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
@@ -21,8 +22,10 @@ import {
   createWidgetConversationSchema,
   getMessagesQuerySchema,
 } from "./schemas/conversations.js";
-import { roomManager } from "./ws.js";
-import type { WSServerEvent } from "@repo/types";
+import {
+  buildConversationNewEvent,
+  broadcastOrganizationEvent,
+} from "../features/chat/broadcasting.service.js";
 
 export const widgetRoute = new Hono()
   .get("/settings/:appId", async (c) => {
@@ -111,22 +114,7 @@ export const widgetRoute = new Hono()
           );
         }
 
-        // Ensure anonymous user exists for this visitor
-        const [existingUser] = await db
-          .select({ id: user.id })
-          .from(user)
-          .where(eq(user.id, visitorId))
-          .limit(1);
-
-        if (!existingUser) {
-          await db.insert(user).values({
-            id: visitorId,
-            name: "Visitor",
-            email: `${visitorId}@anonymous.deliverychat.online`,
-            isAnonymous: true,
-            status: "ACTIVE",
-          });
-        }
+        await resolveOrCreateVisitor(visitorId);
 
         const conversation = await createConversation({
           organizationId: widgetAuth.organizationId,
@@ -137,20 +125,16 @@ export const widgetRoute = new Hono()
         });
 
         // Broadcast to org staff so the queue updates in real-time
-        const event: WSServerEvent = {
-          type: "conversation:new",
-          payload: {
+        broadcastOrganizationEvent(
+          widgetAuth.organizationId,
+          buildConversationNewEvent({
             id: conversation.id,
             organizationId: widgetAuth.organizationId,
             applicationId: widgetAuth.application.id,
             status: "pending",
             subject: subject ?? null,
             createdAt: conversation.createdAt,
-          },
-        };
-        roomManager.broadcastToOrganization(
-          widgetAuth.organizationId,
-          JSON.stringify(event),
+          }),
         );
 
         return c.json({ conversation }, 201);

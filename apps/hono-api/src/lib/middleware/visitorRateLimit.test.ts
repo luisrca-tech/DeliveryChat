@@ -67,13 +67,26 @@ describe("createVisitorRateLimitMiddleware", () => {
       expect(res.headers.get("Retry-After")).toBeTruthy();
     });
 
+    it("includes rate limit context headers on 429", async () => {
+      const app = createTestApp({ perSecond: 2 });
+      await makeRequest(app, "app1", "visitor1");
+      await makeRequest(app, "app1", "visitor1");
+      const res = await makeRequest(app, "app1", "visitor1");
+      expect(res.status).toBe(429);
+      expect(res.headers.get("X-RateLimit-Limit")).toBe("2");
+      expect(res.headers.get("X-RateLimit-Remaining")).toBe("0");
+      expect(res.headers.get("X-RateLimit-Reset")).toBeTruthy();
+      const resetTs = Number(res.headers.get("X-RateLimit-Reset"));
+      expect(resetTs).toBeGreaterThan(Math.floor(Date.now() / 1000));
+    });
+
     it("distinguishes per-visitor cause in response body", async () => {
       const app = createTestApp({ perSecond: 1 });
       await makeRequest(app, "app1", "visitor1");
       const res = await makeRequest(app, "app1", "visitor1");
       const body = await res.json();
       expect(body.cause).toBe("per_visitor");
-      expect(body.error).toBe("Rate limit exceeded");
+      expect(body.error).toBe("rate_limit_exceeded");
       expect(body.retryAfter).toBeTypeOf("number");
     });
   });

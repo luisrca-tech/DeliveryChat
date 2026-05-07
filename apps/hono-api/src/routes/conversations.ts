@@ -30,8 +30,12 @@ import {
 import { checkBillingStatus } from "../lib/middleware/billing.js";
 import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
-import { roomManager } from "./ws.js";
-import type { WSServerEvent } from "@repo/types";
+import {
+  buildConversationAcceptedEvent,
+  buildConversationReleasedEvent,
+  buildConversationResolvedEvent,
+  broadcastOrganizationEvent,
+} from "../features/chat/broadcasting.service.js";
 
 export const conversationsRoute = new Hono()
   .use("*", requireTenantAuth())
@@ -251,18 +255,13 @@ export const conversationsRoute = new Hono()
         // Already a participant — ignore
       }
 
-      // Broadcast to all org staff via WS
-      const event: WSServerEvent = {
-        type: "conversation:accepted",
-        payload: {
+      broadcastOrganizationEvent(
+        organization.id,
+        buildConversationAcceptedEvent({
           conversationId,
           assignedTo: authUser.id,
           assignedToName: "",
-        },
-      };
-      roomManager.broadcastToOrganization(
-        organization.id,
-        JSON.stringify(event),
+        }),
       );
 
       return c.json({ conversation: updated });
@@ -297,14 +296,9 @@ export const conversationsRoute = new Hono()
         );
       }
 
-      // Broadcast to all org staff via WS
-      const event: WSServerEvent = {
-        type: "conversation:released",
-        payload: { conversationId },
-      };
-      roomManager.broadcastToOrganization(
+      broadcastOrganizationEvent(
         organization.id,
-        JSON.stringify(event),
+        buildConversationReleasedEvent({ conversationId }),
       );
 
       return c.json({ conversation: updated });
@@ -339,17 +333,12 @@ export const conversationsRoute = new Hono()
         );
       }
 
-      // Broadcast to all org staff via WS
-      const event: WSServerEvent = {
-        type: "conversation:resolved",
-        payload: {
+      broadcastOrganizationEvent(
+        organization.id,
+        buildConversationResolvedEvent({
           conversationId,
           resolvedBy: authUser.id,
-        },
-      };
-      roomManager.broadcastToOrganization(
-        organization.id,
-        JSON.stringify(event),
+        }),
       );
 
       return c.json({ conversation: updated });

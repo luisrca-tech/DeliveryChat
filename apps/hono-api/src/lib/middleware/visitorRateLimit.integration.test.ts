@@ -93,7 +93,7 @@ describe("visitor rate limit composition behavior", () => {
     expect(res.headers.get("Retry-After")).toBe("1");
     const body = await res.json();
     expect(body.cause).toBe("per_visitor");
-    expect(body.error).toBe("Rate limit exceeded");
+    expect(body.error).toBe("rate_limit_exceeded");
     expect(body.retryAfter).toBe(1);
   });
 

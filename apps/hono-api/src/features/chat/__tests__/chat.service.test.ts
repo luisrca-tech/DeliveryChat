@@ -67,11 +67,13 @@ const {
   getUnreadCountForVisitor,
   getBulkUnreadCounts,
   markAsRead,
+  listConversationsForVisitor,
   ConversationNotFoundError,
   ConversationNotActiveError,
   NotAssignedToConversationError,
   MessageNotFoundError,
   NotMessageSenderError,
+  MessageEditWindowExpiredError,
 } = await import("../chat.service.js");
 
 describe("chat.service", () => {
@@ -655,6 +657,7 @@ describe("chat.service", () => {
   });
 
   describe("editMessage", () => {
+    const recentTimestamp = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const existingMessage = {
       id: "msg-1",
       conversationId: "conv-1",
@@ -663,8 +666,8 @@ describe("chat.service", () => {
       content: "Original",
       editedAt: null,
       deletedAt: null,
-      createdAt: "2026-01-01T00:00:00.000Z",
-      updatedAt: "2026-01-01T00:00:00.000Z",
+      createdAt: recentTimestamp,
+      updatedAt: recentTimestamp,
     };
 
     it("updates content and sets editedAt", async () => {
@@ -735,9 +738,98 @@ describe("chat.service", () => {
         }),
       ).rejects.toThrow(NotMessageSenderError);
     });
+
+    it("allows edit within the 15-minute window", async () => {
+      const recentMessage = {
+        ...existingMessage,
+        createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      };
+      const selectChain = chainMock([recentMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      const updatedRow = {
+        ...recentMessage,
+        content: "Edited",
+        editedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const updateChain = chainMock([updatedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await editMessage({
+        messageId: "msg-1",
+        conversationId: "conv-1",
+        senderId: "user-1",
+        content: "Edited",
+      });
+
+      expect(result).toEqual(updatedRow);
+    });
+
+    it("rejects edit after 15-minute window", async () => {
+      const oldMessage = {
+        ...existingMessage,
+        createdAt: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+      };
+      const selectChain = chainMock([oldMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        editMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+          content: "Too late",
+        }),
+      ).rejects.toThrow(MessageEditWindowExpiredError);
+    });
+
+    it("rejects edit at exactly 15 minutes (boundary)", async () => {
+      const boundaryMessage = {
+        ...existingMessage,
+        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+      };
+      const selectChain = chainMock([boundaryMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        editMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+          content: "Boundary test",
+        }),
+      ).rejects.toThrow(MessageEditWindowExpiredError);
+    });
+
+    it("includes window details in the error", async () => {
+      const expiredAt = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+      const oldMessage = {
+        ...existingMessage,
+        createdAt: expiredAt,
+      };
+      const selectChain = chainMock([oldMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      try {
+        await editMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+          content: "Too late",
+        });
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(MessageEditWindowExpiredError);
+        const e = error as InstanceType<typeof MessageEditWindowExpiredError>;
+        expect(e.createdAt).toBe(expiredAt);
+        expect(e.windowMinutes).toBe(15);
+      }
+    });
   });
 
   describe("deleteMessage", () => {
+    const recentTimestamp = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     const existingMessage = {
       id: "msg-1",
       conversationId: "conv-1",
@@ -746,8 +838,8 @@ describe("chat.service", () => {
       content: "Hello",
       editedAt: null,
       deletedAt: null,
-      createdAt: "2026-01-01T00:00:00.000Z",
-      updatedAt: "2026-01-01T00:00:00.000Z",
+      createdAt: recentTimestamp,
+      updatedAt: recentTimestamp,
     };
 
     it("soft-deletes message by setting deletedAt", async () => {
@@ -810,6 +902,89 @@ describe("chat.service", () => {
           senderId: "user-other",
         }),
       ).rejects.toThrow(NotMessageSenderError);
+    });
+
+    it("allows delete within the 15-minute window", async () => {
+      const recentMessage = {
+        ...existingMessage,
+        createdAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+      };
+      const selectChain = chainMock([recentMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      const deletedRow = {
+        ...recentMessage,
+        deletedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      const updateChain = chainMock([deletedRow]);
+      mockUpdate.mockReturnValueOnce(updateChain);
+
+      const result = await deleteMessage({
+        messageId: "msg-1",
+        conversationId: "conv-1",
+        senderId: "user-1",
+      });
+
+      expect(result).toEqual(deletedRow);
+    });
+
+    it("rejects delete after 15-minute window", async () => {
+      const oldMessage = {
+        ...existingMessage,
+        createdAt: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+      };
+      const selectChain = chainMock([oldMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        deleteMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+        }),
+      ).rejects.toThrow(MessageEditWindowExpiredError);
+    });
+
+    it("rejects delete at exactly 15 minutes (boundary)", async () => {
+      const boundaryMessage = {
+        ...existingMessage,
+        createdAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+      };
+      const selectChain = chainMock([boundaryMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      await expect(
+        deleteMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+        }),
+      ).rejects.toThrow(MessageEditWindowExpiredError);
+    });
+
+    it("includes window details in the delete error", async () => {
+      const expiredAt = new Date(Date.now() - 20 * 60 * 1000).toISOString();
+      const oldMessage = {
+        ...existingMessage,
+        createdAt: expiredAt,
+      };
+      const selectChain = chainMock([oldMessage]);
+      mockSelect.mockReturnValueOnce(selectChain);
+
+      try {
+        await deleteMessage({
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+        });
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(MessageEditWindowExpiredError);
+        const e = error as InstanceType<typeof MessageEditWindowExpiredError>;
+        expect(e.createdAt).toBe(expiredAt);
+        expect(e.windowMinutes).toBe(15);
+      }
     });
   });
 
@@ -1054,6 +1229,81 @@ describe("chat.service", () => {
 
       expect(result.get("conv-1")).toBe(3);
       expect(result.get("conv-2")).toBeUndefined();
+    });
+  });
+
+  describe("listConversationsForVisitor", () => {
+    it("returns paginated conversations for a visitor", async () => {
+      const conversations = [
+        {
+          id: "conv-1",
+          status: "active",
+          subject: "Help",
+          createdAt: "2026-01-01T00:00:00.000Z",
+          updatedAt: "2026-01-01T00:01:00.000Z",
+        },
+      ];
+
+      const dataChain = chainMock(conversations);
+      mockSelect.mockReturnValueOnce(dataChain);
+
+      const countChain = chainMock([{ total: 1 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await listConversationsForVisitor({
+        applicationId: "app-1",
+        organizationId: "org-1",
+        visitorUserId: "visitor-1",
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        conversations,
+        total: 1,
+      });
+    });
+
+    it("returns empty list when visitor has no conversations", async () => {
+      const dataChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(dataChain);
+
+      const countChain = chainMock([{ total: 0 }]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await listConversationsForVisitor({
+        applicationId: "app-1",
+        organizationId: "org-1",
+        visitorUserId: "visitor-1",
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        conversations: [],
+        total: 0,
+      });
+    });
+
+    it("returns 0 total when count row is missing", async () => {
+      const dataChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(dataChain);
+
+      const countChain = chainMock([]);
+      mockSelect.mockReturnValueOnce(countChain);
+
+      const result = await listConversationsForVisitor({
+        applicationId: "app-1",
+        organizationId: "org-1",
+        visitorUserId: "visitor-1",
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result).toEqual({
+        conversations: [],
+        total: 0,
+      });
     });
   });
 });
