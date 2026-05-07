@@ -92,6 +92,24 @@ Two endpoints broadcast to WebSocket rooms after persisting data:
 
 This ensures operators using the admin dashboard see new conversations and messages in real-time, even when the visitor is using the REST API instead of the WebSocket protocol.
 
+## Participant Guard Middleware
+
+All conversation-scoped routes (`/conversations/:id` and `/conversations/:id/*`) are protected by the `requireParticipant()` middleware defined in `participant-guard.ts`. It extracts the conversation ID from the route param, calls `isParticipant()` with the visitor's user ID, and returns 404 if the check fails. This replaces the inline `isParticipant()` + `jsonError(NOT_FOUND)` pattern that was previously duplicated in each handler.
+
+## Error Mapper
+
+Service-layer errors thrown by `chat.service.ts` are mapped to HTTP responses by `mapServiceErrorToResponse()` in `error-mapper.ts`. The mapper handles:
+
+| Error Class | HTTP Status | Error Code |
+|---|---|---|
+| `MessageNotFoundError` | 404 | `Not Found` |
+| `NotMessageSenderError` | 403 | `Forbidden` |
+| `MessageEditWindowExpiredError` | 422 | `edit_window_expired` |
+| `ConversationNotFoundError` | 404 | `Not Found` |
+| `ConversationNotActiveError` | 422 | `conversation_not_active` |
+
+Route handlers call the mapper in their catch blocks instead of repeating `instanceof` chains. Unknown errors are re-thrown.
+
 ## Service Layer Reuse
 
 All route handlers delegate to existing functions in `chat.service.ts`. No business logic is duplicated — the REST API is a thin HTTP transport layer over the same service functions used by the WebSocket handlers.

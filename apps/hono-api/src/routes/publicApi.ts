@@ -21,13 +21,9 @@ import {
   deleteMessage,
   markAsRead,
   getUnreadCountForVisitor,
-  isParticipant,
-  MessageNotFoundError,
-  NotMessageSenderError,
-  MessageEditWindowExpiredError,
-  ConversationNotFoundError,
-  ConversationNotActiveError,
 } from "../features/chat/chat.service.js";
+import { mapServiceErrorToResponse } from "../features/chat/error-mapper.js";
+import { requireParticipant } from "../features/chat/participant-guard.js";
 import { roomManager } from "./ws.js";
 import type { WSServerEvent } from "@repo/types";
 
@@ -234,10 +230,13 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
     });
   })
 
+  // Participant guard for all conversation-scoped routes
+  .use("/conversations/:id", requireParticipant())
+  .use("/conversations/:id/*", requireParticipant())
+
   // GET /conversations/:id
   .get("/conversations/:id", async (c) => {
     const apiAuth = getApiAuth(c)!;
-    const visitor = c.get("visitor") as VisitorContext;
     const conversationId = c.req.param("id");
 
     const conversation = await getConversationWithParticipants(
@@ -249,11 +248,6 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
     }
 
-    const participantCheck = await isParticipant(conversationId, visitor.visitorUserId);
-    if (!participantCheck) {
-      return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-    }
-
     return c.json({ conversation });
   })
 
@@ -262,14 +256,8 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
     "/conversations/:id/messages",
     zValidator("query", paginationQuery),
     async (c) => {
-      const visitor = c.get("visitor") as VisitorContext;
       const conversationId = c.req.param("id");
       const { limit, offset } = c.req.valid("query");
-
-      const participantCheck = await isParticipant(conversationId, visitor.visitorUserId);
-      if (!participantCheck) {
-        return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-      }
 
       const msgs = await getMessageHistory({ conversationId, limit, offset });
       return c.json({ messages: msgs, limit, offset });
@@ -284,11 +272,6 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       const visitor = c.get("visitor") as VisitorContext;
       const conversationId = c.req.param("id");
       const { content } = c.req.valid("json");
-
-      const participantCheck = await isParticipant(conversationId, visitor.visitorUserId);
-      if (!participantCheck) {
-        return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-      }
 
       try {
         const message = await sendMessage({
@@ -318,12 +301,8 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
 
         return c.json({ message }, 201);
       } catch (error) {
-        if (error instanceof ConversationNotFoundError) {
-          return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-        }
-        if (error instanceof ConversationNotActiveError) {
-          return jsonError(c, HTTP_STATUS.UNPROCESSABLE_ENTITY, "conversation_not_active", error.message);
-        }
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
         throw error;
       }
     },
@@ -339,11 +318,6 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       const messageId = c.req.param("messageId");
       const { content } = c.req.valid("json");
 
-      const participantCheck = await isParticipant(conversationId, visitor.visitorUserId);
-      if (!participantCheck) {
-        return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-      }
-
       try {
         const message = await editMessage({
           messageId,
@@ -353,15 +327,8 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
         });
         return c.json({ message });
       } catch (error) {
-        if (error instanceof MessageNotFoundError) {
-          return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Message not found");
-        }
-        if (error instanceof NotMessageSenderError) {
-          return jsonError(c, HTTP_STATUS.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN, "You can only edit your own messages");
-        }
-        if (error instanceof MessageEditWindowExpiredError) {
-          return jsonError(c, HTTP_STATUS.UNPROCESSABLE_ENTITY, "edit_window_expired", error.message);
-        }
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
         throw error;
       }
     },
@@ -373,11 +340,6 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
     const conversationId = c.req.param("id");
     const messageId = c.req.param("messageId");
 
-    const participantCheck = await isParticipant(conversationId, visitor.visitorUserId);
-    if (!participantCheck) {
-      return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-    }
-
     try {
       await deleteMessage({
         messageId,
@@ -386,15 +348,8 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       });
       return c.json({ success: true });
     } catch (error) {
-      if (error instanceof MessageNotFoundError) {
-        return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Message not found");
-      }
-      if (error instanceof NotMessageSenderError) {
-        return jsonError(c, HTTP_STATUS.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN, "You can only delete your own messages");
-      }
-      if (error instanceof MessageEditWindowExpiredError) {
-        return jsonError(c, HTTP_STATUS.UNPROCESSABLE_ENTITY, "edit_window_expired", error.message);
-      }
+      const mapped = mapServiceErrorToResponse(c, error);
+      if (mapped) return mapped;
       throw error;
     }
   })
@@ -408,11 +363,6 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       const conversationId = c.req.param("id");
       const { messageId } = c.req.valid("json");
 
-      const participantCheck = await isParticipant(conversationId, visitor.visitorUserId);
-      if (!participantCheck) {
-        return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-      }
-
       await markAsRead(conversationId, visitor.visitorUserId, messageId);
       return c.json({ success: true });
     },
@@ -422,11 +372,6 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
   .get("/conversations/:id/unread", async (c) => {
     const visitor = c.get("visitor") as VisitorContext;
     const conversationId = c.req.param("id");
-
-    const participantCheck = await isParticipant(conversationId, visitor.visitorUserId);
-    if (!participantCheck) {
-      return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
-    }
 
     const unreadCount = await getUnreadCountForVisitor(conversationId, visitor.visitorUserId);
     return c.json({ unreadCount });
