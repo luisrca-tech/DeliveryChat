@@ -70,9 +70,26 @@ summary() {
   [[ $FAIL -eq 0 ]] && exit 0 || exit 1
 }
 
+# ---------------------------------------------------------------------------
+# Credential guard — fail fast before making any requests
+# ---------------------------------------------------------------------------
+if [[ -z "$API_KEY" ]]; then
+  echo "ERROR: API_KEY is required." >&2
+  echo "  Pass it as the 2nd positional arg or via env: API_KEY=dk_test_... $0" >&2
+  exit 1
+fi
+
+if [[ -z "$APP_ID" || "$APP_ID" == *"<"* ]]; then
+  echo "ERROR: APP_ID is required (pass the application UUID, not a placeholder)." >&2
+  echo "  Find it in the admin dashboard under Applications, or run:" >&2
+  echo "    bun run db:studio  # then browse delivery_chat_applications" >&2
+  echo "  Pass it as the 3rd positional arg or via env: APP_ID=<uuid> $0" >&2
+  exit 1
+fi
+
 echo "DeliveryChat Public API Test"
 echo "BASE_URL : $BASE_URL"
-echo "APP_ID   : ${APP_ID:-<not set>}"
+echo "APP_ID   : $APP_ID"
 echo "VISITOR  : $VISITOR_ID"
 echo ""
 

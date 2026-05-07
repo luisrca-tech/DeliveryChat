@@ -60,6 +60,58 @@ type VisitorContext = {
   visitorUserId: string;
 };
 
+type RawParticipant = {
+  userId: string;
+  role: string;
+  joinedAt: string;
+};
+
+type RawConversation = {
+  id: string;
+  status: string;
+  subject: string | null;
+  assignedTo: string | null;
+  createdAt: string;
+  updatedAt: string;
+  participants: RawParticipant[];
+};
+
+type RawMessage = {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  editedAt: string | null;
+  createdAt: string;
+};
+
+function mapParticipant(p: RawParticipant) {
+  return { userId: p.userId, role: p.role, joinedAt: p.joinedAt };
+}
+
+function mapConversation(raw: RawConversation) {
+  return {
+    id: raw.id,
+    status: raw.status,
+    subject: raw.subject,
+    assignedTo: raw.assignedTo,
+    participants: raw.participants.map(mapParticipant),
+    createdAt: raw.createdAt,
+    updatedAt: raw.updatedAt,
+  };
+}
+
+function mapMessage(raw: RawMessage) {
+  return {
+    id: raw.id,
+    conversationId: raw.conversationId,
+    senderId: raw.senderId,
+    content: raw.content,
+    editedAt: raw.editedAt,
+    createdAt: raw.createdAt,
+  };
+}
+
 export const publicApiRoute = new Hono<{ Variables: Variables }>()
   .use("*", requireApiKeyAuth())
   .use("*", async (c, next) => {
@@ -141,7 +193,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
         apiAuth.application.organizationId,
       );
 
-      return c.json({ conversation: withParticipants }, 201);
+      return c.json({ conversation: mapConversation(withParticipants as RawConversation) }, 201);
     },
   )
 
@@ -185,7 +237,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, "Conversation not found");
     }
 
-    return c.json({ conversation });
+    return c.json({ conversation: mapConversation(conversation as RawConversation) });
   })
 
   // GET /conversations/:id/messages
@@ -197,7 +249,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
       const { limit, offset } = c.req.valid("query");
 
       const msgs = await getMessageHistory({ conversationId, limit, offset });
-      return c.json({ messages: msgs, limit, offset });
+      return c.json({ messages: msgs.map(mapMessage), limit, offset });
     },
   )
 
@@ -232,7 +284,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
           }),
         );
 
-        return c.json({ message }, 201);
+        return c.json({ message: mapMessage(message) }, 201);
       } catch (error) {
         const mapped = mapServiceErrorToResponse(c, error);
         if (mapped) return mapped;
@@ -258,7 +310,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
           senderId: visitor.visitorUserId,
           content,
         });
-        return c.json({ message });
+        return c.json({ message: mapMessage(message) });
       } catch (error) {
         const mapped = mapServiceErrorToResponse(c, error);
         if (mapped) return mapped;
