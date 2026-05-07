@@ -1,0 +1,146 @@
+# Errors & Rate Limiting
+
+## Error Response Format
+
+All errors follow a consistent JSON format:
+
+```json
+{
+  "error": "error_code",
+  "message": "Human-readable description of what went wrong"
+}
+```
+
+## HTTP Status Codes
+
+| Status | Meaning | When |
+|--------|---------|------|
+| 400 | Bad Request | Missing or invalid headers, malformed request body, validation failure |
+| 401 | Unauthorized | Invalid or missing API key, invalid App ID |
+| 403 | Forbidden | Attempting to edit/delete another user's message |
+| 404 | Not Found | Resource doesn't exist or the visitor is not a participant |
+| 422 | Unprocessable Entity | Business rule violation (closed conversation, expired edit window) |
+| 429 | Too Many Requests | Rate limit exceeded |
+| 500 | Internal Server Error | Unexpected server error |
+
+## Error Codes
+
+| Code | HTTP Status | Description |
+|------|-------------|-------------|
+| `bad_request` | 400 | Request validation failed — check headers and body |
+| `unauthorized` | 401 | API key or App ID is missing or invalid |
+| `forbidden` | 403 | You don't have permission for this action |
+| `not_found` | 404 | Resource not found or not accessible |
+| `conversation_not_active` | 422 | Cannot send messages to a closed conversation |
+| `edit_window_expired` | 422 | The 15-minute edit/delete window has passed |
+| `rate_limit_exceeded` | 429 | Too many requests — back off and retry |
+
+---
+
+## Rate Limiting
+
+The API enforces per-visitor rate limits using three sliding time windows. Limits are applied per visitor per application.
+
+### Rate Limit Windows
+
+| Window | Purpose |
+|--------|---------|
+| Per-second | Prevents burst abuse |
+| Per-minute | Controls sustained request rate |
+| Per-hour | Caps total volume |
+
+If any window is exceeded, the API returns `429 Too Many Requests`.
+
+### Rate Limit Headers
+
+On a `429` response, the following headers indicate which limit was hit:
+
+| Header | Description | Example |
+|--------|-------------|---------|
+| `Retry-After` | Seconds to wait before retrying | `5` |
+| `X-RateLimit-Limit` | Max requests allowed in the violated window | `60` |
+| `X-RateLimit-Remaining` | Remaining requests (always `0` on a 429) | `0` |
+| `X-RateLimit-Reset` | Unix timestamp (seconds) when the window resets | `1705312500` |
+
+### 429 Response Body
+
+```json
+{
+  "error": "Rate limit exceeded",
+  "cause": "per_visitor",
+  "retryAfter": 5,
+  "window": "minute"
+}
+```
+
+### Backoff Strategy
+
+<Callout type="tip" title="Recommended backoff">
+  Use the <code>Retry-After</code> header to determine exactly how long to wait. If implementing exponential backoff, start at 1 second and cap at 60 seconds.
+</Callout>
+
+```javascript
+async function fetchWithRetry(url, options, maxRetries = 3) {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const response = await fetch(url, options);
+
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get("Retry-After") || "5");
+      await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error("Max retries exceeded");
+}
+```
+
+---
+
+## Common Error Scenarios
+
+<ExampleCard
+  title="Missing X-Visitor-Id header"
+  scenario="A request is made without the X-Visitor-Id header"
+  solution="Include a valid UUID v4 in the X-Visitor-Id header with every request"
+  code={`{
+  "error": "bad_request",
+  "message": "X-Visitor-Id header required"
+}`}
+  codeLanguage="json"
+/>
+
+<ExampleCard
+  title="Invalid visitor ID format"
+  scenario="X-Visitor-Id contains a non-UUID value"
+  solution="Generate a proper UUID v4 (e.g. crypto.randomUUID() in JavaScript)"
+  code={`{
+  "error": "bad_request",
+  "message": "X-Visitor-Id must be a valid UUID"
+}`}
+  codeLanguage="json"
+/>
+
+<ExampleCard
+  title="Editing after 15 minutes"
+  scenario="Attempting to edit a message sent more than 15 minutes ago"
+  solution="Messages become immutable after 15 minutes. Display the edit window to users so they know the deadline."
+  code={`{
+  "error": "edit_window_expired",
+  "message": "Message msg-uuid can no longer be modified. The 15-minute edit window expired at 2025-01-15T10:15:00.000Z."
+}`}
+  codeLanguage="json"
+/>
+
+<ExampleCard
+  title="Sending to a closed conversation"
+  scenario="Posting a message to a conversation that has been resolved"
+  solution="Create a new conversation instead. Closed conversations cannot receive new messages."
+  code={`{
+  "error": "conversation_not_active",
+  "message": "Cannot send message: conversation is closed"
+}`}
+  codeLanguage="json"
+/>

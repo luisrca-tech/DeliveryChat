@@ -13,15 +13,15 @@ export const HTTP_STATUS = {
 } as const;
 
 export const ERROR_MESSAGES = {
-  BAD_REQUEST: "Bad Request",
-  UNAUTHORIZED: "Unauthorized",
-  PAYMENT_REQUIRED: "Payment Required",
-  FORBIDDEN: "Forbidden",
-  NOT_FOUND: "Not Found",
-  INTERNAL_SERVER_ERROR: "Internal Server Error",
-  VALIDATION_ERROR: "Validation Error",
-  CONFLICT: "Conflict",
-  TOO_MANY_REQUESTS: "Too Many Requests",
+  BAD_REQUEST: "bad_request",
+  UNAUTHORIZED: "unauthorized",
+  PAYMENT_REQUIRED: "payment_required",
+  FORBIDDEN: "forbidden",
+  NOT_FOUND: "not_found",
+  INTERNAL_SERVER_ERROR: "internal_server_error",
+  VALIDATION_ERROR: "validation_error",
+  CONFLICT: "conflict",
+  TOO_MANY_REQUESTS: "too_many_requests",
 } as const;
 
 type HttpStatus = (typeof HTTP_STATUS)[keyof typeof HTTP_STATUS];

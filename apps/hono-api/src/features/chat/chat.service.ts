@@ -49,6 +49,25 @@ export class NotMessageSenderError extends Error {
   }
 }
 
+export class MessageEditWindowExpiredError extends Error {
+  public readonly createdAt: string;
+  public readonly expiresAt: string;
+  public readonly windowMinutes: number;
+
+  constructor(messageId: string, createdAt: string, windowMinutes: number) {
+    const expiresAt = new Date(
+      new Date(createdAt).getTime() + windowMinutes * 60 * 1000,
+    ).toISOString();
+    super(
+      `Message ${messageId} can no longer be modified. The ${windowMinutes}-minute edit window expired at ${expiresAt}.`,
+    );
+    this.name = "MessageEditWindowExpiredError";
+    this.createdAt = createdAt;
+    this.expiresAt = expiresAt;
+    this.windowMinutes = windowMinutes;
+  }
+}
+
 export class NotAssignedToConversationError extends Error {
   constructor(conversationId: string, userId: string) {
     super(
@@ -57,6 +76,10 @@ export class NotAssignedToConversationError extends Error {
     this.name = "NotAssignedToConversationError";
   }
 }
+
+// ── Constants ──
+
+const EDIT_WINDOW_MINUTES = 15;
 
 // ── Types ──
 
@@ -207,6 +230,15 @@ export async function editMessage(input: EditMessageInput) {
     throw new NotMessageSenderError(input.messageId, input.senderId);
   }
 
+  const elapsed = Date.now() - new Date(msg.createdAt).getTime();
+  if (elapsed >= EDIT_WINDOW_MINUTES * 60 * 1000) {
+    throw new MessageEditWindowExpiredError(
+      input.messageId,
+      msg.createdAt,
+      EDIT_WINDOW_MINUTES,
+    );
+  }
+
   const [updated] = await db
     .update(messages)
     .set({
@@ -241,6 +273,15 @@ export async function deleteMessage(input: DeleteMessageInput) {
 
   if (msg.senderId !== input.senderId) {
     throw new NotMessageSenderError(input.messageId, input.senderId);
+  }
+
+  const elapsed = Date.now() - new Date(msg.createdAt).getTime();
+  if (elapsed >= EDIT_WINDOW_MINUTES * 60 * 1000) {
+    throw new MessageEditWindowExpiredError(
+      input.messageId,
+      msg.createdAt,
+      EDIT_WINDOW_MINUTES,
+    );
   }
 
   const [deleted] = await db
@@ -538,13 +579,63 @@ export async function getMessagesSince(
     .limit(limit);
 }
 
+// ── List Conversations for Visitor ──
+
+export async function listConversationsForVisitor(params: {
+  applicationId: string;
+  organizationId: string;
+  visitorUserId: string;
+  limit: number;
+  offset: number;
+}) {
+  const { applicationId, organizationId, visitorUserId, limit, offset } =
+    params;
+
+  const participantJoin = and(
+    eq(conversationParticipants.conversationId, conversations.id),
+    eq(conversationParticipants.userId, visitorUserId),
+    isNull(conversationParticipants.leftAt),
+  );
+
+  const whereClause = and(
+    eq(conversations.applicationId, applicationId),
+    eq(conversations.organizationId, organizationId),
+    isNull(conversations.deletedAt),
+  );
+
+  const result = await db
+    .select({
+      id: conversations.id,
+      status: conversations.status,
+      subject: conversations.subject,
+      createdAt: conversations.createdAt,
+      updatedAt: conversations.updatedAt,
+    })
+    .from(conversations)
+    .innerJoin(conversationParticipants, participantJoin)
+    .where(whereClause)
+    .orderBy(desc(conversations.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [countRow] = await db
+    .select({ total: sql<number>`count(*)::int` })
+    .from(conversations)
+    .innerJoin(conversationParticipants, participantJoin)
+    .where(whereClause);
+
+  return {
+    conversations: result,
+    total: countRow?.total ?? 0,
+  };
+}
+
 // ── Unread Count ──
 
-export async function getUnreadCount(
+async function resolveUnreadCutoff(
   conversationId: string,
   userId: string,
-): Promise<number> {
-  // Find if the user is a participant (they may not be for pending/queue conversations)
+): Promise<string | null> {
   const [participant] = await db
     .select({ lastReadMessageId: conversationParticipants.lastReadMessageId })
     .from(conversationParticipants)
@@ -557,17 +648,22 @@ export async function getUnreadCount(
     )
     .limit(1);
 
-  // Determine the cutoff: messages after this date are "unread"
-  let afterDate: string | null = null;
-  if (participant?.lastReadMessageId) {
-    const [lastReadMsg] = await db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .where(eq(messages.id, participant.lastReadMessageId))
-      .limit(1);
-    afterDate = lastReadMsg?.createdAt ?? null;
-  }
-  // If no participant or no lastReadMessageId → afterDate stays null → count ALL visitor messages
+  if (!participant?.lastReadMessageId) return null;
+
+  const [lastReadMsg] = await db
+    .select({ createdAt: messages.createdAt })
+    .from(messages)
+    .where(eq(messages.id, participant.lastReadMessageId))
+    .limit(1);
+
+  return lastReadMsg?.createdAt ?? null;
+}
+
+export async function getUnreadCount(
+  conversationId: string,
+  userId: string,
+): Promise<number> {
+  const afterDate = await resolveUnreadCutoff(conversationId, userId);
 
   const whereConditions = [
     eq(messages.conversationId, conversationId),
@@ -593,33 +689,11 @@ export async function getUnreadCount(
   return countRow?.count ?? 0;
 }
 
-// ── Unread Count (Visitor) ──
-
 export async function getUnreadCountForVisitor(
   conversationId: string,
   visitorUserId: string,
 ): Promise<number> {
-  const [participant] = await db
-    .select({ lastReadMessageId: conversationParticipants.lastReadMessageId })
-    .from(conversationParticipants)
-    .where(
-      and(
-        eq(conversationParticipants.conversationId, conversationId),
-        eq(conversationParticipants.userId, visitorUserId),
-        isNull(conversationParticipants.leftAt),
-      ),
-    )
-    .limit(1);
-
-  let afterDate: string | null = null;
-  if (participant?.lastReadMessageId) {
-    const [lastReadMsg] = await db
-      .select({ createdAt: messages.createdAt })
-      .from(messages)
-      .where(eq(messages.id, participant.lastReadMessageId))
-      .limit(1);
-    afterDate = lastReadMsg?.createdAt ?? null;
-  }
+  const afterDate = await resolveUnreadCutoff(conversationId, visitorUserId);
 
   const whereConditions = [
     eq(messages.conversationId, conversationId),
