@@ -1,4 +1,5 @@
 import react from "@astrojs/react";
+import node from "@astrojs/node";
 import tailwindcss from "@tailwindcss/vite";
 import { defineConfig } from "astro/config";
 import path from "path";
@@ -8,6 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://astro.build/config
 export default defineConfig({
+	adapter: node({ mode: "standalone" }),
 	integrations: [react()],
 	vite: {
 		// @ts-expect-error - Vite plugin type mismatch between Astro and Tailwind CSS

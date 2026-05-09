@@ -8,9 +8,12 @@
     "build": "astro build",
     "preview": "astro preview",
     "local:preview": "infisical run --path=/web -- astro preview",
+    "test": "bun test src/lib/demo-proxy.test.ts",
+    "check-types": "astro check",
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/node": "^9.5.0",
     "@astrojs/react": "^4.4.2",
     "@t3-oss/env-core": "^0.13.8",
     "astro": "^5.16.0",
@@ -20,9 +23,10 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@astrojs/check": "^0.9.9",
     "@repo/eslint-config": "*",
-    "@repo/typescript-config": "*",
     "@repo/types": "*",
+    "@repo/typescript-config": "*",
     "@repo/ui": "*",
     "@tailwindcss/vite": "^4.1.13",
     "@types/node": "^22",
