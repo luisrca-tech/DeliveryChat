@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import { MessageCircle, Send, X, Loader2 } from "lucide-react";
+import type { WSServerEvent } from "@repo/types";
 
 type DemoMessage = {
   id: string;
@@ -18,7 +19,6 @@ type DemoConversation = {
 type Phase = "idle" | "opening" | "chatting" | "error";
 
 const DEMO_SUBJECT = "Live Demo – Landing Page";
-const POLL_INTERVAL_MS = 5000;
 
 async function demoFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`/api/demo/${path}`, {
@@ -30,7 +30,7 @@ async function demoFetch<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({})) as { message?: string };
+    const body = (await res.json().catch(() => ({}))) as { message?: string };
     throw new Error(body.message ?? "Request failed");
   }
   return res.json() as Promise<T>;
@@ -42,7 +42,13 @@ type ConversationResponse = {
   participants: Array<{ userId: string; role: string; joinedAt: string }>;
 };
 
-export function HeroChatIsland({ logoSrc }: { logoSrc: string }) {
+export function HeroChatIsland({
+  logoSrc,
+  wsApiUrl,
+}: {
+  logoSrc: string;
+  wsApiUrl?: string;
+}) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [conversation, setConversation] = useState<DemoConversation | null>(
     null,
@@ -52,25 +58,104 @@ export function HeroChatIsland({ logoSrc }: { logoSrc: string }) {
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const appendMessage = useCallback((msg: DemoMessage) => {
+    setMessages((prev) => {
+      if (prev.some((m) => m.id === msg.id)) return prev;
+      return [...prev, msg];
+    });
+    lastMessageIdRef.current = msg.id;
+  }, []);
+
   useEffect(() => {
-    if (phase !== "chatting" || !conversation) return;
-    const id = setInterval(async () => {
+    if (phase !== "chatting" || !conversation || !wsApiUrl) return;
+
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let cancelled = false;
+    const convId = conversation.id;
+
+    async function connect() {
+      if (cancelled) return;
       try {
-        const data = await demoFetch<{ messages: DemoMessage[] }>(
-          `conversations/${conversation.id}/messages?limit=50&offset=0`,
-        );
-        setMessages(data.messages);
+        const data = await demoFetch<{ token: string }>("ws-token", {
+          method: "POST",
+        });
+        if (cancelled) return;
+
+        const url = `${wsApiUrl}/v1/ws?token=${encodeURIComponent(data.token)}`;
+        ws = new WebSocket(url);
+
+        ws.onopen = () => {
+          ws?.send(
+            JSON.stringify({
+              type: "room:join",
+              payload: {
+                conversationId: convId,
+                ...(lastMessageIdRef.current
+                  ? { lastMessageId: lastMessageIdRef.current }
+                  : {}),
+              },
+            }),
+          );
+        };
+
+        ws.onmessage = (event) => {
+          try {
+            const serverEvent = JSON.parse(event.data as string) as WSServerEvent;
+            if (serverEvent.type === "message:new") {
+              const p = serverEvent.payload;
+              appendMessage({
+                id: p.id,
+                senderId: p.senderId,
+                content: p.content,
+                createdAt: p.createdAt,
+              });
+            } else if (serverEvent.type === "messages:sync") {
+              for (const p of serverEvent.payload.messages) {
+                appendMessage({
+                  id: p.id,
+                  senderId: p.senderId,
+                  content: p.content,
+                  createdAt: p.createdAt,
+                });
+              }
+            }
+          } catch {
+            /* ignore malformed frames */
+          }
+        };
+
+        ws.onclose = () => {
+          ws = null;
+          if (!cancelled) {
+            reconnectTimer = setTimeout(() => void connect(), 2000);
+          }
+        };
+
+        ws.onerror = () => {
+          ws?.close();
+        };
       } catch {
-        // silent poll failure — Phase 3 WebSocket will replace this
+        if (!cancelled) {
+          reconnectTimer = setTimeout(() => void connect(), 3000);
+        }
       }
-    }, POLL_INTERVAL_MS);
-    return () => clearInterval(id);
-  }, [phase, conversation]);
+    }
+
+    void connect();
+
+    return () => {
+      cancelled = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      ws?.close();
+    };
+  }, [phase, conversation, wsApiUrl, appendMessage]);
 
   async function openChat() {
     setPhase("opening");
@@ -105,6 +190,10 @@ export function HeroChatIsland({ logoSrc }: { logoSrc: string }) {
         `conversations/${conv.id}/messages?limit=50&offset=0`,
       );
       setMessages(msgData.messages);
+      if (msgData.messages.length > 0) {
+        lastMessageIdRef.current =
+          msgData.messages[msgData.messages.length - 1].id;
+      }
       setPhase("chatting");
     } catch (e) {
       setError((e as Error).message || "Could not connect. Try again later.");
@@ -122,7 +211,7 @@ export function HeroChatIsland({ logoSrc }: { logoSrc: string }) {
         `conversations/${conversation.id}/messages`,
         { method: "POST", body: JSON.stringify({ content }) },
       );
-      setMessages((prev) => [...prev, data.message]);
+      appendMessage(data.message);
     } catch (e) {
       setError((e as Error).message || "Failed to send. Try again.");
     } finally {

@@ -3,8 +3,10 @@ import { Button } from "@repo/ui/components/ui/button";
 import { ArrowRight, MessageCircle, Sparkles } from "lucide-react";
 import { getLogoPublicSrc } from "../../lib/logoPublicSrc";
 import { HeroChatIsland } from "./HeroChatIsland";
+import { env } from "../../env";
 
 const logoSrc = getLogoPublicSrc();
+const wsApiUrl = env.DEMO_PUBLIC_API_BASE_URL?.replace(/^http/, "ws");
 ---
 
 <section
@@ -100,7 +102,7 @@ const logoSrc = getLogoPublicSrc();
       class="max-w-5xl mx-auto mt-16 animate-fade-in"
       style="animation-delay: 0.2s"
     >
-      <HeroChatIsland logoSrc={logoSrc} client:load />
+      <HeroChatIsland logoSrc={logoSrc} wsApiUrl={wsApiUrl} client:load />
     </div>
   </div>
 </section>
