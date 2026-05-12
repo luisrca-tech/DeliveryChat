@@ -102,7 +102,7 @@ const wsApiUrl = env.DEMO_PUBLIC_API_BASE_URL?.replace(/^http/, "ws");
       class="max-w-5xl mx-auto mt-16 animate-fade-in"
       style="animation-delay: 0.2s"
     >
-      <HeroChatIsland logoSrc={logoSrc} wsApiUrl={wsApiUrl} client:load />
+      <HeroChatIsland logoSrc={logoSrc} wsApiUrl={wsApiUrl} client:visible />
     </div>
   </div>
 </section>

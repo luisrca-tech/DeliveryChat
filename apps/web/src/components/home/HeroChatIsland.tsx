@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@repo/ui/components/ui/button";
-import { MessageCircle, Send, X, Loader2 } from "lucide-react";
+import { MessageCircle, Send, X, Loader2, WifiOff } from "lucide-react";
 import type { WSServerEvent } from "@repo/types";
 
 type DemoMessage = {
@@ -17,6 +17,7 @@ type DemoConversation = {
 };
 
 type Phase = "idle" | "opening" | "chatting" | "error";
+type WsStatus = "idle" | "connecting" | "connected" | "disconnected";
 
 const DEMO_SUBJECT = "Live Demo – Landing Page";
 
@@ -57,12 +58,20 @@ export function HeroChatIsland({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [wsStatus, setWsStatus] = useState<WsStatus>("idle");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (phase === "chatting") {
+      textareaRef.current?.focus();
+    }
+  }, [phase]);
 
   const appendMessage = useCallback((msg: DemoMessage) => {
     setMessages((prev) => {
@@ -82,6 +91,7 @@ export function HeroChatIsland({
 
     async function connect() {
       if (cancelled) return;
+      setWsStatus("connecting");
       try {
         const data = await demoFetch<{ token: string }>("ws-token", {
           method: "POST",
@@ -92,6 +102,7 @@ export function HeroChatIsland({
         ws = new WebSocket(url);
 
         ws.onopen = () => {
+          setWsStatus("connected");
           ws?.send(
             JSON.stringify({
               type: "room:join",
@@ -134,6 +145,7 @@ export function HeroChatIsland({
         ws.onclose = () => {
           ws = null;
           if (!cancelled) {
+            setWsStatus("disconnected");
             reconnectTimer = setTimeout(() => void connect(), 2000);
           }
         };
@@ -143,6 +155,7 @@ export function HeroChatIsland({
         };
       } catch {
         if (!cancelled) {
+          setWsStatus("disconnected");
           reconnectTimer = setTimeout(() => void connect(), 3000);
         }
       }
@@ -152,6 +165,7 @@ export function HeroChatIsland({
 
     return () => {
       cancelled = true;
+      setWsStatus("idle");
       if (reconnectTimer) clearTimeout(reconnectTimer);
       ws?.close();
     };
@@ -206,6 +220,9 @@ export function HeroChatIsland({
     const content = input.trim();
     setInput("");
     setSending(true);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
     try {
       const data = await demoFetch<{ message: DemoMessage }>(
         `conversations/${conversation.id}/messages`,
@@ -224,6 +241,12 @@ export function HeroChatIsland({
       e.preventDefault();
       void sendMessage();
     }
+  }
+
+  function handleInput(e: React.ChangeEvent<HTMLTextAreaElement>) {
+    setInput(e.target.value);
+    e.target.style.height = "auto";
+    e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
   }
 
   if (phase === "idle" || phase === "error") {
@@ -248,10 +271,10 @@ export function HeroChatIsland({
             )}
             <Button
               onClick={() => void openChat()}
-              className="bg-gradient-hero hover:shadow-glow transition-all duration-300"
+              className="bg-gradient-hero hover:shadow-glow transition-all duration-300 focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Start Chat
+              <MessageCircle className="mr-2 h-4 w-4" aria-hidden="true" />
+              {phase === "error" ? "Try Again" : "Start Chat"}
             </Button>
           </div>
         </div>
@@ -264,8 +287,13 @@ export function HeroChatIsland({
       <div className="relative rounded-2xl overflow-hidden shadow-glow border border-border/50 bg-gradient-card backdrop-blur-sm">
         <div className="aspect-video bg-linear-to-br from-primary/20 to-primary-glow/20 flex items-center justify-center">
           <div className="text-center space-y-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
-            <p className="text-sm text-muted-foreground">Connecting...</p>
+            <Loader2
+              className="h-8 w-8 animate-spin text-primary mx-auto"
+              aria-hidden="true"
+            />
+            <p className="text-sm text-muted-foreground" role="status">
+              Connecting…
+            </p>
           </div>
         </div>
       </div>
@@ -273,23 +301,56 @@ export function HeroChatIsland({
   }
 
   return (
-    <div className="relative rounded-2xl overflow-hidden shadow-glow border border-border/50 bg-card backdrop-blur-sm">
-      <div className="flex flex-col h-[28rem]">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+    <div
+      className="relative rounded-2xl overflow-hidden shadow-glow border border-border/50 bg-card backdrop-blur-sm"
+      role="dialog"
+      aria-label="Live chat demo"
+    >
+      <div className="flex flex-col h-[20rem] sm:h-[28rem]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0 bg-card">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-            <span className="text-sm font-medium">Live Chat</span>
+            <div
+              className={`w-2 h-2 rounded-full ${wsStatus === "connected" ? "bg-primary animate-pulse" : "bg-muted-foreground"}`}
+              aria-hidden="true"
+            />
+            <span className="text-sm font-semibold">Live Chat</span>
+            {wsStatus === "disconnected" && (
+              <span
+                className="flex items-center gap-1 text-xs text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                <WifiOff className="h-3 w-3" aria-hidden="true" />
+                Reconnecting…
+              </span>
+            )}
+            {wsStatus === "connecting" && (
+              <span
+                className="text-xs text-muted-foreground"
+                role="status"
+                aria-live="polite"
+              >
+                Connecting…
+              </span>
+            )}
           </div>
           <button
             onClick={() => setPhase("idle")}
-            className="text-muted-foreground hover:text-foreground transition-colors rounded-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="text-muted-foreground hover:text-foreground transition-colors rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             aria-label="Close chat"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+        {/* Messages */}
+        <div
+          role="log"
+          aria-live="polite"
+          aria-label="Chat messages"
+          className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0"
+        >
           {messages.length === 0 && (
             <p className="text-center text-xs text-muted-foreground pt-4">
               Say hello! Our team will respond shortly.
@@ -315,21 +376,27 @@ export function HeroChatIsland({
             );
           })}
           {error && (
-            <p className="text-center text-xs text-destructive" role="alert">
+            <p
+              className="text-center text-xs text-destructive"
+              role="alert"
+              aria-live="assertive"
+            >
               {error}
             </p>
           )}
           <div ref={bottomRef} />
         </div>
 
+        {/* Input */}
         <div className="flex items-end gap-2 px-4 py-3 border-t border-border shrink-0">
           <textarea
+            ref={textareaRef}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder="Type a message…"
             rows={1}
-            className="flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+            className="flex-1 resize-none rounded-lg border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 overflow-hidden"
             disabled={sending}
             aria-label="Chat message"
           />
@@ -337,13 +404,13 @@ export function HeroChatIsland({
             onClick={() => void sendMessage()}
             disabled={!input.trim() || sending}
             size="sm"
-            className="bg-primary hover:bg-primary/90 shrink-0"
+            className="bg-primary hover:bg-primary/90 shrink-0 focus-visible:ring-2 focus-visible:ring-primary/50"
             aria-label="Send message"
           >
             {sending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
             ) : (
-              <Send className="h-4 w-4" />
+              <Send className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
         </div>
