@@ -33,6 +33,7 @@ Every request requires three headers:
   <p>All DeliveryChat API calls must come from <strong>your backend</strong>, not directly from the browser. Your backend acts as a proxy: it injects the credentials and forwards requests to DeliveryChat.</p>
   <pre style={{fontFamily: "monospace", margin: "8px 0", fontSize: "0.85em"}}>{"Browser  →  Your Backend  →  DeliveryChat API"}</pre>
   <p style={{marginTop: "8px", marginBottom: 0}}><code>Authorization</code> and <code>X-App-Id</code> are added by your backend only — they must never reach the browser.</p>
+  <p style={{marginTop: "12px", marginBottom: 0}}>For a deeper, framework-agnostic guide (visitor id, <code>Origin</code>, WebSocket token boundary), see <a href="/v1/rest-api/server-proxy">Server proxy and browser integrations</a>.</p>
 </Callout>
 
 <StepByStep

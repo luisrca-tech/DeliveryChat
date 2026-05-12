@@ -1,0 +1,53 @@
+# Server proxy and browser integrations
+
+If you build a **chat UI in the browser** (React island, Vue app, static marketing site, etc.) and use the **REST API** or **WebSocket** flows, the browser must **not** call DeliveryChat with your API key or raw application id. Those credentials must stay on **your server**.
+
+This page describes the integration model. It is **not tied to a specific framework**—whether you use Astro, Next.js, Nuxt, Rails, or another stack, the same rules apply. Only the way you implement routes (server endpoints, server actions, API routes) changes.
+
+## Why a server proxy?
+
+| Concern | What goes wrong without a proxy |
+|--------|-----------------------------------|
+| **Secrets** | Anything bundled or reachable from the browser can be extracted. `Authorization` and `X-App-Id` must only be added **server-side**. |
+| **Visitor identity** | `X-Visitor-Id` must be a **server-managed** UUID you create, store, and reuse for that visitor (e.g. tied to a session). Letting the client pick the id breaks trust and makes abuse easier. |
+| **Origin** | Registered-domain checks apply to requests hitting DeliveryChat. Your backend forwards requests with the correct **`Origin`** (or equivalent) for your public site. |
+
+**Flow:**
+
+```
+Browser  →  Your first-party HTTPS API  →  DeliveryChat API
+            (adds Authorization,
+             X-App-Id, X-Visitor-Id, Origin)
+```
+
+The browser should only call URLs **you own** (same site or your BFF). Those handlers inject headers and call DeliveryChat.
+
+## Visitor identity (`X-Visitor-Id`)
+
+- Generate a **UUID** when a visitor first uses chat.
+- **Store it server-side** and associate it with the visitor’s session (common pattern: value in an **HTTP-only, Secure, SameSite** cookie, or server session store).
+- On every proxied request to DeliveryChat, set **`X-Visitor-Id`** to that UUID.
+- The browser should **not** send a raw visitor id that you blindly forward; **you** own the mapping from “this session” to “this UUID”.
+
+This gives a stable identity across refresh (for that session) and matches the [REST API Quickstart](/v1/rest-api) authentication table.
+
+## What the browser sees
+
+Expose **minimal JSON** from your routes: conversation ids, message payloads, UI-safe errors, and—when you add real time—a **short-lived WebSocket token** obtained via your proxy (see [WebSocket](/v1/rest-api/websocket)). Never return the API key or application secret.
+
+## Real-time (WebSocket)
+
+Browsers cannot send custom headers on the WebSocket handshake the way `fetch` can. DeliveryChat uses a **token in the query string** after you obtain it from the REST API. Your **server** still requests that token using the same headers as other API calls; the client only receives the opaque token. Details: [WebSocket](/v1/rest-api/websocket).
+
+## Reference: quickstart and marketing demo
+
+Step-by-step proxy examples (create conversation, send message) live in the [REST API Quickstart](/v1/rest-api).
+
+DeliveryChat’s own **marketing** live chat demo (hero) follows this same documented pattern: first-party routes on the landing origin, secrets in the marketing app’s server config, server-managed visitor id, then REST + WebSocket as in the public docs—so what prospects try matches what integrators read.
+
+## Checklist
+
+1. All DeliveryChat HTTP calls that carry your key originate from **your backend**.
+2. **`X-Visitor-Id`** is generated and persisted by **your** server, not chosen by untrusted client code.
+3. Your public **domain** is **registered** on the application so `Origin` validation succeeds.
+4. Errors from DeliveryChat are mapped to **safe** messages for the browser where appropriate.

@@ -1,5 +1,6 @@
 {
   "index": "Quickstart",
+  "server-proxy": "Server proxy & browser apps",
   "conversations": "Conversations",
   "messages": "Messages",
   "websocket": "WebSocket",
