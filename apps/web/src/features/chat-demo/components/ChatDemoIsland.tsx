@@ -99,7 +99,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [saving, setSaving] = useState(false);
-  const [operatorTyping, setOperatorTyping] = useState(false);
+  const [operatorTypingName, setOperatorTypingName] = useState<string | null>(null);
 
   // Force re-render every 30s to recompute edit-window visibility
   const [, setTick] = useState(0);
@@ -176,7 +176,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
               { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false },
             ];
           });
-          setOperatorTyping(false);
+          setOperatorTypingName(null);
           const client = clientRef.current;
           client.markAsRead(conversationId, id).catch(() => {});
         } else {
@@ -226,15 +226,15 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         break;
       }
       case "typing:start": {
-        const { conversationId } = payload as { conversationId: string };
+        const { conversationId, userName } = payload as { conversationId: string; userName: string | null };
         if (conversationId !== selectedIdRef.current) return;
-        setOperatorTyping(true);
+        setOperatorTypingName(userName ?? "Operator");
         break;
       }
       case "typing:stop": {
         const { conversationId } = payload as { conversationId: string };
         if (conversationId !== selectedIdRef.current) return;
-        setOperatorTyping(false);
+        setOperatorTypingName(null);
         break;
       }
       case "conversation:accepted": {
@@ -273,7 +273,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     reconnectAttemptRef.current = 0;
     setWsStatus("disconnected");
-    setOperatorTyping(false);
+    setOperatorTypingName(null);
     setSendError(null);
 
     if (!selectedId) return;
@@ -380,7 +380,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     setMessages([]);
     setInputValue("");
     setSendError(null);
-    setOperatorTyping(false);
+    setOperatorTypingName(null);
     setUnreadCounts((prev) => ({ ...prev, [id]: 0 }));
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     isSendingTypingRef.current = false;
@@ -537,9 +537,22 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   }
 
   const selectedConversation = conversations.find((c) => c.id === selectedId);
+  const showLiveChatBadge = !selectedConversation;
 
   return (
-    <div className="w-full h-full flex overflow-hidden bg-background text-foreground font-sans">
+    <div className="relative w-full h-full flex overflow-hidden bg-background text-foreground font-sans">
+      {showLiveChatBadge && (
+        <div
+          className="pointer-events-none absolute bottom-4 right-4 z-10 bg-card rounded-lg shadow-2xl p-4 border border-border animate-scale-in"
+          style={{ animationDelay: "0.5s" }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div className="h-2 w-2 rounded-full bg-primary animate-glow" />
+            <span className="text-xs font-medium">Live Chat Active</span>
+          </div>
+          <div className="text-xs text-muted-foreground">Chat with our team...</div>
+        </div>
+      )}
       {/* Left panel — conversation list */}
       <div className="w-[240px] flex-shrink-0 border-r border-border flex flex-col">
         <div className="flex items-center justify-between px-3 py-2 border-b border-border">
@@ -759,9 +772,9 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
             </ScrollArea>
 
             <div className="border-t border-border p-2 space-y-1">
-              {operatorTyping && (
+              {operatorTypingName && (
                 <p className="text-[10px] text-muted-foreground px-1 italic">
-                  Operator is typing…
+                  {operatorTypingName} is typing…
                 </p>
               )}
               {sendError && (
