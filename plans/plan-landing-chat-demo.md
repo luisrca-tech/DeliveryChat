@@ -56,7 +56,7 @@ On island mount, call `resolveVisitorId()`: read `dc_visitor_id` from `localStor
 
 ---
 
-## Phase 3: Conversation List & New Conversation
+## ~~Phase 3: Conversation List & New Conversation~~ ✅ DONE
 
 **User stories**: US1 (live chat visible in hero), US2 (start conversation with subject), US11 (previous conversations visible on return), US12 (open conversation, read history), US19 (readable subjects in operator queue)
 
@@ -66,13 +66,13 @@ Render the full two-panel layout inside the island. The left panel calls `GET /v
 
 ### Acceptance criteria
 
-- [ ] Left panel lists all visitor conversations on page load (populated via `GET /conversations`)
-- [ ] Each conversation item shows subject and status badge
-- [ ] "New Conversation" button opens a subject input; submitting calls `POST /conversations` and the new item appears in the list without a full page reload
-- [ ] Selecting a conversation loads and renders its message history (`GET /conversations/:id/messages`)
-- [ ] Returning visitor (same `localStorage` UUID) sees their previous conversations on reload
-- [ ] A subject entered in the demo appears as-is in the admin dashboard conversation queue
-- [ ] Layout fits inside the `aspect-video` container without overflow at common viewport widths
+- [x] Left panel lists all visitor conversations on page load (populated via `GET /conversations`)
+- [x] Each conversation item shows subject and status badge
+- [x] "New Conversation" button opens a subject input; submitting calls `POST /conversations` and the new item appears in the list without a full page reload
+- [x] Selecting a conversation loads and renders its message history (`GET /conversations/:id/messages`)
+- [x] Returning visitor (same `localStorage` UUID) sees their previous conversations on reload
+- [x] A subject entered in the demo appears as-is in the admin dashboard conversation queue
+- [x] Layout fits inside the `aspect-video` container without overflow at common viewport widths
 
 ---
 
