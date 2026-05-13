@@ -124,6 +124,32 @@ Send a message to a conversation.
 | `content` | string | Yes | Message text (max 10,000 chars) |
 | `clientMessageId` | string | Yes | Client-generated ID for optimistic UI matching |
 
+### typing:start
+
+Notify other participants that you are typing.
+
+```json
+{
+  "type": "typing:start",
+  "payload": {
+    "conversationId": "conv-uuid"
+  }
+}
+```
+
+### typing:stop
+
+Notify other participants that you stopped typing.
+
+```json
+{
+  "type": "typing:stop",
+  "payload": {
+    "conversationId": "conv-uuid"
+  }
+}
+```
+
 ### ping
 
 Heartbeat to keep the connection alive.
@@ -176,6 +202,112 @@ Confirmation that your message was persisted. Sent only to the sender.
 ```
 
 Use `clientMessageId` to match the ACK to your optimistic UI update and replace it with the server-confirmed data.
+
+### message:edited
+
+A message in a room you've joined was edited. Update your local message with the new content.
+
+```json
+{
+  "type": "message:edited",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "messageId": "msg-uuid",
+    "content": "Updated message content",
+    "editedAt": "2025-01-15T10:32:00.000Z",
+    "senderId": "user-uuid"
+  }
+}
+```
+
+### message:deleted
+
+A message in a room you've joined was soft-deleted. Remove it from your UI.
+
+```json
+{
+  "type": "message:deleted",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "messageId": "msg-uuid",
+    "senderId": "user-uuid"
+  }
+}
+```
+
+### typing:start
+
+Another participant started typing. Show a typing indicator.
+
+```json
+{
+  "type": "typing:start",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "userId": "user-uuid",
+    "userName": "Support Agent",
+    "senderRole": "operator"
+  }
+}
+```
+
+The server does not broadcast this back to the sender — only to other participants in the room.
+
+### typing:stop
+
+Another participant stopped typing. Remove the typing indicator.
+
+```json
+{
+  "type": "typing:stop",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "userId": "user-uuid"
+  }
+}
+```
+
+### conversation:accepted
+
+An operator accepted a pending conversation. Sent to all staff connections in the organization.
+
+```json
+{
+  "type": "conversation:accepted",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "assignedTo": "operator-uuid",
+    "assignedToName": "Support Agent"
+  }
+}
+```
+
+### conversation:released
+
+An operator left a conversation, returning it to `pending` status.
+
+```json
+{
+  "type": "conversation:released",
+  "payload": {
+    "conversationId": "conv-uuid"
+  }
+}
+```
+
+### conversation:resolved
+
+A conversation was marked as closed.
+
+```json
+{
+  "type": "conversation:resolved",
+  "payload": {
+    "conversationId": "conv-uuid",
+    "resolvedBy": "operator-uuid"
+  }
+}
+```
 
 ### messages:sync
 
