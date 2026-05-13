@@ -3,8 +3,10 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
 import { createChatClient } from "../chat-client";
-import type { Conversation, Message } from "../chat-client";
+import type { Conversation } from "../chat-client";
 import { resolveVisitorId } from "../visitor";
+import { wsMessageReducer } from "../lib/wsMessageReducer";
+import type { OptimisticMessage } from "../lib/wsMessageReducer";
 import { MessageCircle, Plus, X, Send, Wifi, WifiOff, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 
@@ -15,12 +17,6 @@ interface ChatDemoIslandProps {
 }
 
 type WsStatus = "connecting" | "connected" | "disconnected";
-
-type OptimisticMessage = Message & {
-  clientId?: string;
-  pending?: boolean;
-  sendError?: boolean;
-};
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const TYPING_DEBOUNCE_MS = 1500;
@@ -103,6 +99,11 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const [saving, setSaving] = useState(false);
   const [operatorTypingName, setOperatorTypingName] = useState<string | null>(null);
 
+  // Mirror reducer-managed state in a ref so handleWsMessage can read the latest committed
+  // values without stale closures. Updated during render before any async callbacks fire.
+  const wsSliceRef = useRef({ messages, conversations, operatorTypingName });
+  wsSliceRef.current = { messages, conversations, operatorTypingName };
+
   // Force re-render every 30s to recompute edit-window visibility
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -131,136 +132,36 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       return;
     }
 
-    const { type, payload } = parsed as { type: string; payload: Record<string, unknown> };
+    const wsEvent = parsed as { type: string; payload: Record<string, unknown> };
+    const current = wsSliceRef.current;
 
-    switch (type) {
-      case "message:ack": {
-        const { clientMessageId, serverMessageId, createdAt } = payload as {
-          clientMessageId: string;
-          serverMessageId: string;
-          createdAt: string;
-        };
-        setMessages((prev) => {
-          const updated = prev.map((m) =>
-            m.clientId === clientMessageId
-              ? { ...m, id: serverMessageId, createdAt, pending: false, clientId: undefined }
-              : m,
-          );
-          const convId = selectedIdRef.current;
-          if (convId) {
-            localStorage.setItem(lastMessageKey(convId), serverMessageId);
-          }
-          return updated;
-        });
-        break;
-      }
-      case "message:new": {
-        const { id, conversationId, senderId, content, createdAt, editedAt } = payload as {
-          id: string;
-          conversationId: string;
-          senderId: string;
-          content: string;
-          createdAt: string;
-          editedAt?: string | null;
-        };
-        if (conversationId === selectedIdRef.current) {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === id)) return prev;
-            localStorage.setItem(lastMessageKey(conversationId), id);
-            return [
-              ...prev,
-              { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false },
-            ];
-          });
-          setOperatorTypingName(null);
-          const client = clientRef.current;
-          client.markAsRead(conversationId, id).catch(() => {});
-        } else {
-          clientRef.current
-            .getUnreadCount(conversationId)
-            .then(({ unreadCount }) => {
-              setUnreadCounts((prev) => ({ ...prev, [conversationId]: unreadCount }));
-            })
-            .catch(() => {});
-        }
-        break;
-      }
-      case "messages:sync": {
-        const { conversationId, messages: synced } = payload as {
-          conversationId: string;
-          messages: Message[];
-        };
-        if (conversationId !== selectedIdRef.current) return;
-        if (!synced.length) return;
-        setMessages((prev) => {
-          const existingIds = new Set(prev.map((m) => m.id));
-          const newMsgs = synced.filter((m) => !existingIds.has(m.id));
-          if (!newMsgs.length) return prev;
-          const last = newMsgs[newMsgs.length - 1];
-          if (last) localStorage.setItem(lastMessageKey(conversationId), last.id);
-          return [...prev, ...newMsgs];
-        });
-        break;
-      }
-      case "message:edited": {
-        const { id, conversationId, content, editedAt } = payload as {
-          id: string;
-          conversationId: string;
-          content: string;
-          editedAt: string;
-        };
-        if (conversationId !== selectedIdRef.current) return;
-        setMessages((prev) =>
-          prev.map((m) => (m.id === id ? { ...m, content, editedAt } : m)),
-        );
-        break;
-      }
-      case "message:deleted": {
-        const { id, conversationId } = payload as { id: string; conversationId: string };
-        if (conversationId !== selectedIdRef.current) return;
-        setMessages((prev) => prev.filter((m) => m.id !== id));
-        break;
-      }
-      case "typing:start": {
-        const { conversationId, userName } = payload as { conversationId: string; userName: string | null };
-        if (conversationId !== selectedIdRef.current) return;
-        setOperatorTypingName(userName ?? "Operator");
-        break;
-      }
-      case "typing:stop": {
-        const { conversationId } = payload as { conversationId: string };
-        if (conversationId !== selectedIdRef.current) return;
-        setOperatorTypingName(null);
-        break;
-      }
-      case "conversation:accepted": {
-        const { conversationId, assignedTo } = payload as {
-          conversationId: string;
-          assignedTo: string;
-        };
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conversationId ? { ...c, status: "active", assignedTo } : c)),
-        );
-        break;
-      }
-      case "conversation:released": {
-        const { conversationId } = payload as { conversationId: string };
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conversationId ? { ...c, status: "pending", assignedTo: null } : c)),
-        );
-        break;
-      }
-      case "conversation:resolved": {
-        const { conversationId } = payload as { conversationId: string };
-        setConversations((prev) =>
-          prev.map((c) => (c.id === conversationId ? { ...c, status: "closed" } : c)),
-        );
-        if (conversationId === selectedIdRef.current) {
+    const { state: next, sideEffects } = wsMessageReducer(current, wsEvent, selectedIdRef.current);
+
+    if (next.messages !== current.messages) setMessages(next.messages);
+    if (next.conversations !== current.conversations) setConversations(next.conversations);
+    if (next.operatorTypingName !== current.operatorTypingName) setOperatorTypingName(next.operatorTypingName);
+
+    for (const effect of sideEffects) {
+      switch (effect.kind) {
+        case "close-socket":
           conversationClosedRef.current = true;
           wsRef.current?.close();
           wsRef.current = null;
-        }
-        break;
+          break;
+        case "persist-last-message":
+          localStorage.setItem(lastMessageKey(effect.conversationId), effect.messageId);
+          break;
+        case "mark-as-read":
+          clientRef.current.markAsRead(effect.conversationId, effect.messageId).catch(() => {});
+          break;
+        case "refresh-unread":
+          clientRef.current
+            .getUnreadCount(effect.conversationId)
+            .then(({ unreadCount }) => {
+              setUnreadCounts((prev) => ({ ...prev, [effect.conversationId]: unreadCount }));
+            })
+            .catch(() => {});
+          break;
       }
     }
   }, []);
