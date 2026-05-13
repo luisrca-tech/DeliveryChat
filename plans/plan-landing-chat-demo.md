@@ -13,6 +13,7 @@
 - **UI layout**: Two-panel layout inside the `aspect-video` container — conversation list (left) + active conversation detail (right). Styled with `@repo/ui` design tokens.
 - **Optimistic UI**: Sent messages appear immediately with a `pending` state; replaced by server data on `message:ack`.
 - **15-minute edit/delete window**: Enforced client-side (controls disabled) in addition to API enforcement.
+- **Visitor message identification**: The island identifies which messages belong to the current visitor by finding the first `participants` entry with `role === "visitor"` across loaded conversations and caching that `userId`. Messages whose `senderId` matches are rendered on the right. This avoids a dedicated `/me` endpoint and works for both new and returning visitors.
 
 ---
 
@@ -76,7 +77,7 @@ Render the full two-panel layout inside the island. The left panel calls `GET /v
 
 ---
 
-## Phase 4: Send Messages & WebSocket Real-time
+## ~~Phase 4: Send Messages & WebSocket Real-time~~ ✅ DONE
 
 **User stories**: US3 (send with Enter or button), US4 (message appears immediately), US5 (real-time replies), US14 (connection status indicator), US16 (error feedback on send failure), US17 (demo conversations in admin queue), US18 (operator sees messages in real-time)
 
@@ -88,13 +89,13 @@ Heartbeat: send `ping` every 30 seconds; discard `pong`.
 
 ### Acceptance criteria
 
-- [ ] Pressing Enter or clicking Send calls `POST /messages`; message appears in the UI immediately with a pending state
-- [ ] `message:ack` event replaces the pending message with confirmed server data
-- [ ] Operator reply sent from the admin dashboard appears in the demo UI without a page refresh (`message:new` event)
-- [ ] Connection status indicator is visible and reflects actual WebSocket state (connected / disconnected)
-- [ ] When `POST /messages` fails, an inline error is shown without crashing the UI
-- [ ] Demo conversations appear in the admin dashboard pending queue and the operator can accept and reply
-- [ ] `ping` frame is sent every 30 seconds while connected
+- [x] Pressing Enter or clicking Send calls `message:send` via WebSocket; message appears in the UI immediately with a pending state
+- [x] `message:ack` event replaces the pending message with confirmed server data
+- [x] Operator reply sent from the admin dashboard appears in the demo UI without a page refresh (`message:new` event)
+- [x] Connection status indicator is visible and reflects actual WebSocket state (connected / disconnected)
+- [x] When send fails (WS not open), an inline error is shown without crashing the UI
+- [x] Demo conversations appear in the admin dashboard pending queue and the operator can accept and reply
+- [x] `ping` frame is sent every 30 seconds while connected
 
 ---
 

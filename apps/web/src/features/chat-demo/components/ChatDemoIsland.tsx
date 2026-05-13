@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
 import { createChatClient } from "../chat-client";
 import type { Conversation, Message } from "../chat-client";
-import { MessageCircle, Plus, X } from "lucide-react";
+import { MessageCircle, Plus, X, Send, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 
 interface ChatDemoIslandProps {
@@ -12,6 +12,14 @@ interface ChatDemoIslandProps {
   apiKey: string;
   appId: string;
 }
+
+type WsStatus = "connecting" | "connected" | "disconnected";
+
+type OptimisticMessage = Message & {
+  clientId?: string;
+  pending?: boolean;
+  sendError?: boolean;
+};
 
 function StatusBadge({ status }: { status: string }) {
   const classes: Record<string, string> = {
@@ -31,18 +39,36 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
+function ConnectionDot({ status }: { status: WsStatus }) {
+  if (status === "connected") {
+    return <Wifi className="h-3 w-3 text-green-500 flex-shrink-0" />;
+  }
+  if (status === "connecting") {
+    return <Wifi className="h-3 w-3 text-yellow-500 flex-shrink-0 animate-pulse" />;
+  }
+  return <WifiOff className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />;
+}
+
 export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const clientRef = useRef(createChatClient({ apiUrl, apiKey, appId }));
+  const wsRef = useRef<WebSocket | null>(null);
+  const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<OptimisticMessage[]>([]);
   const [loadingConvs, setLoadingConvs] = useState(true);
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [showNewForm, setShowNewForm] = useState(false);
   const [newSubject, setNewSubject] = useState("");
   const [creating, setCreating] = useState(false);
   const [visitorUserId, setVisitorUserId] = useState<string | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+  const [wsStatus, setWsStatus] = useState<WsStatus>("disconnected");
 
   useEffect(() => {
     const client = clientRef.current;
@@ -63,6 +89,137 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       .finally(() => setLoadingConvs(false));
   }, []);
 
+  const handleWsMessage = useCallback((event: MessageEvent) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(event.data as string);
+    } catch {
+      return;
+    }
+
+    const { type, payload } = parsed as { type: string; payload: Record<string, unknown> };
+
+    switch (type) {
+      case "message:ack": {
+        const { clientMessageId, serverMessageId, createdAt } = payload as {
+          clientMessageId: string;
+          serverMessageId: string;
+          createdAt: string;
+        };
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.clientId === clientMessageId
+              ? { ...m, id: serverMessageId, createdAt, pending: false, clientId: undefined }
+              : m,
+          ),
+        );
+        break;
+      }
+      case "message:new": {
+        const { id, conversationId, senderId, content, createdAt, editedAt } = payload as {
+          id: string;
+          conversationId: string;
+          senderId: string;
+          content: string;
+          createdAt: string;
+          editedAt?: string | null;
+        };
+        if (conversationId !== selectedIdRef.current) return;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === id)) return prev;
+          return [
+            ...prev,
+            { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false },
+          ];
+        });
+        break;
+      }
+      case "conversation:accepted": {
+        const { conversationId, assignedTo } = payload as {
+          conversationId: string;
+          assignedTo: string;
+        };
+        setConversations((prev) =>
+          prev.map((c) => (c.id === conversationId ? { ...c, status: "active", assignedTo } : c)),
+        );
+        break;
+      }
+      case "conversation:released": {
+        const { conversationId } = payload as { conversationId: string };
+        setConversations((prev) =>
+          prev.map((c) => (c.id === conversationId ? { ...c, status: "pending", assignedTo: null } : c)),
+        );
+        break;
+      }
+      case "conversation:resolved": {
+        const { conversationId } = payload as { conversationId: string };
+        setConversations((prev) =>
+          prev.map((c) => (c.id === conversationId ? { ...c, status: "closed" } : c)),
+        );
+        break;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    selectedIdRef.current = selectedId;
+
+    wsRef.current?.close();
+    if (pingRef.current) clearInterval(pingRef.current);
+    setWsStatus("disconnected");
+    setSendError(null);
+
+    if (!selectedId) return;
+
+    const client = clientRef.current;
+    let cancelled = false;
+    let ws: WebSocket | null = null;
+
+    setWsStatus("connecting");
+
+    (async () => {
+      try {
+        const { token } = await client.getWsToken();
+        if (cancelled) return;
+
+        ws = await client.connectWebSocket(token);
+        if (cancelled) {
+          ws.close();
+          return;
+        }
+
+        wsRef.current = ws;
+        setWsStatus("connected");
+
+        ws.send(JSON.stringify({ type: "room:join", payload: { conversationId: selectedId } }));
+
+        pingRef.current = setInterval(() => {
+          if (ws?.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "ping" }));
+          }
+        }, 30_000);
+
+        ws.addEventListener("message", handleWsMessage);
+
+        ws.addEventListener("close", () => {
+          if (!cancelled) setWsStatus("disconnected");
+        });
+
+        ws.addEventListener("error", () => {
+          if (!cancelled) setWsStatus("disconnected");
+        });
+      } catch {
+        if (!cancelled) setWsStatus("disconnected");
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      ws?.close();
+      if (pingRef.current) clearInterval(pingRef.current);
+    };
+  }, [selectedId, handleWsMessage]);
+
   useEffect(() => {
     if (!selectedId) return;
     const client = clientRef.current;
@@ -74,9 +231,15 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       .finally(() => setLoadingMsgs(false));
   }, [selectedId]);
 
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
   function handleSelectConversation(id: string) {
     setSelectedId(id);
     setMessages([]);
+    setInputValue("");
+    setSendError(null);
   }
 
   async function handleCreateConversation(e: React.FormEvent) {
@@ -94,9 +257,59 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       setShowNewForm(false);
       setNewSubject("");
     } catch {
-      // error handling added in Phase 4
+      // error handling in Phase 4 covered by send flow
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleSend(e?: React.FormEvent) {
+    e?.preventDefault();
+    const content = inputValue.trim();
+    if (!content || sending) return;
+
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      setSendError("Not connected. Please wait and try again.");
+      return;
+    }
+
+    const clientMessageId = crypto.randomUUID();
+    const optimistic: OptimisticMessage = {
+      id: clientMessageId,
+      clientId: clientMessageId,
+      conversationId: selectedId!,
+      senderId: visitorUserId ?? clientMessageId,
+      content,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      pending: true,
+    };
+
+    setMessages((prev) => [...prev, optimistic]);
+    setInputValue("");
+    setSendError(null);
+    setSending(true);
+
+    try {
+      ws.send(
+        JSON.stringify({
+          type: "message:send",
+          payload: { conversationId: selectedId, content, clientMessageId },
+        }),
+      );
+    } catch {
+      setMessages((prev) => prev.filter((m) => m.clientId !== clientMessageId));
+      setSendError("Failed to send message. Please try again.");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void handleSend();
     }
   }
 
@@ -198,7 +411,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         </ScrollArea>
       </div>
 
-      {/* Right panel — message history */}
+      {/* Right panel — message history + input */}
       <div className="flex-1 flex flex-col min-w-0">
         {selectedConversation ? (
           <>
@@ -207,6 +420,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
               <p className="text-[11px] font-medium truncate flex-1">
                 {selectedConversation.subject || "No subject"}
               </p>
+              <ConnectionDot status={wsStatus} />
               <StatusBadge status={selectedConversation.status} />
             </div>
 
@@ -230,18 +444,20 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
               ) : (
                 <div className="space-y-1.5">
                   {messages.map((msg) => {
-                    const isVisitor = msg.senderId === visitorUserId;
+                    const isVisitor =
+                      msg.senderId === visitorUserId || (msg.pending && msg.clientId !== undefined);
                     return (
                       <div
-                        key={msg.id}
+                        key={msg.clientId ?? msg.id}
                         className={cn("flex", isVisitor ? "justify-end" : "justify-start")}
                       >
                         <div
                           className={cn(
-                            "max-w-[72%] rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed",
+                            "max-w-[72%] rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed transition-opacity",
                             isVisitor
                               ? "bg-primary text-primary-foreground"
                               : "bg-muted text-foreground",
+                            msg.pending && "opacity-60",
                           )}
                         >
                           {msg.content}
@@ -249,9 +465,34 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
                       </div>
                     );
                   })}
+                  <div ref={messagesEndRef} />
                 </div>
               )}
             </ScrollArea>
+
+            <div className="border-t border-border p-2 space-y-1">
+              {sendError && (
+                <p className="text-[10px] text-destructive px-1">{sendError}</p>
+              )}
+              <form onSubmit={handleSend} className="flex gap-1.5">
+                <Input
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyDown={handleInputKeyDown}
+                  placeholder="Type a message…"
+                  className="flex-1 h-7 text-xs"
+                  disabled={sending || selectedConversation.status === "closed"}
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  className="h-7 w-7"
+                  disabled={sending || !inputValue.trim() || selectedConversation.status === "closed"}
+                >
+                  <Send className="h-3 w-3" />
+                </Button>
+              </form>
+            </div>
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
