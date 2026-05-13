@@ -5,7 +5,6 @@ import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
 import { createChatClient } from "../chat-client";
 import type { Conversation } from "../chat-client";
 import { resolveVisitorId } from "../visitor";
-import { wsMessageReducer } from "../lib/wsMessageReducer";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
 import { useEditWindowTicker } from "../hooks/useEditWindowTicker";
 import { useLocalMessageSync } from "../hooks/useLocalMessageSync";
@@ -14,6 +13,8 @@ import { useUnreadCounts } from "../hooks/useUnreadCounts";
 import { useMessageEdit } from "../hooks/useMessageEdit";
 import { useMessageInput } from "../hooks/useMessageInput";
 import { useTypingIndicator } from "../hooks/useTypingIndicator";
+import { useWebSocketDispatch } from "../hooks/useWebSocketDispatch";
+import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
 import { MessageCircle, Plus, X, Send, Wifi, WifiOff, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 
@@ -24,9 +25,6 @@ interface ChatDemoIslandProps {
 }
 
 type WsStatus = "connecting" | "connected" | "disconnected";
-
-const RECONNECT_BASE_MS = 1000;
-const RECONNECT_MAX_MS = 30_000;
 
 function StatusBadge({ status }: { status: string }) {
   const classes: Record<string, string> = {
@@ -67,13 +65,7 @@ function UnreadBadge({ count }: { count: number }) {
 
 export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const clientRef = useRef(createChatClient({ apiUrl, apiKey, appId, visitorId: resolveVisitorId() }));
-  const wsRef = useRef<WebSocket | null>(null);
-  const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const selectedIdRef = useRef<string | null>(null);
-  const conversationClosedRef = useRef(false);
-  const reconnectAttemptRef = useRef(0);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -83,7 +75,6 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const [showNewForm, setShowNewForm] = useState(false);
   const [newSubject, setNewSubject] = useState("");
   const [creating, setCreating] = useState(false);
-  const [wsStatus, setWsStatus] = useState<WsStatus>("disconnected");
   const [operatorTypingName, setOperatorTypingName] = useState<string | null>(null);
 
   // Leaf hooks
@@ -111,6 +102,42 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     setMessages((prev) => prev.filter((m) => m.clientId !== clientId));
   }, []);
 
+  const onMarkAsRead = useCallback(
+    (conversationId: string, messageId: string) => {
+      clientRef.current.markAsRead(conversationId, messageId).catch(() => {});
+    },
+    [],
+  );
+
+  // onMessageRef breaks the circular dep between useWebSocketDispatch (needs wsRef) and
+  // useWebSocketConnection (needs handleWsMessage). The ref is populated right after dispatch.
+  const onMessageRef = useRef<(e: MessageEvent) => void>(() => {});
+
+  const { wsRef, wsStatus, conversationClosedRef, selectedIdRef } = useWebSocketConnection({
+    selectedId,
+    client: clientRef.current,
+    getLastMessageId,
+    onMessageRef,
+    onResetTyping: useCallback(() => setOperatorTypingName(null), []),
+  });
+
+  const { handleWsMessage } = useWebSocketDispatch({
+    wsRef,
+    conversationClosedRef,
+    selectedIdRef,
+    messages,
+    conversations,
+    operatorTypingName,
+    setMessages,
+    setConversations,
+    setOperatorTypingName,
+    setLastMessageId,
+    onMarkAsRead,
+    refreshUnread,
+  });
+
+  onMessageRef.current = handleWsMessage;
+
   const {
     value: inputValue,
     sending,
@@ -121,7 +148,6 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
 
   const { notifyTyping, sendTypingStop } = useTypingIndicator(wsRef, selectedId);
 
-  // Combine input change: update value + notify typing
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       handleInputChangeBase(e);
@@ -141,11 +167,6 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     [handleSend, sendTypingStop],
   );
 
-  // Mirror reducer-managed state in a ref so handleWsMessage can read the latest committed
-  // values without stale closures.
-  const wsSliceRef = useRef({ messages, conversations, operatorTypingName });
-  wsSliceRef.current = { messages, conversations, operatorTypingName };
-
   useEffect(() => {
     const client = clientRef.current;
     setLoadingConvs(true);
@@ -158,129 +179,6 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       .catch(() => {})
       .finally(() => setLoadingConvs(false));
   }, [captureVisitorId]);
-
-  const handleWsMessage = useCallback((event: MessageEvent) => {
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(event.data as string);
-    } catch {
-      return;
-    }
-
-    const wsEvent = parsed as { type: string; payload: Record<string, unknown> };
-    const current = wsSliceRef.current;
-
-    const { state: next, sideEffects } = wsMessageReducer(current, wsEvent, selectedIdRef.current);
-
-    if (next.messages !== current.messages) setMessages(next.messages);
-    if (next.conversations !== current.conversations) setConversations(next.conversations);
-    if (next.operatorTypingName !== current.operatorTypingName) setOperatorTypingName(next.operatorTypingName);
-
-    for (const effect of sideEffects) {
-      switch (effect.kind) {
-        case "close-socket":
-          conversationClosedRef.current = true;
-          wsRef.current?.close();
-          wsRef.current = null;
-          break;
-        case "persist-last-message":
-          setLastMessageId(effect.conversationId, effect.messageId);
-          break;
-        case "mark-as-read":
-          clientRef.current.markAsRead(effect.conversationId, effect.messageId).catch(() => {});
-          break;
-        case "refresh-unread":
-          void refreshUnread(effect.conversationId);
-          break;
-      }
-    }
-  }, [setLastMessageId, refreshUnread]);
-
-  useEffect(() => {
-    selectedIdRef.current = selectedId;
-
-    wsRef.current?.close();
-    wsRef.current = null;
-    if (pingRef.current) clearInterval(pingRef.current);
-    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-    reconnectAttemptRef.current = 0;
-    setWsStatus("disconnected");
-    setOperatorTypingName(null);
-
-    if (!selectedId) return;
-
-    const client = clientRef.current;
-    let cancelled = false;
-
-    async function connect() {
-      if (cancelled) return;
-      setWsStatus("connecting");
-
-      let ws: WebSocket | null = null;
-      try {
-        const { token } = await client.getWsToken();
-        if (cancelled) return;
-
-        ws = await client.connectWebSocket(token);
-        if (cancelled) {
-          ws.close();
-          return;
-        }
-
-        wsRef.current = ws;
-        reconnectAttemptRef.current = 0;
-        setWsStatus("connected");
-
-        const lastMessageId = getLastMessageId(selectedId!) ?? undefined;
-        ws.send(
-          JSON.stringify({
-            type: "room:join",
-            payload: { conversationId: selectedId, ...(lastMessageId ? { lastMessageId } : {}) },
-          }),
-        );
-
-        pingRef.current = setInterval(() => {
-          if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: "ping" }));
-          }
-        }, 30_000);
-
-        ws.addEventListener("message", handleWsMessage);
-
-        ws.addEventListener("close", () => {
-          if (pingRef.current) clearInterval(pingRef.current);
-          if (!cancelled) {
-            setWsStatus("disconnected");
-            scheduleReconnect();
-          }
-        });
-
-        ws.addEventListener("error", () => {
-          if (!cancelled) setWsStatus("disconnected");
-        });
-      } catch {
-        if (!cancelled) scheduleReconnect();
-      }
-    }
-
-    function scheduleReconnect() {
-      if (cancelled || conversationClosedRef.current) return;
-      const attempt = reconnectAttemptRef.current;
-      const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
-      reconnectAttemptRef.current = attempt + 1;
-      reconnectTimerRef.current = setTimeout(() => void connect(), delay);
-    }
-
-    void connect();
-
-    return () => {
-      cancelled = true;
-      wsRef.current?.close();
-      wsRef.current = null;
-      if (pingRef.current) clearInterval(pingRef.current);
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
-    };
-  }, [selectedId, handleWsMessage, getLastMessageId]);
 
   useEffect(() => {
     if (!selectedId) return;
