@@ -7,6 +7,11 @@ import type {
   ConversationStatus,
   ParticipantRole,
 } from "@repo/types";
+import {
+  broadcastOrganizationEvent,
+  buildConversationNewEvent,
+  buildMessageNewEvent,
+} from "./broadcasting.service.js";
 
 // ── Custom Errors ──
 
@@ -95,6 +100,10 @@ interface SendMessageInput {
   conversationId: string;
   senderId: string;
   content: string;
+  broadcastContext?: {
+    senderName: string;
+    senderRole: ParticipantRole;
+  };
 }
 
 interface EditMessageInput {
@@ -125,8 +134,8 @@ interface AddParticipantInput {
 // ── Service Functions ──
 
 export async function createConversation(input: CreateConversationInput) {
-  return db.transaction(async (tx) => {
-    const [conversation] = await tx
+  const conversation = await db.transaction(async (tx) => {
+    const [conv] = await tx
       .insert(conversations)
       .values({
         id: crypto.randomUUID(),
@@ -138,25 +147,45 @@ export async function createConversation(input: CreateConversationInput) {
       })
       .returning();
 
-    if (!conversation) throw new Error("Failed to create conversation");
+    if (!conv) throw new Error("Failed to create conversation");
 
     for (const participant of input.participants) {
       await tx.insert(conversationParticipants).values({
         id: crypto.randomUUID(),
-        conversationId: conversation.id,
+        conversationId: conv.id,
         userId: participant.userId,
         role: participant.role,
       });
     }
 
-    return conversation;
+    return conv;
   });
+
+  try {
+    broadcastOrganizationEvent(
+      input.organizationId,
+      buildConversationNewEvent({
+        id: conversation.id,
+        organizationId: input.organizationId,
+        applicationId: input.applicationId ?? null,
+        status: "pending",
+        subject: input.subject ?? null,
+        createdAt: conversation.createdAt,
+      }),
+    );
+  } catch (err) {
+    console.error("[chat.service] createConversation broadcast failed", err);
+  }
+
+  return conversation;
 }
 
 export async function sendMessage(
   input: SendMessageInput,
   conversationData?: ConversationData,
 ) {
+  let organizationId: string;
+
   if (!conversationData) {
     const [conversation] = await db
       .select({
@@ -177,6 +206,8 @@ export async function sendMessage(
         conversation.status,
       );
     }
+
+    organizationId = conversation.organizationId;
   } else if (
     conversationData.status !== "active" &&
     conversationData.status !== "pending"
@@ -185,10 +216,12 @@ export async function sendMessage(
       input.conversationId,
       conversationData.status,
     );
+  } else {
+    organizationId = conversationData.organizationId;
   }
 
-  return db.transaction(async (tx) => {
-    const [message] = await tx
+  const message = await db.transaction(async (tx) => {
+    const [msg] = await tx
       .insert(messages)
       .values({
         id: crypto.randomUUID(),
@@ -198,15 +231,37 @@ export async function sendMessage(
       })
       .returning();
 
-    if (!message) throw new Error("Failed to insert message");
+    if (!msg) throw new Error("Failed to insert message");
 
     await tx
       .update(conversations)
       .set({ updatedAt: sql`now()` })
       .where(eq(conversations.id, input.conversationId));
 
-    return message;
+    return msg;
   });
+
+  if (input.broadcastContext) {
+    try {
+      broadcastOrganizationEvent(
+        organizationId,
+        buildMessageNewEvent({
+          id: message.id,
+          conversationId: input.conversationId,
+          senderId: input.senderId,
+          senderName: input.broadcastContext.senderName,
+          senderRole: input.broadcastContext.senderRole,
+          content: message.content,
+          type: "text",
+          createdAt: message.createdAt,
+        }),
+      );
+    } catch (err) {
+      console.error("[chat.service] sendMessage broadcast failed", err);
+    }
+  }
+
+  return message;
 }
 
 export async function editMessage(input: EditMessageInput) {

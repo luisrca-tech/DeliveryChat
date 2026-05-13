@@ -1,13 +1,3 @@
-const VISITOR_ID_KEY = "dc_visitor_id";
-
-export function resolveVisitorId(): string {
-  const stored = localStorage.getItem(VISITOR_ID_KEY);
-  if (stored) return stored;
-  const id = crypto.randomUUID();
-  localStorage.setItem(VISITOR_ID_KEY, id);
-  return id;
-}
-
 // --- Types ---
 
 export type Participant = {
@@ -46,6 +36,7 @@ export type ChatClientOptions = {
   apiUrl: string;
   apiKey: string;
   appId: string;
+  visitorId: string;
 };
 
 function buildHeaders(apiKey: string, appId: string, visitorId: string): HeadersInit {
@@ -58,11 +49,11 @@ function buildHeaders(apiKey: string, appId: string, visitorId: string): Headers
   };
 }
 
-export function createChatClient({ apiUrl, apiKey, appId }: ChatClientOptions) {
+export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClientOptions) {
   const base = `${apiUrl}/v1/api`;
 
   function headers(): HeadersInit {
-    return buildHeaders(apiKey, appId, resolveVisitorId());
+    return buildHeaders(apiKey, appId, visitorId);
   }
 
   async function request<T>(path: string, init?: RequestInit): Promise<T> {

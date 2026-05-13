@@ -4,6 +4,7 @@ import { Input } from "@repo/ui/components/ui/input";
 import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
 import { createChatClient } from "../chat-client";
 import type { Conversation, Message } from "../chat-client";
+import { resolveVisitorId } from "../visitor";
 import { MessageCircle, Plus, X, Send, Wifi, WifiOff, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 
@@ -72,7 +73,7 @@ function UnreadBadge({ count }: { count: number }) {
 }
 
 export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
-  const clientRef = useRef(createChatClient({ apiUrl, apiKey, appId }));
+  const clientRef = useRef(createChatClient({ apiUrl, apiKey, appId, visitorId: resolveVisitorId() }));
   const wsRef = useRef<WebSocket | null>(null);
   const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);

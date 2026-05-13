@@ -21,11 +21,6 @@ import {
 import { mapServiceErrorToResponse } from "../features/chat/error-mapper.js";
 import { requireParticipant } from "../features/chat/participant-guard.js";
 import { resolveOrCreateVisitor } from "../features/chat/visitor.service.js";
-import {
-  buildConversationNewEvent,
-  buildMessageNewEvent,
-  broadcastOrganizationEvent,
-} from "../features/chat/broadcasting.service.js";
 
 type Variables = {
   visitor: VisitorContext;
@@ -176,18 +171,6 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
         participants: [{ userId: visitor.visitorUserId, role: "visitor" }],
       });
 
-      broadcastOrganizationEvent(
-        apiAuth.application.organizationId,
-        buildConversationNewEvent({
-          id: conversation.id,
-          organizationId: apiAuth.application.organizationId,
-          applicationId: apiAuth.application.id,
-          status: "pending",
-          subject: subject ?? null,
-          createdAt: conversation.createdAt,
-        }),
-      );
-
       const withParticipants = await getConversationWithParticipants(
         conversation.id,
         apiAuth.application.organizationId,
@@ -268,22 +251,8 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
           conversationId,
           senderId: visitor.visitorUserId,
           content,
+          broadcastContext: { senderName: "Visitor", senderRole: "visitor" },
         });
-
-        const apiAuth = getApiAuth(c)!;
-        broadcastOrganizationEvent(
-          apiAuth.application.organizationId,
-          buildMessageNewEvent({
-            id: message.id,
-            conversationId,
-            senderId: visitor.visitorUserId,
-            senderName: "Visitor",
-            senderRole: "visitor",
-            content: message.content,
-            type: "text",
-            createdAt: message.createdAt,
-          }),
-        );
 
         return c.json({ message: mapMessage(message) }, 201);
       } catch (error) {

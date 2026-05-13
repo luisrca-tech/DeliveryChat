@@ -4,20 +4,22 @@
 
 `chat-client.ts` is the single module that owns all network I/O for the chat demo island. No component imports `fetch` or `new WebSocket(...)` directly — everything goes through this module.
 
+## Visitor identity
+
+Visitor identity is owned by `visitor.ts`, not by `chat-client.ts`. See [`visitor.ts`](#visitorid-module) below.
+
 ## API
-
-### `resolveVisitorId(): string`
-
-Reads `dc_visitor_id` from `localStorage`. If absent, generates a UUID v4 with `crypto.randomUUID()`, persists it, and returns it. Subsequent calls within the same session return the same value. Clearing `localStorage` causes a new UUID to be generated on the next call.
 
 ### `createChatClient(options): ChatClient`
 
-Factory that returns a typed client bound to `apiUrl`, `apiKey`, and `appId`. Every method automatically injects the required headers:
+Factory that returns a typed client bound to `apiUrl`, `apiKey`, `appId`, and an explicit `visitorId`. Every method automatically injects the required headers:
 
 - `Authorization: Bearer <apiKey>`
 - `X-App-Id: <appId>`
-- `X-Visitor-Id: <resolved UUID>`
+- `X-Visitor-Id: <visitorId>`
 - `Origin: <window.location.origin>`
+
+The `visitorId` must be provided by the caller (typically resolved via `resolveVisitorId()` from `visitor.ts` on component mount).
 
 #### Methods
 
@@ -34,6 +36,14 @@ Factory that returns a typed client bound to `apiUrl`, `apiKey`, and `appId`. Ev
 | `markAsRead(conversationId, messageId)` | `POST /api/conversations/:id/read` |
 | `getUnreadCount(conversationId)` | `GET /api/conversations/:id/unread` |
 | `connectWebSocket(token)` | Opens `wss://<api-host>/v1/ws?token=<jwt>` |
+
+## visitorId module
+
+`visitor.ts` exports `resolveVisitorId(): string` and `VISITOR_ID_KEY`.
+
+`resolveVisitorId` reads `dc_visitor_id` from `localStorage`. If absent, it generates a UUID v4 with `crypto.randomUUID()`, persists it, and returns it. Subsequent calls return the same value. Clearing `localStorage` causes a new UUID to be generated.
+
+`ChatDemoIsland` calls `resolveVisitorId()` once on render and passes the result to `createChatClient({ ..., visitorId })`.
 
 ## SDK future path
 
