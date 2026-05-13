@@ -28,7 +28,7 @@ export const ALL: APIRoute = async ({ request, params }) => {
     );
   }
 
-  const base = env.DEMO_PUBLIC_API_BASE_URL;
+  const base = env.PUBLIC_API_URL;
   const apiKey = env.DEMO_CHAT_API_KEY;
   const appId = env.DEMO_CHAT_APP_ID;
   if (!base || !apiKey || !appId) {

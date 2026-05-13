@@ -17,6 +17,7 @@ type DemoConversation = {
 };
 
 type Phase = "idle" | "opening" | "chatting" | "error";
+type ConvStatus = "pending" | "active" | "closed";
 type WsStatus = "idle" | "connecting" | "connected" | "disconnected";
 
 const DEMO_SUBJECT = "Live Demo – Landing Page";
@@ -59,6 +60,7 @@ export function HeroChatIsland({
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState<WsStatus>("idle");
+  const [convStatus, setConvStatus] = useState<ConvStatus>("pending");
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lastMessageIdRef = useRef<string | null>(null);
@@ -136,6 +138,10 @@ export function HeroChatIsland({
                   createdAt: p.createdAt,
                 });
               }
+            } else if (serverEvent.type === "conversation:accepted") {
+              setConvStatus("active");
+            } else if (serverEvent.type === "conversation:resolved") {
+              setConvStatus("closed");
             }
           } catch {
             /* ignore malformed frames */
@@ -181,7 +187,11 @@ export function HeroChatIsland({
 
       let conv: ConversationResponse;
       if (listData.conversations.length > 0) {
-        conv = listData.conversations[0];
+        const existing = listData.conversations[0];
+        const detail = await demoFetch<{ conversation: ConversationResponse }>(
+          `conversations/${existing.id}`,
+        );
+        conv = detail.conversation;
       } else {
         const created = await demoFetch<{ conversation: ConversationResponse }>(
           "conversations",
@@ -199,6 +209,13 @@ export function HeroChatIsland({
         status: conv.status,
         visitorUserId: visitorPart?.userId ?? "",
       });
+      setConvStatus(
+        conv.status === "active"
+          ? "active"
+          : conv.status === "closed"
+            ? "closed"
+            : "pending",
+      );
 
       const msgData = await demoFetch<{ messages: DemoMessage[] }>(
         `conversations/${conv.id}/messages?limit=50&offset=0`,
@@ -354,6 +371,30 @@ export function HeroChatIsland({
           {messages.length === 0 && (
             <p className="text-center text-xs text-muted-foreground pt-4">
               Say hello! Our team will respond shortly.
+            </p>
+          )}
+          {convStatus === "pending" && (
+            <div
+              className="flex items-center justify-center gap-2 py-2"
+              role="status"
+              aria-live="polite"
+            >
+              <Loader2
+                className="h-3 w-3 animate-spin text-muted-foreground"
+                aria-hidden="true"
+              />
+              <span className="text-xs text-muted-foreground">
+                Waiting for support…
+              </span>
+            </div>
+          )}
+          {convStatus === "active" && messages.length === 0 && (
+            <p
+              className="text-center text-xs text-primary pt-2"
+              role="status"
+              aria-live="polite"
+            >
+              Connected with support
             </p>
           )}
           {messages.map((msg) => {

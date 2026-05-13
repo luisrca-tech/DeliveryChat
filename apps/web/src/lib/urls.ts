@@ -34,14 +34,14 @@ export function getAdminUrl(tenant: string): string {
   const safeTenant = tenant.toLowerCase().trim();
 
   if (typeof window === "undefined") {
-    if (!env.PUBLIC_ADMIN_URL) {
-      throw new Error("PUBLIC_ADMIN_URL is required to build admin URL");
+    if (!env.PUBLIC_API_URL) {
+      throw new Error("PUBLIC_API_URL is required to build admin URL");
     }
-    const templated = applyTenantToTemplate(env.PUBLIC_ADMIN_URL, safeTenant);
-    if (templated !== normalizeUrl(env.PUBLIC_ADMIN_URL)) {
+    const templated = applyTenantToTemplate(env.PUBLIC_API_URL, safeTenant);
+    if (templated !== normalizeUrl(env.PUBLIC_API_URL)) {
       return templated;
     }
-    const base = new URL(normalizeUrl(env.PUBLIC_ADMIN_URL));
+    const base = new URL(normalizeUrl(env.PUBLIC_API_URL));
     return `${base.protocol}//${safeTenant}.${base.host}`;
   }
 
@@ -55,15 +55,15 @@ export function getAdminUrl(tenant: string): string {
     return `http://${safeTenant}.localhost:3000`;
   }
 
-  if (!env.PUBLIC_ADMIN_URL) {
-    throw new Error("PUBLIC_ADMIN_URL is required to build admin URL");
+  if (!env.PUBLIC_API_URL) {
+    throw new Error("PUBLIC_API_URL is required to build admin URL");
   }
 
-  const templated = applyTenantToTemplate(env.PUBLIC_ADMIN_URL, safeTenant);
-  if (templated !== normalizeUrl(env.PUBLIC_ADMIN_URL)) {
+  const templated = applyTenantToTemplate(env.PUBLIC_API_URL, safeTenant);
+  if (templated !== normalizeUrl(env.PUBLIC_API_URL)) {
     return templated;
   }
-  const base = new URL(normalizeUrl(env.PUBLIC_ADMIN_URL));
+  const base = new URL(normalizeUrl(env.PUBLIC_API_URL));
   return `${base.protocol}//${safeTenant}.${base.host}`;
 }
 

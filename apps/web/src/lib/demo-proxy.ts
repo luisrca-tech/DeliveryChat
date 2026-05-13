@@ -100,10 +100,9 @@ export async function proxyDemoPublicApi(
   headers.set("X-App-Id", config.appId);
   headers.set("X-Visitor-Id", visitorId);
 
-  const origin = request.headers.get("Origin");
-  if (origin) {
-    headers.set("Origin", origin);
-  }
+  const origin =
+    request.headers.get("Origin") ?? new URL(request.url).origin;
+  headers.set("Origin", origin);
 
   const accept = request.headers.get("Accept");
   if (accept) {

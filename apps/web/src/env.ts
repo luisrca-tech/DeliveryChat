@@ -14,22 +14,17 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "staging", "production"])
       .default("development"),
-    /** Hono API origin (e.g. https://api.example.com) — no trailing path */
-    DEMO_PUBLIC_API_BASE_URL: z.string().url().optional(),
     /** Live/test API key for the demo app (server-only; never PUBLIC_) */
     DEMO_CHAT_API_KEY: z.string().min(1).optional(),
     DEMO_CHAT_APP_ID: z.string().uuid().optional(),
   },
   client: {
     PUBLIC_API_URL: z.string().url(),
-    PUBLIC_ADMIN_URL: z.string().url(),
   },
   clientPrefix: "PUBLIC_",
   runtimeEnv: {
     NODE_ENV: import.meta.env.NODE_ENV,
     PUBLIC_API_URL: import.meta.env.PUBLIC_API_URL,
-    PUBLIC_ADMIN_URL: import.meta.env.PUBLIC_ADMIN_URL,
-    DEMO_PUBLIC_API_BASE_URL: process.env.DEMO_PUBLIC_API_BASE_URL,
     DEMO_CHAT_API_KEY: process.env.DEMO_CHAT_API_KEY,
     DEMO_CHAT_APP_ID: process.env.DEMO_CHAT_APP_ID,
   },
