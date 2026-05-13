@@ -213,6 +213,7 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
 
     return c.json({
       conversations: result.conversations,
+      visitorUserId: visitor.visitorUserId,
       total: result.total,
       limit,
       offset,

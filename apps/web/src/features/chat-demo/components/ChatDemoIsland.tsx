@@ -77,6 +77,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const selectedIdRef = useRef<string | null>(null);
+  const conversationClosedRef = useRef(false);
   const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -113,15 +114,9 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     setLoadingConvs(true);
     client
       .listConversations()
-      .then(({ conversations: convs }) => {
+      .then(({ conversations: convs, visitorUserId: vid }) => {
         setConversations(convs);
-        for (const conv of convs) {
-          const visitor = conv.participants.find((p) => p.role === "visitor");
-          if (visitor) {
-            setVisitorUserId(visitor.userId);
-            break;
-          }
-        }
+        if (vid) setVisitorUserId(vid);
       })
       .catch(() => {})
       .finally(() => setLoadingConvs(false));
@@ -259,6 +254,11 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         setConversations((prev) =>
           prev.map((c) => (c.id === conversationId ? { ...c, status: "closed" } : c)),
         );
+        if (conversationId === selectedIdRef.current) {
+          conversationClosedRef.current = true;
+          wsRef.current?.close();
+          wsRef.current = null;
+        }
         break;
       }
     }
@@ -333,7 +333,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     }
 
     function scheduleReconnect() {
-      if (cancelled) return;
+      if (cancelled || conversationClosedRef.current) return;
       const attempt = reconnectAttemptRef.current;
       const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
       reconnectAttemptRef.current = attempt + 1;
@@ -358,8 +358,9 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     client
       .getMessages(selectedId)
       .then(({ messages: msgs }) => {
-        setMessages(msgs);
-        const lastMsg = msgs[msgs.length - 1];
+        const ordered = [...msgs].reverse();
+        setMessages(ordered);
+        const lastMsg = ordered[ordered.length - 1];
         if (lastMsg) {
           localStorage.setItem(lastMessageKey(selectedId), lastMsg.id);
           client.markAsRead(selectedId, lastMsg.id).catch(() => {});
@@ -371,11 +372,17 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   }, [selectedId]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesEndRef.current;
+    if (!el) return;
+    const viewport = el.closest("[data-radix-scroll-area-viewport]");
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+    }
   }, [messages]);
 
   function handleSelectConversation(id: string) {
     if (editingId) setEditingId(null);
+    conversationClosedRef.current = false;
     setSelectedId(id);
     setMessages([]);
     setInputValue("");
@@ -771,34 +778,40 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
               )}
             </ScrollArea>
 
-            <div className="border-t border-border p-2 space-y-1">
-              {operatorTypingName && (
-                <p className="text-[10px] text-muted-foreground px-1 italic">
-                  {operatorTypingName} is typing…
-                </p>
-              )}
-              {sendError && (
-                <p className="text-[10px] text-destructive px-1">{sendError}</p>
-              )}
-              <form onSubmit={handleSend} className="flex gap-1.5">
-                <Input
-                  value={inputValue}
-                  onChange={handleInputChange}
-                  onKeyDown={handleInputKeyDown}
-                  placeholder="Type a message…"
-                  className="flex-1 h-7 text-xs"
-                  disabled={sending || selectedConversation.status === "closed"}
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  className="h-7 w-7"
-                  disabled={sending || !inputValue.trim() || selectedConversation.status === "closed"}
-                >
-                  <Send className="h-3 w-3" />
-                </Button>
-              </form>
-            </div>
+            {selectedConversation.status === "closed" ? (
+              <div className="p-3 border-t border-border bg-muted/30 text-center">
+                <p className="text-xs text-muted-foreground">This conversation has been resolved</p>
+              </div>
+            ) : (
+              <div className="border-t border-border p-2 space-y-1">
+                {operatorTypingName && (
+                  <p className="text-[10px] text-muted-foreground px-1 italic">
+                    {operatorTypingName} is typing…
+                  </p>
+                )}
+                {sendError && (
+                  <p className="text-[10px] text-destructive px-1">{sendError}</p>
+                )}
+                <form onSubmit={handleSend} className="flex gap-1.5">
+                  <Input
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyDown={handleInputKeyDown}
+                    placeholder="Type a message…"
+                    className="flex-1 h-7 text-xs"
+                    disabled={sending}
+                  />
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="h-7 w-7"
+                    disabled={sending || !inputValue.trim()}
+                  >
+                    <Send className="h-3 w-3" />
+                  </Button>
+                </form>
+              </div>
+            )}
           </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
