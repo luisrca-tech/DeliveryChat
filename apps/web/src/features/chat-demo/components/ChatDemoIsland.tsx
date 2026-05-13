@@ -388,8 +388,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
 
   async function handleCreateConversation(e: React.FormEvent) {
     e.preventDefault();
-    const subject = newSubject.trim();
-    if (!subject) return;
+    const subject = newSubject.trim() || undefined;
     setCreating(true);
     try {
       const { conversation } = await clientRef.current.createConversation(subject);
@@ -564,7 +563,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
           >
             <Input
               autoFocus
-              placeholder="Subject…"
+              placeholder="Subject (optional)…"
               value={newSubject}
               onChange={(e) => setNewSubject(e.target.value)}
               className="h-7 text-xs"
@@ -574,7 +573,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
                 type="submit"
                 size="sm"
                 className="flex-1 h-6 text-xs"
-                disabled={creating || !newSubject.trim()}
+                disabled={creating}
               >
                 {creating ? "Creating…" : "Start chat"}
               </Button>
