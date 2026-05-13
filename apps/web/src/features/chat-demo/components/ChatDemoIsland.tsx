@@ -7,6 +7,13 @@ import type { Conversation } from "../chat-client";
 import { resolveVisitorId } from "../visitor";
 import { wsMessageReducer } from "../lib/wsMessageReducer";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
+import { useEditWindowTicker } from "../hooks/useEditWindowTicker";
+import { useLocalMessageSync } from "../hooks/useLocalMessageSync";
+import { useVisitorUserId } from "../hooks/useVisitorUserId";
+import { useUnreadCounts } from "../hooks/useUnreadCounts";
+import { useMessageEdit } from "../hooks/useMessageEdit";
+import { useMessageInput } from "../hooks/useMessageInput";
+import { useTypingIndicator } from "../hooks/useTypingIndicator";
 import { MessageCircle, Plus, X, Send, Wifi, WifiOff, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 
@@ -18,18 +25,8 @@ interface ChatDemoIslandProps {
 
 type WsStatus = "connecting" | "connected" | "disconnected";
 
-const EDIT_WINDOW_MS = 15 * 60 * 1000;
-const TYPING_DEBOUNCE_MS = 1500;
 const RECONNECT_BASE_MS = 1000;
 const RECONNECT_MAX_MS = 30_000;
-
-function lastMessageKey(conversationId: string) {
-  return `dc_last_msg_${conversationId}`;
-}
-
-function withinEditWindow(createdAt: string): boolean {
-  return Date.now() - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
-}
 
 function StatusBadge({ status }: { status: string }) {
   const classes: Record<string, string> = {
@@ -77,8 +74,6 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const conversationClosedRef = useRef(false);
   const reconnectAttemptRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isSendingTypingRef = useRef(false);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -88,28 +83,68 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const [showNewForm, setShowNewForm] = useState(false);
   const [newSubject, setNewSubject] = useState("");
   const [creating, setCreating] = useState(false);
-  const [visitorUserId, setVisitorUserId] = useState<string | null>(null);
-  const [inputValue, setInputValue] = useState("");
-  const [sending, setSending] = useState(false);
-  const [sendError, setSendError] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState<WsStatus>("disconnected");
-  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState("");
-  const [saving, setSaving] = useState(false);
   const [operatorTypingName, setOperatorTypingName] = useState<string | null>(null);
 
+  // Leaf hooks
+  useEditWindowTicker();
+  const { getLastMessageId, setLastMessageId } = useLocalMessageSync();
+  const { visitorUserId, captureVisitorId } = useVisitorUserId();
+  const { unreadCounts, setUnreadCounts, clearUnread, refreshUnread } = useUnreadCounts(clientRef.current);
+
+  const replaceMessage = useCallback((id: string, content: string, editedAt: string) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content, editedAt } : m)));
+  }, []);
+
+  const removeMessage = useCallback((id: string) => {
+    setMessages((prev) => prev.filter((m) => m.id !== id));
+  }, []);
+
+  const { editingState, handleStartEdit, handleCancelEdit, setEditingContent, handleSaveEdit, handleDelete } =
+    useMessageEdit(clientRef.current, replaceMessage, removeMessage);
+
+  const appendMessage = useCallback((msg: OptimisticMessage) => {
+    setMessages((prev) => [...prev, msg]);
+  }, []);
+
+  const rollbackMessage = useCallback((clientId: string) => {
+    setMessages((prev) => prev.filter((m) => m.clientId !== clientId));
+  }, []);
+
+  const {
+    value: inputValue,
+    sending,
+    error: sendError,
+    handleInputChange: handleInputChangeBase,
+    handleSend,
+  } = useMessageInput(wsRef, selectedId, visitorUserId, appendMessage, rollbackMessage);
+
+  const { notifyTyping, sendTypingStop } = useTypingIndicator(wsRef, selectedId);
+
+  // Combine input change: update value + notify typing
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      handleInputChangeBase(e);
+      notifyTyping();
+    },
+    [handleInputChangeBase, notifyTyping],
+  );
+
+  const handleInputKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendTypingStop();
+        void handleSend();
+      }
+    },
+    [handleSend, sendTypingStop],
+  );
+
   // Mirror reducer-managed state in a ref so handleWsMessage can read the latest committed
-  // values without stale closures. Updated during render before any async callbacks fire.
+  // values without stale closures.
   const wsSliceRef = useRef({ messages, conversations, operatorTypingName });
   wsSliceRef.current = { messages, conversations, operatorTypingName };
-
-  // Force re-render every 30s to recompute edit-window visibility
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     const client = clientRef.current;
@@ -118,11 +153,11 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       .listConversations()
       .then(({ conversations: convs, visitorUserId: vid }) => {
         setConversations(convs);
-        if (vid) setVisitorUserId(vid);
+        captureVisitorId(vid);
       })
       .catch(() => {})
       .finally(() => setLoadingConvs(false));
-  }, []);
+  }, [captureVisitorId]);
 
   const handleWsMessage = useCallback((event: MessageEvent) => {
     let parsed: unknown;
@@ -149,22 +184,17 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
           wsRef.current = null;
           break;
         case "persist-last-message":
-          localStorage.setItem(lastMessageKey(effect.conversationId), effect.messageId);
+          setLastMessageId(effect.conversationId, effect.messageId);
           break;
         case "mark-as-read":
           clientRef.current.markAsRead(effect.conversationId, effect.messageId).catch(() => {});
           break;
         case "refresh-unread":
-          clientRef.current
-            .getUnreadCount(effect.conversationId)
-            .then(({ unreadCount }) => {
-              setUnreadCounts((prev) => ({ ...prev, [effect.conversationId]: unreadCount }));
-            })
-            .catch(() => {});
+          void refreshUnread(effect.conversationId);
           break;
       }
     }
-  }, []);
+  }, [setLastMessageId, refreshUnread]);
 
   useEffect(() => {
     selectedIdRef.current = selectedId;
@@ -176,7 +206,6 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     reconnectAttemptRef.current = 0;
     setWsStatus("disconnected");
     setOperatorTypingName(null);
-    setSendError(null);
 
     if (!selectedId) return;
 
@@ -202,7 +231,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         reconnectAttemptRef.current = 0;
         setWsStatus("connected");
 
-        const lastMessageId = localStorage.getItem(lastMessageKey(selectedId!)) ?? undefined;
+        const lastMessageId = getLastMessageId(selectedId!) ?? undefined;
         ws.send(
           JSON.stringify({
             type: "room:join",
@@ -251,7 +280,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       if (pingRef.current) clearInterval(pingRef.current);
       if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     };
-  }, [selectedId, handleWsMessage]);
+  }, [selectedId, handleWsMessage, getLastMessageId]);
 
   useEffect(() => {
     if (!selectedId) return;
@@ -264,14 +293,14 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         setMessages(ordered);
         const lastMsg = ordered[ordered.length - 1];
         if (lastMsg) {
-          localStorage.setItem(lastMessageKey(selectedId), lastMsg.id);
+          setLastMessageId(selectedId, lastMsg.id);
           client.markAsRead(selectedId, lastMsg.id).catch(() => {});
         }
-        setUnreadCounts((prev) => ({ ...prev, [selectedId]: 0 }));
+        clearUnread(selectedId);
       })
       .catch(() => {})
       .finally(() => setLoadingMsgs(false));
-  }, [selectedId]);
+  }, [selectedId, setLastMessageId, clearUnread]);
 
   useEffect(() => {
     const el = messagesEndRef.current;
@@ -283,16 +312,13 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   }, [messages]);
 
   function handleSelectConversation(id: string) {
-    if (editingId) setEditingId(null);
+    if (editingState) handleCancelEdit();
     conversationClosedRef.current = false;
     setSelectedId(id);
     setMessages([]);
-    setInputValue("");
-    setSendError(null);
     setOperatorTypingName(null);
     setUnreadCounts((prev) => ({ ...prev, [id]: 0 }));
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    isSendingTypingRef.current = false;
+    sendTypingStop();
   }
 
   async function handleCreateConversation(e: React.FormEvent) {
@@ -302,148 +328,31 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     try {
       const { conversation } = await clientRef.current.createConversation(subject);
       const visitor = conversation.participants.find((p) => p.role === "visitor");
-      if (visitor && !visitorUserId) setVisitorUserId(visitor.userId);
+      if (visitor) captureVisitorId(visitor.userId);
       setConversations((prev) => [conversation, ...prev]);
       setSelectedId(conversation.id);
       setMessages([]);
       setShowNewForm(false);
       setNewSubject("");
     } catch {
-      // silently ignore — no new-form error UI in this phase
+      // silently ignore
     } finally {
       setCreating(false);
     }
   }
 
-  function sendTypingStop() {
-    if (!isSendingTypingRef.current) return;
-    isSendingTypingRef.current = false;
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    const ws = wsRef.current;
-    if (ws?.readyState === WebSocket.OPEN && selectedId) {
-      ws.send(JSON.stringify({ type: "typing:stop", payload: { conversationId: selectedId } }));
-    }
-  }
-
-  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setInputValue(e.target.value);
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN || !selectedId) return;
-
-    if (!isSendingTypingRef.current) {
-      isSendingTypingRef.current = true;
-      ws.send(JSON.stringify({ type: "typing:start", payload: { conversationId: selectedId } }));
-    }
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(sendTypingStop, TYPING_DEBOUNCE_MS);
-  }
-
-  async function handleSend(e?: React.FormEvent) {
-    e?.preventDefault();
-    const content = inputValue.trim();
-    if (!content || sending) return;
-
-    const ws = wsRef.current;
-    if (!ws || ws.readyState !== WebSocket.OPEN) {
-      setSendError("Not connected. Please wait and try again.");
-      return;
-    }
-
-    sendTypingStop();
-
-    const clientMessageId = crypto.randomUUID();
-    const optimistic: OptimisticMessage = {
-      id: clientMessageId,
-      clientId: clientMessageId,
-      conversationId: selectedId!,
-      senderId: visitorUserId ?? clientMessageId,
-      content,
-      createdAt: new Date().toISOString(),
-      editedAt: null,
-      pending: true,
-    };
-
-    setMessages((prev) => [...prev, optimistic]);
-    setInputValue("");
-    setSendError(null);
-    setSending(true);
-
-    try {
-      ws.send(
-        JSON.stringify({
-          type: "message:send",
-          payload: { conversationId: selectedId, content, clientMessageId },
-        }),
-      );
-    } catch {
-      setMessages((prev) => prev.filter((m) => m.clientId !== clientMessageId));
-      setSendError("Failed to send message. Please try again.");
-    } finally {
-      setSending(false);
-    }
-  }
-
-  function handleInputKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void handleSend();
-    }
-  }
-
-  function handleStartEdit(msg: OptimisticMessage) {
-    setEditingId(msg.id);
-    setEditingContent(msg.content);
-  }
-
-  function handleCancelEdit() {
-    setEditingId(null);
-    setEditingContent("");
-  }
-
-  async function handleSaveEdit(msg: OptimisticMessage) {
-    const content = editingContent.trim();
-    if (!content || content === msg.content) {
-      handleCancelEdit();
-      return;
-    }
-    setSaving(true);
-    try {
-      const { message: updated } = await clientRef.current.editMessage(
-        msg.conversationId,
-        msg.id,
-        content,
-      );
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msg.id ? { ...m, content: updated.content, editedAt: updated.editedAt } : m)),
-      );
-      setEditingId(null);
-      setEditingContent("");
-    } catch {
-      // keep edit open so user can retry
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleDelete(msg: OptimisticMessage) {
-    try {
-      await clientRef.current.deleteMessage(msg.conversationId, msg.id);
-      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
-    } catch {
-      // silently ignore — message stays visible
-    }
-  }
-
-  function handleEditKeyDown(e: React.KeyboardEvent<HTMLInputElement>, msg: OptimisticMessage) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      void handleSaveEdit(msg);
-    }
-    if (e.key === "Escape") {
-      handleCancelEdit();
-    }
-  }
+  const handleEditKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>, msg: OptimisticMessage) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        void handleSaveEdit(msg);
+      }
+      if (e.key === "Escape") {
+        handleCancelEdit();
+      }
+    },
+    [handleSaveEdit, handleCancelEdit],
+  );
 
   const selectedConversation = conversations.find((c) => c.id === selectedId);
   const showLiveChatBadge = !selectedConversation;
@@ -595,8 +504,10 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
                     const isVisitor =
                       msg.senderId === visitorUserId || (msg.pending && msg.clientId !== undefined);
                     const canModify =
-                      isVisitor && !msg.pending && withinEditWindow(msg.createdAt);
-                    const isEditing = editingId === msg.id;
+                      isVisitor &&
+                      !msg.pending &&
+                      Date.now() - new Date(msg.createdAt).getTime() < 15 * 60 * 1000;
+                    const isEditing = editingState?.id === msg.id;
 
                     return (
                       <div
@@ -607,18 +518,18 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
                           <div className="flex items-center gap-1 max-w-[80%]">
                             <Input
                               autoFocus
-                              value={editingContent}
+                              value={editingState.content}
                               onChange={(e) => setEditingContent(e.target.value)}
                               onKeyDown={(e) => handleEditKeyDown(e, msg)}
                               className="h-7 text-xs"
-                              disabled={saving}
+                              disabled={editingState.saving}
                             />
                             <Button
                               size="icon"
                               variant="ghost"
                               className="h-6 w-6 flex-shrink-0"
                               onClick={() => void handleSaveEdit(msg)}
-                              disabled={saving}
+                              disabled={editingState.saving}
                             >
                               <Check className="h-3 w-3" />
                             </Button>
@@ -627,7 +538,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
                               variant="ghost"
                               className="h-6 w-6 flex-shrink-0"
                               onClick={handleCancelEdit}
-                              disabled={saving}
+                              disabled={editingState.saving}
                             >
                               <X className="h-3 w-3" />
                             </Button>
