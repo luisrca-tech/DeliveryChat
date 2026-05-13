@@ -22,6 +22,13 @@ type OptimisticMessage = Message & {
 };
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
+const TYPING_DEBOUNCE_MS = 1500;
+const RECONNECT_BASE_MS = 1000;
+const RECONNECT_MAX_MS = 30_000;
+
+function lastMessageKey(conversationId: string) {
+  return `dc_last_msg_${conversationId}`;
+}
 
 function withinEditWindow(createdAt: string): boolean {
   return Date.now() - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
@@ -70,6 +77,10 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const pingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const selectedIdRef = useRef<string | null>(null);
+  const reconnectAttemptRef = useRef(0);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isSendingTypingRef = useRef(false);
 
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -88,6 +99,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [operatorTyping, setOperatorTyping] = useState(false);
 
   // Force re-render every 30s to recompute edit-window visibility
   const [, setTick] = useState(0);
@@ -132,13 +144,18 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
           serverMessageId: string;
           createdAt: string;
         };
-        setMessages((prev) =>
-          prev.map((m) =>
+        setMessages((prev) => {
+          const updated = prev.map((m) =>
             m.clientId === clientMessageId
               ? { ...m, id: serverMessageId, createdAt, pending: false, clientId: undefined }
               : m,
-          ),
-        );
+          );
+          const convId = selectedIdRef.current;
+          if (convId) {
+            localStorage.setItem(lastMessageKey(convId), serverMessageId);
+          }
+          return updated;
+        });
         break;
       }
       case "message:new": {
@@ -153,16 +170,16 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         if (conversationId === selectedIdRef.current) {
           setMessages((prev) => {
             if (prev.some((m) => m.id === id)) return prev;
+            localStorage.setItem(lastMessageKey(conversationId), id);
             return [
               ...prev,
               { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false },
             ];
           });
-          // Mark as read immediately since the conversation is open
+          setOperatorTyping(false);
           const client = clientRef.current;
           client.markAsRead(conversationId, id).catch(() => {});
         } else {
-          // Conversation not open — update unread badge
           clientRef.current
             .getUnreadCount(conversationId)
             .then(({ unreadCount }) => {
@@ -170,6 +187,23 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
             })
             .catch(() => {});
         }
+        break;
+      }
+      case "messages:sync": {
+        const { conversationId, messages: synced } = payload as {
+          conversationId: string;
+          messages: Message[];
+        };
+        if (conversationId !== selectedIdRef.current) return;
+        if (!synced.length) return;
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id));
+          const newMsgs = synced.filter((m) => !existingIds.has(m.id));
+          if (!newMsgs.length) return prev;
+          const last = newMsgs[newMsgs.length - 1];
+          if (last) localStorage.setItem(lastMessageKey(conversationId), last.id);
+          return [...prev, ...newMsgs];
+        });
         break;
       }
       case "message:edited": {
@@ -189,6 +223,18 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         const { id, conversationId } = payload as { id: string; conversationId: string };
         if (conversationId !== selectedIdRef.current) return;
         setMessages((prev) => prev.filter((m) => m.id !== id));
+        break;
+      }
+      case "typing:start": {
+        const { conversationId } = payload as { conversationId: string };
+        if (conversationId !== selectedIdRef.current) return;
+        setOperatorTyping(true);
+        break;
+      }
+      case "typing:stop": {
+        const { conversationId } = payload as { conversationId: string };
+        if (conversationId !== selectedIdRef.current) return;
+        setOperatorTyping(false);
         break;
       }
       case "conversation:accepted": {
@@ -222,19 +268,24 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     selectedIdRef.current = selectedId;
 
     wsRef.current?.close();
+    wsRef.current = null;
     if (pingRef.current) clearInterval(pingRef.current);
+    if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+    reconnectAttemptRef.current = 0;
     setWsStatus("disconnected");
+    setOperatorTyping(false);
     setSendError(null);
 
     if (!selectedId) return;
 
     const client = clientRef.current;
     let cancelled = false;
-    let ws: WebSocket | null = null;
 
-    setWsStatus("connecting");
+    async function connect() {
+      if (cancelled) return;
+      setWsStatus("connecting");
 
-    (async () => {
+      let ws: WebSocket | null = null;
       try {
         const { token } = await client.getWsToken();
         if (cancelled) return;
@@ -246,9 +297,16 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         }
 
         wsRef.current = ws;
+        reconnectAttemptRef.current = 0;
         setWsStatus("connected");
 
-        ws.send(JSON.stringify({ type: "room:join", payload: { conversationId: selectedId } }));
+        const lastMessageId = localStorage.getItem(lastMessageKey(selectedId!)) ?? undefined;
+        ws.send(
+          JSON.stringify({
+            type: "room:join",
+            payload: { conversationId: selectedId, ...(lastMessageId ? { lastMessageId } : {}) },
+          }),
+        );
 
         pingRef.current = setInterval(() => {
           if (ws?.readyState === WebSocket.OPEN) {
@@ -259,21 +317,37 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         ws.addEventListener("message", handleWsMessage);
 
         ws.addEventListener("close", () => {
-          if (!cancelled) setWsStatus("disconnected");
+          if (pingRef.current) clearInterval(pingRef.current);
+          if (!cancelled) {
+            setWsStatus("disconnected");
+            scheduleReconnect();
+          }
         });
 
         ws.addEventListener("error", () => {
           if (!cancelled) setWsStatus("disconnected");
         });
       } catch {
-        if (!cancelled) setWsStatus("disconnected");
+        if (!cancelled) scheduleReconnect();
       }
-    })();
+    }
+
+    function scheduleReconnect() {
+      if (cancelled) return;
+      const attempt = reconnectAttemptRef.current;
+      const delay = Math.min(RECONNECT_BASE_MS * 2 ** attempt, RECONNECT_MAX_MS);
+      reconnectAttemptRef.current = attempt + 1;
+      reconnectTimerRef.current = setTimeout(() => void connect(), delay);
+    }
+
+    void connect();
 
     return () => {
       cancelled = true;
-      ws?.close();
+      wsRef.current?.close();
+      wsRef.current = null;
       if (pingRef.current) clearInterval(pingRef.current);
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
     };
   }, [selectedId, handleWsMessage]);
 
@@ -287,6 +361,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         setMessages(msgs);
         const lastMsg = msgs[msgs.length - 1];
         if (lastMsg) {
+          localStorage.setItem(lastMessageKey(selectedId), lastMsg.id);
           client.markAsRead(selectedId, lastMsg.id).catch(() => {});
         }
         setUnreadCounts((prev) => ({ ...prev, [selectedId]: 0 }));
@@ -305,7 +380,10 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     setMessages([]);
     setInputValue("");
     setSendError(null);
+    setOperatorTyping(false);
     setUnreadCounts((prev) => ({ ...prev, [id]: 0 }));
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    isSendingTypingRef.current = false;
   }
 
   async function handleCreateConversation(e: React.FormEvent) {
@@ -329,6 +407,30 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     }
   }
 
+  function sendTypingStop() {
+    if (!isSendingTypingRef.current) return;
+    isSendingTypingRef.current = false;
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN && selectedId) {
+      ws.send(JSON.stringify({ type: "typing:stop", payload: { conversationId: selectedId } }));
+    }
+  }
+
+  function handleInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setInputValue(e.target.value);
+    const ws = wsRef.current;
+    if (!ws || ws.readyState !== WebSocket.OPEN || !selectedId) return;
+
+    if (!isSendingTypingRef.current) {
+      isSendingTypingRef.current = true;
+      ws.send(JSON.stringify({ type: "typing:start", payload: { conversationId: selectedId } }));
+    }
+
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(sendTypingStop, TYPING_DEBOUNCE_MS);
+  }
+
   async function handleSend(e?: React.FormEvent) {
     e?.preventDefault();
     const content = inputValue.trim();
@@ -339,6 +441,8 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       setSendError("Not connected. Please wait and try again.");
       return;
     }
+
+    sendTypingStop();
 
     const clientMessageId = crypto.randomUUID();
     const optimistic: OptimisticMessage = {
@@ -656,13 +760,18 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
             </ScrollArea>
 
             <div className="border-t border-border p-2 space-y-1">
+              {operatorTyping && (
+                <p className="text-[10px] text-muted-foreground px-1 italic">
+                  Operator is typing…
+                </p>
+              )}
               {sendError && (
                 <p className="text-[10px] text-destructive px-1">{sendError}</p>
               )}
               <form onSubmit={handleSend} className="flex gap-1.5">
                 <Input
                   value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleInputKeyDown}
                   placeholder="Type a message…"
                   className="flex-1 h-7 text-xs"

@@ -120,7 +120,7 @@ For unread counts: `GET /v1/api/conversations/:id/unread` is polled when the con
 
 ---
 
-## Phase 6: Typing Indicators & Reconnection
+## ~~Phase 6: Typing Indicators & Reconnection~~ ✅ DONE
 
 **User stories**: US6 (typing indicator when operator is writing), US15 (auto-reconnect, missed messages filled in)
 
@@ -132,10 +132,10 @@ Implement exponential backoff reconnection: on WebSocket close, wait 1 s then re
 
 ### Acceptance criteria
 
-- [ ] Visitor typing triggers `typing:start` event over WebSocket; debounce triggers `typing:stop` after inactivity
-- [ ] Operator typing indicator appears in the right panel when a `typing:start` event is received from the operator
-- [ ] Indicator disappears on `typing:stop` or after a timeout
-- [ ] WebSocket reconnects automatically after a simulated network drop (DevTools → Network → Offline toggle)
-- [ ] Reconnect uses exponential backoff: delays follow 1 s → 2 s → 4 s → … → 30 s max
-- [ ] `room:join` on reconnect includes `lastMessageId`; any messages sent while offline appear after reconnect (`messages:sync`)
-- [ ] `lastMessageId` in `localStorage` is updated each time a new message is confirmed by the server
+- [x] Visitor typing triggers `typing:start` event over WebSocket; debounce triggers `typing:stop` after inactivity
+- [x] Operator typing indicator appears in the right panel when a `typing:start` event is received from the operator
+- [x] Indicator disappears on `typing:stop` or after a timeout
+- [x] WebSocket reconnects automatically after a simulated network drop (DevTools → Network → Offline toggle)
+- [x] Reconnect uses exponential backoff: delays follow 1 s → 2 s → 4 s → … → 30 s max
+- [x] `room:join` on reconnect includes `lastMessageId`; any messages sent while offline appear after reconnect (`messages:sync`)
+- [x] `lastMessageId` in `localStorage` is updated each time a new message is confirmed by the server
