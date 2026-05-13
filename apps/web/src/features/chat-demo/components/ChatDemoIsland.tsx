@@ -4,7 +4,7 @@ import { Input } from "@repo/ui/components/ui/input";
 import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
 import { createChatClient } from "../chat-client";
 import type { Conversation, Message } from "../chat-client";
-import { MessageCircle, Plus, X, Send, Wifi, WifiOff } from "lucide-react";
+import { MessageCircle, Plus, X, Send, Wifi, WifiOff, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 
 interface ChatDemoIslandProps {
@@ -20,6 +20,12 @@ type OptimisticMessage = Message & {
   pending?: boolean;
   sendError?: boolean;
 };
+
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+
+function withinEditWindow(createdAt: string): boolean {
+  return Date.now() - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
+}
 
 function StatusBadge({ status }: { status: string }) {
   const classes: Record<string, string> = {
@@ -49,6 +55,15 @@ function ConnectionDot({ status }: { status: WsStatus }) {
   return <WifiOff className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />;
 }
 
+function UnreadBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="inline-flex items-center justify-center h-4 min-w-[1rem] px-1 rounded-full bg-primary text-primary-foreground text-[9px] font-semibold flex-shrink-0">
+      {count > 99 ? "99+" : count}
+    </span>
+  );
+}
+
 export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const clientRef = useRef(createChatClient({ apiUrl, apiKey, appId }));
   const wsRef = useRef<WebSocket | null>(null);
@@ -69,6 +84,17 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
   const [wsStatus, setWsStatus] = useState<WsStatus>("disconnected");
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  // Force re-render every 30s to recompute edit-window visibility
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const client = clientRef.current;
@@ -124,14 +150,45 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
           createdAt: string;
           editedAt?: string | null;
         };
+        if (conversationId === selectedIdRef.current) {
+          setMessages((prev) => {
+            if (prev.some((m) => m.id === id)) return prev;
+            return [
+              ...prev,
+              { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false },
+            ];
+          });
+          // Mark as read immediately since the conversation is open
+          const client = clientRef.current;
+          client.markAsRead(conversationId, id).catch(() => {});
+        } else {
+          // Conversation not open — update unread badge
+          clientRef.current
+            .getUnreadCount(conversationId)
+            .then(({ unreadCount }) => {
+              setUnreadCounts((prev) => ({ ...prev, [conversationId]: unreadCount }));
+            })
+            .catch(() => {});
+        }
+        break;
+      }
+      case "message:edited": {
+        const { id, conversationId, content, editedAt } = payload as {
+          id: string;
+          conversationId: string;
+          content: string;
+          editedAt: string;
+        };
         if (conversationId !== selectedIdRef.current) return;
-        setMessages((prev) => {
-          if (prev.some((m) => m.id === id)) return prev;
-          return [
-            ...prev,
-            { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false },
-          ];
-        });
+        setMessages((prev) =>
+          prev.map((m) => (m.id === id ? { ...m, content, editedAt } : m)),
+        );
+        break;
+      }
+      case "message:deleted": {
+        const { id, conversationId } = payload as { id: string; conversationId: string };
+        if (conversationId !== selectedIdRef.current) return;
+        setMessages((prev) => prev.filter((m) => m.id !== id));
         break;
       }
       case "conversation:accepted": {
@@ -226,7 +283,14 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     setLoadingMsgs(true);
     client
       .getMessages(selectedId)
-      .then(({ messages: msgs }) => setMessages(msgs))
+      .then(({ messages: msgs }) => {
+        setMessages(msgs);
+        const lastMsg = msgs[msgs.length - 1];
+        if (lastMsg) {
+          client.markAsRead(selectedId, lastMsg.id).catch(() => {});
+        }
+        setUnreadCounts((prev) => ({ ...prev, [selectedId]: 0 }));
+      })
       .catch(() => {})
       .finally(() => setLoadingMsgs(false));
   }, [selectedId]);
@@ -236,10 +300,12 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   }, [messages]);
 
   function handleSelectConversation(id: string) {
+    if (editingId) setEditingId(null);
     setSelectedId(id);
     setMessages([]);
     setInputValue("");
     setSendError(null);
+    setUnreadCounts((prev) => ({ ...prev, [id]: 0 }));
   }
 
   async function handleCreateConversation(e: React.FormEvent) {
@@ -257,7 +323,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
       setShowNewForm(false);
       setNewSubject("");
     } catch {
-      // error handling in Phase 4 covered by send flow
+      // silently ignore — no new-form error UI in this phase
     } finally {
       setCreating(false);
     }
@@ -310,6 +376,60 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       void handleSend();
+    }
+  }
+
+  function handleStartEdit(msg: OptimisticMessage) {
+    setEditingId(msg.id);
+    setEditingContent(msg.content);
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null);
+    setEditingContent("");
+  }
+
+  async function handleSaveEdit(msg: OptimisticMessage) {
+    const content = editingContent.trim();
+    if (!content || content === msg.content) {
+      handleCancelEdit();
+      return;
+    }
+    setSaving(true);
+    try {
+      const { message: updated } = await clientRef.current.editMessage(
+        msg.conversationId,
+        msg.id,
+        content,
+      );
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? { ...m, content: updated.content, editedAt: updated.editedAt } : m)),
+      );
+      setEditingId(null);
+      setEditingContent("");
+    } catch {
+      // keep edit open so user can retry
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(msg: OptimisticMessage) {
+    try {
+      await clientRef.current.deleteMessage(msg.conversationId, msg.id);
+      setMessages((prev) => prev.filter((m) => m.id !== msg.id));
+    } catch {
+      // silently ignore — message stays visible
+    }
+  }
+
+  function handleEditKeyDown(e: React.KeyboardEvent<HTMLInputElement>, msg: OptimisticMessage) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      void handleSaveEdit(msg);
+    }
+    if (e.key === "Escape") {
+      handleCancelEdit();
     }
   }
 
@@ -402,7 +522,10 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
                         {new Date(conv.createdAt).toLocaleDateString()}
                       </p>
                     </div>
-                    <StatusBadge status={conv.status} />
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <UnreadBadge count={unreadCounts[conv.id] ?? 0} />
+                      <StatusBadge status={conv.status} />
+                    </div>
                   </div>
                 </button>
               ))}
@@ -446,22 +569,84 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
                   {messages.map((msg) => {
                     const isVisitor =
                       msg.senderId === visitorUserId || (msg.pending && msg.clientId !== undefined);
+                    const canModify =
+                      isVisitor && !msg.pending && withinEditWindow(msg.createdAt);
+                    const isEditing = editingId === msg.id;
+
                     return (
                       <div
                         key={msg.clientId ?? msg.id}
-                        className={cn("flex", isVisitor ? "justify-end" : "justify-start")}
+                        className={cn("flex group", isVisitor ? "justify-end" : "justify-start")}
                       >
-                        <div
-                          className={cn(
-                            "max-w-[72%] rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed transition-opacity",
-                            isVisitor
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted text-foreground",
-                            msg.pending && "opacity-60",
-                          )}
-                        >
-                          {msg.content}
-                        </div>
+                        {isEditing ? (
+                          <div className="flex items-center gap-1 max-w-[80%]">
+                            <Input
+                              autoFocus
+                              value={editingContent}
+                              onChange={(e) => setEditingContent(e.target.value)}
+                              onKeyDown={(e) => handleEditKeyDown(e, msg)}
+                              className="h-7 text-xs"
+                              disabled={saving}
+                            />
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 flex-shrink-0"
+                              onClick={() => void handleSaveEdit(msg)}
+                              disabled={saving}
+                            >
+                              <Check className="h-3 w-3" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 flex-shrink-0"
+                              onClick={handleCancelEdit}
+                              disabled={saving}
+                            >
+                              <X className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-end gap-1">
+                            {canModify && (
+                              <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5"
+                                  onClick={() => handleStartEdit(msg)}
+                                  title="Edit message"
+                                >
+                                  <Pencil className="h-2.5 w-2.5" />
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-5 w-5 text-destructive hover:text-destructive"
+                                  onClick={() => void handleDelete(msg)}
+                                  title="Delete message"
+                                >
+                                  <Trash2 className="h-2.5 w-2.5" />
+                                </Button>
+                              </div>
+                            )}
+                            <div
+                              className={cn(
+                                "max-w-[72%] rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed transition-opacity",
+                                isVisitor
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-muted text-foreground",
+                                msg.pending && "opacity-60",
+                              )}
+                            >
+                              {msg.content}
+                              {msg.editedAt && (
+                                <span className="ml-1 text-[9px] opacity-60">(edited)</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

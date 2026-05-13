@@ -99,7 +99,7 @@ Heartbeat: send `ping` every 30 seconds; discard `pong`.
 
 ---
 
-## Phase 5: Edit, Delete & Unread Counts
+## ~~Phase 5: Edit, Delete & Unread Counts~~ ✅ DONE
 
 **User stories**: US7 (edit within 15 minutes), US8 (delete within 15 minutes), US9 (unread count badge), US10 (mark as read on open)
 
@@ -111,12 +111,12 @@ For unread counts: `GET /v1/api/conversations/:id/unread` is polled when the con
 
 ### Acceptance criteria
 
-- [ ] Edit control is visible on visitor messages sent within the last 15 minutes; disappears after the window closes
-- [ ] Editing a message calls `PATCH /messages/:id`; updated content appears in the UI
-- [ ] Delete control works within 15 minutes; message is removed from the UI after `DELETE`
-- [ ] `message:edited` and `message:deleted` WebSocket events update the UI without a reload
-- [ ] Conversation list items show an unread count badge when there are unread messages
-- [ ] Opening a conversation calls `POST /read` and clears the badge
+- [x] Edit control is visible on visitor messages sent within the last 15 minutes; disappears after the window closes
+- [x] Editing a message calls `PATCH /messages/:id`; updated content appears in the UI
+- [x] Delete control works within 15 minutes; message is removed from the UI after `DELETE`
+- [x] `message:edited` and `message:deleted` WebSocket events update the UI without a reload
+- [x] Conversation list items show an unread count badge when there are unread messages
+- [x] Opening a conversation calls `POST /read` and clears the badge
 
 ---
 
