@@ -68,6 +68,29 @@ packages/types/src/
   ws-events.ts              # Shared WS event type definitions
 ```
 
+## Service Layer (`chat.service.ts`)
+
+All database operations are centralized in `chat.service.ts`. Key function groups:
+
+| Category | Functions | Notes |
+|---|---|---|
+| **Conversation CRUD** | `createConversation`, `getConversationWithParticipants`, `softDeleteConversation`, `updateConversationSubject` | Returns `null` on not-found |
+| **Conversation Lifecycle** | `acceptConversation`, `leaveConversation`, `resolveConversation` | Race-condition safe (WHERE assignedTo IS NULL) |
+| **Listing** | `listConversationsForMember`, `listConversationsForVisitor` | Member version includes filtering, role-based visibility, and unread counts |
+| **Messages** | `sendMessage`, `editMessage`, `deleteMessage`, `getMessageHistory`, `getMessageHistoryForMember` | Member version joins sender name/role; edit/delete enforce 15-min window |
+| **Participants** | `addParticipant`, `isParticipant` | Unique constraint on (conversationId, userId) |
+| **Read State** | `markAsRead`, `getUnreadCount`, `getUnreadCountForVisitor`, `getBulkUnreadCounts` | Bulk version used by member list endpoint |
+| **System Messages** | `createSystemMessage` | For lifecycle events (accepted, left, resolved) |
+| **Visitor Identity** | `resolveOrCreateVisitor` (in `visitor.service.ts`) | Creates anonymous user on first contact |
+
+### Error Contract
+
+Service functions use two patterns:
+- **Return `null`**: `getConversationWithParticipants`, `acceptConversation`, `leaveConversation`, `resolveConversation`, `softDeleteConversation`, `updateConversationSubject`
+- **Throw typed errors**: `sendMessage`, `editMessage`, `deleteMessage`, `getMessageHistoryForMember`
+
+Typed errors (`ConversationNotFoundError`, `NotMessageSenderError`, `MessageEditWindowExpiredError`, etc.) are mapped to HTTP responses by `error-mapper.ts` via `mapServiceErrorToResponse()`.
+
 ## Scaling Path
 
 1. **Current (MVP):** In-memory rooms, single server instance

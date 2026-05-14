@@ -60,6 +60,21 @@ The `requireRole("admin")` middleware on the delete endpoint was replaced with a
 
 `publicApi.ts` and its route registration (`.route("/api", publicApiRoute)`) have been deleted. All conversation functionality is now consolidated in `conversations.ts` under the unified auth model. The `public-rest-api.md` doc is archived — see below.
 
+### Phase 6: Service Layer Extraction
+
+All inline database queries have been extracted from `conversations.ts` into `chat.service.ts`. Route handlers are now thin wrappers that validate input, call the appropriate service function, and return the response. Two new service functions were added:
+
+| Service Function | Replaces | Notes |
+|---|---|---|
+| `listConversationsForMember()` | Inline `db.select()` in GET `/` member path | Handles filtering, counting, and unread count aggregation |
+| `getMessageHistoryForMember()` | Inline `db.select()` in GET `/:id/messages` member path | Joins sender name/role, validates org ownership (throws `ConversationNotFoundError`) |
+
+`conversations.ts` no longer imports `db`, `drizzle-orm`, or any schema modules.
+
+Orphaned files deleted:
+- `participant-guard.ts` — was only used by the deleted `publicApi.ts`
+- `__tests__/participant-guard.test.ts` — test for the deleted file
+
 ## Relationship to Existing Middleware
 
 - `requireTenantAuth()` and `requireApiKeyAuth()` remain as standalone middleware for non-conversation routes that haven't migrated to the unified model.
