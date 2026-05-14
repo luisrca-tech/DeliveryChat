@@ -21,7 +21,14 @@ import {
   addParticipant,
   getBulkUnreadCounts,
   markAsRead,
+  isParticipant,
+  listConversationsForVisitor,
+  getMessageHistory,
 } from "../features/chat/chat.service.js";
+import {
+  requireAuth,
+  getUnifiedAuth,
+} from "../lib/middleware/unifiedAuth.js";
 import {
   getTenantAuth,
   requireTenantAuth,
@@ -32,94 +39,141 @@ import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js"
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const conversationsRoute = new Hono()
-  .use("*", requireTenantAuth())
-  .use("*", checkBillingStatus())
-  .use("*", createTenantRateLimitMiddleware())
 
-  // GET / — list conversations with visibility rules
-  .get("/", zValidator("query", listConversationsQuerySchema), async (c) => {
-    try {
-      const { organization, user: authUser, membership } = getTenantAuth(c);
-      const { limit, offset, status, applicationId, assignedTo } =
-        c.req.valid("query");
+  // ── Dual-auth read endpoints ──
 
-      const isAdmin =
-        membership.role === "admin" || membership.role === "super_admin";
+  .get(
+    "/",
+    requireAuth(),
+    zValidator("query", listConversationsQuerySchema),
+    async (c) => {
+      try {
+        const auth = getUnifiedAuth(c);
 
-      const conditions = [
-        eq(conversations.organizationId, organization.id),
-        isNull(conversations.deletedAt),
-      ];
-      if (status) conditions.push(inArray(conversations.status, status));
-      if (applicationId)
-        conditions.push(eq(conversations.applicationId, applicationId));
+        if (auth.type === "visitor") {
+          const { limit, offset } = c.req.valid("query");
+          const result = await listConversationsForVisitor({
+            applicationId: auth.application.id,
+            organizationId: auth.application.organizationId,
+            visitorUserId: auth.visitorUserId,
+            limit,
+            offset,
+          });
+          return c.json({
+            conversations: result.conversations,
+            total: result.total,
+            limit,
+            offset,
+          });
+        }
 
-      // assignedTo=me: filter to conversations assigned to the current user
-      if (assignedTo === "me") {
-        conditions.push(eq(conversations.assignedTo, authUser.id));
-      }
+        const { organization, user: authUser, membership } = auth;
+        const { limit, offset, status, applicationId, assignedTo } =
+          c.req.valid("query");
 
-      // Visibility rules:
-      // - Admins/super_admins see all conversations
-      // - Operators see: pending (queue) + active assigned to them
-      if (!isAdmin) {
-        conditions.push(
-          or(
-            eq(conversations.status, "pending"),
-            eq(conversations.assignedTo, authUser.id),
-          )!,
+        const isAdmin =
+          membership.role === "admin" || membership.role === "super_admin";
+
+        const conditions = [
+          eq(conversations.organizationId, organization.id),
+          isNull(conversations.deletedAt),
+        ];
+        if (status) conditions.push(inArray(conversations.status, status));
+        if (applicationId)
+          conditions.push(eq(conversations.applicationId, applicationId));
+
+        if (assignedTo === "me") {
+          conditions.push(eq(conversations.assignedTo, authUser.id));
+        }
+
+        if (!isAdmin) {
+          conditions.push(
+            or(
+              eq(conversations.status, "pending"),
+              eq(conversations.assignedTo, authUser.id),
+            )!,
+          );
+        }
+
+        const result = await db
+          .select()
+          .from(conversations)
+          .where(and(...conditions))
+          .orderBy(desc(conversations.updatedAt))
+          .limit(limit)
+          .offset(offset);
+
+        const [countRow] = await db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(conversations)
+          .where(and(...conditions));
+
+        const assignedIds = result
+          .filter((conv) => conv.assignedTo === authUser.id)
+          .map((conv) => conv.id);
+
+        const unreadCounts =
+          assignedIds.length > 0
+            ? await getBulkUnreadCounts(assignedIds, authUser.id)
+            : new Map<string, number>();
+
+        const conversationsWithUnread = result.map((conv) => ({
+          ...conv,
+          unreadCount: unreadCounts.get(conv.id) ?? 0,
+        }));
+
+        return c.json({
+          conversations: conversationsWithUnread,
+          total: countRow?.count ?? 0,
+          limit,
+          offset,
+        });
+      } catch (error) {
+        console.error("Error listing conversations:", error);
+        return jsonError(
+          c,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
         );
       }
+    },
+  )
 
-      const result = await db
-        .select()
-        .from(conversations)
-        .where(and(...conditions))
-        .orderBy(desc(conversations.updatedAt))
-        .limit(limit)
-        .offset(offset);
-
-      const [countRow] = await db
-        .select({ count: sql<number>`count(*)::int` })
-        .from(conversations)
-        .where(and(...conditions));
-
-      const assignedIds = result
-        .filter((conv) => conv.assignedTo === authUser.id)
-        .map((conv) => conv.id);
-
-      const unreadCounts =
-        assignedIds.length > 0
-          ? await getBulkUnreadCounts(assignedIds, authUser.id)
-          : new Map<string, number>();
-
-      const conversationsWithUnread = result.map((conv) => ({
-        ...conv,
-        unreadCount: unreadCounts.get(conv.id) ?? 0,
-      }));
-
-      return c.json({
-        conversations: conversationsWithUnread,
-        total: countRow?.count ?? 0,
-        limit,
-        offset,
-      });
-    } catch (error) {
-      console.error("Error listing conversations:", error);
-      return jsonError(
-        c,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      );
-    }
-  })
-
-  // GET /:id — get conversation with participants
-  .get("/:id", async (c) => {
+  .get("/:id", requireAuth(), async (c) => {
     try {
-      const { organization } = getTenantAuth(c);
+      const auth = getUnifiedAuth(c);
       const conversationId = c.req.param("id");
 
+      if (auth.type === "visitor") {
+        const participantCheck = await isParticipant(
+          conversationId,
+          auth.visitorUserId,
+        );
+        if (!participantCheck) {
+          return jsonError(
+            c,
+            HTTP_STATUS.NOT_FOUND,
+            ERROR_MESSAGES.NOT_FOUND,
+            "Conversation not found",
+          );
+        }
+
+        const result = await getConversationWithParticipants(
+          conversationId,
+          auth.application.organizationId,
+        );
+        if (!result) {
+          return jsonError(
+            c,
+            HTTP_STATUS.NOT_FOUND,
+            ERROR_MESSAGES.NOT_FOUND,
+            "Conversation not found",
+          );
+        }
+        return c.json({ conversation: result });
+      }
+
+      const { organization } = auth;
       const result = await getConversationWithParticipants(
         conversationId,
         organization.id,
@@ -145,16 +199,39 @@ export const conversationsRoute = new Hono()
     }
   })
 
-  // GET /:id/messages — paginated message history
   .get(
     "/:id/messages",
+    requireAuth(),
     zValidator("query", getMessagesQuerySchema),
     async (c) => {
       try {
-        const { organization } = getTenantAuth(c);
+        const auth = getUnifiedAuth(c);
         const conversationId = c.req.param("id");
         const { limit, offset } = c.req.valid("query");
 
+        if (auth.type === "visitor") {
+          const participantCheck = await isParticipant(
+            conversationId,
+            auth.visitorUserId,
+          );
+          if (!participantCheck) {
+            return jsonError(
+              c,
+              HTTP_STATUS.NOT_FOUND,
+              ERROR_MESSAGES.NOT_FOUND,
+              "Conversation not found",
+            );
+          }
+
+          const msgs = await getMessageHistory({
+            conversationId,
+            limit,
+            offset,
+          });
+          return c.json({ messages: msgs, limit, offset });
+        }
+
+        const { organization } = auth;
         const [conv] = await db
           .select({ id: conversations.id })
           .from(conversations)
@@ -191,7 +268,10 @@ export const conversationsRoute = new Hono()
           .leftJoin(
             conversationParticipants,
             and(
-              eq(conversationParticipants.conversationId, messages.conversationId),
+              eq(
+                conversationParticipants.conversationId,
+                messages.conversationId,
+              ),
               eq(conversationParticipants.userId, messages.senderId),
             ),
           )
@@ -217,118 +297,137 @@ export const conversationsRoute = new Hono()
     },
   )
 
-  // POST /:id/accept — operator accepts a pending conversation (race-condition safe)
-  .post("/:id/accept", async (c) => {
-    try {
-      const { organization, user: authUser } = getTenantAuth(c);
-      const conversationId = c.req.param("id");
+  // ── Member-only endpoints (keep existing auth chain) ──
 
-      const updated = await acceptConversation(
-        conversationId,
-        organization.id,
-        authUser.id,
-        authUser.name,
-      );
-
-      if (!updated) {
-        return jsonError(
-          c,
-          HTTP_STATUS.CONFLICT,
-          ERROR_MESSAGES.CONFLICT,
-          "Conversation is no longer available",
-        );
-      }
-
+  .post(
+    "/:id/accept",
+    requireTenantAuth(),
+    checkBillingStatus(),
+    createTenantRateLimitMiddleware(),
+    async (c) => {
       try {
-        await addParticipant({
+        const { organization, user: authUser } = getTenantAuth(c);
+        const conversationId = c.req.param("id");
+
+        const updated = await acceptConversation(
           conversationId,
-          userId: authUser.id,
-          role: "operator",
-        });
-      } catch {
-        // Already a participant — ignore
-      }
+          organization.id,
+          authUser.id,
+          authUser.name,
+        );
 
-      return c.json({ conversation: updated });
-    } catch (error) {
-      console.error("Error accepting conversation:", error);
-      return jsonError(
-        c,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      );
-    }
-  })
+        if (!updated) {
+          return jsonError(
+            c,
+            HTTP_STATUS.CONFLICT,
+            ERROR_MESSAGES.CONFLICT,
+            "Conversation is no longer available",
+          );
+        }
 
-  // POST /:id/leave — operator leaves a conversation (back to queue)
-  .post("/:id/leave", async (c) => {
-    try {
-      const { organization, user: authUser } = getTenantAuth(c);
-      const conversationId = c.req.param("id");
+        try {
+          await addParticipant({
+            conversationId,
+            userId: authUser.id,
+            role: "operator",
+          });
+        } catch {
+          // Already a participant — ignore
+        }
 
-      const updated = await leaveConversation(
-        conversationId,
-        organization.id,
-        authUser.id,
-        authUser.name,
-      );
-
-      if (!updated) {
+        return c.json({ conversation: updated });
+      } catch (error) {
+        console.error("Error accepting conversation:", error);
         return jsonError(
           c,
-          HTTP_STATUS.NOT_FOUND,
-          ERROR_MESSAGES.NOT_FOUND,
-          "Conversation not found or not assigned to you",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
         );
       }
+    },
+  )
 
-      return c.json({ conversation: updated });
-    } catch (error) {
-      console.error("Error leaving conversation:", error);
-      return jsonError(
-        c,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      );
-    }
-  })
+  .post(
+    "/:id/leave",
+    requireTenantAuth(),
+    checkBillingStatus(),
+    createTenantRateLimitMiddleware(),
+    async (c) => {
+      try {
+        const { organization, user: authUser } = getTenantAuth(c);
+        const conversationId = c.req.param("id");
 
-  // POST /:id/resolve — mark conversation as solved
-  .post("/:id/resolve", async (c) => {
-    try {
-      const { organization, user: authUser } = getTenantAuth(c);
-      const conversationId = c.req.param("id");
+        const updated = await leaveConversation(
+          conversationId,
+          organization.id,
+          authUser.id,
+          authUser.name,
+        );
 
-      const updated = await resolveConversation(
-        conversationId,
-        organization.id,
-        authUser.id,
-        authUser.name,
-      );
+        if (!updated) {
+          return jsonError(
+            c,
+            HTTP_STATUS.NOT_FOUND,
+            ERROR_MESSAGES.NOT_FOUND,
+            "Conversation not found or not assigned to you",
+          );
+        }
 
-      if (!updated) {
+        return c.json({ conversation: updated });
+      } catch (error) {
+        console.error("Error leaving conversation:", error);
         return jsonError(
           c,
-          HTTP_STATUS.NOT_FOUND,
-          ERROR_MESSAGES.NOT_FOUND,
-          "Conversation not found or not assigned to you",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
         );
       }
+    },
+  )
 
-      return c.json({ conversation: updated });
-    } catch (error) {
-      console.error("Error resolving conversation:", error);
-      return jsonError(
-        c,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      );
-    }
-  })
+  .post(
+    "/:id/resolve",
+    requireTenantAuth(),
+    checkBillingStatus(),
+    createTenantRateLimitMiddleware(),
+    async (c) => {
+      try {
+        const { organization, user: authUser } = getTenantAuth(c);
+        const conversationId = c.req.param("id");
 
-  // PATCH /:id/subject — update subject (assigned user only)
+        const updated = await resolveConversation(
+          conversationId,
+          organization.id,
+          authUser.id,
+          authUser.name,
+        );
+
+        if (!updated) {
+          return jsonError(
+            c,
+            HTTP_STATUS.NOT_FOUND,
+            ERROR_MESSAGES.NOT_FOUND,
+            "Conversation not found or not assigned to you",
+          );
+        }
+
+        return c.json({ conversation: updated });
+      } catch (error) {
+        console.error("Error resolving conversation:", error);
+        return jsonError(
+          c,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+        );
+      }
+    },
+  )
+
   .patch(
     "/:id/subject",
+    requireTenantAuth(),
+    checkBillingStatus(),
+    createTenantRateLimitMiddleware(),
     zValidator("json", updateConversationSubjectSchema),
     async (c) => {
       try {
@@ -364,67 +463,78 @@ export const conversationsRoute = new Hono()
     },
   )
 
-  // POST /:id/read — mark conversation as read for current user
-  .post("/:id/read", async (c) => {
-    try {
-      const { user: authUser } = getTenantAuth(c);
-      const conversationId = c.req.param("id");
+  .post(
+    "/:id/read",
+    requireTenantAuth(),
+    checkBillingStatus(),
+    createTenantRateLimitMiddleware(),
+    async (c) => {
+      try {
+        const { user: authUser } = getTenantAuth(c);
+        const conversationId = c.req.param("id");
 
-      const [latestMessage] = await db
-        .select({ id: messages.id })
-        .from(messages)
-        .where(
-          and(
-            eq(messages.conversationId, conversationId),
-            isNull(messages.deletedAt),
-          ),
-        )
-        .orderBy(desc(messages.createdAt))
-        .limit(1);
+        const [latestMessage] = await db
+          .select({ id: messages.id })
+          .from(messages)
+          .where(
+            and(
+              eq(messages.conversationId, conversationId),
+              isNull(messages.deletedAt),
+            ),
+          )
+          .orderBy(desc(messages.createdAt))
+          .limit(1);
 
-      if (!latestMessage) {
+        if (!latestMessage) {
+          return c.json({ success: true });
+        }
+
+        await markAsRead(conversationId, authUser.id, latestMessage.id);
         return c.json({ success: true });
-      }
-
-      await markAsRead(conversationId, authUser.id, latestMessage.id);
-      return c.json({ success: true });
-    } catch (error) {
-      console.error("Error marking conversation as read:", error);
-      return jsonError(
-        c,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      );
-    }
-  })
-
-  // DELETE /:id — soft delete conversation (admin/super_admin only)
-  .delete("/:id", requireRole("admin"), async (c) => {
-    try {
-      const { organization } = getTenantAuth(c);
-      const conversationId = c.req.param("id");
-
-      const deleted = await softDeleteConversation(
-        conversationId,
-        organization.id,
-      );
-
-      if (!deleted) {
+      } catch (error) {
+        console.error("Error marking conversation as read:", error);
         return jsonError(
           c,
-          HTTP_STATUS.NOT_FOUND,
-          ERROR_MESSAGES.NOT_FOUND,
-          "Conversation not found",
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
         );
       }
+    },
+  )
 
-      return c.body(null, 204);
-    } catch (error) {
-      console.error("Error deleting conversation:", error);
-      return jsonError(
-        c,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      );
-    }
-  });
+  .delete(
+    "/:id",
+    requireTenantAuth(),
+    requireRole("admin"),
+    checkBillingStatus(),
+    createTenantRateLimitMiddleware(),
+    async (c) => {
+      try {
+        const { organization } = getTenantAuth(c);
+        const conversationId = c.req.param("id");
+
+        const deleted = await softDeleteConversation(
+          conversationId,
+          organization.id,
+        );
+
+        if (!deleted) {
+          return jsonError(
+            c,
+            HTTP_STATUS.NOT_FOUND,
+            ERROR_MESSAGES.NOT_FOUND,
+            "Conversation not found",
+          );
+        }
+
+        return c.body(null, 204);
+      } catch (error) {
+        console.error("Error deleting conversation:", error);
+        return jsonError(
+          c,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+        );
+      }
+    },
+  );
