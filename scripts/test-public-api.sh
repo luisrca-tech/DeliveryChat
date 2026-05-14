@@ -217,6 +217,7 @@ STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
   -H "X-App-Id: ${APP_ID}" \
   -H "X-Visitor-Id: ${VISITOR_ID}" \
   -H "Origin: ${ORIGIN}")"
+check "GET …/messages after delete → 200" "$STATUS" "200"
 DELETED_FOUND="$(jq --arg id "$MSG_ID" '[.messages[] | select(.id == $id)] | length' "$TMP_BODY" 2>/dev/null || echo "0")"
 [[ "$DELETED_FOUND" -eq 0 ]] && check "deleted message absent from list" "200" "200" \
   || check "deleted message absent from list" "404" "200"
@@ -345,9 +346,11 @@ sleep 1
 if [[ -z "$DATABASE_URL" ]]; then
   echo ""
   echo -e "\033[33m⚠ DATABASE_URL not set — skipping cross-sender tests (PATCH/DELETE on another user's message)\033[0m"
+elif ! command -v psql &>/dev/null; then
+  echo -e "\033[33m⚠ psql not installed — skipping cross-sender tests\033[0m"
 else
   OTHER_USER_ID="$(psql "$DATABASE_URL" -tAc \
-    "SELECT id FROM delivery_chat_user WHERE id <> '${VISITOR_USER_ID}' LIMIT 1")"
+    "SELECT id FROM delivery_chat_user WHERE id <> '${VISITOR_USER_ID}' LIMIT 1" 2>/dev/null || true)"
 
   if [[ -z "$OTHER_USER_ID" ]]; then
     echo -e "\033[33m⚠ No other user found in DB — skipping cross-sender tests\033[0m"
@@ -355,26 +358,30 @@ else
     PLANTED_ID="$(psql "$DATABASE_URL" -tAc \
       "INSERT INTO delivery_chat_messages (conversation_id, sender_id, type, content)
        VALUES ('${CONV_ID}', '${OTHER_USER_ID}', 'text', 'planted by test script')
-       RETURNING id")"
+       RETURNING id" 2>/dev/null || true)"
 
-    STATUS="$(http -X PATCH "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${PLANTED_ID}" \
-      -H "Content-Type: application/json" \
-      -H "Authorization: Bearer ${API_KEY}" \
-      -H "X-App-Id: ${APP_ID}" \
-      -H "X-Visitor-Id: ${VISITOR_ID}" \
-      -H "Origin: ${ORIGIN}" \
-      -d '{"content":"hijack attempt"}')"
-    check "PATCH other user's message → 403" "$STATUS" "403"
+    if [[ -z "$PLANTED_ID" ]]; then
+      echo -e "\033[33m⚠ Failed to plant message in DB — skipping cross-sender tests\033[0m"
+    else
+      STATUS="$(http -X PATCH "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${PLANTED_ID}" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${API_KEY}" \
+        -H "X-App-Id: ${APP_ID}" \
+        -H "X-Visitor-Id: ${VISITOR_ID}" \
+        -H "Origin: ${ORIGIN}" \
+        -d '{"content":"hijack attempt"}')"
+      check "PATCH other user's message → 403" "$STATUS" "403"
 
-    STATUS="$(http -X DELETE "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${PLANTED_ID}" \
-      -H "Authorization: Bearer ${API_KEY}" \
-      -H "X-App-Id: ${APP_ID}" \
-      -H "X-Visitor-Id: ${VISITOR_ID}" \
-      -H "Origin: ${ORIGIN}")"
-    check "DELETE other user's message → 403" "$STATUS" "403"
+      STATUS="$(http -X DELETE "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${PLANTED_ID}" \
+        -H "Authorization: Bearer ${API_KEY}" \
+        -H "X-App-Id: ${APP_ID}" \
+        -H "X-Visitor-Id: ${VISITOR_ID}" \
+        -H "Origin: ${ORIGIN}")"
+      check "DELETE other user's message → 403" "$STATUS" "403"
 
-    psql "$DATABASE_URL" -c \
-      "DELETE FROM delivery_chat_messages WHERE id = '${PLANTED_ID}'" >/dev/null
+      psql "$DATABASE_URL" -c \
+        "DELETE FROM delivery_chat_messages WHERE id = '${PLANTED_ID}'" >/dev/null 2>&1 || true
+    fi
   fi
 fi
 
