@@ -4,16 +4,9 @@ import {
   TEST_IDS,
   createMemberAuthContext,
   createVisitorAuthContext,
-} from "./factories.js";
+} from "../../__tests__/factories.js";
 
-const {
-  VISITOR_ID,
-  VISITOR_USER_ID,
-  MEMBER_USER_ID,
-  ORG_ID,
-  APP_ID,
-  CONV_ID,
-} = TEST_IDS;
+const { CONV_ID } = TEST_IDS;
 
 const mockAcceptConversation = vi.fn();
 const mockLeaveConversation = vi.fn();
@@ -22,52 +15,37 @@ const mockSoftDeleteConversation = vi.fn();
 const mockUpdateConversationSubject = vi.fn();
 const mockAddParticipant = vi.fn();
 
-vi.mock("../../features/chat/chat.service.js", () => ({
-  createConversation: vi.fn(),
-  getConversationWithParticipants: vi.fn(),
-  sendMessage: vi.fn(),
-  editMessage: vi.fn(),
-  deleteMessage: vi.fn(),
-  markAsRead: vi.fn(),
-  getUnreadCountForVisitor: vi.fn(),
-  getUnreadCount: vi.fn(),
-  isParticipant: vi.fn(),
-  listConversationsForVisitor: vi.fn(),
-  getMessageHistory: vi.fn(),
-  getBulkUnreadCounts: vi.fn(),
-  acceptConversation: (...args: unknown[]) => mockAcceptConversation(...args),
-  leaveConversation: (...args: unknown[]) => mockLeaveConversation(...args),
-  resolveConversation: (...args: unknown[]) =>
-    mockResolveConversation(...args),
-  softDeleteConversation: (...args: unknown[]) =>
-    mockSoftDeleteConversation(...args),
-  updateConversationSubject: (...args: unknown[]) =>
-    mockUpdateConversationSubject(...args),
-  addParticipant: (...args: unknown[]) => mockAddParticipant(...args),
-  ConversationNotFoundError: class extends Error {},
-  ConversationNotActiveError: class extends Error {},
-  MessageNotFoundError: class extends Error {},
-  NotMessageSenderError: class extends Error {},
-  MessageEditWindowExpiredError: class extends Error {},
+vi.mock("../../../features/chat/chat.service.js", async (importOriginal) => {
+  const actual =
+    await importOriginal<
+      typeof import("../../../features/chat/chat.service.js")
+    >();
+  return {
+    ...actual,
+    acceptConversation: (...args: unknown[]) =>
+      mockAcceptConversation(...args),
+    leaveConversation: (...args: unknown[]) => mockLeaveConversation(...args),
+    resolveConversation: (...args: unknown[]) =>
+      mockResolveConversation(...args),
+    softDeleteConversation: (...args: unknown[]) =>
+      mockSoftDeleteConversation(...args),
+    updateConversationSubject: (...args: unknown[]) =>
+      mockUpdateConversationSubject(...args),
+    addParticipant: (...args: unknown[]) => mockAddParticipant(...args),
+  };
+});
+
+const mockMapServiceError = vi.fn().mockReturnValue(null);
+vi.mock("../../../features/chat/error-mapper.js", () => ({
+  mapServiceErrorToResponse: (...args: unknown[]) =>
+    mockMapServiceError(...args),
 }));
 
-vi.mock("../../features/chat/error-mapper.js", () => ({
-  mapServiceErrorToResponse: vi.fn().mockReturnValue(null),
-}));
-
-vi.mock("../../features/chat/broadcasting.service.js", () => ({
-  broadcastRoomEvent: vi.fn(),
-  buildMessageEditedEvent: vi.fn().mockReturnValue({ type: "message:edited" }),
-  buildMessageDeletedEvent: vi
-    .fn()
-    .mockReturnValue({ type: "message:deleted" }),
-}));
-
-vi.mock("../../db/index.js", () => ({
+vi.mock("../../../db/index.js", () => ({
   db: { select: vi.fn() },
 }));
 
-vi.mock("../../db/schema/conversations.js", () => ({
+vi.mock("../../../db/schema/conversations.js", () => ({
   conversations: {
     id: "id",
     organizationId: "organizationId",
@@ -78,7 +56,7 @@ vi.mock("../../db/schema/conversations.js", () => ({
     deletedAt: "deletedAt",
   },
 }));
-vi.mock("../../db/schema/messages.js", () => ({
+vi.mock("../../../db/schema/messages.js", () => ({
   messages: {
     id: "id",
     conversationId: "conversationId",
@@ -89,20 +67,20 @@ vi.mock("../../db/schema/messages.js", () => ({
     deletedAt: "deletedAt",
   },
 }));
-vi.mock("../../db/schema/conversationParticipants.js", () => ({
+vi.mock("../../../db/schema/conversationParticipants.js", () => ({
   conversationParticipants: {
     conversationId: "conversationId",
     userId: "userId",
     role: "role",
   },
 }));
-vi.mock("../../db/schema/users.js", () => ({
+vi.mock("../../../db/schema/users.js", () => ({
   user: { id: "id", name: "name" },
 }));
 
 let mockUnifiedAuthContext: unknown = null;
 
-vi.mock("../../lib/middleware/unifiedAuth.js", () => ({
+vi.mock("../../../lib/middleware/unifiedAuth.js", () => ({
   requireAuth: () => async (c: any, next: () => Promise<void>) => {
     if (!mockUnifiedAuthContext) {
       return c.json({ error: "unauthorized" }, 401);
@@ -120,44 +98,25 @@ vi.mock("../../lib/middleware/unifiedAuth.js", () => ({
   },
 }));
 
-vi.mock("../../lib/middleware/auth.js", () => ({
-  requireTenantAuth: () => async (c: any, next: () => Promise<void>) => {
-    const ctx = mockUnifiedAuthContext as Record<string, unknown> | null;
-    if (!ctx || ctx.type !== "member") {
-      return c.json({ error: "unauthorized" }, 401);
-    }
-    c.set("auth", mockUnifiedAuthContext);
-    c.set("unifiedAuth", mockUnifiedAuthContext);
-    await next();
-  },
-  getTenantAuth: (c: any) => c.get("auth"),
-  requireRole: () => async (_c: any, next: () => Promise<void>) => next(),
-}));
-
-vi.mock("../../lib/middleware/billing.js", () => ({
+vi.mock("../../../lib/middleware/billing.js", () => ({
   checkBillingStatus: () => async (_c: any, next: () => Promise<void>) =>
     next(),
 }));
 
-vi.mock("../../lib/middleware/rateLimit.js", () => ({
-  createTenantRateLimitMiddleware: () =>
-    async (_c: any, next: () => Promise<void>) => next(),
-}));
-
-vi.mock("../../lib/middleware/unifiedRateLimit.js", () => ({
+vi.mock("../../../lib/middleware/unifiedRateLimit.js", () => ({
   createUnifiedRateLimitMiddleware: () =>
     async (_c: any, next: () => Promise<void>) => next(),
 }));
 
-const { conversationsRoute } = await import("../conversations.js");
+const { lifecycleRoute } = await import("../lifecycle.js");
 
-const app = new Hono().route("/conversations", conversationsRoute);
+const app = new Hono().route("/conversations", lifecycleRoute);
 
 const memberAuth = (role: "operator" | "admin" | "super_admin" = "operator") =>
   createMemberAuthContext(role);
 const visitorAuth = createVisitorAuthContext;
 
-describe("Member-only conversation endpoints reject visitors with 403", () => {
+describe("Lifecycle endpoints", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUnifiedAuthContext = null;
@@ -186,6 +145,42 @@ describe("Member-only conversation endpoints reject visitors with 403", () => {
       });
 
       expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.conversation).toEqual({ id: CONV_ID, status: "active" });
+    });
+
+    it("calls addParticipant after accepting", async () => {
+      mockUnifiedAuthContext = memberAuth();
+      mockAcceptConversation.mockResolvedValue({
+        id: CONV_ID,
+        status: "active",
+      });
+
+      await app.request(`/conversations/${CONV_ID}/accept`, {
+        method: "POST",
+      });
+
+      expect(mockAddParticipant).toHaveBeenCalledWith({
+        conversationId: CONV_ID,
+        userId: TEST_IDS.MEMBER_USER_ID,
+        role: "operator",
+      });
+    });
+
+    it("delegates service errors to error mapper", async () => {
+      mockUnifiedAuthContext = memberAuth();
+      const error = new Error("service error");
+      mockAcceptConversation.mockRejectedValue(error);
+      mockMapServiceError.mockReturnValue(
+        new Response(JSON.stringify({ error: "not_found" }), { status: 404 }),
+      );
+
+      const res = await app.request(`/conversations/${CONV_ID}/accept`, {
+        method: "POST",
+      });
+
+      expect(res.status).toBe(404);
+      expect(mockMapServiceError).toHaveBeenCalled();
     });
   });
 
@@ -212,6 +207,8 @@ describe("Member-only conversation endpoints reject visitors with 403", () => {
       });
 
       expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.conversation).toEqual({ id: CONV_ID, status: "pending" });
     });
   });
 
@@ -238,29 +235,8 @@ describe("Member-only conversation endpoints reject visitors with 403", () => {
       });
 
       expect(res.status).toBe(200);
-    });
-  });
-
-  describe("DELETE /conversations/:id", () => {
-    it("returns 403 for visitor auth", async () => {
-      mockUnifiedAuthContext = visitorAuth();
-
-      const res = await app.request(`/conversations/${CONV_ID}`, {
-        method: "DELETE",
-      });
-
-      expect(res.status).toBe(403);
-    });
-
-    it("succeeds for admin member auth", async () => {
-      mockUnifiedAuthContext = memberAuth("admin");
-      mockSoftDeleteConversation.mockResolvedValue({ id: CONV_ID });
-
-      const res = await app.request(`/conversations/${CONV_ID}`, {
-        method: "DELETE",
-      });
-
-      expect(res.status).toBe(204);
+      const body = await res.json();
+      expect(body.conversation).toEqual({ id: CONV_ID, status: "closed" });
     });
   });
 
@@ -291,6 +267,64 @@ describe("Member-only conversation endpoints reject visitors with 403", () => {
       });
 
       expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.conversation.subject).toBe("New Subject");
+    });
+
+    it("rejects invalid subject (empty string)", async () => {
+      mockUnifiedAuthContext = memberAuth();
+
+      const res = await app.request(`/conversations/${CONV_ID}/subject`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: "" }),
+      });
+
+      expect(res.status).toBe(400);
+    });
+  });
+
+  describe("DELETE /conversations/:id", () => {
+    it("returns 403 for visitor auth", async () => {
+      mockUnifiedAuthContext = visitorAuth();
+
+      const res = await app.request(`/conversations/${CONV_ID}`, {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("returns 403 for operator (non-admin)", async () => {
+      mockUnifiedAuthContext = memberAuth("operator");
+
+      const res = await app.request(`/conversations/${CONV_ID}`, {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(403);
+    });
+
+    it("succeeds for admin member auth", async () => {
+      mockUnifiedAuthContext = memberAuth("admin");
+      mockSoftDeleteConversation.mockResolvedValue({ id: CONV_ID });
+
+      const res = await app.request(`/conversations/${CONV_ID}`, {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(204);
+    });
+
+    it("succeeds for super_admin member auth", async () => {
+      mockUnifiedAuthContext = memberAuth("super_admin");
+      mockSoftDeleteConversation.mockResolvedValue({ id: CONV_ID });
+
+      const res = await app.request(`/conversations/${CONV_ID}`, {
+        method: "DELETE",
+      });
+
+      expect(res.status).toBe(204);
     });
   });
 });
