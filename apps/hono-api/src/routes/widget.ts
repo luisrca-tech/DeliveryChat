@@ -21,7 +21,7 @@ import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import {
   createConversationBodySchema,
   getMessagesQuerySchema,
-} from "./schemas/conversations.js";
+} from "./schemas/conversationSchemas.js";
 
 export const widgetRoute = new Hono()
   .get("/settings/:appId", async (c) => {

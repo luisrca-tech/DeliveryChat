@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { listConversationsQuerySchema, updateConversationSubjectSchema } from "../conversations.js";
+import {
+  listConversationsQuerySchema,
+  updateConversationSubjectSchema,
+} from "../conversationSchemas.js";
 
 describe("listConversationsQuerySchema", () => {
   it("accepts valid query with all params", () => {

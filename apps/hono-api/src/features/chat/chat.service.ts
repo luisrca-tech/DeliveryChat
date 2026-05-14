@@ -87,6 +87,36 @@ export class NotAssignedToConversationError extends Error {
   }
 }
 
+export class ConversationAlreadyAssignedError extends Error {
+  constructor(conversationId: string) {
+    super(`Conversation ${conversationId} is already assigned or no longer pending`);
+    this.name = "ConversationAlreadyAssignedError";
+  }
+}
+
+export class ConversationNotAssignedError extends Error {
+  constructor(conversationId: string, userId: string) {
+    super(
+      `Conversation ${conversationId} is not assigned to user ${userId}`,
+    );
+    this.name = "ConversationNotAssignedError";
+  }
+}
+
+export class ConversationUpdateFailedError extends Error {
+  constructor(conversationId: string, operation: string) {
+    super(`Failed to ${operation} conversation ${conversationId}`);
+    this.name = "ConversationUpdateFailedError";
+  }
+}
+
+export class SystemMessageFailedError extends Error {
+  constructor(conversationId: string) {
+    super(`Failed to create system message for conversation ${conversationId}`);
+    this.name = "SystemMessageFailedError";
+  }
+}
+
 // ── Constants ──
 
 const EDIT_WINDOW_MINUTES = 15;
@@ -466,7 +496,7 @@ export async function getConversationWithParticipants(
     )
     .limit(1);
 
-  if (!conversation) return null;
+  if (!conversation) throw new ConversationNotFoundError(conversationId);
 
   const participants = await db
     .select()
@@ -495,7 +525,9 @@ export async function closeConversation(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) throw new ConversationUpdateFailedError(conversationId, "close");
+
+  return updated;
 }
 
 export async function isParticipant(
@@ -563,7 +595,6 @@ async function broadcastSystemMessage(
   content: string,
 ): Promise<void> {
   const msg = await createSystemMessage(conversationId, content);
-  if (!msg) return;
   broadcastOrganizationEvent(
     organizationId,
     buildMessageNewEvent({
@@ -602,7 +633,7 @@ export async function acceptConversation(
     )
     .returning();
 
-  if (!updated) return null;
+  if (!updated) throw new ConversationAlreadyAssignedError(conversationId);
 
   try {
     broadcastOrganizationEvent(
@@ -652,7 +683,7 @@ export async function leaveConversation(
     )
     .returning();
 
-  if (!updated) return null;
+  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
 
   try {
     broadcastOrganizationEvent(
@@ -698,7 +729,7 @@ export async function resolveConversation(
     )
     .returning();
 
-  if (!updated) return null;
+  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
 
   try {
     broadcastOrganizationEvent(
@@ -746,7 +777,9 @@ export async function updateConversationSubject(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
+
+  return updated;
 }
 
 export async function createSystemMessage(
@@ -764,7 +797,9 @@ export async function createSystemMessage(
     })
     .returning();
 
-  return msg ?? null;
+  if (!msg) throw new SystemMessageFailedError(conversationId);
+
+  return msg;
 }
 
 export async function softDeleteConversation(
@@ -786,7 +821,9 @@ export async function softDeleteConversation(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) throw new ConversationNotFoundError(conversationId);
+
+  return updated;
 }
 
 export async function getMessagesSince(

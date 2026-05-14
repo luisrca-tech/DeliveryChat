@@ -352,12 +352,13 @@ describe("chat.service", () => {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
-    it("returns null for non-existent conversation", async () => {
+    it("throws ConversationUpdateFailedError for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await closeConversation("conv-999", "org-1");
-      expect(result).toBeNull();
+      await expect(closeConversation("conv-999", "org-1")).rejects.toThrow(
+        "Failed to close conversation conv-999",
+      );
     });
   });
 
@@ -388,12 +389,13 @@ describe("chat.service", () => {
       });
     });
 
-    it("returns null for non-existent conversation", async () => {
+    it("throws ConversationNotFoundError for non-existent conversation", async () => {
       const selectChain = chainMock([]);
       mockSelect.mockReturnValueOnce(selectChain);
 
-      const result = await getConversationWithParticipants("conv-999", "org-1");
-      expect(result).toBeNull();
+      await expect(getConversationWithParticipants("conv-999", "org-1")).rejects.toThrow(
+        "Conversation not found: conv-999",
+      );
     });
   });
 
@@ -451,21 +453,23 @@ describe("chat.service", () => {
       );
     });
 
-    it("returns null when conversation is already accepted (race condition lost)", async () => {
+    it("throws ConversationAlreadyAssignedError when conversation is already accepted (race condition lost)", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await acceptConversation("conv-1", "org-1", "operator-2", "Bob");
-      expect(result).toBeNull();
+      await expect(acceptConversation("conv-1", "org-1", "operator-2", "Bob")).rejects.toThrow(
+        "Conversation conv-1 is already assigned or no longer pending",
+      );
       expect(mockBroadcastOrganizationEvent).not.toHaveBeenCalled();
     });
 
-    it("returns null for non-existent conversation", async () => {
+    it("throws ConversationAlreadyAssignedError for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await acceptConversation("conv-999", "org-1", "operator-1", "Alice");
-      expect(result).toBeNull();
+      await expect(acceptConversation("conv-999", "org-1", "operator-1", "Alice")).rejects.toThrow(
+        "Conversation conv-999 is already assigned or no longer pending",
+      );
     });
 
     it("does not throw when broadcast fails", async () => {
@@ -543,21 +547,23 @@ describe("chat.service", () => {
       );
     });
 
-    it("returns null when operator is not the assigned one", async () => {
+    it("throws ConversationNotAssignedError when operator is not the assigned one", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await leaveConversation("conv-1", "org-1", "operator-wrong", "Wrong");
-      expect(result).toBeNull();
+      await expect(leaveConversation("conv-1", "org-1", "operator-wrong", "Wrong")).rejects.toThrow(
+        "Conversation conv-1 is not assigned to user operator-wrong",
+      );
       expect(mockBroadcastOrganizationEvent).not.toHaveBeenCalled();
     });
 
-    it("returns null for non-existent conversation", async () => {
+    it("throws ConversationNotAssignedError for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await leaveConversation("conv-999", "org-1", "operator-1", "Alice");
-      expect(result).toBeNull();
+      await expect(leaveConversation("conv-999", "org-1", "operator-1", "Alice")).rejects.toThrow(
+        "Conversation conv-999 is not assigned to user operator-1",
+      );
     });
   });
 
@@ -615,12 +621,13 @@ describe("chat.service", () => {
       );
     });
 
-    it("returns null for non-existent conversation", async () => {
+    it("throws ConversationNotAssignedError for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await resolveConversation("conv-999", "org-1", "operator-1", "Alice");
-      expect(result).toBeNull();
+      await expect(resolveConversation("conv-999", "org-1", "operator-1", "Alice")).rejects.toThrow(
+        "Conversation conv-999 is not assigned to user operator-1",
+      );
     });
   });
 
@@ -730,20 +737,22 @@ describe("chat.service", () => {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
-    it("returns null for non-existent conversation", async () => {
+    it("throws ConversationNotFoundError for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await softDeleteConversation("conv-999", "org-1");
-      expect(result).toBeNull();
+      await expect(softDeleteConversation("conv-999", "org-1")).rejects.toThrow(
+        "Conversation not found: conv-999",
+      );
     });
 
-    it("returns null for already-deleted conversation", async () => {
+    it("throws ConversationNotFoundError for already-deleted conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await softDeleteConversation("conv-deleted", "org-1");
-      expect(result).toBeNull();
+      await expect(softDeleteConversation("conv-deleted", "org-1")).rejects.toThrow(
+        "Conversation not found: conv-deleted",
+      );
     });
   });
 
@@ -771,32 +780,26 @@ describe("chat.service", () => {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
-    it("returns null when user is not assignedTo", async () => {
+    it("throws ConversationNotAssignedError when user is not assignedTo", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await updateConversationSubject(
-        "conv-1",
-        "org-1",
-        "wrong-user",
-        "New subject",
+      await expect(
+        updateConversationSubject("conv-1", "org-1", "wrong-user", "New subject"),
+      ).rejects.toThrow(
+        "Conversation conv-1 is not assigned to user wrong-user",
       );
-
-      expect(result).toBeNull();
     });
 
-    it("returns null for non-existent conversation", async () => {
+    it("throws ConversationNotAssignedError for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await updateConversationSubject(
-        "conv-999",
-        "org-1",
-        "operator-1",
-        "New subject",
+      await expect(
+        updateConversationSubject("conv-999", "org-1", "operator-1", "New subject"),
+      ).rejects.toThrow(
+        "Conversation conv-999 is not assigned to user operator-1",
       );
-
-      expect(result).toBeNull();
     });
   });
 

@@ -1,12 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
+import {
+  TEST_IDS,
+  createMemberAuthContext,
+  createVisitorAuthContext,
+} from "./factories.js";
 
-const VISITOR_ID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890";
-const VISITOR_USER_ID = "visitor-user-001";
-const MEMBER_USER_ID = "member-user-001";
-const ORG_ID = "org-001";
-const APP_ID = "app-001";
-const CONV_ID = "conv-001";
+const {
+  VISITOR_ID,
+  VISITOR_USER_ID,
+  MEMBER_USER_ID,
+  ORG_ID,
+  APP_ID,
+  CONV_ID,
+} = TEST_IDS;
 
 const mockAcceptConversation = vi.fn();
 const mockLeaveConversation = vi.fn();
@@ -146,35 +153,9 @@ const { conversationsRoute } = await import("../conversations.js");
 
 const app = new Hono().route("/conversations", conversationsRoute);
 
-function memberAuth(role: "operator" | "admin" | "super_admin" = "operator") {
-  return {
-    type: "member" as const,
-    session: {},
-    user: { id: MEMBER_USER_ID, name: "Test Member" },
-    organization: { id: ORG_ID, name: "Test Org", slug: "test-org" },
-    membership: {
-      id: "mem-001",
-      role,
-      userId: MEMBER_USER_ID,
-      organizationId: ORG_ID,
-    },
-  };
-}
-
-function visitorAuth() {
-  return {
-    type: "visitor" as const,
-    visitorId: VISITOR_ID,
-    visitorUserId: VISITOR_USER_ID,
-    application: {
-      id: APP_ID,
-      organizationId: ORG_ID,
-      domain: "example.com",
-      allowedOrigins: ["https://example.com"],
-    },
-    apiKey: { id: "key-001", environment: "live" as const },
-  };
-}
+const memberAuth = (role: "operator" | "admin" | "super_admin" = "operator") =>
+  createMemberAuthContext(role);
+const visitorAuth = createVisitorAuthContext;
 
 describe("Member-only conversation endpoints reject visitors with 403", () => {
   beforeEach(() => {

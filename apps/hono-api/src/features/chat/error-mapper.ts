@@ -6,6 +6,11 @@ import {
   MessageEditWindowExpiredError,
   ConversationNotFoundError,
   ConversationNotActiveError,
+  ParticipantAlreadyExistsError,
+  NotAssignedToConversationError,
+  ConversationAlreadyAssignedError,
+  ConversationNotAssignedError,
+  ConversationUpdateFailedError,
 } from "./chat.service.js";
 
 export function mapServiceErrorToResponse(
@@ -26,6 +31,21 @@ export function mapServiceErrorToResponse(
   }
   if (error instanceof ConversationNotActiveError) {
     return jsonError(c, HTTP_STATUS.UNPROCESSABLE_ENTITY, "conversation_not_active", error.message);
+  }
+  if (error instanceof ParticipantAlreadyExistsError) {
+    return jsonError(c, HTTP_STATUS.CONFLICT, ERROR_MESSAGES.CONFLICT, error.message);
+  }
+  if (error instanceof NotAssignedToConversationError) {
+    return jsonError(c, HTTP_STATUS.FORBIDDEN, ERROR_MESSAGES.FORBIDDEN, error.message);
+  }
+  if (error instanceof ConversationAlreadyAssignedError) {
+    return jsonError(c, HTTP_STATUS.CONFLICT, ERROR_MESSAGES.CONFLICT, error.message);
+  }
+  if (error instanceof ConversationNotAssignedError) {
+    return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, error.message);
+  }
+  if (error instanceof ConversationUpdateFailedError) {
+    return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND, error.message);
   }
   return null;
 }

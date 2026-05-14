@@ -15,6 +15,12 @@ const {
   MessageEditWindowExpiredError,
   ConversationNotFoundError,
   ConversationNotActiveError,
+  ParticipantAlreadyExistsError,
+  NotAssignedToConversationError,
+  ConversationAlreadyAssignedError,
+  ConversationNotAssignedError,
+  ConversationUpdateFailedError,
+  SystemMessageFailedError,
 } = await import("../chat.service.js");
 
 function createTestApp(errorToThrow: Error) {
@@ -68,6 +74,54 @@ describe("mapServiceErrorToResponse", () => {
     expect(res.status).toBe(422);
     const body = await res.json();
     expect(body.error).toBe("conversation_not_active");
+  });
+
+  it("maps ParticipantAlreadyExistsError to 409", async () => {
+    const app = createTestApp(new ParticipantAlreadyExistsError("conv-1", "user-1"));
+    const res = await app.request("/test");
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe("conflict");
+  });
+
+  it("maps NotAssignedToConversationError to 403", async () => {
+    const app = createTestApp(new NotAssignedToConversationError("conv-1", "user-1"));
+    const res = await app.request("/test");
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe("forbidden");
+  });
+
+  it("maps ConversationAlreadyAssignedError to 409", async () => {
+    const app = createTestApp(new ConversationAlreadyAssignedError("conv-1"));
+    const res = await app.request("/test");
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.error).toBe("conflict");
+  });
+
+  it("maps ConversationNotAssignedError to 404", async () => {
+    const app = createTestApp(new ConversationNotAssignedError("conv-1", "user-1"));
+    const res = await app.request("/test");
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("not_found");
+  });
+
+  it("maps ConversationUpdateFailedError to 404", async () => {
+    const app = createTestApp(new ConversationUpdateFailedError("conv-1", "resolve"));
+    const res = await app.request("/test");
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("not_found");
+  });
+
+  it("maps SystemMessageFailedError to 500 (but returns null to let generic handler catch it)", async () => {
+    const app = createTestApp(new SystemMessageFailedError("conv-1"));
+    const res = await app.request("/test");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.fallthrough).toBe(true);
   });
 
   it("returns null for unknown errors", async () => {

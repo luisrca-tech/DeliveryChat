@@ -8,7 +8,7 @@ import {
   sendMessageBodySchema,
   editMessageBodySchema,
   markAsReadBodySchema,
-} from "./schemas/conversations.js";
+} from "./schemas/conversationSchemas.js";
 import {
   createConversation,
   getConversationWithParticipants,
@@ -101,12 +101,9 @@ export const conversationsRoute = new Hono()
           offset,
         });
       } catch (error) {
-        console.error("Error listing conversations:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -134,14 +131,6 @@ export const conversationsRoute = new Hono()
           conversationId,
           auth.application.organizationId,
         );
-        if (!result) {
-          return jsonError(
-            c,
-            HTTP_STATUS.NOT_FOUND,
-            ERROR_MESSAGES.NOT_FOUND,
-            "Conversation not found",
-          );
-        }
         return c.json({ conversation: result });
       }
 
@@ -151,23 +140,11 @@ export const conversationsRoute = new Hono()
         organization.id,
       );
 
-      if (!result) {
-        return jsonError(
-          c,
-          HTTP_STATUS.NOT_FOUND,
-          ERROR_MESSAGES.NOT_FOUND,
-          "Conversation not found",
-        );
-      }
-
       return c.json({ conversation: result });
     } catch (error) {
-      console.error("Error fetching conversation:", error);
-      return jsonError(
-        c,
-        HTTP_STATUS.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-      );
+      const mapped = mapServiceErrorToResponse(c, error);
+      if (mapped) return mapped;
+      throw error;
     }
   })
 
@@ -205,35 +182,17 @@ export const conversationsRoute = new Hono()
 
         const { organization } = auth;
 
-        try {
-          const result = await getMessageHistoryForMember({
-            conversationId,
-            organizationId: organization.id,
-            limit,
-            offset,
-          });
-          return c.json({ messages: result, limit, offset });
-        } catch (error) {
-          if (
-            error instanceof Error &&
-            error.name === "ConversationNotFoundError"
-          ) {
-            return jsonError(
-              c,
-              HTTP_STATUS.NOT_FOUND,
-              ERROR_MESSAGES.NOT_FOUND,
-              "Conversation not found",
-            );
-          }
-          throw error;
-        }
+        const result = await getMessageHistoryForMember({
+          conversationId,
+          organizationId: organization.id,
+          limit,
+          offset,
+        });
+        return c.json({ messages: result, limit, offset });
       } catch (error) {
-        console.error("Error fetching messages:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -436,15 +395,6 @@ export const conversationsRoute = new Hono()
           authUser.name,
         );
 
-        if (!updated) {
-          return jsonError(
-            c,
-            HTTP_STATUS.CONFLICT,
-            ERROR_MESSAGES.CONFLICT,
-            "Conversation is no longer available",
-          );
-        }
-
         try {
           await addParticipant({
             conversationId,
@@ -457,12 +407,9 @@ export const conversationsRoute = new Hono()
 
         return c.json({ conversation: updated });
       } catch (error) {
-        console.error("Error accepting conversation:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -487,23 +434,11 @@ export const conversationsRoute = new Hono()
           authUser.name,
         );
 
-        if (!updated) {
-          return jsonError(
-            c,
-            HTTP_STATUS.NOT_FOUND,
-            ERROR_MESSAGES.NOT_FOUND,
-            "Conversation not found or not assigned to you",
-          );
-        }
-
         return c.json({ conversation: updated });
       } catch (error) {
-        console.error("Error leaving conversation:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -528,23 +463,11 @@ export const conversationsRoute = new Hono()
           authUser.name,
         );
 
-        if (!updated) {
-          return jsonError(
-            c,
-            HTTP_STATUS.NOT_FOUND,
-            ERROR_MESSAGES.NOT_FOUND,
-            "Conversation not found or not assigned to you",
-          );
-        }
-
         return c.json({ conversation: updated });
       } catch (error) {
-        console.error("Error resolving conversation:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -571,23 +494,11 @@ export const conversationsRoute = new Hono()
           subject,
         );
 
-        if (!updated) {
-          return jsonError(
-            c,
-            HTTP_STATUS.NOT_FOUND,
-            ERROR_MESSAGES.NOT_FOUND,
-            "Conversation not found or not assigned to you",
-          );
-        }
-
         return c.json({ conversation: updated });
       } catch (error) {
-        console.error("Error updating conversation subject:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -613,12 +524,9 @@ export const conversationsRoute = new Hono()
         await markAsRead(conversationId, userId, messageId);
         return c.json({ success: true });
       } catch (error) {
-        console.error("Error marking conversation as read:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -648,12 +556,9 @@ export const conversationsRoute = new Hono()
         const unreadCount = await getUnreadCount(conversationId, userId);
         return c.json({ unreadCount });
       } catch (error) {
-        console.error("Error getting unread count:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   )
@@ -684,28 +589,16 @@ export const conversationsRoute = new Hono()
         const { organization } = auth;
         const conversationId = c.req.param("id");
 
-        const deleted = await softDeleteConversation(
+        await softDeleteConversation(
           conversationId,
           organization.id,
         );
 
-        if (!deleted) {
-          return jsonError(
-            c,
-            HTTP_STATUS.NOT_FOUND,
-            ERROR_MESSAGES.NOT_FOUND,
-            "Conversation not found",
-          );
-        }
-
         return c.body(null, 204);
       } catch (error) {
-        console.error("Error deleting conversation:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-        );
+        const mapped = mapServiceErrorToResponse(c, error);
+        if (mapped) return mapped;
+        throw error;
       }
     },
   );
