@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { handleMessageNew } from "./handleMessageNew";
 import type { MessageNewPayload } from "@repo/types";
+import type { WebSocketHandlerContext } from "../types/chat.types";
 
 function makePayload(overrides: Partial<MessageNewPayload> = {}): MessageNewPayload {
   return {
@@ -16,145 +17,96 @@ function makePayload(overrides: Partial<MessageNewPayload> = {}): MessageNewPayl
   };
 }
 
+function createCtx(overrides: Partial<WebSocketHandlerContext> = {}): WebSocketHandlerContext {
+  return {
+    activeConversationId: null,
+    processedMsgIds: new Set(),
+    messagesQueryKey: (id) => ["conversations", "messages", id, 50, 0] as const,
+    invalidateQueries: vi.fn(),
+    setQueryData: vi.fn(),
+    markAsRead: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
 describe("handleMessageNew", () => {
-  let invalidateQueries: ReturnType<typeof vi.fn>;
-  let setQueryData: ReturnType<typeof vi.fn>;
-  let markAsRead: ReturnType<typeof vi.fn>;
-  let processedIds: Set<string>;
-  const messagesQueryKey = (conversationId: string) =>
-    ["conversations", "messages", conversationId, 50, 0] as const;
+  let ctx: WebSocketHandlerContext;
 
   beforeEach(() => {
-    invalidateQueries = vi.fn();
-    setQueryData = vi.fn();
-    markAsRead = vi.fn().mockResolvedValue(undefined);
-    processedIds = new Set();
+    ctx = createCtx({ activeConversationId: "conv-1" });
   });
 
   it("fires invalidateQueries immediately for a visitor message in the active conversation", () => {
     const payload = makePayload({ senderRole: "visitor", conversationId: "conv-1" });
 
-    handleMessageNew(payload, {
-      activeConversationId: "conv-1",
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
+    handleMessageNew(payload, ctx);
 
-    expect(invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
   });
 
   it("fires markAsRead as fire-and-forget for a visitor message in the active conversation", () => {
     const payload = makePayload({ senderRole: "visitor", conversationId: "conv-1" });
 
-    handleMessageNew(payload, {
-      activeConversationId: "conv-1",
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
+    handleMessageNew(payload, ctx);
 
-    expect(markAsRead).toHaveBeenCalledWith("conv-1");
+    expect(ctx.markAsRead).toHaveBeenCalledWith("conv-1");
   });
 
   it("does not chain invalidateQueries inside markAsRead.then()", async () => {
     let resolveMarkAsRead!: () => void;
-    markAsRead.mockReturnValue(new Promise<void>((r) => { resolveMarkAsRead = r; }));
+    const markAsRead = vi.fn().mockReturnValue(new Promise<void>((r) => { resolveMarkAsRead = r; }));
+    ctx = createCtx({ activeConversationId: "conv-1", markAsRead });
 
     const payload = makePayload({ senderRole: "visitor", conversationId: "conv-1" });
 
-    handleMessageNew(payload, {
-      activeConversationId: "conv-1",
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
+    handleMessageNew(payload, ctx);
 
-    expect(invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
 
     resolveMarkAsRead();
     await Promise.resolve();
 
-    expect(invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
   });
 
   it("fires invalidateQueries for messages in non-active conversations", () => {
+    ctx = createCtx({ activeConversationId: "conv-1" });
     const payload = makePayload({ conversationId: "conv-2" });
 
-    handleMessageNew(payload, {
-      activeConversationId: "conv-1",
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
+    handleMessageNew(payload, ctx);
 
-    expect(invalidateQueries).toHaveBeenCalledTimes(1);
-    expect(markAsRead).not.toHaveBeenCalled();
+    expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(ctx.markAsRead).not.toHaveBeenCalled();
   });
 
   it("does not call markAsRead for operator messages in the active conversation", () => {
     const payload = makePayload({ senderRole: "operator", conversationId: "conv-1" });
 
-    handleMessageNew(payload, {
-      activeConversationId: "conv-1",
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
+    handleMessageNew(payload, ctx);
 
-    expect(invalidateQueries).toHaveBeenCalledTimes(1);
-    expect(markAsRead).not.toHaveBeenCalled();
+    expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(ctx.markAsRead).not.toHaveBeenCalled();
   });
 
   it("deduplicates messages by id", () => {
+    ctx = createCtx();
     const payload = makePayload({ id: "msg-dup" });
 
-    handleMessageNew(payload, {
-      activeConversationId: null,
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
+    handleMessageNew(payload, ctx);
+    handleMessageNew(payload, ctx);
 
-    handleMessageNew(payload, {
-      activeConversationId: null,
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
-
-    expect(invalidateQueries).toHaveBeenCalledTimes(1);
-    expect(setQueryData).toHaveBeenCalledTimes(1);
+    expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
+    expect(ctx.setQueryData).toHaveBeenCalledTimes(1);
   });
 
   it("updates the messages cache via setQueryData", () => {
+    ctx = createCtx();
     const payload = makePayload();
 
-    handleMessageNew(payload, {
-      activeConversationId: null,
-      processedMsgIds: processedIds,
-      messagesQueryKey,
-      invalidateQueries,
-      setQueryData,
-      markAsRead,
-    });
+    handleMessageNew(payload, ctx);
 
-    expect(setQueryData).toHaveBeenCalledTimes(1);
-    expect(setQueryData).toHaveBeenCalledWith(
+    expect(ctx.setQueryData).toHaveBeenCalledTimes(1);
+    expect(ctx.setQueryData).toHaveBeenCalledWith(
       expect.arrayContaining(["conversations", "messages", payload.conversationId]),
       expect.any(Function),
     );

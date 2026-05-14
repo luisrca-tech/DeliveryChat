@@ -1,30 +1,11 @@
 import { useEffect } from "react";
 import type { NavigateOptions } from "@tanstack/react-router";
 import { useConversationDetailQuery } from "./useConversationsQuery";
-import type { Conversation } from "../types/chat.types";
-
-function inferFilterForUrl(
-  conversation: Conversation,
-  currentUserRole: string,
-  sessionUserId: string,
-): string {
-  const isAdmin =
-    currentUserRole === "admin" || currentUserRole === "super_admin";
-  if (conversation.status === "pending") return isAdmin ? "all" : "queue";
-  if (conversation.status === "closed") return "closed";
-  if (conversation.status === "active") {
-    if (isAdmin) return "all";
-    return conversation.assignedTo === sessionUserId ? "mine" : "queue";
-  }
-  return "queue";
-}
+import { isAdminRole } from "../lib/conversationPermissions";
+import { inferFilterForConversation } from "../lib/conversationFilterInference";
 
 type NavigateFn = (opts: NavigateOptions) => void;
 
-/**
- * When the URL has conversationId but no filter (e.g. deep link / refresh),
- * loads detail and replaces search with an inferred filter so the list query matches.
- */
 export function useInferMissingConversationFilterUrl(
   selectedId: string | undefined,
   urlFilter: string | undefined,
@@ -38,11 +19,10 @@ export function useInferMissingConversationFilterUrl(
   useEffect(() => {
     if (!selectedId || urlFilter) return;
     if (!conversationSnapshot) return;
-    const needsSessionForInfer =
-      currentUserRole !== "admin" && currentUserRole !== "super_admin";
+    const needsSessionForInfer = !isAdminRole(currentUserRole);
     if (needsSessionForInfer && !sessionUserId) return;
 
-    const inferred = inferFilterForUrl(
+    const inferred = inferFilterForConversation(
       conversationSnapshot,
       currentUserRole,
       sessionUserId,

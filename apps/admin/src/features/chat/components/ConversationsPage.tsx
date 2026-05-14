@@ -12,6 +12,7 @@ import { useMembersQuery } from "@/features/members/hooks/useMembersQuery";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { conversationsQueryKeys } from "../hooks/useConversationsQuery";
 import { markConversationAsRead } from "../lib/conversations.client";
+import { isAdminRole } from "../lib/conversationPermissions";
 import { Route } from "@/routes/_system/conversations";
 import type { ConversationsListResponse } from "../types/chat.types";
 
@@ -32,8 +33,7 @@ export function ConversationsPage() {
   const currentUserRole =
     membersData?.users?.find((m) => m.id === actorId)?.role ?? "operator";
 
-  const isAdmin =
-    currentUserRole === "admin" || currentUserRole === "super_admin";
+  const isAdmin = isAdminRole(currentUserRole);
   const defaultFilter = isAdmin ? "all" : "queue";
   const resolvedFilter = urlFilter ?? defaultFilter;
 
@@ -109,7 +109,7 @@ export function ConversationsPage() {
       <ConversationListPanel
         selectedId={selectedId ?? null}
         onSelect={setSelectedId}
-        currentUserRole={currentUserRole}
+        isAdmin={isAdmin}
         filter={resolvedFilter}
         appId={appId}
         onFiltersChange={onFiltersChange}

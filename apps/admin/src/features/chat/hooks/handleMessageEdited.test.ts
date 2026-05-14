@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { handleMessageEdited } from "./handleMessageEdited";
 import type { MessageEditedPayload } from "@repo/types";
+import type { WebSocketHandlerContext } from "../types/chat.types";
 
 function makePayload(overrides: Partial<MessageEditedPayload> = {}): MessageEditedPayload {
   return {
@@ -13,22 +14,31 @@ function makePayload(overrides: Partial<MessageEditedPayload> = {}): MessageEdit
   };
 }
 
+function createCtx(overrides: Partial<WebSocketHandlerContext> = {}): WebSocketHandlerContext {
+  return {
+    activeConversationId: null,
+    processedMsgIds: new Set(),
+    messagesQueryKey: (id) => ["conversations", "messages", id, 50, 0] as const,
+    invalidateQueries: vi.fn(),
+    setQueryData: vi.fn(),
+    markAsRead: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
 function makeMessagesCache(messages: Array<{ id: string; content: string; editedAt: string | null }>) {
   return { messages, limit: 50, offset: 0 };
 }
 
 describe("handleMessageEdited", () => {
   it("updates the matching message's content and editedAt in the cache", () => {
-    const setQueryData = vi.fn();
+    const ctx = createCtx();
     const payload = makePayload();
 
-    handleMessageEdited(payload, {
-      messagesQueryKey: (id) => ["conversations", "messages", id, 50, 0],
-      setQueryData,
-    });
+    handleMessageEdited(payload, ctx);
 
-    expect(setQueryData).toHaveBeenCalledTimes(1);
-    const [key, updater] = setQueryData.mock.calls[0]!;
+    expect(ctx.setQueryData).toHaveBeenCalledTimes(1);
+    const [key, updater] = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock.calls[0]!;
     expect(key).toEqual(["conversations", "messages", "conv-1", 50, 0]);
 
     const old = makeMessagesCache([
@@ -41,24 +51,18 @@ describe("handleMessageEdited", () => {
   });
 
   it("returns the cache unchanged when it is undefined", () => {
-    const setQueryData = vi.fn();
-    handleMessageEdited(makePayload(), {
-      messagesQueryKey: (id) => ["conversations", "messages", id, 50, 0],
-      setQueryData,
-    });
+    const ctx = createCtx();
+    handleMessageEdited(makePayload(), ctx);
 
-    const updater = setQueryData.mock.calls[0]![1];
+    const updater = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock.calls[0]![1];
     expect(updater(undefined)).toBeUndefined();
   });
 
   it("leaves messages unchanged when the message id is not found", () => {
-    const setQueryData = vi.fn();
-    handleMessageEdited(makePayload({ messageId: "nonexistent" }), {
-      messagesQueryKey: (id) => ["conversations", "messages", id, 50, 0],
-      setQueryData,
-    });
+    const ctx = createCtx();
+    handleMessageEdited(makePayload({ messageId: "nonexistent" }), ctx);
 
-    const updater = setQueryData.mock.calls[0]![1];
+    const updater = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock.calls[0]![1];
     const old = makeMessagesCache([{ id: "msg-1", content: "original", editedAt: null }]);
     const result = updater(old);
     expect(result.messages[0]).toEqual({ id: "msg-1", content: "original", editedAt: null });
