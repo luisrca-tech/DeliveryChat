@@ -7,7 +7,7 @@ System messages are automated, immutable records inserted into conversation hist
 | Event | Content Format | Trigger |
 |-------|---------------|---------|
 | Accept | `"{operatorName} joined the conversation"` | `POST /conversations/:id/accept` |
-| Leave | `"{operatorName} left the conversation. You'll be placed back in the queue shortly."` | `POST /conversations/:id/leave` |
+| Leave | `"{operatorName} left the conversation. You'll be placed back in the queue immediately."` | `POST /conversations/:id/leave` |
 | Resolve | `"{operatorName} resolved the conversation"` | `POST /conversations/:id/resolve` |
 
 ## Storage
