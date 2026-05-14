@@ -7,7 +7,7 @@ import { MessageInput } from "./MessageInput";
 import { useConversationMessagesQuery, useConversationDetailQuery } from "../hooks/useConversationsQuery";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useMessageActions } from "../hooks/useMessageActions";
-import { useAcceptAction } from "../hooks/useConversationActions";
+import { useConversationAction } from "../hooks/useConversationAction";
 import { getConversationPermissions } from "../lib/conversationPermissions";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
 import type { TypingUser } from "../hooks/useWebSocket";
@@ -41,7 +41,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
 
   const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId, ws.registerAckedId);
   const { editMessage, deleteMessage } = useMessageActions(ws.sendEvent);
-  const acceptAction = useAcceptAction(currentUserRole, ws.setActiveRoom);
+  const acceptAction = useConversationAction("accept", currentUserRole, ws.setActiveRoom);
 
   if (!conversationId) {
     return (

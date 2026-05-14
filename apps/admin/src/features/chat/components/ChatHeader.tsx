@@ -1,6 +1,5 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { MessageSquare, LogOut, CheckCircle, MoreVertical, Pencil, Check, X } from "lucide-react";
-import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
@@ -10,8 +9,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import { useUpdateSubjectMutation } from "../hooks/useConversationMutations";
-import { useLeaveAction, useResolveAction } from "../hooks/useConversationActions";
+import { useConversationAction } from "../hooks/useConversationAction";
+import { useSubjectEditor } from "../hooks/useSubjectEditor";
 import type { ConversationPermissions } from "../lib/conversationPermissions";
 import type { ConversationWithParticipants } from "../types/chat.types";
 
@@ -29,40 +28,11 @@ const statusColors: Record<string, string> = {
 
 export function ChatHeader({ conversation, permissions, currentUserRole }: Props) {
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
-  const leaveAction = useLeaveAction(currentUserRole);
-  const resolveAction = useResolveAction(currentUserRole);
-  const updateSubjectMutation = useUpdateSubjectMutation();
+  const leaveAction = useConversationAction("leave", currentUserRole);
+  const resolveAction = useConversationAction("resolve", currentUserRole);
+  const subject = useSubjectEditor(conversation);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
-  const [isEditingSubject, setIsEditingSubject] = useState(false);
-  const [subjectDraft, setSubjectDraft] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const startEditing = () => {
-    setSubjectDraft(conversation.subject ?? "");
-    setIsEditingSubject(true);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  };
-
-  const cancelEditing = () => {
-    setIsEditingSubject(false);
-    setSubjectDraft("");
-  };
-
-  const saveSubject = () => {
-    const trimmed = subjectDraft.trim();
-    if (!trimmed) return;
-    updateSubjectMutation.mutate(
-      { id: conversation.id, subject: trimmed },
-      {
-        onSuccess: () => {
-          setIsEditingSubject(false);
-          toast.success("Subject updated");
-        },
-        onError: () => toast.error("Failed to update subject"),
-      },
-    );
-  };
 
   const handleLeave = async () => {
     const ok = await leaveAction.execute(conversation.id);
@@ -78,26 +48,26 @@ export function ChatHeader({ conversation, permissions, currentUserRole }: Props
     <div className="h-14 px-4 flex items-center gap-3 border-b border-border bg-card/50 shrink-0">
       <MessageSquare className="h-4 w-4 text-muted-foreground" />
       <div className="flex-1 min-w-0">
-        {isEditingSubject ? (
+        {subject.isEditing ? (
           <div className="flex items-center gap-1">
             <Input
-              ref={inputRef}
-              value={subjectDraft}
-              onChange={(e) => setSubjectDraft(e.target.value)}
+              ref={subject.inputRef}
+              value={subject.draft}
+              onChange={(e) => subject.setDraft(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") saveSubject();
-                if (e.key === "Escape") cancelEditing();
+                if (e.key === "Enter") subject.saveSubject();
+                if (e.key === "Escape") subject.cancelEditing();
               }}
               className="h-7 text-sm w-1/2"
               maxLength={500}
-              disabled={updateSubjectMutation.isPending}
+              disabled={subject.isPending}
             />
             <Button
               variant="ghost"
               size="icon"
               className="h-7 w-7 shrink-0"
-              onClick={saveSubject}
-              disabled={!subjectDraft.trim() || updateSubjectMutation.isPending}
+              onClick={subject.saveSubject}
+              disabled={!subject.draft.trim() || subject.isPending}
             >
               <Check className="h-3.5 w-3.5" />
             </Button>
@@ -105,8 +75,8 @@ export function ChatHeader({ conversation, permissions, currentUserRole }: Props
               variant="ghost"
               size="icon"
               className="h-7 w-7 shrink-0"
-              onClick={cancelEditing}
-              disabled={updateSubjectMutation.isPending}
+              onClick={subject.cancelEditing}
+              disabled={subject.isPending}
             >
               <X className="h-3.5 w-3.5" />
             </Button>
@@ -121,7 +91,7 @@ export function ChatHeader({ conversation, permissions, currentUserRole }: Props
                 variant="ghost"
                 size="icon"
                 className="h-6 w-6 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={startEditing}
+                onClick={subject.startEditing}
               >
                 <Pencil className="h-3 w-3" />
               </Button>

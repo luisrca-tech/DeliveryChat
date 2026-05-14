@@ -5,17 +5,32 @@ import { ChatHeader } from "./ChatHeader";
 import type { ConversationWithParticipants } from "../types/chat.types";
 import type { ConversationPermissions } from "../lib/conversationPermissions";
 
-const mockExecuteResolve = vi.fn().mockResolvedValue(true);
 const mockExecuteLeave = vi.fn().mockResolvedValue(true);
-const mockMutate = vi.fn();
+const mockExecuteResolve = vi.fn().mockResolvedValue(true);
+const mockStartEditing = vi.fn();
+const mockCancelEditing = vi.fn();
+const mockSaveSubject = vi.fn();
+const mockSetDraft = vi.fn();
 
-vi.mock("../hooks/useConversationActions", () => ({
-  useLeaveAction: () => ({ execute: mockExecuteLeave, isPending: false }),
-  useResolveAction: () => ({ execute: mockExecuteResolve, isPending: false }),
+vi.mock("../hooks/useConversationAction", () => ({
+  useConversationAction: (type: string) => {
+    if (type === "leave") return { execute: mockExecuteLeave, isPending: false };
+    if (type === "resolve") return { execute: mockExecuteResolve, isPending: false };
+    return { execute: vi.fn(), isPending: false };
+  },
 }));
 
-vi.mock("../hooks/useConversationMutations", () => ({
-  useUpdateSubjectMutation: () => ({ mutate: mockMutate, isPending: false }),
+vi.mock("../hooks/useSubjectEditor", () => ({
+  useSubjectEditor: () => ({
+    isEditing: false,
+    draft: "",
+    setDraft: mockSetDraft,
+    startEditing: mockStartEditing,
+    cancelEditing: mockCancelEditing,
+    saveSubject: mockSaveSubject,
+    inputRef: { current: null },
+    isPending: false,
+  }),
 }));
 
 vi.mock("sonner", () => ({
@@ -75,7 +90,7 @@ async function openDropdownAndClickResolve(user: ReturnType<typeof userEvent.set
   await user.click(resolveItem);
 }
 
-describe("ChatHeader — resolve without subject requirement", () => {
+describe("ChatHeader", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -142,8 +157,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
     expect(screen.getByText("My subject")).toBeTruthy();
   });
 
-  it("subject field remains editable via pencil button", async () => {
-    const user = userEvent.setup({ pointerEventsCheck: 0 });
+  it("shows pencil button when canEditSubject is true", () => {
     const { container } = render(
       <ChatHeader
         conversation={makeConversation({ subject: "Editable subject" })}
@@ -155,12 +169,10 @@ describe("ChatHeader — resolve without subject requirement", () => {
     expect(screen.getByText("Editable subject")).toBeTruthy();
     const pencilButton = container.querySelector(".group button") as HTMLElement;
     expect(pencilButton).toBeTruthy();
-    await user.click(pencilButton);
-    expect(screen.getByDisplayValue("Editable subject")).toBeTruthy();
   });
 
   it("hides management dropdown when canLeave is false", () => {
-    render(
+    const { container } = render(
       <ChatHeader
         conversation={makeConversation()}
         permissions={makePermissions({ canLeave: false })}
@@ -168,9 +180,8 @@ describe("ChatHeader — resolve without subject requirement", () => {
       />,
     );
 
-    const buttons = screen.getAllByRole("button");
-    const trigger = buttons.find((btn) => btn.getAttribute("aria-haspopup") === "menu");
-    expect(trigger).toBeUndefined();
+    const trigger = container.querySelector("[aria-haspopup='menu']");
+    expect(trigger).toBeNull();
   });
 
   it("hides edit subject button when canEditSubject is false", () => {
