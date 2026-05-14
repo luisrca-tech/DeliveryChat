@@ -9,7 +9,7 @@ import { markConversationAsRead } from "../lib/conversations.client";
 import { handleMessageNew } from "./handleMessageNew";
 import { handleMessageEdited } from "./handleMessageEdited";
 import { handleMessageDeleted } from "./handleMessageDeleted";
-import { handleConversationLifecycle, type ConversationLifecycleEventType } from "./handleConversationLifecycle";
+import { handleConversationLifecycle, LIFECYCLE_EVENTS, type ConversationLifecycleEventType } from "./handleConversationLifecycle";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
 import type { WebSocketHandlerContext } from "../types/chat.types";
 
@@ -23,12 +23,6 @@ export type TypingUser = {
 
 const TYPING_TIMEOUT_MS = 3_000;
 
-const LIFECYCLE_EVENT_TYPES = new Set<string>([
-  "conversation:new",
-  "conversation:accepted",
-  "conversation:released",
-  "conversation:resolved",
-]);
 
 export type AckedIdRegistrar = (serverMessageId: string) => void;
 
@@ -125,7 +119,7 @@ export function useWebSocket(activeConversationId: string | null) {
           handleMessageEdited(event.payload, ctx);
         } else if (event.type === "message:deleted") {
           handleMessageDeleted(event.payload, ctx);
-        } else if (LIFECYCLE_EVENT_TYPES.has(event.type)) {
+        } else if (LIFECYCLE_EVENTS.has(event.type)) {
           handleConversationLifecycle(event.type as ConversationLifecycleEventType, ctx);
         }
 

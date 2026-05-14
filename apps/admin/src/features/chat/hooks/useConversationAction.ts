@@ -1,45 +1,24 @@
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
-import type { NavigateOptions } from "@tanstack/react-router";
 import { Route } from "@/routes/_system/conversations";
 import { authClient } from "@/lib/authClient";
 import { ConversationConflictError } from "../lib/conversations.client";
 import {
   inferFilterForAction,
   type ConversationAction,
-  type FilterId,
 } from "../lib/conversationFilterInference";
+import { navigateToFilter } from "../lib/navigateToFilter";
 import {
   useAcceptConversationMutation,
   useLeaveConversationMutation,
   useResolveConversationMutation,
 } from "./useConversationMutations";
 
-type NavigateFn = (opts: NavigateOptions) => void;
-
 type SetActiveRoom = (
   conversationId: string | null,
   lastMessageId?: string,
   force?: boolean,
 ) => void;
-
-function navigateToFilter(
-  navigate: NavigateFn,
-  conversationId: string,
-  currentFilter: string | undefined,
-  targetFilter: FilterId,
-): void {
-  if (currentFilter === targetFilter) return;
-  navigate({
-    search: (prev) => ({
-      ...prev,
-      filter: targetFilter,
-      conversationId: prev.conversationId ?? conversationId,
-      appId: prev.appId,
-    }),
-    replace: true,
-  });
-}
 
 const ACTION_CONFIG: Record<
   ConversationAction,

@@ -1,6 +1,6 @@
 import type { WebSocketHandlerContext } from "../types/chat.types";
 
-const LIFECYCLE_EVENTS = new Set([
+export const LIFECYCLE_EVENTS = new Set([
   "conversation:new",
   "conversation:accepted",
   "conversation:released",
@@ -14,10 +14,8 @@ export type ConversationLifecycleEventType =
   | "conversation:resolved";
 
 export function handleConversationLifecycle(
-  eventType: ConversationLifecycleEventType,
+  _eventType: ConversationLifecycleEventType,
   ctx: WebSocketHandlerContext,
 ): void {
-  if (LIFECYCLE_EVENTS.has(eventType)) {
-    ctx.invalidateQueries();
-  }
+  ctx.invalidateQueries();
 }

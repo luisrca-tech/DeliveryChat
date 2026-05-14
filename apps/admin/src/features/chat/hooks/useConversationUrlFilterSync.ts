@@ -1,31 +1,10 @@
 import { useEffect } from "react";
-import type { NavigateOptions } from "@tanstack/react-router";
 import type { WSServerEvent } from "@repo/types";
 import {
   inferFilterForAction,
-  type FilterId,
   type ConversationAction,
 } from "../lib/conversationFilterInference";
-
-type NavigateFn = (opts: NavigateOptions) => void;
-
-function navigateToFilter(
-  navigate: NavigateFn,
-  conversationId: string,
-  currentFilter: string | undefined,
-  targetFilter: FilterId,
-): void {
-  if (currentFilter === targetFilter) return;
-  navigate({
-    search: (prev) => ({
-      ...prev,
-      filter: targetFilter,
-      conversationId: prev.conversationId ?? conversationId,
-      appId: prev.appId,
-    }),
-    replace: true,
-  });
-}
+import { navigateToFilter, type NavigateFn } from "../lib/navigateToFilter";
 
 export function useConversationUrlFilterSync(
   selectedId: string | undefined,

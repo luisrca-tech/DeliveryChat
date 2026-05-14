@@ -39,9 +39,4 @@ describe("handleConversationLifecycle", () => {
     expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
   });
 
-  it("does not call invalidateQueries for unrelated event types", () => {
-    const ctx = createCtx();
-    handleConversationLifecycle("message:new" as never, ctx);
-    expect(ctx.invalidateQueries).not.toHaveBeenCalled();
-  });
 });
