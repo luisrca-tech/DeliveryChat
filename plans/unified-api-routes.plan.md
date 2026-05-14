@@ -244,8 +244,8 @@ Clean up unused imports, dead code from the merge, and any orphaned test files. 
 
 ### Acceptance criteria
 
-- [ ] No inline `db.select()`/`db.insert()` calls remain in `conversations.ts` route handlers
-- [ ] Route handlers are thin wrappers: validate → call service → respond
-- [ ] All existing tests pass
-- [ ] Feature docs updated to reflect unified routes and auth model
-- [ ] No orphaned files or dead imports from the migration
+- [x] No inline `db.select()`/`db.insert()` calls remain in `conversations.ts` route handlers
+- [x] Route handlers are thin wrappers: validate → call service → respond
+- [x] All existing tests pass
+- [x] Feature docs updated to reflect unified routes and auth model
+- [x] No orphaned files or dead imports from the migration

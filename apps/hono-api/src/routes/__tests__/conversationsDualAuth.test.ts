@@ -9,8 +9,10 @@ const APP_ID = "app-001";
 const CONV_ID = "conv-001";
 
 const mockListConversationsForVisitor = vi.fn();
+const mockListConversationsForMember = vi.fn();
 const mockGetConversationWithParticipants = vi.fn();
 const mockGetMessageHistory = vi.fn();
+const mockGetMessageHistoryForMember = vi.fn();
 const mockIsParticipant = vi.fn();
 const mockGetBulkUnreadCounts = vi.fn();
 const mockMarkAsRead = vi.fn();
@@ -24,9 +26,13 @@ const mockAddParticipant = vi.fn();
 vi.mock("../../features/chat/chat.service.js", () => ({
   listConversationsForVisitor: (...args: unknown[]) =>
     mockListConversationsForVisitor(...args),
+  listConversationsForMember: (...args: unknown[]) =>
+    mockListConversationsForMember(...args),
   getConversationWithParticipants: (...args: unknown[]) =>
     mockGetConversationWithParticipants(...args),
   getMessageHistory: (...args: unknown[]) => mockGetMessageHistory(...args),
+  getMessageHistoryForMember: (...args: unknown[]) =>
+    mockGetMessageHistoryForMember(...args),
   isParticipant: (...args: unknown[]) => mockIsParticipant(...args),
   getBulkUnreadCounts: (...args: unknown[]) =>
     mockGetBulkUnreadCounts(...args),
@@ -206,80 +212,41 @@ describe("Conversations dual-auth read endpoints", () => {
     it("returns member conversations with admin visibility (all)", async () => {
       mockUnifiedAuthContext = memberAuth("admin");
 
-      const fakeConversations = [
-        { id: "c1", assignedTo: null, status: "pending" },
-        { id: "c2", assignedTo: MEMBER_USER_ID, status: "active" },
-      ];
-
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockWhere = vi.fn().mockReturnThis();
-      const mockOrderBy = vi.fn().mockReturnThis();
-      const mockLimit = vi.fn().mockReturnThis();
-      const mockOffset = vi.fn();
-
-      mockOffset.mockResolvedValueOnce(fakeConversations);
-      mockOffset.mockResolvedValueOnce(undefined);
-
-      mockDbSelect.mockReturnValue({ from: mockFrom });
-      mockFrom.mockReturnValue({ where: mockWhere });
-      mockWhere.mockReturnValue({ orderBy: mockOrderBy });
-      mockOrderBy.mockReturnValue({ limit: mockLimit });
-      mockLimit.mockReturnValue({ offset: mockOffset });
-
-      const selectCount = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: 2 }]),
-        }),
+      mockListConversationsForMember.mockResolvedValue({
+        conversations: [
+          { id: "c1", assignedTo: null, status: "pending", unreadCount: 0 },
+          { id: "c2", assignedTo: MEMBER_USER_ID, status: "active", unreadCount: 0 },
+        ],
+        total: 2,
       });
-      mockDbSelect
-        .mockReturnValueOnce({ from: mockFrom })
-        .mockReturnValueOnce(selectCount());
-
-      mockGetBulkUnreadCounts.mockResolvedValue(new Map());
 
       const res = await app.request("/conversations");
 
       expect(res.status).toBe(200);
       expect(mockListConversationsForVisitor).not.toHaveBeenCalled();
+      expect(mockListConversationsForMember).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: ORG_ID, isAdmin: true }),
+      );
     });
 
     it("returns member conversations with operator visibility (pending + own)", async () => {
       mockUnifiedAuthContext = memberAuth("operator");
 
-      const fakeConversations = [
-        { id: "c1", assignedTo: MEMBER_USER_ID, status: "active" },
-      ];
-
-      const mockFrom = vi.fn().mockReturnThis();
-      const mockWhere = vi.fn().mockReturnThis();
-      const mockOrderBy = vi.fn().mockReturnThis();
-      const mockLimit = vi.fn().mockReturnThis();
-      const mockOffset = vi.fn();
-
-      mockOffset.mockResolvedValueOnce(fakeConversations);
-
-      mockDbSelect.mockReturnValue({ from: mockFrom });
-      mockFrom.mockReturnValue({ where: mockWhere });
-      mockWhere.mockReturnValue({ orderBy: mockOrderBy });
-      mockOrderBy.mockReturnValue({ limit: mockLimit });
-      mockLimit.mockReturnValue({ offset: mockOffset });
-
-      const selectCount = vi.fn().mockReturnValue({
-        from: vi.fn().mockReturnValue({
-          where: vi.fn().mockResolvedValue([{ count: 1 }]),
-        }),
+      mockListConversationsForMember.mockResolvedValue({
+        conversations: [
+          { id: "c1", assignedTo: MEMBER_USER_ID, status: "active", unreadCount: 3 },
+        ],
+        total: 1,
       });
-      mockDbSelect
-        .mockReturnValueOnce({ from: mockFrom })
-        .mockReturnValueOnce(selectCount());
-
-      mockGetBulkUnreadCounts.mockResolvedValue(new Map([["c1", 3]]));
 
       const res = await app.request("/conversations");
 
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.conversations[0].unreadCount).toBe(3);
+      expect(mockListConversationsForMember).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId: ORG_ID, isAdmin: false }),
+      );
     });
 
     it("cross-visitor isolation: visitor cannot see another visitor's conversations", async () => {
@@ -394,31 +361,17 @@ describe("Conversations dual-auth read endpoints", () => {
     it("returns messages for member via org membership", async () => {
       mockUnifiedAuthContext = memberAuth();
 
-      const chainBuilder = () => {
-        const chain: any = {};
-        chain.from = vi.fn().mockReturnValue(chain);
-        chain.where = vi.fn().mockReturnValue(chain);
-        chain.orderBy = vi.fn().mockReturnValue(chain);
-        chain.limit = vi.fn().mockReturnValue(chain);
-        chain.offset = vi.fn().mockResolvedValue(fakeMessages);
-        chain.leftJoin = vi.fn().mockReturnValue(chain);
-        return chain;
-      };
-
-      const convCheckChain: any = {};
-      convCheckChain.from = vi.fn().mockReturnValue(convCheckChain);
-      convCheckChain.where = vi.fn().mockReturnValue(convCheckChain);
-      convCheckChain.limit = vi.fn().mockResolvedValue([{ id: CONV_ID }]);
-
-      const messagesChain = chainBuilder();
-
-      mockDbSelect
-        .mockReturnValueOnce(convCheckChain)
-        .mockReturnValueOnce(messagesChain);
+      mockGetMessageHistoryForMember.mockResolvedValue(fakeMessages);
 
       const res = await app.request(`/conversations/${CONV_ID}/messages`);
 
       expect(res.status).toBe(200);
+      expect(mockGetMessageHistoryForMember).toHaveBeenCalledWith(
+        expect.objectContaining({
+          conversationId: CONV_ID,
+          organizationId: ORG_ID,
+        }),
+      );
       expect(mockIsParticipant).not.toHaveBeenCalled();
     });
   });

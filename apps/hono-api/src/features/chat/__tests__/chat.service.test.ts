@@ -82,6 +82,8 @@ const {
   getBulkUnreadCounts,
   markAsRead,
   listConversationsForVisitor,
+  listConversationsForMember,
+  getMessageHistoryForMember,
   createSystemMessage,
   ConversationNotFoundError,
   ConversationNotActiveError,
@@ -1734,6 +1736,150 @@ describe("chat.service", () => {
       expect(result).toBeDefined();
       expect(result!.type).toBe("system");
       expect(result!.senderId).toBeNull();
+    });
+  });
+
+  describe("listConversationsForMember", () => {
+    const baseConversation = {
+      id: "conv-1",
+      organizationId: "org-1",
+      applicationId: "app-1",
+      status: "pending" as const,
+      subject: null,
+      assignedTo: null,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      closedAt: null,
+      deletedAt: null,
+      createdBy: null,
+    };
+
+    it("returns conversations and total count for an admin", async () => {
+      const convRows = [baseConversation];
+      const countRows = [{ count: 1 }];
+
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        return selectCallCount === 1
+          ? chainMock(convRows)
+          : chainMock(countRows);
+      });
+
+      const result = await listConversationsForMember({
+        organizationId: "org-1",
+        userId: "user-1",
+        isAdmin: true,
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result.conversations).toHaveLength(1);
+      expect(result.total).toBe(1);
+      expect(result.conversations[0]).toHaveProperty("unreadCount");
+    });
+
+    it("returns unread counts for conversations assigned to the user", async () => {
+      const assignedConv = { ...baseConversation, assignedTo: "user-1", status: "active" as const };
+      const convRows = [assignedConv];
+      const countRows = [{ count: 1 }];
+      const unreadRows = [{ conversationId: "conv-1", count: 3 }];
+
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        if (selectCallCount === 1) return chainMock(convRows);
+        if (selectCallCount === 2) return chainMock(countRows);
+        return chainMock(unreadRows);
+      });
+
+      const result = await listConversationsForMember({
+        organizationId: "org-1",
+        userId: "user-1",
+        isAdmin: true,
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result.conversations[0]!.unreadCount).toBe(3);
+    });
+
+    it("returns zero unread when no conversations are assigned to user", async () => {
+      const convRows = [baseConversation];
+      const countRows = [{ count: 1 }];
+
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        return selectCallCount === 1
+          ? chainMock(convRows)
+          : chainMock(countRows);
+      });
+
+      const result = await listConversationsForMember({
+        organizationId: "org-1",
+        userId: "user-1",
+        isAdmin: true,
+        limit: 20,
+        offset: 0,
+      });
+
+      expect(result.conversations[0]!.unreadCount).toBe(0);
+    });
+  });
+
+  describe("getMessageHistoryForMember", () => {
+    it("verifies conversation belongs to org then returns messages with sender info", async () => {
+      const convCheckRow = [{ id: "conv-1" }];
+      const messageRows = [
+        {
+          id: "msg-1",
+          conversationId: "conv-1",
+          senderId: "user-1",
+          senderName: "Alice",
+          senderRole: "operator",
+          type: "text",
+          content: "Hello",
+          createdAt: "2026-01-01T00:00:00.000Z",
+        },
+      ];
+
+      let selectCallCount = 0;
+      mockSelect.mockImplementation(() => {
+        selectCallCount++;
+        return selectCallCount === 1
+          ? chainMock(convCheckRow)
+          : chainMock(messageRows);
+      });
+
+      const result = await getMessageHistoryForMember({
+        conversationId: "conv-1",
+        organizationId: "org-1",
+        limit: 50,
+        offset: 0,
+      });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]).toEqual(
+        expect.objectContaining({
+          id: "msg-1",
+          senderName: "Alice",
+          senderRole: "operator",
+        }),
+      );
+    });
+
+    it("throws ConversationNotFoundError when conversation does not belong to org", async () => {
+      mockSelect.mockReturnValue(chainMock([]));
+
+      await expect(
+        getMessageHistoryForMember({
+          conversationId: "conv-missing",
+          organizationId: "org-1",
+          limit: 50,
+          offset: 0,
+        }),
+      ).rejects.toThrow("conv-missing");
     });
   });
 });

@@ -1,11 +1,5 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, or, inArray, isNull, desc, sql } from "drizzle-orm";
-import { db } from "../db/index.js";
-import { conversations } from "../db/schema/conversations.js";
-import { messages } from "../db/schema/messages.js";
-import { conversationParticipants } from "../db/schema/conversationParticipants.js";
-import { user } from "../db/schema/users.js";
 import {
   listConversationsQuerySchema,
   getMessagesQuerySchema,
@@ -27,11 +21,12 @@ import {
   softDeleteConversation,
   updateConversationSubject,
   addParticipant,
-  getBulkUnreadCounts,
   markAsRead,
   isParticipant,
   listConversationsForVisitor,
+  listConversationsForMember,
   getMessageHistory,
+  getMessageHistoryForMember,
   getUnreadCountForVisitor,
   getUnreadCount,
 } from "../features/chat/chat.service.js";
@@ -88,57 +83,20 @@ export const conversationsRoute = new Hono()
         const isAdmin =
           membership.role === "admin" || membership.role === "super_admin";
 
-        const conditions = [
-          eq(conversations.organizationId, organization.id),
-          isNull(conversations.deletedAt),
-        ];
-        if (status) conditions.push(inArray(conversations.status, status));
-        if (applicationId)
-          conditions.push(eq(conversations.applicationId, applicationId));
-
-        if (assignedTo === "me") {
-          conditions.push(eq(conversations.assignedTo, authUser.id));
-        }
-
-        if (!isAdmin) {
-          conditions.push(
-            or(
-              eq(conversations.status, "pending"),
-              eq(conversations.assignedTo, authUser.id),
-            )!,
-          );
-        }
-
-        const result = await db
-          .select()
-          .from(conversations)
-          .where(and(...conditions))
-          .orderBy(desc(conversations.updatedAt))
-          .limit(limit)
-          .offset(offset);
-
-        const [countRow] = await db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(conversations)
-          .where(and(...conditions));
-
-        const assignedIds = result
-          .filter((conv) => conv.assignedTo === authUser.id)
-          .map((conv) => conv.id);
-
-        const unreadCounts =
-          assignedIds.length > 0
-            ? await getBulkUnreadCounts(assignedIds, authUser.id)
-            : new Map<string, number>();
-
-        const conversationsWithUnread = result.map((conv) => ({
-          ...conv,
-          unreadCount: unreadCounts.get(conv.id) ?? 0,
-        }));
+        const result = await listConversationsForMember({
+          organizationId: organization.id,
+          userId: authUser.id,
+          isAdmin,
+          limit,
+          offset,
+          status,
+          applicationId,
+          assignedTo,
+        });
 
         return c.json({
-          conversations: conversationsWithUnread,
-          total: countRow?.count ?? 0,
+          conversations: result.conversations,
+          total: result.total,
           limit,
           offset,
         });
@@ -246,60 +204,29 @@ export const conversationsRoute = new Hono()
         }
 
         const { organization } = auth;
-        const [conv] = await db
-          .select({ id: conversations.id })
-          .from(conversations)
-          .where(
-            and(
-              eq(conversations.id, conversationId),
-              eq(conversations.organizationId, organization.id),
-            ),
-          )
-          .limit(1);
 
-        if (!conv) {
-          return jsonError(
-            c,
-            HTTP_STATUS.NOT_FOUND,
-            ERROR_MESSAGES.NOT_FOUND,
-            "Conversation not found",
-          );
+        try {
+          const result = await getMessageHistoryForMember({
+            conversationId,
+            organizationId: organization.id,
+            limit,
+            offset,
+          });
+          return c.json({ messages: result, limit, offset });
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            error.name === "ConversationNotFoundError"
+          ) {
+            return jsonError(
+              c,
+              HTTP_STATUS.NOT_FOUND,
+              ERROR_MESSAGES.NOT_FOUND,
+              "Conversation not found",
+            );
+          }
+          throw error;
         }
-
-        const result = await db
-          .select({
-            id: messages.id,
-            conversationId: messages.conversationId,
-            senderId: messages.senderId,
-            senderName: user.name,
-            senderRole: conversationParticipants.role,
-            type: messages.type,
-            content: messages.content,
-            createdAt: messages.createdAt,
-          })
-          .from(messages)
-          .leftJoin(user, eq(messages.senderId, user.id))
-          .leftJoin(
-            conversationParticipants,
-            and(
-              eq(
-                conversationParticipants.conversationId,
-                messages.conversationId,
-              ),
-              eq(conversationParticipants.userId, messages.senderId),
-            ),
-          )
-          .where(
-            and(
-              eq(messages.conversationId, conversationId),
-              isNull(messages.deletedAt),
-            ),
-          )
-          .orderBy(desc(messages.createdAt))
-          .limit(limit)
-          .offset(offset);
-
-        return c.json({ messages: result, limit, offset });
       } catch (error) {
         console.error("Error fetching messages:", error);
         return jsonError(

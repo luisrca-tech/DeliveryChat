@@ -84,10 +84,6 @@ If this becomes a concern, `trySessionAuth()` could be changed to return a `{ fa
 
 The delete endpoint works around this with an inline role check. If more endpoints need role-based guards under unified auth, a `requireMemberRole(minRole)` middleware should be created in `unifiedAuth.ts` that reads from `getUnifiedAuth(c)`.
 
-### participant-guard.ts is now orphaned
-
-`requireParticipant()` middleware was only used by `publicApi.ts`. After deletion, no route imports it. The conversations route handles participant checks inline (via `isParticipant()` calls in each handler). The file is retained for potential future use but could be deleted if the inline pattern is preferred long-term.
-
 ### Widget clients still hit widget.ts, not conversations.ts
 
 The widget frontend uses `widget.ts` endpoints (e.g., `POST /widget/ws-token`, `POST /widget/conversations`) which have their own auth via `requireWidgetAuth()`. These are not yet migrated to the unified auth model. Widget clients are unaffected by the `publicApi.ts` deletion because they never used the `/api/*` routes — they use `/widget/*`.

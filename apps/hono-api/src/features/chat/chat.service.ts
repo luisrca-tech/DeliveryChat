@@ -1,8 +1,9 @@
-import { eq, ne, and, sql, isNull, desc, inArray } from "drizzle-orm";
+import { eq, ne, and, or, sql, isNull, desc, inArray } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
+import { user } from "../../db/schema/users.js";
 import type {
   ConversationStatus,
   ParticipantRole,
@@ -366,6 +367,65 @@ export async function getMessageHistory(input: GetMessageHistoryInput) {
   return db
     .select()
     .from(messages)
+    .where(
+      and(
+        eq(messages.conversationId, input.conversationId),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(input.limit)
+    .offset(input.offset);
+}
+
+interface GetMessageHistoryForMemberInput {
+  conversationId: string;
+  organizationId: string;
+  limit: number;
+  offset: number;
+}
+
+export async function getMessageHistoryForMember(
+  input: GetMessageHistoryForMemberInput,
+) {
+  const [conv] = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.id, input.conversationId),
+        eq(conversations.organizationId, input.organizationId),
+      ),
+    )
+    .limit(1);
+
+  if (!conv) {
+    throw new ConversationNotFoundError(input.conversationId);
+  }
+
+  return db
+    .select({
+      id: messages.id,
+      conversationId: messages.conversationId,
+      senderId: messages.senderId,
+      senderName: user.name,
+      senderRole: conversationParticipants.role,
+      type: messages.type,
+      content: messages.content,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .leftJoin(user, eq(messages.senderId, user.id))
+    .leftJoin(
+      conversationParticipants,
+      and(
+        eq(
+          conversationParticipants.conversationId,
+          messages.conversationId,
+        ),
+        eq(conversationParticipants.userId, messages.senderId),
+      ),
+    )
     .where(
       and(
         eq(messages.conversationId, input.conversationId),
@@ -804,6 +864,88 @@ export async function listConversationsForVisitor(params: {
   return {
     conversations: result,
     total: countRow?.total ?? 0,
+  };
+}
+
+// ── List Conversations (Member) ──
+
+interface ListConversationsForMemberInput {
+  organizationId: string;
+  userId: string;
+  isAdmin: boolean;
+  limit: number;
+  offset: number;
+  status?: ConversationStatus[];
+  applicationId?: string;
+  assignedTo?: "me";
+}
+
+export async function listConversationsForMember(
+  params: ListConversationsForMemberInput,
+) {
+  const {
+    organizationId,
+    userId,
+    isAdmin,
+    limit,
+    offset,
+    status,
+    applicationId,
+    assignedTo,
+  } = params;
+
+  const conditions = [
+    eq(conversations.organizationId, organizationId),
+    isNull(conversations.deletedAt),
+  ];
+
+  if (status) conditions.push(inArray(conversations.status, status));
+  if (applicationId)
+    conditions.push(eq(conversations.applicationId, applicationId));
+  if (assignedTo === "me")
+    conditions.push(eq(conversations.assignedTo, userId));
+
+  if (!isAdmin) {
+    conditions.push(
+      or(
+        eq(conversations.status, "pending"),
+        eq(conversations.assignedTo, userId),
+      )!,
+    );
+  }
+
+  const whereClause = and(...conditions);
+
+  const result = await db
+    .select()
+    .from(conversations)
+    .where(whereClause)
+    .orderBy(desc(conversations.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(conversations)
+    .where(whereClause);
+
+  const assignedIds = result
+    .filter((conv) => conv.assignedTo === userId)
+    .map((conv) => conv.id);
+
+  const unreadCounts =
+    assignedIds.length > 0
+      ? await getBulkUnreadCounts(assignedIds, userId)
+      : new Map<string, number>();
+
+  const conversationsWithUnread = result.map((conv) => ({
+    ...conv,
+    unreadCount: unreadCounts.get(conv.id) ?? 0,
+  }));
+
+  return {
+    conversations: conversationsWithUnread,
+    total: countRow?.count ?? 0,
   };
 }
 

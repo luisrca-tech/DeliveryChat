@@ -10,7 +10,7 @@ Real-time messaging system using WebSocket for message delivery and REST endpoin
 One WS connection multiplexes all conversations through `room:join`/`room:leave`. An operator handling 20 conversations uses 1 connection, not 20.
 
 ### REST for State Mutations, WS for Real-Time
-Creating conversations, closing, managing participants — these use the full Hono middleware chain (`requireTenantAuth`, `checkBillingStatus`, `requireRole`). Keeping them REST avoids duplicating this logic in the WS handler.
+Creating conversations, closing, managing participants — these use the full Hono middleware chain (`requireAuth`, `requireMember`, `checkBillingStatus`). Keeping them REST avoids duplicating this logic in the WS handler.
 
 ### IRoomManager Interface
 `InMemoryRoomManager` implements `IRoomManager`. When horizontal scaling is needed, swap to `RedisRoomManager` that publishes to Redis channels. The interface is:
@@ -32,13 +32,21 @@ Business rule enforced in `chat.service.ts`: `support` type conversations must h
 - Admin app: session cookie (automatic, same-origin)
 - Widget: query params (`token` + `appId`) since WS doesn't support custom cross-origin headers
 
+### Thin Route Handlers, Fat Service Layer
+All database queries live in `chat.service.ts`. Route handlers are thin wrappers: parse input → call service → return response. Both member and visitor code paths call the same service functions with appropriate scoping parameters. No `db.select()` or `db.insert()` calls exist in route files.
+
+### Unified Auth Model
+`conversations.ts` uses the unified `requireAuth()` middleware which produces a discriminated union context (`type: "member"` or `type: "visitor"`). Route handlers branch on `auth.type` to apply appropriate scoping. Member-only endpoints use `requireMember()` as an additional guard.
+
 ## File Structure
 
 ```
 apps/hono-api/src/
   features/chat/
     room-manager.ts         # IRoomManager + InMemoryRoomManager
-    chat.service.ts         # DB operations (createConversation, sendMessage, etc.)
+    chat.service.ts         # All DB operations (conversations, messages, unread, etc.)
+    broadcasting.service.ts # WebSocket event building and broadcasting
+    error-mapper.ts         # Maps service errors to HTTP responses
     visitor.service.ts      # Shared visitor identity resolution (resolveOrCreateVisitor)
     chat.schemas.ts         # Zod schemas for WS event payloads
     chat.handlers.ts        # WS event dispatcher
@@ -47,10 +55,13 @@ apps/hono-api/src/
   lib/
     ws.ts                   # WebSocket server setup (createNodeWebSocket)
     middleware/
+      unifiedAuth.ts        # requireAuth(), requireMember(), getUnifiedAuth()
+      unifiedRateLimit.ts   # Unified rate limiting (branches on auth type)
       wsAuth.ts             # WebSocket authentication
   routes/
     ws.ts                   # WS route + room manager singleton
-    conversations.ts        # Admin REST endpoints
+    conversations.ts        # Unified REST endpoints (member + visitor)
+    widget.ts               # Widget-specific endpoints (settings, ws-token)
     schemas/
       conversations.ts      # REST endpoint schemas
 packages/types/src/
