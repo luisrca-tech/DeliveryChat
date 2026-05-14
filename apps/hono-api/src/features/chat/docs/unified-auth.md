@@ -43,6 +43,19 @@ Runs after `requireAuth()`. Returns 403 if `auth.type !== "member"`. Use on endp
 - `requireTenantAuth()` and `requireApiKeyAuth()` remain as standalone middleware for routes that haven't migrated to the unified model.
 - `requireAuth()` reuses the same validation logic internally but does not call the standalone middleware functions — it implements the logic directly to control the fallback flow.
 
+## Known Risks
+
+### Silent fallthrough on session-level errors
+
+When `trySessionAuth()` encounters a failure (disabled account, tenant mismatch, missing membership), it returns `null` instead of an error response. This allows the fallback to the API key path. The behavior is intentional for the unified flow — a request might carry both a session cookie and API key headers, and a session failure shouldn't block a valid API key auth.
+
+However, this differs from `requireTenantAuth()`'s standalone behavior, which returns explicit 401/403 errors for each failure case. In practice this means: if an operator's account is disabled and they somehow also send API key headers, they'd authenticate as a visitor instead of seeing a "disabled account" error. This is acceptable because:
+1. The two auth paths serve fundamentally different clients (admin dashboard vs. widget).
+2. A disabled operator would never have valid API key + visitor headers in a real request.
+3. Endpoints behind `requireMember()` would still block them.
+
+If this becomes a concern, `trySessionAuth()` could be changed to return a `{ failed: true, reason: string }` discriminant instead of `null`, so `requireAuth()` can short-circuit with the appropriate error when a session was present but invalid.
+
 ## File Location
 
 `apps/hono-api/src/lib/middleware/unifiedAuth.ts`
