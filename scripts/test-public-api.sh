@@ -298,5 +298,33 @@ STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations" \
   -d "{\"subject\":\"${LONG_SUBJECT}\"}")"
 check "subject exceeding 500 chars → 400" "$STATUS" "400"
 
+# ============================================================
+# Phase 7: Security Boundaries (Plan Phase 2)
+# ============================================================
+sleep 1
+
+FAKE_UUID="00000000-0000-4000-a000-000000000099"
+
+STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: https://evil.example.com")"
+check "disallowed Origin → 403" "$STATUS" "403"
+
+STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations" \
+  -H "Authorization: Bearer malformed_key_123" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}")"
+check "malformed API key → 401" "$STATUS" "401"
+
+STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${FAKE_UUID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}")"
+check "valid key + wrong X-App-Id → 401" "$STATUS" "401"
+
 # ---------------------------------------------------------------------------
 summary
