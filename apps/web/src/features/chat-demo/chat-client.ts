@@ -51,7 +51,7 @@ function buildHeaders(apiKey: string, appId: string, visitorId: string): Headers
 }
 
 export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClientOptions) {
-  const base = `${apiUrl}/v1/api`;
+  const base = `${apiUrl}/api/v1/widget`;
 
   function headers(): HeadersInit {
     return buildHeaders(apiKey, appId, visitorId);
@@ -151,8 +151,8 @@ export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClien
     },
 
     async connectWebSocket(token: string): Promise<WebSocket> {
-      const wsBase = base.replace(/^http/, "ws");
-      const ws = new WebSocket(`${wsBase.replace("/api", "")}/ws?token=${encodeURIComponent(token)}`);
+      const wsBase = apiUrl.replace(/^http/, "ws");
+      const ws = new WebSocket(`${wsBase}/api/v1/ws?token=${encodeURIComponent(token)}`);
       return new Promise((resolve, reject) => {
         ws.addEventListener("open", () => resolve(ws), { once: true });
         ws.addEventListener("error", reject, { once: true });
