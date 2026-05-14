@@ -10,7 +10,7 @@ import { billingRoute } from "../routes/billing.js";
 import { tenantsRoute } from "../routes/tenants.js";
 import { widgetRoute } from "../routes/widget.js";
 import { rateLimitsRoute } from "../routes/rateLimits.js";
-import { conversationsRoute } from "../routes/conversations.js";
+import { conversationsRoute } from "../routes/conversations/index.js";
 import { invitationsRoute } from "../routes/invitations.js";
 
 /**
