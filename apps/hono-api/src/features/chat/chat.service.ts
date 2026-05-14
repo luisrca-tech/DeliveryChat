@@ -601,7 +601,7 @@ export async function leaveConversation(
     await broadcastSystemMessage(
       conversationId,
       organizationId,
-      `${operatorName} left the conversation. You'll be placed back in the queue shortly.`,
+      `${operatorName} left the conversation. You'll be placed back in the queue immediately.`,
     );
   } catch (err) {
     console.error("[chat.service] leaveConversation system message failed", err);
