@@ -39,3 +39,17 @@ The WebSocket message handler (`chat.handlers.ts`) calls `sendMessage` without `
 ## Broadcast helpers
 
 All event factories (`buildConversationNewEvent`, `buildMessageNewEvent`, etc.) and broadcast wrappers (`broadcastOrganizationEvent`, `broadcastRoomEvent`, `broadcastStaffEvent`) live in `broadcasting.service.ts`.
+
+## Known Risks
+
+### Dual broadcast produces duplicate events for staff in rooms
+
+`sendMessage()` broadcasts `message:new` to both the organization and the conversation room. Staff members who joined a conversation room via `room:join` receive the event twice — once per broadcast scope. Both the widget and admin clients already deduplicate by `msg.id`, so this is functionally safe. The trade-off is doubled serialization and network cost per message for those connections. If this becomes a performance concern, `broadcastRoomEvent` could filter out non-visitor connections and rely on the org broadcast for staff delivery.
+
+### Independent try/catch means partial broadcast is possible
+
+The org and room broadcasts in `sendMessage()` use separate `try/catch` blocks. If the org broadcast succeeds but the room broadcast fails (or vice versa), some participants see the message in real-time and others don't. The HTTP response still succeeds in both cases, so the message is persisted — affected clients will see it on next poll or reconnect. This is acceptable for an in-memory broadcast layer but would need rethinking if broadcast failures become common.
+
+### Edit/delete broadcasts are in route handlers, not the service layer
+
+Unlike `sendMessage()` (service-level broadcast), `editMessage` and `deleteMessage` broadcasts (`message:edited`, `message:deleted`) are called from the route handler in `conversations.ts`. This means the service layer is not self-contained for edit/delete broadcasts — a future caller of `editMessage()` from a different route or service would need to add its own broadcast. Phase 6 may consolidate this.

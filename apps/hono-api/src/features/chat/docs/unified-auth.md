@@ -92,9 +92,9 @@ The delete endpoint works around this with an inline role check. If more endpoin
 
 The widget frontend uses `widget.ts` endpoints (e.g., `POST /widget/ws-token`, `POST /widget/conversations`) which have their own auth via `requireWidgetAuth()`. These are not yet migrated to the unified auth model. Widget clients are unaffected by the `publicApi.ts` deletion because they never used the `/api/*` routes — they use `/widget/*`.
 
-### APIType shape change
+### APIType shape change (verified in Phase 5)
 
-Removing `.route("/api", publicApiRoute)` from `api.ts` changes the exported `APIType`. Any admin frontend RPC calls that targeted `/api/conversations/*` or `/api/ws-token` will fail at compile time. This is expected — those paths no longer exist. The admin frontend should only use `/conversations/*` (which is the unified route). Verify in Phase 5.
+Removing `.route("/api", publicApiRoute)` from `api.ts` changed the exported `APIType`. The admin frontend RPC client was updated in Phase 5 to target `/api/v1` as its base URL. TypeScript compilation passes — no RPC calls were referencing the old `/api/conversations/*` or `/api/ws-token` paths.
 
 ## File Location
 
