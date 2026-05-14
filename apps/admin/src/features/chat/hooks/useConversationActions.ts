@@ -1,18 +1,50 @@
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
+import type { NavigateOptions } from "@tanstack/react-router";
 import { Route } from "@/routes/_system/conversations";
 import { authClient } from "@/lib/authClient";
 import { ConversationConflictError } from "../lib/conversations.client";
 import {
-  navigateSearchAfterAccept,
-  navigateSearchAfterLeave,
-  navigateSearchAfterResolve,
-} from "../lib/conversationSearchNavigation";
+  inferFilterForAction,
+  type ConversationAction,
+  type FilterId,
+} from "../lib/conversationFilterInference";
 import {
   useAcceptConversationMutation,
   useLeaveConversationMutation,
   useResolveConversationMutation,
 } from "./useConversationMutations";
+
+type NavigateFn = (opts: NavigateOptions) => void;
+
+function navigateToFilter(
+  navigate: NavigateFn,
+  conversationId: string,
+  currentFilter: string | undefined,
+  targetFilter: FilterId,
+): void {
+  if (currentFilter === targetFilter) return;
+  navigate({
+    search: (prev) => ({
+      ...prev,
+      filter: targetFilter,
+      conversationId: prev.conversationId ?? conversationId,
+      appId: prev.appId,
+    }),
+    replace: true,
+  });
+}
+
+function navigateAfterAction(
+  navigate: NavigateFn,
+  conversationId: string,
+  action: ConversationAction,
+  role: string,
+  currentFilter: string | undefined,
+): void {
+  const targetFilter = inferFilterForAction(action, role);
+  navigateToFilter(navigate, conversationId, currentFilter, targetFilter);
+}
 
 type SetActiveRoom = (
   conversationId: string | null,
@@ -33,12 +65,7 @@ export function useAcceptAction(
   const execute = async (conversationId: string): Promise<boolean> => {
     try {
       await mutation.mutateAsync(conversationId);
-      navigateSearchAfterAccept(
-        navigate,
-        conversationId,
-        currentUserRole,
-        urlFilter,
-      );
+      navigateAfterAction(navigate, conversationId, "accept", currentUserRole, urlFilter);
       toast.success("Conversation accepted");
       setActiveRoom(conversationId, undefined, true);
       return true;
@@ -55,7 +82,7 @@ export function useAcceptAction(
   return { execute, isPending: mutation.isPending };
 }
 
-export function useLeaveAction() {
+export function useLeaveAction(currentUserRole: string) {
   const navigate = useNavigate({ from: Route.fullPath });
   const { filter: urlFilter } = Route.useSearch();
   const mutation = useLeaveConversationMutation();
@@ -63,7 +90,7 @@ export function useLeaveAction() {
   const execute = async (conversationId: string): Promise<boolean> => {
     try {
       await mutation.mutateAsync(conversationId);
-      navigateSearchAfterLeave(navigate, conversationId, urlFilter);
+      navigateAfterAction(navigate, conversationId, "leave", currentUserRole, urlFilter);
       toast.success("Left conversation — returned to queue");
       return true;
     } catch {
@@ -75,7 +102,7 @@ export function useLeaveAction() {
   return { execute, isPending: mutation.isPending };
 }
 
-export function useResolveAction() {
+export function useResolveAction(currentUserRole: string) {
   const navigate = useNavigate({ from: Route.fullPath });
   const { filter: urlFilter } = Route.useSearch();
   const mutation = useResolveConversationMutation();
@@ -83,7 +110,7 @@ export function useResolveAction() {
   const execute = async (conversationId: string): Promise<boolean> => {
     try {
       await mutation.mutateAsync(conversationId);
-      navigateSearchAfterResolve(navigate, conversationId, urlFilter);
+      navigateAfterAction(navigate, conversationId, "resolve", currentUserRole, urlFilter);
       toast.success("Conversation marked as solved");
       return true;
     } catch {

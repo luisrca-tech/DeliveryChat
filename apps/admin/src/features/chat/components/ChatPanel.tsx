@@ -77,6 +77,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
           <ChatHeader
             conversation={conversation}
             permissions={permissions}
+            currentUserRole={currentUserRole}
           />
         )}
         <MessageList

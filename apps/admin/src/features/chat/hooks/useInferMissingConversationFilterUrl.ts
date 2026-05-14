@@ -2,29 +2,10 @@ import { useEffect } from "react";
 import type { NavigateOptions } from "@tanstack/react-router";
 import { useConversationDetailQuery } from "./useConversationsQuery";
 import { isAdminRole } from "../lib/conversationPermissions";
-import type { Conversation } from "../types/chat.types";
-
-function inferFilterForUrl(
-  conversation: Conversation,
-  currentUserRole: string,
-  sessionUserId: string,
-): string {
-  const admin = isAdminRole(currentUserRole);
-  if (conversation.status === "pending") return admin ? "all" : "queue";
-  if (conversation.status === "closed") return "closed";
-  if (conversation.status === "active") {
-    if (admin) return "all";
-    return conversation.assignedTo === sessionUserId ? "mine" : "queue";
-  }
-  return "queue";
-}
+import { inferFilterForConversation } from "../lib/conversationFilterInference";
 
 type NavigateFn = (opts: NavigateOptions) => void;
 
-/**
- * When the URL has conversationId but no filter (e.g. deep link / refresh),
- * loads detail and replaces search with an inferred filter so the list query matches.
- */
 export function useInferMissingConversationFilterUrl(
   selectedId: string | undefined,
   urlFilter: string | undefined,
@@ -41,7 +22,7 @@ export function useInferMissingConversationFilterUrl(
     const needsSessionForInfer = !isAdminRole(currentUserRole);
     if (needsSessionForInfer && !sessionUserId) return;
 
-    const inferred = inferFilterForUrl(
+    const inferred = inferFilterForConversation(
       conversationSnapshot,
       currentUserRole,
       sessionUserId,

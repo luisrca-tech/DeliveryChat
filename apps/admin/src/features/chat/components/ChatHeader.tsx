@@ -18,6 +18,7 @@ import type { ConversationWithParticipants } from "../types/chat.types";
 type Props = {
   conversation: ConversationWithParticipants;
   permissions: ConversationPermissions;
+  currentUserRole: string;
 };
 
 const statusColors: Record<string, string> = {
@@ -26,10 +27,10 @@ const statusColors: Record<string, string> = {
   closed: "bg-gray-100 text-gray-600",
 };
 
-export function ChatHeader({ conversation, permissions }: Props) {
+export function ChatHeader({ conversation, permissions, currentUserRole }: Props) {
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
-  const leaveAction = useLeaveAction();
-  const resolveAction = useResolveAction();
+  const leaveAction = useLeaveAction(currentUserRole);
+  const resolveAction = useResolveAction(currentUserRole);
   const updateSubjectMutation = useUpdateSubjectMutation();
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);

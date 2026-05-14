@@ -86,6 +86,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
       <ChatHeader
         conversation={makeConversation({ subject: "Bug report" })}
         permissions={makePermissions()}
+        currentUserRole="operator"
       />,
     );
 
@@ -102,6 +103,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
       <ChatHeader
         conversation={makeConversation({ subject: null })}
         permissions={makePermissions()}
+        currentUserRole="operator"
       />,
     );
 
@@ -119,6 +121,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
       <ChatHeader
         conversation={makeConversation({ subject: null })}
         permissions={makePermissions()}
+        currentUserRole="operator"
       />,
     );
 
@@ -132,6 +135,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
       <ChatHeader
         conversation={makeConversation({ subject: "My subject" })}
         permissions={makePermissions()}
+        currentUserRole="operator"
       />,
     );
 
@@ -144,6 +148,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
       <ChatHeader
         conversation={makeConversation({ subject: "Editable subject" })}
         permissions={makePermissions()}
+        currentUserRole="operator"
       />,
     );
 
@@ -159,6 +164,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
       <ChatHeader
         conversation={makeConversation()}
         permissions={makePermissions({ canLeave: false })}
+        currentUserRole="operator"
       />,
     );
 
@@ -172,6 +178,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
       <ChatHeader
         conversation={makeConversation({ subject: "Test" })}
         permissions={makePermissions({ canEditSubject: false })}
+        currentUserRole="operator"
       />,
     );
 
