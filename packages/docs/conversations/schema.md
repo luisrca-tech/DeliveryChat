@@ -34,7 +34,7 @@ organization (tenant)
 | `application_id` | uuid | yes | — | Widget instance (FK → applications). Null for internal chats |
 | `type` | enum | no | — | `support` or `internal` |
 | `status` | enum | no | `active` | `active`, `closed`, or `archived` |
-| `subject` | varchar(500) | yes | — | Title/topic for internal conversations |
+| `subject` | varchar(500) | yes | — | Title/topic — optional, never blocks resolve |
 | `closed_at` | timestamp | yes | — | When the conversation was closed |
 | `created_at` | timestamp | no | now() | Creation time |
 | `updated_at` | timestamp | no | now() | Last update time |

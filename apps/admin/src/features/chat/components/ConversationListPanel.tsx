@@ -19,7 +19,7 @@ import { ConversationListItem } from "./ConversationListItem";
 type Props = {
   selectedId: string | null;
   onSelect: (id: string) => void;
-  currentUserRole: string;
+  isAdmin: boolean;
   filter: string;
   appId: string | undefined;
   onFiltersChange: (filter: string, appId: string | undefined) => void;
@@ -37,12 +37,11 @@ const emptyMessages: Record<string, string> = {
 export function ConversationListPanel({
   selectedId,
   onSelect,
-  currentUserRole,
+  isAdmin,
   filter: activeFilter,
   appId: appIdFromUrl,
   onFiltersChange,
 }: Props) {
-  const isAdmin = currentUserRole === "admin" || currentUserRole === "super_admin";
   const selectedAppId = appIdFromUrl ?? ALL_APPS;
 
   const handleFilterChange = (value: string) => {

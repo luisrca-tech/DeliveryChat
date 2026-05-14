@@ -1,22 +1,13 @@
 import type { MessageNewPayload } from "@repo/types";
-import type { Message } from "../types/chat.types";
+import type { Message, WebSocketHandlerContext } from "../types/chat.types";
 
 const MAX_PROCESSED_IDS = 500;
 
-export type HandleMessageNewDeps = {
-  activeConversationId: string | null;
-  processedMsgIds: Set<string>;
-  messagesQueryKey: (conversationId: string) => readonly unknown[];
-  invalidateQueries: () => void;
-  setQueryData: (queryKey: readonly unknown[], updater: (old: unknown) => unknown) => void;
-  markAsRead: (conversationId: string) => Promise<unknown>;
-};
-
 export function handleMessageNew(
   msg: MessageNewPayload,
-  deps: HandleMessageNewDeps,
+  ctx: WebSocketHandlerContext,
 ): { clearTypingForSender: boolean } {
-  const { activeConversationId, processedMsgIds, messagesQueryKey, invalidateQueries, setQueryData, markAsRead } = deps;
+  const { activeConversationId, processedMsgIds, messagesQueryKey, invalidateQueries, setQueryData, markAsRead } = ctx;
 
   if (processedMsgIds.has(msg.id)) return { clearTypingForSender: false };
   processedMsgIds.add(msg.id);

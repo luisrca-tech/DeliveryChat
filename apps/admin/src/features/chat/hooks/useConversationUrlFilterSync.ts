@@ -1,18 +1,11 @@
 import { useEffect } from "react";
-import type { NavigateOptions } from "@tanstack/react-router";
 import type { WSServerEvent } from "@repo/types";
 import {
-  navigateSearchAfterAccept,
-  navigateSearchAfterLeave,
-  navigateSearchAfterResolve,
-} from "../lib/conversationSearchNavigation";
+  inferFilterForAction,
+  type ConversationAction,
+} from "../lib/conversationFilterInference";
+import { navigateToFilter, type NavigateFn } from "../lib/navigateToFilter";
 
-type NavigateFn = (opts: NavigateOptions) => void;
-
-/**
- * Keeps TanStack Router search `filter` aligned with lifecycle events so list queries
- * match the selected conversation (queue vs mine vs all vs closed).
- */
 export function useConversationUrlFilterSync(
   selectedId: string | undefined,
   urlFilter: string | undefined,
@@ -23,32 +16,30 @@ export function useConversationUrlFilterSync(
 ): void {
   useEffect(() => {
     return subscribe((event: WSServerEvent) => {
+      let action: ConversationAction;
+      let conversationId: string;
+
       if (event.type === "conversation:accepted") {
-        const { conversationId, assignedTo } = event.payload;
+        const { conversationId: cid, assignedTo } = event.payload;
         if (!sessionUserId || assignedTo !== sessionUserId) return;
-        if (!selectedId || conversationId !== selectedId) return;
-        navigateSearchAfterAccept(
-          navigate,
-          conversationId,
-          currentUserRole,
-          urlFilter,
-        );
-        return;
-      }
-
-      if (event.type === "conversation:released") {
-        const { conversationId } = event.payload;
-        if (!selectedId || conversationId !== selectedId) return;
-        navigateSearchAfterLeave(navigate, conversationId, urlFilter);
-        return;
-      }
-
-      if (event.type === "conversation:resolved") {
-        const { conversationId, resolvedBy } = event.payload;
+        conversationId = cid;
+        action = "accept";
+      } else if (event.type === "conversation:released") {
+        conversationId = event.payload.conversationId;
+        action = "leave";
+      } else if (event.type === "conversation:resolved") {
+        const { conversationId: cid, resolvedBy } = event.payload;
         if (!sessionUserId || resolvedBy !== sessionUserId) return;
-        if (!selectedId || conversationId !== selectedId) return;
-        navigateSearchAfterResolve(navigate, conversationId, urlFilter);
+        conversationId = cid;
+        action = "resolve";
+      } else {
+        return;
       }
+
+      if (!selectedId || conversationId !== selectedId) return;
+
+      const targetFilter = inferFilterForAction(action, currentUserRole);
+      navigateToFilter(navigate, conversationId, urlFilter, targetFilter);
     });
   }, [
     selectedId,
