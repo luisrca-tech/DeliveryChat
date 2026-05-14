@@ -64,7 +64,7 @@ export function sendWSMessage(event: object): void {
 function buildWsUrl(baseUrl: string, token: string): string {
   const protocol = baseUrl.startsWith("https") ? "wss" : "ws";
   const host = baseUrl.replace(/^https?:\/\//, "");
-  return `${protocol}://${host}/v1/ws?token=${encodeURIComponent(token)}`;
+  return `${protocol}://${host}/api/v1/ws?token=${encodeURIComponent(token)}`;
 }
 
 async function createConnection(): Promise<void> {

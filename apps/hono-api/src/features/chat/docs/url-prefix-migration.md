@@ -50,15 +50,15 @@ routeThresholds: {
 
 Old `/v1/*` paths return 404. No redirects or deprecation period.
 
-## Client Impact
+## Client Impact (Completed in Phase 5)
 
-- **Admin frontend**: Must update RPC base URL to `/api/v1` (Phase 5).
-- **Widget**: Must update API base URL references (Phase 5).
-- **E2E tests**: Updated to use `/api/v1/*` paths.
+- **Admin frontend**: `getApiBaseUrl()` in `urls.ts` now returns `${baseUrl}/api/v1`. WebSocket URL in `useWebSocket.ts` updated to `/api/v1/ws`.
+- **Widget**: All API paths in `api.ts`, `ws.ts`, and `conversation.ts` updated from `/v1/` to `/api/v1/`.
+- **E2E tests**: Updated to use `/api/v1/*` paths (done in Phase 4).
+- **Admin test mocks**: Base URL mocks in `applications.client.test.ts` and `api-keys.client.test.ts` updated.
 
 ## Risks
 
-- **Admin + widget broken until Phase 5**: Both clients still reference `/v1/` paths. All API calls will 404 until their base URLs are updated. This is expected — the apps are not deployed independently from the API.
 - **Embed script requires rebuild**: The IIFE build (`widget.iife.js`) bakes in the API base URL at build time. Existing deployed embed scripts will fail until rebuilt with the new prefix.
 - **No stale cache risk**: Clean cutover (404 on old paths, no redirects) means cached client responses pointing to `/v1/*` fail immediately rather than silently serving stale data.
 - **`APIType` unaffected**: The exported Hono RPC type describes route shapes, not the mount prefix. The admin client just needs its `baseUrl` updated.

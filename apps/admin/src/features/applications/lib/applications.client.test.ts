@@ -10,7 +10,7 @@ import {
 } from "./applications.client";
 
 vi.mock("@/lib/urls", () => ({
-  getApiBaseUrl: () => "http://test/v1",
+  getApiBaseUrl: () => "http://test/api/v1",
 }));
 
 vi.mock("@/lib/subdomain", () => ({
@@ -45,7 +45,7 @@ describe("applications.client", () => {
       const result = await listApplications();
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        "http://test/v1/applications?limit=100&offset=0",
+        "http://test/api/v1/applications?limit=100&offset=0",
         expect.objectContaining({ headers: expect.any(Object) }),
       );
     });
@@ -65,7 +65,7 @@ describe("applications.client", () => {
       const result = await getApplication("a1");
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        "http://test/v1/applications/a1",
+        "http://test/api/v1/applications/a1",
         expect.any(Object),
       );
     });

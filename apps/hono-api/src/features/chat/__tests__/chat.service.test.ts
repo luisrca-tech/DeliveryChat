@@ -11,6 +11,7 @@ vi.mock("../../../db/index.js", () => ({
 
 vi.mock("../broadcasting.service.js", () => ({
   broadcastOrganizationEvent: vi.fn(),
+  broadcastRoomEvent: vi.fn(),
   buildConversationNewEvent: vi.fn((p: unknown) => ({ type: "conversation:new", payload: p })),
   buildConversationAcceptedEvent: vi.fn((p: unknown) => ({ type: "conversation:accepted", payload: p })),
   buildConversationReleasedEvent: vi.fn((p: unknown) => ({ type: "conversation:released", payload: p })),
@@ -27,6 +28,7 @@ const mockTransaction = db.transaction as ReturnType<typeof vi.fn>;
 
 const broadcasting = await import("../broadcasting.service.js");
 const mockBroadcastOrganizationEvent = broadcasting.broadcastOrganizationEvent as ReturnType<typeof vi.fn>;
+const mockBroadcastRoomEvent = broadcasting.broadcastRoomEvent as ReturnType<typeof vi.fn>;
 
 /**
  * Creates a chainable mock that mimics Drizzle's query builder.
@@ -1624,6 +1626,64 @@ describe("chat.service", () => {
       const firstCall = mockBroadcastOrganizationEvent.mock.calls[0];
       expect(firstCall).toBeDefined();
       expect(firstCall![0]).toBe("org-from-data");
+    });
+
+    it("also broadcasts to conversation room so visitors receive message:new events", async () => {
+      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      mockSelect.mockReturnValueOnce(selectChain);
+      mockSendBroadcastTransaction();
+
+      await sendMessage({
+        conversationId: "conv-1",
+        senderId: "visitor-user-1",
+        content: "Hello from visitor",
+        broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+      });
+
+      expect(mockBroadcastRoomEvent).toHaveBeenCalledOnce();
+      expect(mockBroadcastRoomEvent).toHaveBeenCalledWith(
+        "conv-1",
+        expect.objectContaining({
+          type: "message:new",
+          payload: expect.objectContaining({
+            conversationId: "conv-1",
+            senderId: "visitor-user-1",
+            content: "Hello from visitor",
+          }),
+        }),
+      );
+    });
+
+    it("does not call broadcastRoomEvent when broadcastContext is absent", async () => {
+      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      mockSelect.mockReturnValueOnce(selectChain);
+      mockSendBroadcastTransaction();
+
+      await sendMessage({
+        conversationId: "conv-1",
+        senderId: "visitor-user-1",
+        content: "Hello",
+      });
+
+      expect(mockBroadcastRoomEvent).not.toHaveBeenCalled();
+    });
+
+    it("does not throw when broadcastRoomEvent fails", async () => {
+      mockBroadcastRoomEvent.mockImplementationOnce(() => {
+        throw new Error("room broadcast failed");
+      });
+      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      mockSelect.mockReturnValueOnce(selectChain);
+      mockSendBroadcastTransaction();
+
+      await expect(
+        sendMessage({
+          conversationId: "conv-1",
+          senderId: "visitor-user-1",
+          content: "Hello",
+          broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+        }),
+      ).resolves.not.toThrow();
     });
   });
 

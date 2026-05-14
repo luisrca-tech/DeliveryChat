@@ -19,7 +19,7 @@ describe("fetchSettings", () => {
 
     expect(result).toBeNull();
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "https://api.example.com/v1/widget/settings/app-123",
+      "https://api.example.com/api/v1/widget/settings/app-123",
     );
   });
 
@@ -41,7 +41,7 @@ describe("fetchSettings", () => {
     await fetchSettings("https://api.example.com/", "app-123");
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "https://api.example.com/v1/widget/settings/app-123",
+      "https://api.example.com/api/v1/widget/settings/app-123",
     );
   });
 });
@@ -67,7 +67,7 @@ describe("fetchWsToken", () => {
 
     expect(token).toBe("signed-token-123");
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "https://api.example.com/v1/widget/ws-token",
+      "https://api.example.com/api/v1/widget/ws-token",
       {
         method: "POST",
         headers: {
@@ -98,7 +98,7 @@ describe("fetchWsToken", () => {
     await fetchWsToken("https://api.example.com/", "app-1", "visitor-1");
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      "https://api.example.com/v1/widget/ws-token",
+      "https://api.example.com/api/v1/widget/ws-token",
       expect.any(Object),
     );
   });

@@ -9,6 +9,7 @@ import type {
 } from "@repo/types";
 import {
   broadcastOrganizationEvent,
+  broadcastRoomEvent,
   buildConversationNewEvent,
   buildConversationAcceptedEvent,
   buildConversationReleasedEvent,
@@ -245,22 +246,27 @@ export async function sendMessage(
   });
 
   if (input.broadcastContext) {
+    const event = buildMessageNewEvent({
+      id: message.id,
+      conversationId: input.conversationId,
+      senderId: input.senderId,
+      senderName: input.broadcastContext.senderName,
+      senderRole: input.broadcastContext.senderRole,
+      content: message.content,
+      type: "text",
+      createdAt: message.createdAt,
+    });
+
     try {
-      broadcastOrganizationEvent(
-        organizationId,
-        buildMessageNewEvent({
-          id: message.id,
-          conversationId: input.conversationId,
-          senderId: input.senderId,
-          senderName: input.broadcastContext.senderName,
-          senderRole: input.broadcastContext.senderRole,
-          content: message.content,
-          type: "text",
-          createdAt: message.createdAt,
-        }),
-      );
+      broadcastOrganizationEvent(organizationId, event);
     } catch (err) {
-      console.error("[chat.service] sendMessage broadcast failed", err);
+      console.error("[chat.service] sendMessage org broadcast failed", err);
+    }
+
+    try {
+      broadcastRoomEvent(input.conversationId, event);
+    } catch (err) {
+      console.error("[chat.service] sendMessage room broadcast failed", err);
     }
   }
 
