@@ -1,4 +1,14 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useMemo } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@repo/ui/components/ui/alert-dialog";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
 import { createChatClient } from "../chat-client";
 import { resolveVisitorId } from "../visitor";
@@ -29,6 +39,13 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   const onMessageRef = useRef<(e: MessageEvent) => void>(() => {});
 
   const [operatorTypingName, setOperatorTypingName] = useState<string | null>(null);
+  const [messageToDelete, setMessageToDelete] = useState<OptimisticMessage | null>(null);
+
+  const onConversationCreatedRef = useRef<(id: string) => void>(() => {});
+  const stableOnConversationCreated = useMemo(
+    () => (id: string) => onConversationCreatedRef.current(id),
+    [],
+  );
 
   // --- Leaf hooks ---
   useEditWindowTicker();
@@ -48,7 +65,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     hideNewForm,
     setNewSubject,
     handleCreateConversation,
-  } = useConversationList({ client: clientRef.current, captureVisitorId });
+  } = useConversationList({ client: clientRef.current, captureVisitorId, onConversationCreated: stableOnConversationCreated });
 
   const {
     messages,
@@ -149,6 +166,8 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     sendTypingStop();
   }
 
+  onConversationCreatedRef.current = handleSelectConversation;
+
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
   return (
@@ -196,9 +215,32 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         handleCancelEdit={handleCancelEdit}
         setEditingContent={setEditingContent}
         handleSaveEdit={handleSaveEdit}
-        handleDelete={handleDelete}
+        onRequestDelete={setMessageToDelete}
         handleEditKeyDown={handleEditKeyDown}
       />
+
+      <AlertDialog open={messageToDelete !== null} onOpenChange={(open) => { if (!open) setMessageToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete message?</AlertDialogTitle>
+            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (messageToDelete) {
+                  void handleDelete(messageToDelete);
+                  setMessageToDelete(null);
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

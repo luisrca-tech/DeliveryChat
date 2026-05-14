@@ -11,6 +11,7 @@ interface NewFormState {
 export interface UseConversationListOptions {
   client: ChatClient;
   captureVisitorId: (id: string) => void;
+  onConversationCreated?: (id: string) => void;
 }
 
 export interface UseConversationListResult {
@@ -29,6 +30,7 @@ export interface UseConversationListResult {
 export function useConversationList({
   client,
   captureVisitorId,
+  onConversationCreated,
 }: UseConversationListOptions): UseConversationListResult {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -70,7 +72,11 @@ export function useConversationList({
             const visitor = conversation.participants.find((p) => p.role === "visitor");
             if (visitor) captureVisitorId(visitor.userId);
             setConversations((prev) => [conversation, ...prev]);
-            setSelectedId(conversation.id);
+            if (onConversationCreated) {
+              onConversationCreated(conversation.id);
+            } else {
+              setSelectedId(conversation.id);
+            }
             setNewForm({ visible: false, subject: "", creating: false });
           } catch {
             setNewForm((prev) => ({ ...prev, creating: false }));
@@ -79,7 +85,7 @@ export function useConversationList({
         return { ...f, creating: true };
       });
     },
-    [client, captureVisitorId],
+    [client, captureVisitorId, onConversationCreated],
   );
 
   return {

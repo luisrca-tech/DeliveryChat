@@ -2,7 +2,13 @@ import type { RefObject } from "react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { ScrollArea } from "@repo/ui/components/ui/scroll-area";
-import { MessageCircle, Plus, X, Send, Wifi, WifiOff, Pencil, Trash2, Check } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/ui/dropdown-menu";
+import { MessageCircle, Plus, X, Send, Wifi, WifiOff, MoreHorizontal, Copy, Pencil, Trash2, Check } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import type { Conversation } from "../chat-client";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
@@ -180,7 +186,7 @@ export interface MessageThreadPanelProps {
   handleCancelEdit: () => void;
   setEditingContent: (content: string) => void;
   handleSaveEdit: (msg: OptimisticMessage) => Promise<void>;
-  handleDelete: (msg: OptimisticMessage) => Promise<void>;
+  onRequestDelete: (msg: OptimisticMessage) => void;
   handleEditKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, msg: OptimisticMessage) => void;
 }
 
@@ -203,7 +209,7 @@ export function MessageThreadPanel({
   handleCancelEdit,
   setEditingContent,
   handleSaveEdit,
-  handleDelete,
+  onRequestDelete,
   handleEditKeyDown,
 }: MessageThreadPanelProps) {
   if (!conversation) {
@@ -289,26 +295,36 @@ export function MessageThreadPanel({
                   ) : (
                     <div className="flex w-fit max-w-[72%] shrink-0 items-end gap-1 min-w-0">
                       {canModify && (
-                        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5"
-                            onClick={() => handleStartEdit(msg)}
-                            title="Edit message"
-                          >
-                            <Pencil className="h-2.5 w-2.5" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-5 w-5 text-destructive hover:text-destructive"
-                            onClick={() => void handleDelete(msg)}
-                            title="Delete message"
-                          >
-                            <Trash2 className="h-2.5 w-2.5" />
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <MoreHorizontal className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="min-w-[120px]">
+                            <DropdownMenuItem
+                              onClick={() => navigator.clipboard.writeText(msg.content)}
+                            >
+                              <Copy className="h-3.5 w-3.5 mr-2" />
+                              Copy
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStartEdit(msg)}>
+                              <Pencil className="h-3.5 w-3.5 mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => onRequestDelete(msg)}
+                            >
+                              <Trash2 className="h-3.5 w-3.5 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                       <div
                         className={cn(

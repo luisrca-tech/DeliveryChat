@@ -14,6 +14,7 @@ export const env = createEnv({
   },
   client: {
     PUBLIC_API_URL: z.string().url(),
+    PUBLIC_ADMIN_URL: z.string().url().optional(),
   },
   clientPrefix: "PUBLIC_",
   runtimeEnv: {
@@ -21,6 +22,7 @@ export const env = createEnv({
     DEMO_CHAT_API_KEY: import.meta.env.DEMO_CHAT_API_KEY,
     DEMO_CHAT_APP_ID: import.meta.env.DEMO_CHAT_APP_ID,
     PUBLIC_API_URL: import.meta.env.PUBLIC_API_URL,
+    PUBLIC_ADMIN_URL: import.meta.env.PUBLIC_ADMIN_URL,
   },
   skipValidation:
     !!import.meta.env.SKIP_ENV_VALIDATION ||
