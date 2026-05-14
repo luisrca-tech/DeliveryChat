@@ -19,7 +19,7 @@ import { createVisitorRateLimitMiddleware } from "../lib/middleware/visitorRateL
 import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import {
-  createWidgetConversationSchema,
+  createConversationBodySchema,
   getMessagesQuerySchema,
 } from "./schemas/conversations.js";
 
@@ -86,7 +86,7 @@ export const widgetRoute = new Hono()
   .post(
     "/conversations",
     requireWidgetAuth(),
-    zValidator("json", createWidgetConversationSchema),
+    zValidator("json", createConversationBodySchema),
     async (c) => {
       try {
         const widgetAuth = getWidgetAuth(c);
