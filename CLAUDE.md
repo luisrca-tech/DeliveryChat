@@ -90,7 +90,7 @@ SKIP_ENV_VALIDATION=true bun run build
 - **Tenant plans:** `FREE`, `BASIC`, `PREMIUM`, `ENTERPRISE` with plan-based feature limits defined in `src/lib/planLimits.ts`. Per-tenant overrides stored in `tenantRateLimits` table.
 - **Routes:** Composed in `src/lib/api.ts`, which exports `APIType` — the type used by the admin frontend's RPC client. Route files in `src/routes/`.
 - **Error responses:** Always use `jsonError(c, status, error, message?)` from `lib/http.ts` — never raw `c.json({ error })`.
-- **Billing:** Stripe integration — webhooks handled in `src/routes/webhooks.ts`, client in `src/lib/stripe.ts`.
+- **Billing:** Stripe integration — webhooks handled in `src/routes/webhooks/` (folder-based split by Stripe object type), client in `src/lib/stripe.ts`.
 - **Email:** Resend SDK for transactional emails (OTP, password reset). The `@repo/emails` package must be built before `hono-api` starts — this is handled automatically by `predev` and `prebuild` scripts.
 - **Env validation:** `@t3-oss/env-core` wrapping Zod in `apps/hono-api/src/env.ts`. `ALLOWED_ORIGINS` is a JSON string auto-parsed. `SKIP_ENV_VALIDATION=true` disables checks for CI.
 
@@ -182,6 +182,7 @@ All environment variables managed via **Infisical** (not `.env` files). Folder-b
 - **Formatting:** Prettier + ESLint. Run `bun run lint` and `bun run format`.
 - **Feature docs:** Every new feature or non-trivial change must have a `docs/` folder inside its feature directory with `.md` files covering business rules and technical decisions.
 - **Factory docs:** When creating a Factory, add a `factory.md` in that feature's `docs/` folder.
+- **Folder-based routes:** Route files exceeding ~200 lines should be split into a folder: `routes/<name>/index.ts` as the single export, sub-modules split by concern (not by HTTP method), `__tests__/` colocated inside the folder. Handler functions are plain async functions (not Hono routes) dispatched from `index.ts`. See `routes/conversations/` and `routes/webhooks/` as reference implementations.
 
 ## Git Workflow
 

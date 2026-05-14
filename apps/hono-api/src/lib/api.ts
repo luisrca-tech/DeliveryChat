@@ -5,7 +5,7 @@ import { apiKeysRoute } from "../routes/apiKeys.js";
 import { registerRoute } from "../routes/register.js";
 import { verifyEmailRoute } from "../routes/verifyEmail.js";
 import { resendOtpRoute } from "../routes/resendOtp.js";
-import { webhooksRoute } from "../routes/webhooks.js";
+import { webhooksRoute } from "../routes/webhooks/index.js";
 import { billingRoute } from "../routes/billing.js";
 import { tenantsRoute } from "../routes/tenants.js";
 import { widgetRoute } from "../routes/widget.js";
