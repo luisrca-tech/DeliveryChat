@@ -251,6 +251,7 @@ describe("startNewChat", () => {
       {
         id: "m1",
         content: "hi",
+        type: "text",
         senderRole: "visitor",
         senderId: "v1",
         status: "sent",

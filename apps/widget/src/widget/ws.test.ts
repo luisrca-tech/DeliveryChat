@@ -268,7 +268,7 @@ describe("WebSocket error classification", () => {
       await connect();
       setState("conversationId", "conv-mine");
       setState("messages", [
-        { id: "msg-1", content: "original", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        { id: "msg-1", content: "original", type: "text", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
       ]);
 
       latestWS().onmessage?.({
@@ -291,7 +291,7 @@ describe("WebSocket error classification", () => {
       await connect();
       setState("conversationId", "conv-mine");
       setState("messages", [
-        { id: "msg-1", content: "still here", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        { id: "msg-1", content: "still here", type: "text", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
       ]);
 
       latestWS().onmessage?.({
@@ -307,6 +307,93 @@ describe("WebSocket error classification", () => {
 
       expect(getState("messages")[0]!.content).toBe("still here");
       expect(getState("messages")[0]!.isDeleted).toBeUndefined();
+    });
+  });
+
+  describe("system messages", () => {
+    it("extracts type 'system' from message:new payload", async () => {
+      await connect();
+      setState("conversationId", "conv-1");
+      setState("messages", []);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:new",
+          payload: {
+            id: "sys-1",
+            conversationId: "conv-1",
+            senderId: null,
+            senderRole: "operator",
+            content: "Alice joined the conversation",
+            type: "system",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+        }),
+      });
+
+      const msgs = getState("messages");
+      expect(msgs).toHaveLength(1);
+      expect(msgs[0]!.type).toBe("system");
+      expect(msgs[0]!.senderId).toBe("");
+    });
+
+    it("defaults to type 'text' when type is missing from payload", async () => {
+      await connect();
+      setState("conversationId", "conv-1");
+      setState("messages", []);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:new",
+          payload: {
+            id: "msg-1",
+            conversationId: "conv-1",
+            senderId: "user-1",
+            senderRole: "operator",
+            content: "Hello!",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+        }),
+      });
+
+      expect(getState("messages")[0]!.type).toBe("text");
+    });
+
+    it("extracts type 'system' from messages:sync payload", async () => {
+      await connect();
+      setState("conversationId", "conv-1");
+      setState("messages", []);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "messages:sync",
+          payload: {
+            conversationId: "conv-1",
+            messages: [
+              {
+                id: "sys-1",
+                content: "Alice joined the conversation",
+                senderId: "",
+                senderRole: "operator",
+                type: "system",
+                createdAt: "2026-01-01T00:00:00Z",
+              },
+              {
+                id: "msg-1",
+                content: "Hello!",
+                senderId: "user-1",
+                senderRole: "operator",
+                createdAt: "2026-01-01T00:00:01Z",
+              },
+            ],
+          },
+        }),
+      });
+
+      const msgs = getState("messages");
+      expect(msgs).toHaveLength(2);
+      expect(msgs[0]!.type).toBe("system");
+      expect(msgs[1]!.type).toBe("text");
     });
   });
 
@@ -345,8 +432,8 @@ describe("WebSocket error classification", () => {
     it("marks pending messages as failed on rate limit", async () => {
       await connect();
       setState("messages", [
-        { id: "m1", content: "hi", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
-        { id: "m2", content: "ok", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2026-01-01T00:00:01Z" },
+        { id: "m1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+        { id: "m2", content: "ok", type: "text", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2026-01-01T00:00:01Z" },
       ]);
 
       simulateRateLimit(2);

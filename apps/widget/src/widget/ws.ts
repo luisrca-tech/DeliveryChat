@@ -155,20 +155,23 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
       const payload = event.payload as {
         id: string;
         conversationId: string;
-        senderId: string;
+        senderId: string | null;
         senderRole: "visitor" | "operator" | "admin";
         content: string;
+        type?: string;
         createdAt: string;
         editedAt?: string | null;
       };
 
       if (payload.conversationId !== getState("conversationId")) break;
 
+      const msgType = payload.type === "system" ? "system" : "text";
       const newMsg: ChatMessage = {
         id: payload.id,
         content: payload.content,
+        type: msgType,
         senderRole: payload.senderRole,
-        senderId: payload.senderId,
+        senderId: payload.senderId ?? "",
         status: "sent",
         createdAt: payload.createdAt,
         editedAt: payload.editedAt ?? null,
@@ -299,6 +302,7 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
       const syncedMessages: ChatMessage[] = payload.messages.map((m) => ({
         id: m.id,
         content: m.content,
+        type: ((m as { type?: string }).type === "system" ? "system" : "text") as ChatMessage["type"],
         senderRole: m.senderRole,
         senderId: m.senderId,
         status: "sent" as const,

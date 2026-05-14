@@ -51,6 +51,7 @@ export type InitOptions = {
 export type ChatMessage = {
   id: string;
   content: string;
+  type: "text" | "system";
   senderRole: "visitor" | "operator" | "admin";
   senderId: string;
   status: "pending" | "sent" | "failed";
