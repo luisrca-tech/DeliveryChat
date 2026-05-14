@@ -13,9 +13,9 @@ export const messages = createTable(
     conversationId: uuid("conversation_id")
       .notNull()
       .references(() => conversations.id, { onDelete: "cascade" }),
-    senderId: text("sender_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "set null" }),
+    senderId: text("sender_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
     type: messageTypeEnum("type").notNull().default("text"),
     content: text("content").notNull(),
     editedAt: timestampStringNullable("edited_at"),

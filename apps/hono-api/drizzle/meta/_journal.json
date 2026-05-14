@@ -155,6 +155,13 @@
       "when": 1777405966587,
       "tag": "0024_add-indexes-at-tables",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1778781772273,
+      "tag": "0025_make_message_sender_id_nullable_for_system_messages",
+      "breakpoints": true
     }
   ]
 }

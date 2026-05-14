@@ -55,8 +55,9 @@ async function restoreConversationHistory(
       .map((m) => ({
         id: m.id,
         content: m.content,
-        senderRole: resolveSenderRole(m.senderId),
-        senderId: m.senderId,
+        type: (m.type === "system" ? "system" : "text") as ChatMessage["type"],
+        senderRole: m.type === "system" ? ("operator" as const) : resolveSenderRole(m.senderId),
+        senderId: m.senderId ?? "",
         status: "sent" as const,
         createdAt: m.createdAt,
         editedAt: (m as { editedAt?: string | null }).editedAt ?? null,
@@ -128,6 +129,7 @@ export async function sendMessage(content: string): Promise<void> {
   const optimistic: ChatMessage = {
     id: clientMessageId,
     content,
+    type: "text",
     senderRole: "visitor",
     senderId: visitorId,
     status: "pending",

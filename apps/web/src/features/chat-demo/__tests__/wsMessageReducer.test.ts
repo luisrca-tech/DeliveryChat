@@ -36,6 +36,7 @@ function makeMessage(overrides?: Partial<OptimisticMessage>): OptimisticMessage 
     content: "Hello",
     createdAt: "2024-01-01T00:00:00Z",
     editedAt: null,
+    type: "text",
     ...overrides,
   };
 }
@@ -541,5 +542,54 @@ describe("wsMessageReducer / pure function contract", () => {
     );
 
     expect(conversations[0]!.status).toBe("pending");
+  });
+});
+
+// ---- system messages ----
+
+describe("wsMessageReducer / system messages", () => {
+  it("extracts type 'system' from message:new payload", () => {
+    const state = makeState();
+
+    const { state: next } = wsMessageReducer(
+      state,
+      {
+        type: "message:new",
+        payload: {
+          id: "msg-sys-1",
+          conversationId: "conv-1",
+          senderId: "",
+          content: "Alice joined the conversation",
+          createdAt: "2024-01-01T01:00:00Z",
+          type: "system",
+        },
+      },
+      "conv-1",
+    );
+
+    expect(next.messages).toHaveLength(1);
+    expect(next.messages[0]!.type).toBe("system");
+    expect(next.messages[0]!.content).toBe("Alice joined the conversation");
+  });
+
+  it("defaults type to 'text' when not present in message:new payload", () => {
+    const state = makeState();
+
+    const { state: next } = wsMessageReducer(
+      state,
+      {
+        type: "message:new",
+        payload: {
+          id: "msg-2",
+          conversationId: "conv-1",
+          senderId: "user-1",
+          content: "Hello",
+          createdAt: "2024-01-01T01:00:00Z",
+        },
+      },
+      "conv-1",
+    );
+
+    expect(next.messages[0]!.type).toBe("text");
   });
 });

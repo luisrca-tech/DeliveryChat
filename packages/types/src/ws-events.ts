@@ -104,7 +104,7 @@ export type WSServerEventType =
 export interface MessageNewPayload {
   id: string;
   conversationId: string;
-  senderId: string;
+  senderId: string | null;
   senderName: string;
   senderRole: ParticipantRole;
   content: string;

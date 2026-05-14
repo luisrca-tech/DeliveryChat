@@ -247,6 +247,14 @@ export function MessageThreadPanel({
         ) : (
           <div className="space-y-1.5">
             {messages.map((msg) => {
+              if (msg.type === "system") {
+                return (
+                  <div key={msg.id} className="flex justify-center py-1">
+                    <span className="text-[10px] text-muted-foreground italic">{msg.content}</span>
+                  </div>
+                );
+              }
+
               const isVisitor =
                 msg.senderId === visitorUserId || (msg.pending && msg.clientId !== undefined);
               const canModify =
