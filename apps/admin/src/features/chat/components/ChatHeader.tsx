@@ -157,11 +157,6 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
                 className="cursor-pointer"
                 onSelect={(event) => {
                   event.preventDefault();
-                  if (!conversation.subject) {
-                    toast.warning("Please update the conversation subject before marking as solved");
-                    startEditing();
-                    return;
-                  }
                   setIsResolveDialogOpen(true);
                 }}
               >
