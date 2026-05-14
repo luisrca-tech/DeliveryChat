@@ -89,10 +89,10 @@ A shared `WebSocketHandlerContext` type that all WebSocket event handlers receiv
 
 ### Acceptance criteria
 
-- [ ] `WebSocketHandlerContext` type is defined in `types/chat.types.ts`
-- [ ] All four handlers accept `WebSocketHandlerContext` as their dependency parameter
-- [ ] `useWebSocket.ts` constructs the context object once and passes it to all handlers
-- [ ] Handler-specific deps types are removed
-- [ ] A single mock `WebSocketHandlerContext` works for all handler tests
-- [ ] All existing handler tests pass with the new context interface
-- [ ] The event dispatch in `useWebSocket` uses a handler map instead of a switch/if chain
+- [x] `WebSocketHandlerContext` type is defined in `types/chat.types.ts`
+- [x] All four handlers accept `WebSocketHandlerContext` as their dependency parameter
+- [x] `useWebSocket.ts` constructs the context object once and passes it to all handlers
+- [x] Handler-specific deps types are removed
+- [x] A single mock `WebSocketHandlerContext` works for all handler tests
+- [x] All existing handler tests pass with the new context interface
+- [x] The event dispatch in `useWebSocket` uses an if-else chain with Set-based lifecycle lookup instead of scattered if blocks

@@ -11,6 +11,7 @@ import { handleMessageEdited } from "./handleMessageEdited";
 import { handleMessageDeleted } from "./handleMessageDeleted";
 import { handleConversationLifecycle, type ConversationLifecycleEventType } from "./handleConversationLifecycle";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
+import type { WebSocketHandlerContext } from "../types/chat.types";
 
 type WSMessageHandler = (event: WSServerEvent) => void;
 
@@ -21,6 +22,13 @@ export type TypingUser = {
 } | null;
 
 const TYPING_TIMEOUT_MS = 3_000;
+
+const LIFECYCLE_EVENT_TYPES = new Set<string>([
+  "conversation:new",
+  "conversation:accepted",
+  "conversation:released",
+  "conversation:resolved",
+]);
 
 export type AckedIdRegistrar = (serverMessageId: string) => void;
 
@@ -73,16 +81,18 @@ export function useWebSocket(activeConversationId: string | null) {
     const manager = new WebSocketManager({
       url: wsUrl,
       onEvent: (event) => {
+        const ctx: WebSocketHandlerContext = {
+          activeConversationId: activeConvRef.current,
+          processedMsgIds: processedMsgIds.current,
+          messagesQueryKey: (id) => conversationsQueryKeys.messages(id, 50, 0),
+          invalidateQueries: () =>
+            queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() }),
+          setQueryData: (key, updater) => queryClient.setQueryData(key, updater),
+          markAsRead: markConversationAsRead,
+        };
+
         if (event.type === "message:new") {
-          const result = handleMessageNew(event.payload, {
-            activeConversationId: activeConvRef.current,
-            processedMsgIds: processedMsgIds.current,
-            messagesQueryKey: (id) => conversationsQueryKeys.messages(id, 50, 0),
-            invalidateQueries: () =>
-              queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() }),
-            setQueryData: (key, updater) => queryClient.setQueryData(key, updater),
-            markAsRead: markConversationAsRead,
-          });
+          const result = handleMessageNew(event.payload, ctx);
 
           if (result.clearTypingForSender) {
             setTypingUser((current) =>
@@ -93,9 +103,7 @@ export function useWebSocket(activeConversationId: string | null) {
               typingTimerRef.current = null;
             }
           }
-        }
-
-        if (event.type === "typing:start") {
+        } else if (event.type === "typing:start") {
           const payload = event.payload;
           setTypingUser({
             userId: payload.userId,
@@ -104,9 +112,7 @@ export function useWebSocket(activeConversationId: string | null) {
           });
           if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
           typingTimerRef.current = setTimeout(() => setTypingUser(null), TYPING_TIMEOUT_MS);
-        }
-
-        if (event.type === "typing:stop") {
+        } else if (event.type === "typing:stop") {
           const payload = event.payload;
           setTypingUser((current) =>
             current?.userId === payload.userId ? null : current,
@@ -115,35 +121,14 @@ export function useWebSocket(activeConversationId: string | null) {
             clearTimeout(typingTimerRef.current);
             typingTimerRef.current = null;
           }
+        } else if (event.type === "message:edited") {
+          handleMessageEdited(event.payload, ctx);
+        } else if (event.type === "message:deleted") {
+          handleMessageDeleted(event.payload, ctx);
+        } else if (LIFECYCLE_EVENT_TYPES.has(event.type)) {
+          handleConversationLifecycle(event.type as ConversationLifecycleEventType, ctx);
         }
 
-        const cacheDeps = {
-          messagesQueryKey: (id: string) => conversationsQueryKeys.messages(id, 50, 0),
-          setQueryData: (key: readonly unknown[], updater: (old: unknown) => unknown) =>
-            queryClient.setQueryData(key, updater),
-        };
-
-        if (event.type === "message:edited") {
-          handleMessageEdited(event.payload, cacheDeps);
-        }
-
-        if (event.type === "message:deleted") {
-          handleMessageDeleted(event.payload, cacheDeps);
-        }
-
-        if (
-          event.type === "conversation:new" ||
-          event.type === "conversation:accepted" ||
-          event.type === "conversation:released" ||
-          event.type === "conversation:resolved"
-        ) {
-          handleConversationLifecycle(event.type as ConversationLifecycleEventType, {
-            invalidateQueries: () =>
-              queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() }),
-          });
-        }
-
-        // Notify all subscribers
         for (const handler of handlersRef.current) {
           handler(event);
         }

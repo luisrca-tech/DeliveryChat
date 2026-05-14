@@ -69,3 +69,15 @@ export type ConversationFilters = {
   limit: number;
   offset: number;
 };
+
+export type WebSocketHandlerContext = {
+  activeConversationId: string | null;
+  processedMsgIds: Set<string>;
+  messagesQueryKey: (conversationId: string) => readonly unknown[];
+  invalidateQueries: () => void;
+  setQueryData: (
+    queryKey: readonly unknown[],
+    updater: (old: unknown) => unknown,
+  ) => void;
+  markAsRead: (conversationId: string) => Promise<unknown>;
+};
