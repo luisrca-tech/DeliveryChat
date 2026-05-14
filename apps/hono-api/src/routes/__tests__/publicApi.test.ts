@@ -156,6 +156,9 @@ function validHeaders(extra: Record<string, string> = {}) {
   };
 }
 
+const { broadcastRoomEvent, buildMessageEditedEvent, buildMessageDeletedEvent } =
+  await import("../../features/chat/broadcasting.service.js");
+
 const { publicApiRoute } = await import("../publicApi.js");
 
 const app = new Hono().route("/v1/api", publicApiRoute);
@@ -399,6 +402,59 @@ describe("Public REST API", () => {
       expect(body.message.content).toBe("Updated content");
     });
 
+    it("broadcasts message:edited event after successful edit", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+      const updatedMsg = {
+        id: MESSAGE_ID,
+        content: "Updated content",
+        editedAt: "2026-01-01T00:01:00Z",
+        senderId: VALID_VISITOR_ID,
+        conversationId: CONVERSATION_ID,
+      };
+      mockEditMessage.mockResolvedValue(updatedMsg);
+      const fakeEvent = { type: "message:edited", payload: {} };
+      vi.mocked(buildMessageEditedEvent).mockReturnValue(fakeEvent as any);
+
+      await app.request(
+        `/v1/api/conversations/${CONVERSATION_ID}/messages/${MESSAGE_ID}`,
+        {
+          method: "PATCH",
+          headers: { ...validHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ content: "Updated content" }),
+        },
+      );
+
+      expect(buildMessageEditedEvent).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        messageId: MESSAGE_ID,
+        content: "Updated content",
+        editedAt: "2026-01-01T00:01:00Z",
+        senderId: VALID_VISITOR_ID,
+      });
+      expect(broadcastRoomEvent).toHaveBeenCalledWith(CONVERSATION_ID, fakeEvent);
+    });
+
+    it("does not broadcast when edit fails", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+      const { MessageEditWindowExpiredError } = await import(
+        "../../features/chat/chat.service.js"
+      );
+      mockEditMessage.mockRejectedValue(
+        new MessageEditWindowExpiredError(MESSAGE_ID, "2026-01-01T00:00:00Z", 15),
+      );
+
+      await app.request(
+        `/v1/api/conversations/${CONVERSATION_ID}/messages/${MESSAGE_ID}`,
+        {
+          method: "PATCH",
+          headers: { ...validHeaders(), "Content-Type": "application/json" },
+          body: JSON.stringify({ content: "Too late" }),
+        },
+      );
+
+      expect(broadcastRoomEvent).not.toHaveBeenCalled();
+    });
+
     it("returns 422 when edit window has expired", async () => {
 
       mockIsParticipant.mockResolvedValue(true);
@@ -437,6 +493,42 @@ describe("Public REST API", () => {
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.success).toBe(true);
+    });
+
+    it("broadcasts message:deleted event after successful delete", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+      mockDeleteMessage.mockResolvedValue({ id: MESSAGE_ID, deletedAt: "2026-01-01T00:01:00Z" });
+      const fakeEvent = { type: "message:deleted", payload: {} };
+      vi.mocked(buildMessageDeletedEvent).mockReturnValue(fakeEvent as any);
+
+      await app.request(
+        `/v1/api/conversations/${CONVERSATION_ID}/messages/${MESSAGE_ID}`,
+        { method: "DELETE", headers: validHeaders() },
+      );
+
+      expect(buildMessageDeletedEvent).toHaveBeenCalledWith({
+        conversationId: CONVERSATION_ID,
+        messageId: MESSAGE_ID,
+        senderId: VALID_VISITOR_ID,
+      });
+      expect(broadcastRoomEvent).toHaveBeenCalledWith(CONVERSATION_ID, fakeEvent);
+    });
+
+    it("does not broadcast when delete fails", async () => {
+      mockIsParticipant.mockResolvedValue(true);
+      const { MessageNotFoundError } = await import(
+        "../../features/chat/chat.service.js"
+      );
+      mockDeleteMessage.mockRejectedValue(
+        new MessageNotFoundError(MESSAGE_ID),
+      );
+
+      await app.request(
+        `/v1/api/conversations/${CONVERSATION_ID}/messages/${MESSAGE_ID}`,
+        { method: "DELETE", headers: validHeaders() },
+      );
+
+      expect(broadcastRoomEvent).not.toHaveBeenCalled();
     });
   });
 

@@ -21,6 +21,11 @@ import {
 import { mapServiceErrorToResponse } from "../features/chat/error-mapper.js";
 import { requireParticipant } from "../features/chat/participant-guard.js";
 import { resolveOrCreateVisitor } from "../features/chat/visitor.service.js";
+import {
+  broadcastRoomEvent,
+  buildMessageEditedEvent,
+  buildMessageDeletedEvent,
+} from "../features/chat/broadcasting.service.js";
 
 type Variables = {
   visitor: VisitorContext;
@@ -280,6 +285,18 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
           senderId: visitor.visitorUserId,
           content,
         });
+
+        broadcastRoomEvent(
+          conversationId,
+          buildMessageEditedEvent({
+            conversationId,
+            messageId,
+            content,
+            editedAt: message.editedAt!,
+            senderId: visitor.visitorUserId,
+          }),
+        );
+
         return c.json({ message: mapMessage(message) });
       } catch (error) {
         const mapped = mapServiceErrorToResponse(c, error);
@@ -301,6 +318,16 @@ export const publicApiRoute = new Hono<{ Variables: Variables }>()
         conversationId,
         senderId: visitor.visitorUserId,
       });
+
+      broadcastRoomEvent(
+        conversationId,
+        buildMessageDeletedEvent({
+          conversationId,
+          messageId,
+          senderId: visitor.visitorUserId,
+        }),
+      );
+
       return c.json({ success: true });
     } catch (error) {
       const mapped = mapServiceErrorToResponse(c, error);
