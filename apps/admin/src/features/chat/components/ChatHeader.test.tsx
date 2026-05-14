@@ -3,6 +3,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ChatHeader } from "./ChatHeader";
 import type { ConversationWithParticipants } from "../types/chat.types";
+import type { ConversationPermissions } from "../lib/conversationPermissions";
 
 const mockExecuteResolve = vi.fn().mockResolvedValue(true);
 const mockExecuteLeave = vi.fn().mockResolvedValue(true);
@@ -43,6 +44,23 @@ function makeConversation(
   };
 }
 
+function makePermissions(
+  overrides: Partial<ConversationPermissions> = {},
+): ConversationPermissions {
+  return {
+    isAdmin: false,
+    isAssigned: true,
+    canViewAll: false,
+    canDelete: false,
+    canAccept: false,
+    canLeave: true,
+    canResolve: true,
+    canEditSubject: true,
+    canSend: true,
+    ...overrides,
+  };
+}
+
 function getDropdownTrigger() {
   const buttons = screen.getAllByRole("button");
   const trigger = buttons.find((btn) => btn.getAttribute("aria-haspopup") === "menu");
@@ -67,7 +85,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
     render(
       <ChatHeader
         conversation={makeConversation({ subject: "Bug report" })}
-        currentUserId={CURRENT_USER_ID}
+        permissions={makePermissions()}
       />,
     );
 
@@ -83,7 +101,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
     render(
       <ChatHeader
         conversation={makeConversation({ subject: null })}
-        currentUserId={CURRENT_USER_ID}
+        permissions={makePermissions()}
       />,
     );
 
@@ -100,7 +118,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
     render(
       <ChatHeader
         conversation={makeConversation({ subject: null })}
-        currentUserId={CURRENT_USER_ID}
+        permissions={makePermissions()}
       />,
     );
 
@@ -113,7 +131,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
     render(
       <ChatHeader
         conversation={makeConversation({ subject: "My subject" })}
-        currentUserId={CURRENT_USER_ID}
+        permissions={makePermissions()}
       />,
     );
 
@@ -125,7 +143,7 @@ describe("ChatHeader — resolve without subject requirement", () => {
     const { container } = render(
       <ChatHeader
         conversation={makeConversation({ subject: "Editable subject" })}
-        currentUserId={CURRENT_USER_ID}
+        permissions={makePermissions()}
       />,
     );
 
@@ -134,5 +152,30 @@ describe("ChatHeader — resolve without subject requirement", () => {
     expect(pencilButton).toBeTruthy();
     await user.click(pencilButton);
     expect(screen.getByDisplayValue("Editable subject")).toBeTruthy();
+  });
+
+  it("hides management dropdown when canLeave is false", () => {
+    render(
+      <ChatHeader
+        conversation={makeConversation()}
+        permissions={makePermissions({ canLeave: false })}
+      />,
+    );
+
+    const buttons = screen.getAllByRole("button");
+    const trigger = buttons.find((btn) => btn.getAttribute("aria-haspopup") === "menu");
+    expect(trigger).toBeUndefined();
+  });
+
+  it("hides edit subject button when canEditSubject is false", () => {
+    const { container } = render(
+      <ChatHeader
+        conversation={makeConversation({ subject: "Test" })}
+        permissions={makePermissions({ canEditSubject: false })}
+      />,
+    );
+
+    const pencilButton = container.querySelector(".group button");
+    expect(pencilButton).toBeNull();
   });
 });

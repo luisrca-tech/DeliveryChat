@@ -1,11 +1,10 @@
 import type { NavigateOptions } from "@tanstack/react-router";
+import { isAdminRole } from "./conversationPermissions";
 
 type NavigateFn = (opts: NavigateOptions) => void;
 
 function nextFilterAfterAccept(currentUserRole: string): "all" | "mine" {
-  const isAdmin =
-    currentUserRole === "admin" || currentUserRole === "super_admin";
-  return isAdmin ? "all" : "mine";
+  return isAdminRole(currentUserRole) ? "all" : "mine";
 }
 
 /**

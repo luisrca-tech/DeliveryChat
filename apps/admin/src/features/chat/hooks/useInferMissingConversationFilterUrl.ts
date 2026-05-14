@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import type { NavigateOptions } from "@tanstack/react-router";
 import { useConversationDetailQuery } from "./useConversationsQuery";
+import { isAdminRole } from "../lib/conversationPermissions";
 import type { Conversation } from "../types/chat.types";
 
 function inferFilterForUrl(
@@ -8,12 +9,11 @@ function inferFilterForUrl(
   currentUserRole: string,
   sessionUserId: string,
 ): string {
-  const isAdmin =
-    currentUserRole === "admin" || currentUserRole === "super_admin";
-  if (conversation.status === "pending") return isAdmin ? "all" : "queue";
+  const admin = isAdminRole(currentUserRole);
+  if (conversation.status === "pending") return admin ? "all" : "queue";
   if (conversation.status === "closed") return "closed";
   if (conversation.status === "active") {
-    if (isAdmin) return "all";
+    if (admin) return "all";
     return conversation.assignedTo === sessionUserId ? "mine" : "queue";
   }
   return "queue";
@@ -38,8 +38,7 @@ export function useInferMissingConversationFilterUrl(
   useEffect(() => {
     if (!selectedId || urlFilter) return;
     if (!conversationSnapshot) return;
-    const needsSessionForInfer =
-      currentUserRole !== "admin" && currentUserRole !== "super_admin";
+    const needsSessionForInfer = !isAdminRole(currentUserRole);
     if (needsSessionForInfer && !sessionUserId) return;
 
     const inferred = inferFilterForUrl(

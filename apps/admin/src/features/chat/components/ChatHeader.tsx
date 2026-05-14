@@ -12,11 +12,12 @@ import {
 } from "@repo/ui/components/ui/dropdown-menu";
 import { useUpdateSubjectMutation } from "../hooks/useConversationMutations";
 import { useLeaveAction, useResolveAction } from "../hooks/useConversationActions";
+import type { ConversationPermissions } from "../lib/conversationPermissions";
 import type { ConversationWithParticipants } from "../types/chat.types";
 
 type Props = {
   conversation: ConversationWithParticipants;
-  currentUserId: string;
+  permissions: ConversationPermissions;
 };
 
 const statusColors: Record<string, string> = {
@@ -25,7 +26,7 @@ const statusColors: Record<string, string> = {
   closed: "bg-gray-100 text-gray-600",
 };
 
-export function ChatHeader({ conversation, currentUserId }: Props) {
+export function ChatHeader({ conversation, permissions }: Props) {
   const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
   const leaveAction = useLeaveAction();
   const resolveAction = useResolveAction();
@@ -35,9 +36,6 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
   const [isEditingSubject, setIsEditingSubject] = useState(false);
   const [subjectDraft, setSubjectDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-
-  const isAssigned = conversation.assignedTo === currentUserId;
-  const canManage = isAssigned;
 
   const startEditing = () => {
     setSubjectDraft(conversation.subject ?? "");
@@ -117,7 +115,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
             <span className="text-sm font-medium truncate">
               {conversation.subject ?? "No subject"}
             </span>
-            {isAssigned && (
+            {permissions.canEditSubject && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -134,7 +132,7 @@ export function ChatHeader({ conversation, currentUserId }: Props) {
         {conversation.status}
       </span>
 
-      {canManage && conversation.status === "active" && (
+      {permissions.canLeave && (
         <>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

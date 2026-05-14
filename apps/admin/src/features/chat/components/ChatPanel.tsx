@@ -8,6 +8,7 @@ import { useConversationMessagesQuery, useConversationDetailQuery } from "../hoo
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useMessageActions } from "../hooks/useMessageActions";
 import { useAcceptAction } from "../hooks/useConversationActions";
+import { getConversationPermissions } from "../lib/conversationPermissions";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
 import type { TypingUser } from "../hooks/useWebSocket";
 
@@ -59,23 +60,23 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
   const displayMessages = [...messages].reverse();
   const isPending = conversation?.status === "pending";
   const isActive = conversation?.status === "active";
-  const isAssignedToMe =
-    !!currentUserId && conversation?.assignedTo === currentUserId;
-  const isStaff = currentUserRole !== "visitor";
+
+  const permissions = conversation
+    ? getConversationPermissions(currentUserRole, conversation, currentUserId)
+    : null;
   const canSend =
-    isActive &&
+    permissions?.canSend &&
     ws.isConnected &&
     !sessionPending &&
-    !!currentUserId &&
-    (!isStaff || isAssignedToMe);
+    !!currentUserId;
 
   return (
     <div className="flex-1 flex min-w-0">
       <div className="flex-1 flex flex-col min-w-0">
-        {conversation && (
+        {conversation && permissions && (
           <ChatHeader
             conversation={conversation}
-            currentUserId={currentUserId}
+            permissions={permissions}
           />
         )}
         <MessageList
@@ -128,7 +129,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
                 ? "Connecting..."
                 : sessionPending || !currentUserId
                   ? "Loading..."
-                  : isStaff && !isAssignedToMe
+                  : !permissions?.canSend && currentUserRole !== "visitor"
                     ? "This conversation is assigned to another agent"
                     : "Type a message..."
             }
