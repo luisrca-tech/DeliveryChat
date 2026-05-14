@@ -38,6 +38,7 @@ export function useMessageInput(
         content,
         createdAt: new Date().toISOString(),
         editedAt: null,
+        type: "text",
         pending: true,
       };
 

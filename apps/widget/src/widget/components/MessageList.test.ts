@@ -21,6 +21,7 @@ function makeMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
   return {
     id: "m-1",
     content: "hello",
+    type: "text",
     senderRole: "visitor",
     senderId: "visitor-1",
     status: "sent",
@@ -37,6 +38,64 @@ function makeContext(overrides: Partial<BubbleContext> = {}): BubbleContext {
     ...overrides,
   };
 }
+
+describe("MessageList — system messages", () => {
+  it("renders system messages as centered muted text, not chat bubbles", () => {
+    const list = createMessageList(
+      [makeMessage({ type: "system", content: "Alice joined the conversation", senderId: "" })],
+      makeContext(),
+    );
+
+    const row = list.querySelector(".message-row-system");
+    expect(row).not.toBeNull();
+    expect(row?.querySelector(".message-system-text")?.textContent).toBe(
+      "Alice joined the conversation",
+    );
+    expect(row?.querySelector(".message-bubble")).toBeNull();
+  });
+
+  it("does not render edit/delete controls for system messages", () => {
+    const list = createMessageList(
+      [makeMessage({ type: "system", content: "Alice left the conversation", senderId: "" })],
+      makeContext(),
+    );
+
+    expect(list.querySelector(".message-more-btn")).toBeNull();
+    expect(list.querySelector(".message-dropdown")).toBeNull();
+  });
+
+  it("renders system messages via appendMessage with correct styling", () => {
+    const list = createMessageList([], makeContext());
+    appendMessage(
+      list,
+      makeMessage({ type: "system", content: "Alice resolved the conversation", senderId: "" }),
+      makeContext(),
+    );
+
+    const row = list.querySelector(".message-row-system");
+    expect(row).not.toBeNull();
+    expect(row?.querySelector(".message-system-text")?.textContent).toBe(
+      "Alice resolved the conversation",
+    );
+  });
+
+  it("renders regular text messages normally alongside system messages", () => {
+    const list = createMessageList(
+      [
+        makeMessage({ id: "m-1", type: "text", content: "hello" }),
+        makeMessage({ id: "m-2", type: "system", content: "Alice joined the conversation", senderId: "" }),
+        makeMessage({ id: "m-3", type: "text", content: "hi there", senderRole: "operator", senderId: "op-1" }),
+      ],
+      makeContext(),
+    );
+
+    const rows = list.querySelectorAll(".message-row, .message-row-system");
+    expect(rows).toHaveLength(3);
+    expect(rows[0]?.classList.contains("message-row-user")).toBe(true);
+    expect(rows[1]?.classList.contains("message-row-system")).toBe(true);
+    expect(rows[2]?.classList.contains("message-row-visitor")).toBe(true);
+  });
+});
 
 describe("MessageList — hostile content rendering", () => {
   it.each(HOSTILE_PAYLOADS)(

@@ -324,6 +324,20 @@
   color: var(--dc-text-color, #0f172a);
 }
 
+/* System messages — centered, muted inline badges */
+:where(.chat-widget) .message-row-system {
+  display: flex;
+  justify-content: center;
+  padding: 4px 16px;
+}
+
+:where(.chat-widget) .message-system-text {
+  font-size: 12px;
+  color: var(--dc-text-secondary, #64748b);
+  text-align: center;
+  line-height: 1.4;
+}
+
 /* "..." trigger + dropdown */
 :where(.chat-widget) .message-dropdown-anchor {
   position: relative;

@@ -55,13 +55,14 @@ export function wsMessageReducer(
     }
 
     case "message:new": {
-      const { id, conversationId, senderId, content, createdAt, editedAt } = event.payload as {
+      const { id, conversationId, senderId, content, createdAt, editedAt, type: msgType } = event.payload as {
         id: string;
         conversationId: string;
         senderId: string;
         content: string;
         createdAt: string;
         editedAt?: string | null;
+        type?: string;
       };
 
       if (conversationId === selectedConversationId) {
@@ -72,7 +73,7 @@ export function wsMessageReducer(
             ...state,
             messages: [
               ...state.messages,
-              { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false },
+              { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false, type: msgType === "system" ? "system" : "text" },
             ],
             operatorTypingName: null,
           },

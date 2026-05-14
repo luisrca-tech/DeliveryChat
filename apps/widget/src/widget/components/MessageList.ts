@@ -73,7 +73,9 @@ export function createMessageList(
 
   const fragment = document.createDocumentFragment();
   for (const msg of messages) {
-    fragment.appendChild(createBubble(msg, ctx, list));
+    fragment.appendChild(
+      msg.type === "system" ? createSystemRow(msg) : createBubble(msg, ctx, list),
+    );
   }
   list.appendChild(fragment);
 
@@ -105,11 +107,11 @@ export function appendMessage(
   ctx: BubbleContext,
 ): void {
   const typingEl = list.querySelector(".typing-indicator");
-  const bubble = createBubble(message, ctx, list);
+  const el = message.type === "system" ? createSystemRow(message) : createBubble(message, ctx, list);
   if (typingEl) {
-    list.insertBefore(bubble, typingEl);
+    list.insertBefore(el, typingEl);
   } else {
-    list.appendChild(bubble);
+    list.appendChild(el);
   }
   list.scrollTop = list.scrollHeight;
 }
@@ -302,6 +304,19 @@ export function exitEditMode(
       metaEl.appendChild(label);
     }
   }
+}
+
+function createSystemRow(msg: ChatMessage): HTMLElement {
+  const row = document.createElement("div");
+  row.className = "message-row-system";
+  row.setAttribute("data-id", msg.id);
+
+  const text = document.createElement("span");
+  text.className = "message-system-text";
+  text.textContent = msg.content;
+
+  row.appendChild(text);
+  return row;
 }
 
 function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement): HTMLElement {

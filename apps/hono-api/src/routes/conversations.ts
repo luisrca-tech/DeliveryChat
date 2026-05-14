@@ -30,12 +30,6 @@ import {
 import { checkBillingStatus } from "../lib/middleware/billing.js";
 import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
-import {
-  buildConversationAcceptedEvent,
-  buildConversationReleasedEvent,
-  buildConversationResolvedEvent,
-  broadcastOrganizationEvent,
-} from "../features/chat/broadcasting.service.js";
 
 export const conversationsRoute = new Hono()
   .use("*", requireTenantAuth())
@@ -233,6 +227,7 @@ export const conversationsRoute = new Hono()
         conversationId,
         organization.id,
         authUser.id,
+        authUser.name,
       );
 
       if (!updated) {
@@ -244,7 +239,6 @@ export const conversationsRoute = new Hono()
         );
       }
 
-      // Add operator as participant
       try {
         await addParticipant({
           conversationId,
@@ -254,15 +248,6 @@ export const conversationsRoute = new Hono()
       } catch {
         // Already a participant — ignore
       }
-
-      broadcastOrganizationEvent(
-        organization.id,
-        buildConversationAcceptedEvent({
-          conversationId,
-          assignedTo: authUser.id,
-          assignedToName: "",
-        }),
-      );
 
       return c.json({ conversation: updated });
     } catch (error) {
@@ -285,6 +270,7 @@ export const conversationsRoute = new Hono()
         conversationId,
         organization.id,
         authUser.id,
+        authUser.name,
       );
 
       if (!updated) {
@@ -295,11 +281,6 @@ export const conversationsRoute = new Hono()
           "Conversation not found or not assigned to you",
         );
       }
-
-      broadcastOrganizationEvent(
-        organization.id,
-        buildConversationReleasedEvent({ conversationId }),
-      );
 
       return c.json({ conversation: updated });
     } catch (error) {
@@ -322,6 +303,7 @@ export const conversationsRoute = new Hono()
         conversationId,
         organization.id,
         authUser.id,
+        authUser.name,
       );
 
       if (!updated) {
@@ -332,14 +314,6 @@ export const conversationsRoute = new Hono()
           "Conversation not found or not assigned to you",
         );
       }
-
-      broadcastOrganizationEvent(
-        organization.id,
-        buildConversationResolvedEvent({
-          conversationId,
-          resolvedBy: authUser.id,
-        }),
-      );
 
       return c.json({ conversation: updated });
     } catch (error) {
