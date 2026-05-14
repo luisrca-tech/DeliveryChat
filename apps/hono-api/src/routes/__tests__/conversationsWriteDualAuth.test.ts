@@ -159,6 +159,11 @@ vi.mock("../../lib/middleware/rateLimit.js", () => ({
     async (_c: any, next: () => Promise<void>) => next(),
 }));
 
+vi.mock("../../lib/middleware/unifiedRateLimit.js", () => ({
+  createUnifiedRateLimitMiddleware: () =>
+    async (_c: any, next: () => Promise<void>) => next(),
+}));
+
 const { conversationsRoute } = await import("../conversations.js");
 
 const app = new Hono().route("/conversations", conversationsRoute);

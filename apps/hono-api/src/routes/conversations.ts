@@ -47,10 +47,12 @@ import {
   getUnifiedAuth,
 } from "../lib/middleware/unifiedAuth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
-import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
+import { createUnifiedRateLimitMiddleware } from "../lib/middleware/unifiedRateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 
 export const conversationsRoute = new Hono()
+
+  .use("*", createUnifiedRateLimitMiddleware())
 
   // ── Dual-auth read endpoints ──
 
@@ -492,7 +494,7 @@ export const conversationsRoute = new Hono()
     requireAuth(),
     requireMember(),
     checkBillingStatus(),
-    createTenantRateLimitMiddleware(),
+
     async (c) => {
       try {
         const auth = getUnifiedAuth(c);
@@ -543,7 +545,7 @@ export const conversationsRoute = new Hono()
     requireAuth(),
     requireMember(),
     checkBillingStatus(),
-    createTenantRateLimitMiddleware(),
+
     async (c) => {
       try {
         const auth = getUnifiedAuth(c);
@@ -584,7 +586,7 @@ export const conversationsRoute = new Hono()
     requireAuth(),
     requireMember(),
     checkBillingStatus(),
-    createTenantRateLimitMiddleware(),
+
     async (c) => {
       try {
         const auth = getUnifiedAuth(c);
@@ -625,7 +627,7 @@ export const conversationsRoute = new Hono()
     requireAuth(),
     requireMember(),
     checkBillingStatus(),
-    createTenantRateLimitMiddleware(),
+
     zValidator("json", updateConversationSubjectSchema),
     async (c) => {
       try {
@@ -734,7 +736,7 @@ export const conversationsRoute = new Hono()
     requireAuth(),
     requireMember(),
     checkBillingStatus(),
-    createTenantRateLimitMiddleware(),
+
     async (c) => {
       try {
         const auth = getUnifiedAuth(c);
