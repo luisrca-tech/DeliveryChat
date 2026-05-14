@@ -55,3 +55,10 @@ Old `/v1/*` paths return 404. No redirects or deprecation period.
 - **Admin frontend**: Must update RPC base URL to `/api/v1` (Phase 5).
 - **Widget**: Must update API base URL references (Phase 5).
 - **E2E tests**: Updated to use `/api/v1/*` paths.
+
+## Risks
+
+- **Admin + widget broken until Phase 5**: Both clients still reference `/v1/` paths. All API calls will 404 until their base URLs are updated. This is expected — the apps are not deployed independently from the API.
+- **Embed script requires rebuild**: The IIFE build (`widget.iife.js`) bakes in the API base URL at build time. Existing deployed embed scripts will fail until rebuilt with the new prefix.
+- **No stale cache risk**: Clean cutover (404 on old paths, no redirects) means cached client responses pointing to `/v1/*` fail immediately rather than silently serving stale data.
+- **`APIType` unaffected**: The exported Hono RPC type describes route shapes, not the mount prefix. The admin client just needs its `baseUrl` updated.

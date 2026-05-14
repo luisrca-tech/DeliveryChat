@@ -186,6 +186,14 @@ Widget settings endpoint is now at `/api/v1/widget/settings/:appId`. WebSocket t
 - [x] WebSocket endpoint works at `/api/v1/ws`
 - [x] E2E smoke test passes against new paths
 
+### Risks
+
+- **Admin frontend broken until Phase 5**: The admin RPC client (`hc<APIType>`) still targets `/v1` as its base URL. All admin API calls will 404 until `apps/admin/src/lib/api.ts` is updated in Phase 5. This is expected — the admin app is not deployed independently.
+- **Widget broken until Phase 5**: Widget API calls reference `/v1/` paths via `VITE_API_BASE_URL` and hardcoded strings in ~7 files under `apps/widget/src/widget/`. Widget will fail to load settings, create conversations, or connect WebSocket until updated in Phase 5.
+- **Embed script (`widget.iife.js`) broken until Phase 5**: The IIFE build bakes in the API base URL at build time. Any existing deployed embed scripts will 404 until rebuilt with the new prefix.
+- **`APIType` export unchanged**: The exported `APIType` from `api.ts` is unaffected — it only describes route shapes, not the mount prefix. The Hono RPC client derives full paths from `baseUrl + route`, so the admin client just needs its `baseUrl` updated.
+- **No stale cache risk**: The clean cutover (404 on old paths, no redirects) means any cached client responses pointing to `/v1/*` will fail immediately rather than silently serving stale data. This is intentional — forces clients to update.
+
 ---
 
 ## Phase 5: Client Updates + WebSocket Broadcasting
