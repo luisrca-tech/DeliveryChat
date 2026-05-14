@@ -2,6 +2,33 @@
 
 Conversations are the top-level container for chat interactions. A visitor creates a conversation, an operator accepts it, and messages flow between them.
 
+## Visitor Identity
+
+Every request requires an `X-Visitor-Id` header containing a UUID v4 that identifies the visitor across sessions.
+
+**Generate it once and persist it in `localStorage`:**
+
+```javascript
+function getVisitorId() {
+  const stored = localStorage.getItem("dc_visitor_id");
+  if (stored) return stored;
+
+  const id = crypto.randomUUID();
+  localStorage.setItem("dc_visitor_id", id);
+  return id;
+}
+
+const visitorId = getVisitorId();
+```
+
+The server automatically creates an anonymous user on the first request. Subsequent requests with the same UUID are recognized as the same visitor — including their conversation history.
+
+<Callout type="warning" title="Persistence">
+  If the visitor clears their <code>localStorage</code>, a new UUID is generated and their previous conversation history is no longer accessible from the client side.
+</Callout>
+
+---
+
 ## Conversation Lifecycle
 
 | Status | Description |

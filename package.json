@@ -26,9 +26,12 @@
     "sync:assets": "bun run scripts/sync-brand-assets.ts"
   },
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.1.6",
+    "jsdom": "^29.1.1",
     "prettier": "^3.6.2",
     "turbo": "^2.6.1",
-    "typescript": "5.9.2"
+    "typescript": "5.9.2",
+    "vitest": "^4.1.6"
   },
   "engines": {
     "node": ">=18"
