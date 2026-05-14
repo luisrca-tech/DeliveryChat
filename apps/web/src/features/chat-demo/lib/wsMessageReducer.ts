@@ -1,3 +1,4 @@
+import type { MessageDeletedPayload, MessageEditedPayload } from "@repo/types";
 import type { Conversation, Message } from "../chat-client";
 
 export type OptimisticMessage = Message & {
@@ -104,27 +105,22 @@ export function wsMessageReducer(
     }
 
     case "message:edited": {
-      const { id, conversationId, content, editedAt } = event.payload as {
-        id: string;
-        conversationId: string;
-        content: string;
-        editedAt: string;
-      };
+      const { messageId, conversationId, content, editedAt } = event.payload as unknown as MessageEditedPayload;
       if (conversationId !== selectedConversationId) return none;
       return {
         state: {
           ...state,
-          messages: state.messages.map((m) => (m.id === id ? { ...m, content, editedAt } : m)),
+          messages: state.messages.map((m) => (m.id === messageId ? { ...m, content, editedAt } : m)),
         },
         sideEffects: [],
       };
     }
 
     case "message:deleted": {
-      const { id, conversationId } = event.payload as { id: string; conversationId: string };
+      const { messageId, conversationId } = event.payload as unknown as MessageDeletedPayload;
       if (conversationId !== selectedConversationId) return none;
       return {
-        state: { ...state, messages: state.messages.filter((m) => m.id !== id) },
+        state: { ...state, messages: state.messages.filter((m) => m.id !== messageId) },
         sideEffects: [],
       };
     }

@@ -266,7 +266,7 @@ describe("wsMessageReducer / message:edited", () => {
       state,
       {
         type: "message:edited",
-        payload: { id: "msg-1", conversationId: "conv-1", content: "Updated content", editedAt: "2024-01-01T02:00:00Z" },
+        payload: { messageId: "msg-1", conversationId: "conv-1", content: "Updated content", editedAt: "2024-01-01T02:00:00Z" },
       },
       "conv-1",
     );
@@ -281,7 +281,7 @@ describe("wsMessageReducer / message:edited", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:edited", payload: { id: "msg-1", conversationId: "conv-2", content: "x", editedAt: "2024-01-01T02:00:00Z" } },
+      { type: "message:edited", payload: { messageId: "msg-1", conversationId: "conv-2", content: "x", editedAt: "2024-01-01T02:00:00Z" } },
       "conv-1",
     );
 
@@ -299,7 +299,7 @@ describe("wsMessageReducer / message:deleted", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:deleted", payload: { id: "msg-1", conversationId: "conv-1" } },
+      { type: "message:deleted", payload: { messageId: "msg-1", conversationId: "conv-1" } },
       "conv-1",
     );
 
@@ -313,7 +313,7 @@ describe("wsMessageReducer / message:deleted", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:deleted", payload: { id: "non-existent", conversationId: "conv-1" } },
+      { type: "message:deleted", payload: { messageId: "non-existent", conversationId: "conv-1" } },
       "conv-1",
     );
 
@@ -326,7 +326,7 @@ describe("wsMessageReducer / message:deleted", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:deleted", payload: { id: "msg-1", conversationId: "conv-2" } },
+      { type: "message:deleted", payload: { messageId: "msg-1", conversationId: "conv-2" } },
       "conv-1",
     );
 
