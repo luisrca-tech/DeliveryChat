@@ -12,6 +12,9 @@ vi.mock("../../../db/index.js", () => ({
 vi.mock("../broadcasting.service.js", () => ({
   broadcastOrganizationEvent: vi.fn(),
   buildConversationNewEvent: vi.fn((p: unknown) => ({ type: "conversation:new", payload: p })),
+  buildConversationAcceptedEvent: vi.fn((p: unknown) => ({ type: "conversation:accepted", payload: p })),
+  buildConversationReleasedEvent: vi.fn((p: unknown) => ({ type: "conversation:released", payload: p })),
+  buildConversationResolvedEvent: vi.fn((p: unknown) => ({ type: "conversation:resolved", payload: p })),
   buildMessageNewEvent: vi.fn((p: unknown) => ({ type: "message:new", payload: p })),
 }));
 
@@ -391,6 +394,15 @@ describe("chat.service", () => {
   });
 
   describe("acceptConversation", () => {
+    const systemMsgRow = {
+      id: "sys-1",
+      conversationId: "conv-1",
+      senderId: null,
+      type: "system",
+      content: "Alice joined the conversation",
+      createdAt: "2026-01-01T00:00:00Z",
+    };
+
     it("assigns the operator and sets status to active (race-condition safe)", async () => {
       const updatedRow = {
         id: "conv-1",
@@ -402,31 +414,87 @@ describe("chat.service", () => {
 
       const updateChain = chainMock([updatedRow]);
       mockUpdate.mockReturnValueOnce(updateChain);
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
 
-      const result = await acceptConversation("conv-1", "org-1", "operator-1");
+      const result = await acceptConversation("conv-1", "org-1", "operator-1", "Alice");
 
       expect(result).toEqual(updatedRow);
       expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("broadcasts lifecycle and system message events on success", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        status: "active" as const,
+        assignedTo: "operator-1",
+        updatedAt: "2026-01-01T00:00:00Z",
+      };
+
+      mockUpdate.mockReturnValueOnce(chainMock([updatedRow]));
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
+
+      await acceptConversation("conv-1", "org-1", "operator-1", "Alice");
+
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledTimes(2);
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({ type: "conversation:accepted" }),
+      );
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({ type: "message:new" }),
+      );
     });
 
     it("returns null when conversation is already accepted (race condition lost)", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await acceptConversation("conv-1", "org-1", "operator-2");
+      const result = await acceptConversation("conv-1", "org-1", "operator-2", "Bob");
       expect(result).toBeNull();
+      expect(mockBroadcastOrganizationEvent).not.toHaveBeenCalled();
     });
 
     it("returns null for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await acceptConversation("conv-999", "org-1", "operator-1");
+      const result = await acceptConversation("conv-999", "org-1", "operator-1", "Alice");
       expect(result).toBeNull();
+    });
+
+    it("does not throw when broadcast fails", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        status: "active" as const,
+        assignedTo: "operator-1",
+        updatedAt: "2026-01-01T00:00:00Z",
+      };
+
+      mockUpdate.mockReturnValueOnce(chainMock([updatedRow]));
+      mockBroadcastOrganizationEvent.mockImplementation(() => {
+        throw new Error("broadcast failed");
+      });
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
+
+      await expect(
+        acceptConversation("conv-1", "org-1", "operator-1", "Alice"),
+      ).resolves.not.toThrow();
     });
   });
 
   describe("leaveConversation", () => {
+    const systemMsgRow = {
+      id: "sys-2",
+      conversationId: "conv-1",
+      senderId: null,
+      type: "system",
+      content: "Alice left the conversation",
+      createdAt: "2026-01-01T00:00:00Z",
+    };
+
     it("unassigns operator and sets status back to pending", async () => {
       const updatedRow = {
         id: "conv-1",
@@ -438,31 +506,67 @@ describe("chat.service", () => {
 
       const updateChain = chainMock([updatedRow]);
       mockUpdate.mockReturnValueOnce(updateChain);
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
 
-      const result = await leaveConversation("conv-1", "org-1", "operator-1");
+      const result = await leaveConversation("conv-1", "org-1", "operator-1", "Alice");
 
       expect(result).toEqual(updatedRow);
       expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("broadcasts lifecycle and system message events on success", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        status: "pending" as const,
+        assignedTo: null,
+        updatedAt: "2026-01-01T00:00:00Z",
+      };
+
+      mockUpdate.mockReturnValueOnce(chainMock([updatedRow]));
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
+
+      await leaveConversation("conv-1", "org-1", "operator-1", "Alice");
+
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledTimes(2);
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({ type: "conversation:released" }),
+      );
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({ type: "message:new" }),
+      );
     });
 
     it("returns null when operator is not the assigned one", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await leaveConversation("conv-1", "org-1", "operator-wrong");
+      const result = await leaveConversation("conv-1", "org-1", "operator-wrong", "Wrong");
       expect(result).toBeNull();
+      expect(mockBroadcastOrganizationEvent).not.toHaveBeenCalled();
     });
 
     it("returns null for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await leaveConversation("conv-999", "org-1", "operator-1");
+      const result = await leaveConversation("conv-999", "org-1", "operator-1", "Alice");
       expect(result).toBeNull();
     });
   });
 
   describe("resolveConversation", () => {
+    const systemMsgRow = {
+      id: "sys-3",
+      conversationId: "conv-1",
+      senderId: null,
+      type: "system",
+      content: "Alice resolved the conversation",
+      createdAt: "2026-01-01T00:00:00Z",
+    };
+
     it("sets status to closed and closedAt timestamp", async () => {
       const updatedRow = {
         id: "conv-1",
@@ -474,18 +578,44 @@ describe("chat.service", () => {
 
       const updateChain = chainMock([updatedRow]);
       mockUpdate.mockReturnValueOnce(updateChain);
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
 
-      const result = await resolveConversation("conv-1", "org-1", "operator-1");
+      const result = await resolveConversation("conv-1", "org-1", "operator-1", "Alice");
 
       expect(result).toEqual(updatedRow);
       expect(mockUpdate).toHaveBeenCalled();
+    });
+
+    it("broadcasts lifecycle and system message events on success", async () => {
+      const updatedRow = {
+        id: "conv-1",
+        organizationId: "org-1",
+        status: "closed" as const,
+        closedAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+      };
+
+      mockUpdate.mockReturnValueOnce(chainMock([updatedRow]));
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
+
+      await resolveConversation("conv-1", "org-1", "operator-1", "Alice");
+
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledTimes(2);
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({ type: "conversation:resolved" }),
+      );
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({ type: "message:new" }),
+      );
     });
 
     it("returns null for non-existent conversation", async () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      const result = await resolveConversation("conv-999", "org-1", "operator-1");
+      const result = await resolveConversation("conv-999", "org-1", "operator-1", "Alice");
       expect(result).toBeNull();
     });
   });

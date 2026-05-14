@@ -21,7 +21,6 @@ import {
   addParticipant,
   getBulkUnreadCounts,
   markAsRead,
-  createSystemMessage,
 } from "../features/chat/chat.service.js";
 import {
   getTenantAuth,
@@ -31,13 +30,6 @@ import {
 import { checkBillingStatus } from "../lib/middleware/billing.js";
 import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
-import {
-  buildConversationAcceptedEvent,
-  buildConversationReleasedEvent,
-  buildConversationResolvedEvent,
-  buildMessageNewEvent,
-  broadcastOrganizationEvent,
-} from "../features/chat/broadcasting.service.js";
 
 export const conversationsRoute = new Hono()
   .use("*", requireTenantAuth())
@@ -235,6 +227,7 @@ export const conversationsRoute = new Hono()
         conversationId,
         organization.id,
         authUser.id,
+        authUser.name,
       );
 
       if (!updated) {
@@ -246,7 +239,6 @@ export const conversationsRoute = new Hono()
         );
       }
 
-      // Add operator as participant
       try {
         await addParticipant({
           conversationId,
@@ -255,39 +247,6 @@ export const conversationsRoute = new Hono()
         });
       } catch {
         // Already a participant — ignore
-      }
-
-      broadcastOrganizationEvent(
-        organization.id,
-        buildConversationAcceptedEvent({
-          conversationId,
-          assignedTo: authUser.id,
-          assignedToName: authUser.name,
-        }),
-      );
-
-      try {
-        const systemMsg = await createSystemMessage(
-          conversationId,
-          `${authUser.name} joined the conversation`,
-        );
-        if (systemMsg) {
-          broadcastOrganizationEvent(
-            organization.id,
-            buildMessageNewEvent({
-              id: systemMsg.id,
-              conversationId,
-              senderId: null,
-              senderName: "",
-              senderRole: "operator",
-              content: systemMsg.content,
-              type: "system",
-              createdAt: systemMsg.createdAt,
-            }),
-          );
-        }
-      } catch (err) {
-        console.error("[conversations] accept system message failed", err);
       }
 
       return c.json({ conversation: updated });
@@ -311,6 +270,7 @@ export const conversationsRoute = new Hono()
         conversationId,
         organization.id,
         authUser.id,
+        authUser.name,
       );
 
       if (!updated) {
@@ -320,35 +280,6 @@ export const conversationsRoute = new Hono()
           ERROR_MESSAGES.NOT_FOUND,
           "Conversation not found or not assigned to you",
         );
-      }
-
-      broadcastOrganizationEvent(
-        organization.id,
-        buildConversationReleasedEvent({ conversationId }),
-      );
-
-      try {
-        const systemMsg = await createSystemMessage(
-          conversationId,
-          `${authUser.name} left the conversation`,
-        );
-        if (systemMsg) {
-          broadcastOrganizationEvent(
-            organization.id,
-            buildMessageNewEvent({
-              id: systemMsg.id,
-              conversationId,
-              senderId: null,
-              senderName: "",
-              senderRole: "operator",
-              content: systemMsg.content,
-              type: "system",
-              createdAt: systemMsg.createdAt,
-            }),
-          );
-        }
-      } catch (err) {
-        console.error("[conversations] leave system message failed", err);
       }
 
       return c.json({ conversation: updated });
@@ -372,6 +303,7 @@ export const conversationsRoute = new Hono()
         conversationId,
         organization.id,
         authUser.id,
+        authUser.name,
       );
 
       if (!updated) {
@@ -381,38 +313,6 @@ export const conversationsRoute = new Hono()
           ERROR_MESSAGES.NOT_FOUND,
           "Conversation not found or not assigned to you",
         );
-      }
-
-      broadcastOrganizationEvent(
-        organization.id,
-        buildConversationResolvedEvent({
-          conversationId,
-          resolvedBy: authUser.id,
-        }),
-      );
-
-      try {
-        const systemMsg = await createSystemMessage(
-          conversationId,
-          `${authUser.name} resolved the conversation`,
-        );
-        if (systemMsg) {
-          broadcastOrganizationEvent(
-            organization.id,
-            buildMessageNewEvent({
-              id: systemMsg.id,
-              conversationId,
-              senderId: null,
-              senderName: "",
-              senderRole: "operator",
-              content: systemMsg.content,
-              type: "system",
-              createdAt: systemMsg.createdAt,
-            }),
-          );
-        }
-      } catch (err) {
-        console.error("[conversations] resolve system message failed", err);
       }
 
       return c.json({ conversation: updated });

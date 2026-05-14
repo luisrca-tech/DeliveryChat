@@ -10,6 +10,9 @@ import type {
 import {
   broadcastOrganizationEvent,
   buildConversationNewEvent,
+  buildConversationAcceptedEvent,
+  buildConversationReleasedEvent,
+  buildConversationResolvedEvent,
   buildMessageNewEvent,
 } from "./broadcasting.service.js";
 
@@ -488,10 +491,33 @@ export async function validateSendAuthorization(
   return conversation;
 }
 
+async function broadcastSystemMessage(
+  conversationId: string,
+  organizationId: string,
+  content: string,
+): Promise<void> {
+  const msg = await createSystemMessage(conversationId, content);
+  if (!msg) return;
+  broadcastOrganizationEvent(
+    organizationId,
+    buildMessageNewEvent({
+      id: msg.id,
+      conversationId,
+      senderId: null,
+      senderName: "",
+      senderRole: "operator",
+      content: msg.content,
+      type: "system",
+      createdAt: msg.createdAt,
+    }),
+  );
+}
+
 export async function acceptConversation(
   conversationId: string,
   organizationId: string,
   operatorId: string,
+  operatorName: string,
 ) {
   const [updated] = await db
     .update(conversations)
@@ -510,13 +536,39 @@ export async function acceptConversation(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) return null;
+
+  try {
+    broadcastOrganizationEvent(
+      organizationId,
+      buildConversationAcceptedEvent({
+        conversationId,
+        assignedTo: operatorId,
+        assignedToName: operatorName,
+      }),
+    );
+  } catch (err) {
+    console.error("[chat.service] acceptConversation lifecycle broadcast failed", err);
+  }
+
+  try {
+    await broadcastSystemMessage(
+      conversationId,
+      organizationId,
+      `${operatorName} joined the conversation`,
+    );
+  } catch (err) {
+    console.error("[chat.service] acceptConversation system message failed", err);
+  }
+
+  return updated;
 }
 
 export async function leaveConversation(
   conversationId: string,
   organizationId: string,
   operatorId: string,
+  operatorName: string,
 ) {
   const [updated] = await db
     .update(conversations)
@@ -534,13 +586,35 @@ export async function leaveConversation(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) return null;
+
+  try {
+    broadcastOrganizationEvent(
+      organizationId,
+      buildConversationReleasedEvent({ conversationId }),
+    );
+  } catch (err) {
+    console.error("[chat.service] leaveConversation lifecycle broadcast failed", err);
+  }
+
+  try {
+    await broadcastSystemMessage(
+      conversationId,
+      organizationId,
+      `${operatorName} left the conversation`,
+    );
+  } catch (err) {
+    console.error("[chat.service] leaveConversation system message failed", err);
+  }
+
+  return updated;
 }
 
 export async function resolveConversation(
   conversationId: string,
   organizationId: string,
   operatorId: string,
+  operatorName: string,
 ) {
   const [updated] = await db
     .update(conversations)
@@ -558,7 +632,31 @@ export async function resolveConversation(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) return null;
+
+  try {
+    broadcastOrganizationEvent(
+      organizationId,
+      buildConversationResolvedEvent({
+        conversationId,
+        resolvedBy: operatorId,
+      }),
+    );
+  } catch (err) {
+    console.error("[chat.service] resolveConversation lifecycle broadcast failed", err);
+  }
+
+  try {
+    await broadcastSystemMessage(
+      conversationId,
+      organizationId,
+      `${operatorName} resolved the conversation`,
+    );
+  } catch (err) {
+    console.error("[chat.service] resolveConversation system message failed", err);
+  }
+
+  return updated;
 }
 
 export async function updateConversationSubject(

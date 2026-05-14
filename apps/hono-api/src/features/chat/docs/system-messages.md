@@ -29,9 +29,15 @@ System messages flow through the existing `message:new` WebSocket event via `bui
 - `senderRole: "operator"` (contextual, not meaningful for system messages)
 - `type: "system"`
 
+## Service-Layer Orchestration
+
+All broadcasting (both lifecycle events and system messages) is handled inside the service functions (`acceptConversation`, `leaveConversation`, `resolveConversation`), not in the route layer. This follows the same pattern as `createConversation`, which already broadcasts from the service. Routes are thin — they call the service and return the response.
+
+The private `broadcastSystemMessage` helper in `chat.service.ts` encapsulates the create-insert-broadcast cycle, eliminating the duplication that previously existed across three route handlers.
+
 ## Failure Isolation
 
-System message creation is a separate operation from the status update. If the system message insert or broadcast fails, the lifecycle event still succeeds. Errors are logged but not propagated to the client.
+System message creation and broadcasting are separate operations from the status update. If either fails, the lifecycle event still succeeds. Errors are logged but not propagated to the client.
 
 ## Immutability
 
