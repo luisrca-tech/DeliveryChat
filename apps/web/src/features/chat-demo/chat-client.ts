@@ -23,6 +23,7 @@ export type Message = {
   content: string;
   editedAt: string | null;
   createdAt: string;
+  type: "text" | "system";
 };
 
 export type PaginationOptions = {
