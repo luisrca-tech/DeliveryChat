@@ -9,12 +9,21 @@ vi.mock("../../../db/index.js", () => ({
   },
 }));
 
+vi.mock("../broadcasting.service.js", () => ({
+  broadcastOrganizationEvent: vi.fn(),
+  buildConversationNewEvent: vi.fn((p: unknown) => ({ type: "conversation:new", payload: p })),
+  buildMessageNewEvent: vi.fn((p: unknown) => ({ type: "message:new", payload: p })),
+}));
+
 const { db } = await import("../../../db/index.js");
 
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
 const mockInsert = db.insert as ReturnType<typeof vi.fn>;
 const mockUpdate = db.update as ReturnType<typeof vi.fn>;
 const mockTransaction = db.transaction as ReturnType<typeof vi.fn>;
+
+const broadcasting = await import("../broadcasting.service.js");
+const mockBroadcastOrganizationEvent = broadcasting.broadcastOrganizationEvent as ReturnType<typeof vi.fn>;
 
 /**
  * Creates a chainable mock that mimics Drizzle's query builder.
@@ -1304,6 +1313,186 @@ describe("chat.service", () => {
         conversations: [],
         total: 0,
       });
+    });
+  });
+
+  describe("createConversation broadcast", () => {
+    function mockCreateTransaction(conversationRow: unknown) {
+      mockTransaction.mockImplementation(async (fn: Function) => {
+        const insertConvChain = chainMock([conversationRow]);
+        const insertPartChain = chainMock([{}]);
+        let callCount = 0;
+        const tx = {
+          insert: vi.fn(() => {
+            callCount++;
+            return callCount === 1 ? insertConvChain : insertPartChain;
+          }),
+        };
+        return fn(tx);
+      });
+    }
+
+    it("calls broadcastOrganizationEvent with conversation:new event after DB write", async () => {
+      const conversationRow = {
+        id: "conv-b1",
+        organizationId: "org-1",
+        applicationId: "app-1",
+        status: "pending" as const,
+        subject: "Help me",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        closedAt: null,
+      };
+      mockCreateTransaction(conversationRow);
+
+      await createConversation({
+        organizationId: "org-1",
+        applicationId: "app-1",
+        subject: "Help me",
+        participants: [{ userId: "visitor-1", role: "visitor" as const }],
+      });
+
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledOnce();
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({
+          type: "conversation:new",
+          payload: expect.objectContaining({
+            id: "conv-b1",
+            organizationId: "org-1",
+            applicationId: "app-1",
+            status: "pending",
+            subject: "Help me",
+          }),
+        }),
+      );
+    });
+
+    it("does not throw when broadcastOrganizationEvent fails", async () => {
+      mockBroadcastOrganizationEvent.mockImplementationOnce(() => {
+        throw new Error("broadcast failed");
+      });
+      const conversationRow = {
+        id: "conv-b2",
+        organizationId: "org-1",
+        applicationId: null,
+        status: "pending" as const,
+        subject: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z",
+        closedAt: null,
+      };
+      mockCreateTransaction(conversationRow);
+
+      await expect(
+        createConversation({
+          organizationId: "org-1",
+          participants: [{ userId: "visitor-1", role: "visitor" as const }],
+        }),
+      ).resolves.not.toThrow();
+    });
+  });
+
+  describe("sendMessage broadcast", () => {
+    const messageRow = {
+      id: "msg-b1",
+      conversationId: "conv-1",
+      senderId: "visitor-user-1",
+      type: "text" as const,
+      content: "Hello from visitor",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      deletedAt: null,
+    };
+
+    function mockSendBroadcastTransaction() {
+      mockTransaction.mockImplementation(async (fn: Function) => {
+        const tx = {
+          insert: vi.fn(() => chainMock([messageRow])),
+          update: vi.fn(() => chainMock([{}])),
+        };
+        return fn(tx);
+      });
+    }
+
+    it("calls broadcastOrganizationEvent with message:new when broadcastContext is provided", async () => {
+      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      mockSelect.mockReturnValueOnce(selectChain);
+      mockSendBroadcastTransaction();
+
+      await sendMessage({
+        conversationId: "conv-1",
+        senderId: "visitor-user-1",
+        content: "Hello from visitor",
+        broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+      });
+
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledOnce();
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledWith(
+        "org-1",
+        expect.objectContaining({
+          type: "message:new",
+          payload: expect.objectContaining({
+            id: "msg-b1",
+            conversationId: "conv-1",
+            senderId: "visitor-user-1",
+            senderName: "Visitor",
+            senderRole: "visitor",
+            content: "Hello from visitor",
+          }),
+        }),
+      );
+    });
+
+    it("does not call broadcastOrganizationEvent when broadcastContext is absent", async () => {
+      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      mockSelect.mockReturnValueOnce(selectChain);
+      mockSendBroadcastTransaction();
+
+      await sendMessage({
+        conversationId: "conv-1",
+        senderId: "visitor-user-1",
+        content: "Hello",
+      });
+
+      expect(mockBroadcastOrganizationEvent).not.toHaveBeenCalled();
+    });
+
+    it("does not throw when broadcastOrganizationEvent fails", async () => {
+      mockBroadcastOrganizationEvent.mockImplementationOnce(() => {
+        throw new Error("broadcast failed");
+      });
+      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      mockSelect.mockReturnValueOnce(selectChain);
+      mockSendBroadcastTransaction();
+
+      await expect(
+        sendMessage({
+          conversationId: "conv-1",
+          senderId: "visitor-user-1",
+          content: "Hello",
+          broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+        }),
+      ).resolves.not.toThrow();
+    });
+
+    it("broadcasts using organizationId from provided conversationData", async () => {
+      mockSendBroadcastTransaction();
+
+      await sendMessage(
+        {
+          conversationId: "conv-1",
+          senderId: "visitor-user-1",
+          content: "Hello",
+          broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+        },
+        { status: "active", assignedTo: null, organizationId: "org-from-data" },
+      );
+
+      expect(mockBroadcastOrganizationEvent).toHaveBeenCalledOnce();
+      const firstCall = mockBroadcastOrganizationEvent.mock.calls[0];
+      expect(firstCall).toBeDefined();
+      expect(firstCall![0]).toBe("org-from-data");
     });
   });
 });

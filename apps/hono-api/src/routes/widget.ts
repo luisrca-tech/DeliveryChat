@@ -22,10 +22,6 @@ import {
   createWidgetConversationSchema,
   getMessagesQuerySchema,
 } from "./schemas/conversations.js";
-import {
-  buildConversationNewEvent,
-  broadcastOrganizationEvent,
-} from "../features/chat/broadcasting.service.js";
 
 export const widgetRoute = new Hono()
   .get("/settings/:appId", async (c) => {
@@ -123,19 +119,6 @@ export const widgetRoute = new Hono()
           createdBy: visitorId,
           participants: [{ userId: visitorId, role: "visitor" }],
         });
-
-        // Broadcast to org staff so the queue updates in real-time
-        broadcastOrganizationEvent(
-          widgetAuth.organizationId,
-          buildConversationNewEvent({
-            id: conversation.id,
-            organizationId: widgetAuth.organizationId,
-            applicationId: widgetAuth.application.id,
-            status: "pending",
-            subject: subject ?? null,
-            createdAt: conversation.createdAt,
-          }),
-        );
 
         return c.json({ conversation }, 201);
       } catch (error) {
