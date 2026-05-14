@@ -77,6 +77,7 @@ const {
   getBulkUnreadCounts,
   markAsRead,
   listConversationsForVisitor,
+  createSystemMessage,
   ConversationNotFoundError,
   ConversationNotActiveError,
   NotAssignedToConversationError,
@@ -1493,6 +1494,56 @@ describe("chat.service", () => {
       const firstCall = mockBroadcastOrganizationEvent.mock.calls[0];
       expect(firstCall).toBeDefined();
       expect(firstCall![0]).toBe("org-from-data");
+    });
+  });
+
+  describe("createSystemMessage", () => {
+    const systemMessageRow = {
+      id: "sys-msg-1",
+      conversationId: "conv-1",
+      senderId: null,
+      type: "system",
+      content: "John joined the conversation",
+      createdAt: "2024-01-01T00:00:00.000Z",
+      updatedAt: "2024-01-01T00:00:00.000Z",
+      editedAt: null,
+      deletedAt: null,
+    };
+
+    it("inserts a system message with null senderId and type system", async () => {
+      mockInsert.mockReturnValue(chainMock([systemMessageRow]));
+
+      const result = await createSystemMessage("conv-1", "John joined the conversation");
+
+      expect(mockInsert).toHaveBeenCalledOnce();
+      expect(result).toEqual(systemMessageRow);
+    });
+
+    it("sets type to system and senderId to null in the insert values", async () => {
+      const insertChain = chainMock([systemMessageRow]);
+      mockInsert.mockReturnValue(insertChain);
+
+      await createSystemMessage("conv-1", "John joined the conversation");
+
+      const valuesFn = insertChain.values as ReturnType<typeof vi.fn>;
+      expect(valuesFn).toHaveBeenCalledOnce();
+      const insertedValues = valuesFn.mock.calls[0]![0];
+      expect(insertedValues).toMatchObject({
+        conversationId: "conv-1",
+        senderId: null,
+        type: "system",
+        content: "John joined the conversation",
+      });
+    });
+
+    it("returns the inserted message row", async () => {
+      mockInsert.mockReturnValue(chainMock([systemMessageRow]));
+
+      const result = await createSystemMessage("conv-1", "Operator left the conversation");
+
+      expect(result).toBeDefined();
+      expect(result!.type).toBe("system");
+      expect(result!.senderId).toBeNull();
     });
   });
 });

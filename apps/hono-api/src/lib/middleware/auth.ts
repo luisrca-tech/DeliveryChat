@@ -24,7 +24,7 @@ type AuthMembership = {
 
 type AuthContext = {
   session: Awaited<ReturnType<typeof auth.api.getSession>>;
-  user: { id: string };
+  user: { id: string; name: string };
   organization: Awaited<
     ReturnType<typeof resolveOrganizationBySubdomain>
   > extends infer T
@@ -150,7 +150,7 @@ export function requireTenantAuth(): MiddlewareHandler {
 
     c.set("auth", {
       session: sessionResult,
-      user: sessionUser,
+      user: { id: sessionUser.id, name: dbUser.name },
       organization: org,
       membership,
     } satisfies AuthContext);

@@ -79,7 +79,7 @@ type RawConversation = {
 type RawMessage = {
   id: string;
   conversationId: string;
-  senderId: string;
+  senderId: string | null;
   content: string;
   editedAt: string | null;
   createdAt: string;

@@ -585,6 +585,24 @@ export async function updateConversationSubject(
   return updated ?? null;
 }
 
+export async function createSystemMessage(
+  conversationId: string,
+  content: string,
+) {
+  const [msg] = await db
+    .insert(messages)
+    .values({
+      id: crypto.randomUUID(),
+      conversationId,
+      senderId: null,
+      type: "system",
+      content,
+    })
+    .returning();
+
+  return msg ?? null;
+}
+
 export async function softDeleteConversation(
   conversationId: string,
   organizationId: string,
