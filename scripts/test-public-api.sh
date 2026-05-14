@@ -11,6 +11,7 @@ BASE_URL="${1:-${BASE_URL:-http://localhost:8000}}"
 API_KEY="${2:-${API_KEY:-}}"
 APP_ID="${3:-${APP_ID:-}}"
 ORIGIN="${4:-${ORIGIN:-http://localhost:3001}}"
+DATABASE_URL="${DATABASE_URL:-}"
 
 # Generate a fresh visitor UUID per run
 if command -v uuidgen &>/dev/null; then
@@ -138,6 +139,7 @@ STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations" \
   -d '{}')"
 check "POST /conversations → 201" "$STATUS" "201"
 CONV_ID="$(jq -r '.conversation.id' "$TMP_BODY")"
+VISITOR_USER_ID="$(jq -r '.conversation.participants[0].userId' "$TMP_BODY")"
 PARTICIPANTS="$(jq -r '.conversation.participants | length' "$TMP_BODY")"
 [[ "$PARTICIPANTS" -gt 0 ]] && check "participants array non-empty" "200" "200" \
   || check "participants array non-empty" "404" "200"
@@ -210,6 +212,16 @@ DEL_SUCCESS="$(jq -r '.success' "$TMP_BODY")"
 [[ "$DEL_SUCCESS" == "true" ]] && check "delete returns {success:true}" "200" "200" \
   || check "delete returns {success:true}" "404" "200"
 
+STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}")"
+check "GET …/messages after delete → 200" "$STATUS" "200"
+DELETED_FOUND="$(jq --arg id "$MSG_ID" '[.messages[] | select(.id == $id)] | length' "$TMP_BODY" 2>/dev/null || echo "0")"
+[[ "$DELETED_FOUND" -eq 0 ]] && check "deleted message absent from list" "200" "200" \
+  || check "deleted message absent from list" "404" "200"
+
 # ============================================================
 # Phase 5: Read receipts + WS token
 # ============================================================
@@ -264,6 +276,114 @@ check "POST /ws-token → 200" "$STATUS" "200"
 WS_TOKEN="$(jq -r '.token // empty' "$TMP_BODY")"
 [[ -n "$WS_TOKEN" ]] && check "ws-token non-empty" "200" "200" \
   || check "ws-token non-empty" "404" "200"
+
+# ============================================================
+# Phase 6: Request Body Validation (Plan Phase 1)
+# ============================================================
+sleep 1
+
+STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}" \
+  -d '{"content":""}')"
+check "empty message content → 400" "$STATUS" "400"
+
+STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/read" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}" \
+  -d '{"messageId":"not-a-uuid"}')"
+check "non-UUID messageId → 400" "$STATUS" "400"
+
+LONG_SUBJECT="$(printf 'A%.0s' $(seq 1 501))"
+STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}" \
+  -d "{\"subject\":\"${LONG_SUBJECT}\"}")"
+check "subject exceeding 500 chars → 400" "$STATUS" "400"
+
+# ============================================================
+# Phase 7: Security Boundaries (Plan Phase 2)
+# ============================================================
+sleep 1
+
+FAKE_UUID="00000000-0000-4000-a000-000000000099"
+
+STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: https://evil.example.com")"
+check "disallowed Origin → 403" "$STATUS" "403"
+
+STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations" \
+  -H "Authorization: Bearer malformed_key_123" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}")"
+check "malformed API key → 401" "$STATUS" "401"
+
+STATUS="$(http -X GET "${BASE_URL}/v1/api/conversations" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${FAKE_UUID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}")"
+check "valid key + wrong X-App-Id → 401" "$STATUS" "401"
+
+# ============================================================
+# Phase 8: Cross-Sender Authorization (Plan Phase 3)
+# ============================================================
+sleep 1
+
+if [[ -z "$DATABASE_URL" ]]; then
+  echo ""
+  echo -e "\033[33m⚠ DATABASE_URL not set — skipping cross-sender tests (PATCH/DELETE on another user's message)\033[0m"
+elif ! command -v psql &>/dev/null; then
+  echo -e "\033[33m⚠ psql not installed — skipping cross-sender tests\033[0m"
+else
+  OTHER_USER_ID="$(psql "$DATABASE_URL" -tAc \
+    "SELECT id FROM delivery_chat_user WHERE id <> '${VISITOR_USER_ID}' LIMIT 1" 2>/dev/null || true)"
+
+  if [[ -z "$OTHER_USER_ID" ]]; then
+    echo -e "\033[33m⚠ No other user found in DB — skipping cross-sender tests\033[0m"
+  else
+    PLANTED_ID="$(psql "$DATABASE_URL" -tAc \
+      "INSERT INTO delivery_chat_messages (conversation_id, sender_id, type, content)
+       VALUES ('${CONV_ID}', '${OTHER_USER_ID}', 'text', 'planted by test script')
+       RETURNING id" 2>/dev/null || true)"
+
+    if [[ -z "$PLANTED_ID" ]]; then
+      echo -e "\033[33m⚠ Failed to plant message in DB — skipping cross-sender tests\033[0m"
+    else
+      STATUS="$(http -X PATCH "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${PLANTED_ID}" \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Bearer ${API_KEY}" \
+        -H "X-App-Id: ${APP_ID}" \
+        -H "X-Visitor-Id: ${VISITOR_ID}" \
+        -H "Origin: ${ORIGIN}" \
+        -d '{"content":"hijack attempt"}')"
+      check "PATCH other user's message → 403" "$STATUS" "403"
+
+      STATUS="$(http -X DELETE "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages/${PLANTED_ID}" \
+        -H "Authorization: Bearer ${API_KEY}" \
+        -H "X-App-Id: ${APP_ID}" \
+        -H "X-Visitor-Id: ${VISITOR_ID}" \
+        -H "Origin: ${ORIGIN}")"
+      check "DELETE other user's message → 403" "$STATUS" "403"
+
+      psql "$DATABASE_URL" -c \
+        "DELETE FROM delivery_chat_messages WHERE id = '${PLANTED_ID}'" >/dev/null 2>&1 || true
+    fi
+  fi
+fi
 
 # ---------------------------------------------------------------------------
 summary
