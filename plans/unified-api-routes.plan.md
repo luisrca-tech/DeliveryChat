@@ -232,7 +232,7 @@ Widget settings endpoint is now at `/api/v1/widget/settings/:appId`. WebSocket t
 
 ---
 
-## Phase 6: Service Layer Extraction + Cleanup
+## Phase 6: Service Layer Extraction + Cleanup ✅
 
 **User stories**: (structural improvement, no new user stories)
 
@@ -249,3 +249,10 @@ Clean up unused imports, dead code from the merge, and any orphaned test files. 
 - [x] All existing tests pass
 - [x] Feature docs updated to reflect unified routes and auth model
 - [x] No orphaned files or dead imports from the migration
+
+### Risks
+
+- **Error contract divergence between service functions**: `getMessageHistoryForMember()` throws `ConversationNotFoundError` when the conversation doesn't belong to the org, while `getConversationWithParticipants()` returns `null` for the same scenario. The route handler catches the error and maps it to a 404, but the inconsistency means callers must know which contract each function uses. Future service functions should standardize on one pattern (preferably throw, since `mapServiceErrorToResponse` already handles it).
+- **`getBulkUnreadCounts` is now an internal dependency**: Previously called directly by the route handler, it's now only consumed by `listConversationsForMember()` inside the service layer. It remains exported for tests and potential future external use, but any changes to its return shape (`Map<string, number>`) could silently break `listConversationsForMember` without a direct test failure if the service test mocks are too coarse.
+- **`conversations.ts` still has branching logic**: While all DB queries are extracted, the route handlers still contain `auth.type` branching to decide which service function to call (e.g., `listConversationsForVisitor` vs `listConversationsForMember`). This is intentional — pushing the auth branching into the service layer would couple it to the auth middleware types — but it means the route file is not purely mechanical dispatch.
+- **Integration test mock fidelity**: The `conversationsDualAuth.test.ts` tests now mock `listConversationsForMember` and `getMessageHistoryForMember` at the service boundary instead of mocking `db.select()`. This is a better abstraction level but means the tests no longer verify that the route passes the correct filter parameters (status, applicationId, assignedTo) through to the service — that's now covered only by the service-level unit tests.
