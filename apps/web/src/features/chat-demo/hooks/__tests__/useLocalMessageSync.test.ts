@@ -38,4 +38,13 @@ describe("useLocalMessageSync", () => {
     result.current.setLastMessageId("conv-1", "msg-1");
     expect(localStorage.getItem("unrelated_key")).toBe("value");
   });
+
+  it("keeps stable getLastMessageId and setLastMessageId references across re-renders", () => {
+    const { result, rerender } = renderHook(() => useLocalMessageSync());
+    const getRef = result.current.getLastMessageId;
+    const setRef = result.current.setLastMessageId;
+    rerender();
+    expect(result.current.getLastMessageId).toBe(getRef);
+    expect(result.current.setLastMessageId).toBe(setRef);
+  });
 });

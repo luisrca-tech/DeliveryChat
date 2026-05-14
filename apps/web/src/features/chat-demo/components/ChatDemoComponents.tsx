@@ -252,7 +252,10 @@ export function MessageThreadPanel({
               return (
                 <div
                   key={msg.clientId ?? msg.id}
-                  className={cn("flex group", isVisitor ? "justify-end" : "justify-start")}
+                  className={cn(
+                    "flex group w-full min-w-0",
+                    isVisitor ? "justify-end" : "justify-start",
+                  )}
                 >
                   {isEditing ? (
                     <div className="flex items-center gap-1 max-w-[80%]">
@@ -284,7 +287,7 @@ export function MessageThreadPanel({
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-end gap-1">
+                    <div className="flex w-fit max-w-[72%] shrink-0 items-end gap-1 min-w-0">
                       {canModify && (
                         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
@@ -309,7 +312,7 @@ export function MessageThreadPanel({
                       )}
                       <div
                         className={cn(
-                          "max-w-[72%] rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed transition-opacity",
+                          "min-w-0 max-w-full break-words rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed transition-opacity",
                           isVisitor ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
                           msg.pending && "opacity-60",
                         )}
