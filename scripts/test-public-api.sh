@@ -265,5 +265,38 @@ WS_TOKEN="$(jq -r '.token // empty' "$TMP_BODY")"
 [[ -n "$WS_TOKEN" ]] && check "ws-token non-empty" "200" "200" \
   || check "ws-token non-empty" "404" "200"
 
+# ============================================================
+# Phase 6: Request Body Validation (Plan Phase 1)
+# ============================================================
+sleep 1
+
+STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/messages" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}" \
+  -d '{"content":""}')"
+check "empty message content → 400" "$STATUS" "400"
+
+STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations/${CONV_ID}/read" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}" \
+  -d '{"messageId":"not-a-uuid"}')"
+check "non-UUID messageId → 400" "$STATUS" "400"
+
+LONG_SUBJECT="$(printf 'A%.0s' $(seq 1 501))"
+STATUS="$(http -X POST "${BASE_URL}/v1/api/conversations" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer ${API_KEY}" \
+  -H "X-App-Id: ${APP_ID}" \
+  -H "X-Visitor-Id: ${VISITOR_ID}" \
+  -H "Origin: ${ORIGIN}" \
+  -d "{\"subject\":\"${LONG_SUBJECT}\"}")"
+check "subject exceeding 500 chars → 400" "$STATUS" "400"
+
 # ---------------------------------------------------------------------------
 summary
