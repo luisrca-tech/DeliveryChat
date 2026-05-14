@@ -419,44 +419,44 @@ describe("Conversations dual-auth read endpoints", () => {
   });
 
   describe("Member-only endpoints reject visitor auth", () => {
-    it("POST /conversations/:id/accept rejects visitors", async () => {
+    it("POST /conversations/:id/accept rejects visitors with 403", async () => {
       mockUnifiedAuthContext = visitorAuth();
 
       const res = await app.request(`/conversations/${CONV_ID}/accept`, {
         method: "POST",
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
-    it("POST /conversations/:id/leave rejects visitors", async () => {
+    it("POST /conversations/:id/leave rejects visitors with 403", async () => {
       mockUnifiedAuthContext = visitorAuth();
 
       const res = await app.request(`/conversations/${CONV_ID}/leave`, {
         method: "POST",
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
-    it("POST /conversations/:id/resolve rejects visitors", async () => {
+    it("POST /conversations/:id/resolve rejects visitors with 403", async () => {
       mockUnifiedAuthContext = visitorAuth();
 
       const res = await app.request(`/conversations/${CONV_ID}/resolve`, {
         method: "POST",
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
 
-    it("DELETE /conversations/:id rejects visitors", async () => {
+    it("DELETE /conversations/:id rejects visitors with 403", async () => {
       mockUnifiedAuthContext = visitorAuth();
 
       const res = await app.request(`/conversations/${CONV_ID}`, {
         method: "DELETE",
       });
 
-      expect(res.status).toBe(401);
+      expect(res.status).toBe(403);
     });
   });
 });

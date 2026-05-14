@@ -43,13 +43,9 @@ import {
 } from "../features/chat/broadcasting.service.js";
 import {
   requireAuth,
+  requireMember,
   getUnifiedAuth,
 } from "../lib/middleware/unifiedAuth.js";
-import {
-  getTenantAuth,
-  requireTenantAuth,
-  requireRole,
-} from "../lib/middleware/auth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
 import { createTenantRateLimitMiddleware } from "../lib/middleware/rateLimit.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
@@ -493,12 +489,15 @@ export const conversationsRoute = new Hono()
 
   .post(
     "/:id/accept",
-    requireTenantAuth(),
+    requireAuth(),
+    requireMember(),
     checkBillingStatus(),
     createTenantRateLimitMiddleware(),
     async (c) => {
       try {
-        const { organization, user: authUser } = getTenantAuth(c);
+        const auth = getUnifiedAuth(c);
+        if (auth.type !== "member") throw new Error("unreachable");
+        const { organization, user: authUser } = auth;
         const conversationId = c.req.param("id");
 
         const updated = await acceptConversation(
@@ -541,12 +540,15 @@ export const conversationsRoute = new Hono()
 
   .post(
     "/:id/leave",
-    requireTenantAuth(),
+    requireAuth(),
+    requireMember(),
     checkBillingStatus(),
     createTenantRateLimitMiddleware(),
     async (c) => {
       try {
-        const { organization, user: authUser } = getTenantAuth(c);
+        const auth = getUnifiedAuth(c);
+        if (auth.type !== "member") throw new Error("unreachable");
+        const { organization, user: authUser } = auth;
         const conversationId = c.req.param("id");
 
         const updated = await leaveConversation(
@@ -579,12 +581,15 @@ export const conversationsRoute = new Hono()
 
   .post(
     "/:id/resolve",
-    requireTenantAuth(),
+    requireAuth(),
+    requireMember(),
     checkBillingStatus(),
     createTenantRateLimitMiddleware(),
     async (c) => {
       try {
-        const { organization, user: authUser } = getTenantAuth(c);
+        const auth = getUnifiedAuth(c);
+        if (auth.type !== "member") throw new Error("unreachable");
+        const { organization, user: authUser } = auth;
         const conversationId = c.req.param("id");
 
         const updated = await resolveConversation(
@@ -617,13 +622,16 @@ export const conversationsRoute = new Hono()
 
   .patch(
     "/:id/subject",
-    requireTenantAuth(),
+    requireAuth(),
+    requireMember(),
     checkBillingStatus(),
     createTenantRateLimitMiddleware(),
     zValidator("json", updateConversationSubjectSchema),
     async (c) => {
       try {
-        const { organization, user: authUser } = getTenantAuth(c);
+        const auth = getUnifiedAuth(c);
+        if (auth.type !== "member") throw new Error("unreachable");
+        const { organization, user: authUser } = auth;
         const conversationId = c.req.param("id");
         const { subject } = c.req.valid("json");
 
@@ -723,13 +731,28 @@ export const conversationsRoute = new Hono()
 
   .delete(
     "/:id",
-    requireTenantAuth(),
-    requireRole("admin"),
+    requireAuth(),
+    requireMember(),
     checkBillingStatus(),
     createTenantRateLimitMiddleware(),
     async (c) => {
       try {
-        const { organization } = getTenantAuth(c);
+        const auth = getUnifiedAuth(c);
+        if (auth.type !== "member") throw new Error("unreachable");
+
+        const isAdmin =
+          auth.membership.role === "admin" ||
+          auth.membership.role === "super_admin";
+        if (!isAdmin) {
+          return jsonError(
+            c,
+            HTTP_STATUS.FORBIDDEN,
+            ERROR_MESSAGES.FORBIDDEN,
+            "Insufficient role",
+          );
+        }
+
+        const { organization } = auth;
         const conversationId = c.req.param("id");
 
         const deleted = await softDeleteConversation(
