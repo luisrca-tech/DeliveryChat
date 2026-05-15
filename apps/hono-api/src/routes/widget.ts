@@ -10,6 +10,7 @@ import { conversations } from "../db/schema/conversations.js";
 import { getApplicationSettings } from "../features/applications/application.service.js";
 import {
   createConversation,
+  listConversationsForVisitor,
   getUnreadCountForVisitor,
   markAsRead,
 } from "../features/chat/chat.service.js";
@@ -21,6 +22,7 @@ import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../lib/http.js";
 import {
   createConversationBodySchema,
   getMessagesQuerySchema,
+  listConversationsQuerySchema,
 } from "./schemas/conversationSchemas.js";
 
 export const widgetRoute = new Hono()
@@ -81,6 +83,47 @@ export const widgetRoute = new Hono()
 
   .use("/conversations/*", createVisitorRateLimitMiddleware(sharedVisitorRateLimiter))
   .use("/conversations", createVisitorRateLimitMiddleware(sharedVisitorRateLimiter))
+
+  // GET /conversations — list visitor's conversations
+  .get(
+    "/conversations",
+    requireWidgetAuth(),
+    zValidator("query", listConversationsQuerySchema),
+    async (c) => {
+      try {
+        const widgetAuth = getWidgetAuth(c);
+        if (!widgetAuth) {
+          return jsonError(c, HTTP_STATUS.UNAUTHORIZED, ERROR_MESSAGES.UNAUTHORIZED);
+        }
+
+        const visitorId = c.req.header("X-Visitor-Id");
+        if (!visitorId) {
+          return jsonError(c, HTTP_STATUS.BAD_REQUEST, ERROR_MESSAGES.BAD_REQUEST, "X-Visitor-Id header required");
+        }
+
+        const { limit, offset } = c.req.valid("query");
+
+        const result = await listConversationsForVisitor({
+          applicationId: widgetAuth.application.id,
+          organizationId: widgetAuth.organizationId,
+          visitorUserId: visitorId,
+          limit,
+          offset,
+        });
+
+        return c.json({
+          conversations: result.conversations,
+          visitorUserId: visitorId,
+          total: result.total,
+          limit,
+          offset,
+        });
+      } catch (error) {
+        console.error("Error listing widget conversations:", error);
+        return jsonError(c, HTTP_STATUS.INTERNAL_SERVER_ERROR, ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+      }
+    },
+  )
 
   // POST /conversations — create a support conversation from widget
   .post(

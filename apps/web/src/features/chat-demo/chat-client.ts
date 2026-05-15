@@ -11,7 +11,7 @@ export type Conversation = {
   status: string;
   subject: string | null;
   assignedTo: string | null;
-  participants: Participant[];
+  participants?: Participant[];
   createdAt: string;
   updatedAt: string;
 };

@@ -69,7 +69,7 @@ export function useConversationList({
         void (async () => {
           try {
             const { conversation } = await client.createConversation(subject);
-            const visitor = conversation.participants.find((p) => p.role === "visitor");
+            const visitor = conversation.participants?.find((p) => p.role === "visitor");
             if (visitor) captureVisitorId(visitor.userId);
             setConversations((prev) => [conversation, ...prev]);
             if (onConversationCreated) {
