@@ -18,7 +18,7 @@
     "test:e2e": "turbo run test:e2e",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
-    "stripe:listen": "stripe listen --forward-to localhost:8000/v1/webhooks/stripe",
+    "stripe:listen": "stripe listen --forward-to localhost:8000/api/v1/webhooks/stripe",
     "db:generate": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- bunx drizzle-kit generate",
     "db:migrate": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- bunx drizzle-kit migrate",
     "db:migrate:prod": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --env=prod --path=/hono-api -- bunx drizzle-kit migrate",
