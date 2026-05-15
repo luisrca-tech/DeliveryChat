@@ -29,10 +29,12 @@
     "build": "vite build",
     "check-bundle-size": "node scripts/CheckBundleSize.js",
     "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "devDependencies": {
+    "@repo/eslint-config": "*",
     "@repo/typescript-config": "*",
     "jsdom": "^28.1.0",
     "typescript": "^5.9.2",
