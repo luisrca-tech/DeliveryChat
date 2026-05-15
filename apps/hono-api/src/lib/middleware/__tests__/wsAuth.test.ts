@@ -32,9 +32,13 @@ const { db } = await import("../../../db/index.js");
 const { resolveApplicationById } = await import("../resolveApplication.js");
 const { authenticateWebSocket } = await import("../wsAuth.js");
 
-const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
+const mockGetSession = auth.api.getSession as unknown as ReturnType<
+  typeof vi.fn
+>;
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
-const mockResolve = resolveApplicationById as unknown as ReturnType<typeof vi.fn>;
+const mockResolve = resolveApplicationById as unknown as ReturnType<
+  typeof vi.fn
+>;
 
 type AppRow = {
   id: string;
@@ -86,7 +90,11 @@ describe("authenticateWebSocket", () => {
   describe("token auth (widget)", () => {
     it("authenticates with a valid signed token", async () => {
       const token = signWsToken(
-        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        {
+          appId: "app-1",
+          origin: "https://example.com",
+          visitorId: "visitor-123",
+        },
         TEST_SECRET,
       );
 
@@ -110,7 +118,11 @@ describe("authenticateWebSocket", () => {
 
     it("rejects a tampered signature", async () => {
       const token = signWsToken(
-        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        {
+          appId: "app-1",
+          origin: "https://example.com",
+          visitorId: "visitor-123",
+        },
         TEST_SECRET,
       );
 
@@ -128,7 +140,11 @@ describe("authenticateWebSocket", () => {
 
     it("rejects a token signed with a different secret", async () => {
       const token = signWsToken(
-        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        {
+          appId: "app-1",
+          origin: "https://example.com",
+          visitorId: "visitor-123",
+        },
         "wrong-secret-key-that-is-long-enough",
       );
 
@@ -145,7 +161,11 @@ describe("authenticateWebSocket", () => {
 
     it("rejects an expired token", async () => {
       const token = signWsToken(
-        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        {
+          appId: "app-1",
+          origin: "https://example.com",
+          visitorId: "visitor-123",
+        },
         TEST_SECRET,
         { ttlSeconds: -1 },
       );
@@ -163,7 +183,11 @@ describe("authenticateWebSocket", () => {
 
     it("rejects when origin does not match token", async () => {
       const token = signWsToken(
-        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        {
+          appId: "app-1",
+          origin: "https://example.com",
+          visitorId: "visitor-123",
+        },
         TEST_SECRET,
       );
 
@@ -180,7 +204,11 @@ describe("authenticateWebSocket", () => {
 
     it("rejects when application is not found", async () => {
       const token = signWsToken(
-        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        {
+          appId: "app-1",
+          origin: "https://example.com",
+          visitorId: "visitor-123",
+        },
         TEST_SECRET,
       );
 
@@ -199,7 +227,11 @@ describe("authenticateWebSocket", () => {
 
     it("rejects replay from different origin after expiry", async () => {
       const token = signWsToken(
-        { appId: "app-1", origin: "https://example.com", visitorId: "visitor-123" },
+        {
+          appId: "app-1",
+          origin: "https://example.com",
+          visitorId: "visitor-123",
+        },
         TEST_SECRET,
         { ttlSeconds: -1 },
       );
@@ -230,9 +262,7 @@ describe("authenticateWebSocket", () => {
       const orgChain = chainMock([{ id: "org-1" }]);
       const memberChain = chainMock([{ role: "admin" }]);
 
-      mockSelect
-        .mockReturnValueOnce(orgChain)
-        .mockReturnValueOnce(memberChain);
+      mockSelect.mockReturnValueOnce(orgChain).mockReturnValueOnce(memberChain);
 
       const result = await authenticateWebSocket(c);
 
@@ -324,7 +354,9 @@ describe("authenticateWebSocket", () => {
         | undefined;
       expect(sessionCall).toBeDefined();
       const calledHeaders = sessionCall!.headers;
-      expect(calledHeaders.get("Authorization")).toBe("Bearer bearer-token-123");
+      expect(calledHeaders.get("Authorization")).toBe(
+        "Bearer bearer-token-123",
+      );
     });
   });
 });

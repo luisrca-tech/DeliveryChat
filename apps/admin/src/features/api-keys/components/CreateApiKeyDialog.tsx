@@ -171,12 +171,12 @@ export function CreateApiKeyDialog({
                       form.setValue("expiresAt", date ?? undefined)
                     }
                     disabled={(date) => {
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    const compareDate = new Date(date);
-                    compareDate.setHours(0, 0, 0, 0);
-                    return compareDate < today;
-                  }}
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      const compareDate = new Date(date);
+                      compareDate.setHours(0, 0, 0, 0);
+                      return compareDate < today;
+                    }}
                   />
                 </PopoverContent>
               </Popover>

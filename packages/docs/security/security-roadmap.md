@@ -21,14 +21,14 @@ This roadmap captures the agreed-upon controls, ordered by delivery, that bring 
 
 ## What Shadow DOM protects — and what it does not
 
-| Protection | Shadow DOM | Cross-origin iframe |
-|---|---|---|
-| CSS isolation | ✔ | ✔ |
-| DOM query isolation | ✔ | ✔ |
-| JavaScript realm isolation from host | ✘ | ✔ |
-| Host cannot read widget memory / closures | ✘ | ✔ |
-| Host cannot monkey-patch `fetch` / `WebSocket` observed by widget | ✘ | ✔ |
-| Host cannot read widget DOM via prototype tricks | Partial | ✔ |
+| Protection                                                        | Shadow DOM | Cross-origin iframe |
+| ----------------------------------------------------------------- | ---------- | ------------------- |
+| CSS isolation                                                     | ✔         | ✔                  |
+| DOM query isolation                                               | ✔         | ✔                  |
+| JavaScript realm isolation from host                              | ✘          | ✔                  |
+| Host cannot read widget memory / closures                         | ✘          | ✔                  |
+| Host cannot monkey-patch `fetch` / `WebSocket` observed by widget | ✘          | ✔                  |
+| Host cannot read widget DOM via prototype tricks                  | Partial    | ✔                  |
 
 Shadow DOM is a **style/DOM scoping mechanism**, not a security boundary. This roadmap is the compensating set of controls.
 
@@ -38,10 +38,10 @@ Each slice ships on its own feature branch and PR.
 
 1. ✅ **Content safety + lint enforcement + threat-model skeleton** — `feature/security-content-safety` (complete 2026-04-23)
 2. ✅ **Loader supply chain (SRI) + published CSP recommendation** — `feature/security-loader-integrity` (complete 2026-04-23)
-3a. ✅ **Origin allow-list — server** — `feature/security-origin-allowlist-server` (complete 2026-04-23)
-3b. ✅ **Origin allow-list — admin UI** — `feature/security-origin-allowlist-admin` (complete 2026-04-23)
-4. ✅ **Per-visitor abuse protection + `window.DeliveryChat` surface minimization** — `feature/security-abuse-protection` (complete 2026-04-23)
-5. ✅ **WebSocket token binding + final threat-model doc** — `feature/security-ws-and-threat-model` (complete 2026-04-23)
+   3a. ✅ **Origin allow-list — server** — `feature/security-origin-allowlist-server` (complete 2026-04-23)
+   3b. ✅ **Origin allow-list — admin UI** — `feature/security-origin-allowlist-admin` (complete 2026-04-23)
+3. ✅ **Per-visitor abuse protection + `window.DeliveryChat` surface minimization** — `feature/security-abuse-protection` (complete 2026-04-23)
+4. ✅ **WebSocket token binding + final threat-model doc** — `feature/security-ws-and-threat-model` (complete 2026-04-23)
 
 Full rationale, per-slice scope, and tests are in `plans/widget-security-hardening-execution.md`.
 

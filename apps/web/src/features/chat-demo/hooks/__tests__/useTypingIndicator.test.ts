@@ -27,7 +27,10 @@ describe("useTypingIndicator", () => {
     });
 
     expect(wsRef.current?.send).toHaveBeenCalledOnce();
-    const sent = JSON.parse((wsRef.current?.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string);
+    const sent = JSON.parse(
+      (wsRef.current?.send as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as string,
+    );
     expect(sent.type).toBe("typing:start");
     expect(sent.payload.conversationId).toBe("conv-1");
   });
@@ -42,7 +45,9 @@ describe("useTypingIndicator", () => {
       result.current.notifyTyping();
     });
 
-    const calls = (wsRef.current?.send as ReturnType<typeof vi.fn>).mock.calls.filter(
+    const calls = (
+      wsRef.current?.send as ReturnType<typeof vi.fn>
+    ).mock.calls.filter(
       (c) => JSON.parse(c[0] as string).type === "typing:start",
     );
     expect(calls).toHaveLength(1);
@@ -60,7 +65,9 @@ describe("useTypingIndicator", () => {
       vi.advanceTimersByTime(TYPING_DEBOUNCE_MS);
     });
 
-    const stopCalls = (wsRef.current?.send as ReturnType<typeof vi.fn>).mock.calls.filter(
+    const stopCalls = (
+      wsRef.current?.send as ReturnType<typeof vi.fn>
+    ).mock.calls.filter(
       (c) => JSON.parse(c[0] as string).type === "typing:stop",
     );
     expect(stopCalls).toHaveLength(1);
@@ -78,7 +85,9 @@ describe("useTypingIndicator", () => {
       result.current.sendTypingStop();
     });
 
-    const stopCalls = (wsRef.current?.send as ReturnType<typeof vi.fn>).mock.calls.filter(
+    const stopCalls = (
+      wsRef.current?.send as ReturnType<typeof vi.fn>
+    ).mock.calls.filter(
       (c) => JSON.parse(c[0] as string).type === "typing:stop",
     );
     expect(stopCalls).toHaveLength(1);
@@ -98,7 +107,9 @@ describe("useTypingIndicator", () => {
       result.current.notifyTyping();
     });
 
-    const startCalls = (wsRef.current?.send as ReturnType<typeof vi.fn>).mock.calls.filter(
+    const startCalls = (
+      wsRef.current?.send as ReturnType<typeof vi.fn>
+    ).mock.calls.filter(
       (c) => JSON.parse(c[0] as string).type === "typing:start",
     );
     expect(startCalls).toHaveLength(2);

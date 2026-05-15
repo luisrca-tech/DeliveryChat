@@ -4,7 +4,10 @@ import { authClient } from "@/lib/authClient";
 import { ChatHeader } from "./ChatHeader";
 import { MessageList } from "./MessageList";
 import { MessageInput } from "./MessageInput";
-import { useConversationMessagesQuery, useConversationDetailQuery } from "../hooks/useConversationsQuery";
+import {
+  useConversationMessagesQuery,
+  useConversationDetailQuery,
+} from "../hooks/useConversationsQuery";
 import { useSendMessage } from "../hooks/useSendMessage";
 import { useMessageActions } from "../hooks/useMessageActions";
 import { useConversationAction } from "../hooks/useConversationAction";
@@ -32,16 +35,26 @@ type Props = {
 };
 
 export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
-  const { data: sessionInfo, isPending: sessionPending } = authClient.useSession();
+  const { data: sessionInfo, isPending: sessionPending } =
+    authClient.useSession();
   const currentUserId = sessionInfo?.user?.id ?? "";
 
   const { data: messagesData, isLoading: messagesLoading } =
     useConversationMessagesQuery(conversationId);
   const { data: detailData } = useConversationDetailQuery(conversationId);
 
-  const { send } = useSendMessage(ws.sendEvent, ws.subscribe, currentUserId, ws.registerAckedId);
+  const { send } = useSendMessage(
+    ws.sendEvent,
+    ws.subscribe,
+    currentUserId,
+    ws.registerAckedId,
+  );
   const { editMessage, deleteMessage } = useMessageActions(ws.sendEvent);
-  const acceptAction = useConversationAction("accept", currentUserRole, ws.setActiveRoom);
+  const acceptAction = useConversationAction(
+    "accept",
+    currentUserRole,
+    ws.setActiveRoom,
+  );
 
   if (!conversationId) {
     return (
@@ -101,7 +114,9 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
             <Button
               size="sm"
               onClick={() => acceptAction.execute(conversationId)}
-              disabled={acceptAction.isPending || sessionPending || !currentUserId}
+              disabled={
+                acceptAction.isPending || sessionPending || !currentUserId
+              }
             >
               <UserCheck className="mr-2 h-4 w-4" />
               {acceptAction.isPending ? "Accepting..." : "Accept"}
@@ -139,7 +154,9 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
 
         {conversation?.status === "closed" && (
           <div className="p-3 border-t border-border bg-muted/30 text-center">
-            <p className="text-sm text-muted-foreground">This conversation has been resolved</p>
+            <p className="text-sm text-muted-foreground">
+              This conversation has been resolved
+            </p>
           </div>
         )}
       </div>

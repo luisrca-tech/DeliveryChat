@@ -9,6 +9,7 @@ DeliveryChat uses Stripe for subscription billing with three paid tiers (Basic, 
 ### Database Schema
 
 The `organization` table holds all billing state:
+
 - `stripeCustomerId` — Stripe customer ID, created on first checkout
 - `stripeSubscriptionId` — Active subscription ID
 - `plan` — Current plan (`FREE`, `BASIC`, `PREMIUM`, `ENTERPRISE`)
@@ -24,6 +25,7 @@ The `processedEvents` table provides idempotency — each Stripe webhook event I
 **Endpoint:** `POST /v1/webhooks/stripe`
 
 Handles five events inside atomic database transactions:
+
 - **`invoice.paid`** — Sets status to `active`, syncs `plan` from subscription metadata via Stripe API
 - **`invoice.payment_failed`** — Sets status to `past_due`
 - **`customer.subscription.created`** — Syncs `plan`, `stripeSubscriptionId`, `planStatus`, and `trialEndsAt` from the new subscription
@@ -36,13 +38,13 @@ Each event is verified via Stripe signature (`SIGNING_STRIPE_SECRET_KEY`) and ch
 
 Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 
-| Status | Behavior |
-|---|---|
-| `active`, `trialing` (not expired) | Full access for all roles |
-| `trialing` (expired) | Block all. `super_admin` can access `/billing/checkout` and `/billing/portal-session` for recovery |
-| `past_due` (soft block) | `GET` and `DELETE` allowed (read-only + cost management). `POST`/`PUT` blocked. `super_admin` sees "Fix Billing" CTA; others see "Contact Super Admin" |
-| `unpaid`, `canceled` (hard block) | Block all. Only `super_admin` can access `/billing/portal-session` |
-| `incomplete`, `paused` | Block all, return 403 |
+| Status                             | Behavior                                                                                                                                               |
+| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `active`, `trialing` (not expired) | Full access for all roles                                                                                                                              |
+| `trialing` (expired)               | Block all. `super_admin` can access `/billing/checkout` and `/billing/portal-session` for recovery                                                     |
+| `past_due` (soft block)            | `GET` and `DELETE` allowed (read-only + cost management). `POST`/`PUT` blocked. `super_admin` sees "Fix Billing" CTA; others see "Contact Super Admin" |
+| `unpaid`, `canceled` (hard block)  | Block all. Only `super_admin` can access `/billing/portal-session`                                                                                     |
+| `incomplete`, `paused`             | Block all, return 403                                                                                                                                  |
 
 ### Trial System
 
@@ -55,6 +57,7 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 ### Enterprise Hybrid Workflow
 
 Enterprise tier bypasses Stripe Checkout entirely:
+
 - When `planType === 'enterprise'`, a contact email is sent via Resend to `RESEND_EMAIL_TO`
 - Payload includes: Org Name, Admin Email, Member Count
 - Admin UI shows "manual review" success state instead of Stripe redirect
@@ -86,13 +89,13 @@ After checkout, the success page polls `GET /v1/billing/status` every 2 seconds 
 
 ## Environment Variables
 
-| Variable | App | Purpose |
-|---|---|---|
-| `STRIPE_SECRET_KEY` | hono-api | Stripe API access |
-| `SIGNING_STRIPE_SECRET_KEY` | hono-api | Webhook signature verification |
-| `STRIPE_BASIC_PRICE_KEY` | hono-api | Stripe price ID for Basic |
-| `STRIPE_PREMIUM_PRICE_KEY` | hono-api | Stripe price ID for Premium |
-| `STRIPE_ENTERPRISE_PRODUCT_KEY` | hono-api | Stripe product ID for Enterprise |
-| `STRIPE_AUTOMATIC_TAX_ENABLED` | hono-api | Enable automatic tax calculation |
-| `RESEND_EMAIL_TO` | hono-api | Enterprise contact email destination |
-| `VITE_RESEND_EMAIL_TO` | admin | Enterprise contact email (client-side) |
+| Variable                        | App      | Purpose                                |
+| ------------------------------- | -------- | -------------------------------------- |
+| `STRIPE_SECRET_KEY`             | hono-api | Stripe API access                      |
+| `SIGNING_STRIPE_SECRET_KEY`     | hono-api | Webhook signature verification         |
+| `STRIPE_BASIC_PRICE_KEY`        | hono-api | Stripe price ID for Basic              |
+| `STRIPE_PREMIUM_PRICE_KEY`      | hono-api | Stripe price ID for Premium            |
+| `STRIPE_ENTERPRISE_PRODUCT_KEY` | hono-api | Stripe product ID for Enterprise       |
+| `STRIPE_AUTOMATIC_TAX_ENABLED`  | hono-api | Enable automatic tax calculation       |
+| `RESEND_EMAIL_TO`               | hono-api | Enterprise contact email destination   |
+| `VITE_RESEND_EMAIL_TO`          | admin    | Enterprise contact email (client-side) |

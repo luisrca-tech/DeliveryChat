@@ -7,6 +7,7 @@ All four WebSocket event handlers now receive a single `WebSocketHandlerContext`
 ## Before
 
 Each handler defined its own deps type:
+
 - `HandleMessageNewDeps` (6 fields)
 - `HandleMessageEditedDeps` (2 fields)
 - `HandleMessageDeletedDeps` (2 fields)
@@ -18,14 +19,14 @@ Each handler defined its own deps type:
 
 A single `WebSocketHandlerContext` type in `types/chat.types.ts` contains the superset of all handler dependencies:
 
-| Field | Used by |
-|---|---|
-| `activeConversationId` | handleMessageNew |
-| `processedMsgIds` | handleMessageNew |
-| `messagesQueryKey` | handleMessageNew, handleMessageEdited, handleMessageDeleted |
-| `invalidateQueries` | handleMessageNew, handleConversationLifecycle |
-| `setQueryData` | handleMessageNew, handleMessageEdited, handleMessageDeleted |
-| `markAsRead` | handleMessageNew |
+| Field                  | Used by                                                     |
+| ---------------------- | ----------------------------------------------------------- |
+| `activeConversationId` | handleMessageNew                                            |
+| `processedMsgIds`      | handleMessageNew                                            |
+| `messagesQueryKey`     | handleMessageNew, handleMessageEdited, handleMessageDeleted |
+| `invalidateQueries`    | handleMessageNew, handleConversationLifecycle               |
+| `setQueryData`         | handleMessageNew, handleMessageEdited, handleMessageDeleted |
+| `markAsRead`           | handleMessageNew                                            |
 
 `useWebSocket` constructs the context object once per event and passes it to all handlers.
 
@@ -41,12 +42,12 @@ A `webSocketHandlerContext.test.ts` file demonstrates that a single `createMockC
 
 ## Files
 
-| File | Change |
-|---|---|
-| `types/chat.types.ts` | Added `WebSocketHandlerContext` type |
-| `hooks/handleMessageNew.ts` | Accepts `WebSocketHandlerContext` instead of `HandleMessageNewDeps` |
-| `hooks/handleMessageEdited.ts` | Accepts `WebSocketHandlerContext` instead of `HandleMessageEditedDeps` |
-| `hooks/handleMessageDeleted.ts` | Accepts `WebSocketHandlerContext` instead of `HandleMessageDeletedDeps` |
-| `hooks/handleConversationLifecycle.ts` | Accepts `WebSocketHandlerContext` instead of `HandleConversationLifecycleDeps` |
-| `hooks/useWebSocket.ts` | Constructs context once, passes to all handlers |
-| `hooks/webSocketHandlerContext.test.ts` | Proves single mock context works for all handlers |
+| File                                    | Change                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| `types/chat.types.ts`                   | Added `WebSocketHandlerContext` type                                           |
+| `hooks/handleMessageNew.ts`             | Accepts `WebSocketHandlerContext` instead of `HandleMessageNewDeps`            |
+| `hooks/handleMessageEdited.ts`          | Accepts `WebSocketHandlerContext` instead of `HandleMessageEditedDeps`         |
+| `hooks/handleMessageDeleted.ts`         | Accepts `WebSocketHandlerContext` instead of `HandleMessageDeletedDeps`        |
+| `hooks/handleConversationLifecycle.ts`  | Accepts `WebSocketHandlerContext` instead of `HandleConversationLifecycleDeps` |
+| `hooks/useWebSocket.ts`                 | Constructs context once, passes to all handlers                                |
+| `hooks/webSocketHandlerContext.test.ts` | Proves single mock context works for all handlers                              |

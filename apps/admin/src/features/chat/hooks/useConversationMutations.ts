@@ -18,7 +18,8 @@ export function useAcceptConversationMutation(currentUserId: string) {
   return useMutation(
     buildConversationMutationOptions(queryClient, {
       mutationFn: (id: string) => acceptConversation(id),
-      optimisticUpdater: (data, id) => applyOptimisticAccept(data, id, currentUserId),
+      optimisticUpdater: (data, id) =>
+        applyOptimisticAccept(data, id, currentUserId),
     }),
   );
 }

@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { Users, UserPlus, Clock, MoreHorizontal, Pencil, Trash2, RefreshCw } from "lucide-react";
+import {
+  Users,
+  UserPlus,
+  Clock,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
@@ -151,7 +159,10 @@ export function MembersPage() {
           return;
         }
         toast.success("Member removed");
-      } else if (deleteTarget.type === "invitation" && deleteTarget.status === "pending") {
+      } else if (
+        deleteTarget.type === "invitation" &&
+        deleteTarget.status === "pending"
+      ) {
         const invId = deleteTarget.id.replace("inv-", "");
         const result = await authClient.organization.cancelInvitation({
           invitationId: invId,
@@ -159,7 +170,11 @@ export function MembersPage() {
         });
         if (result.error) {
           toast.error("Failed to cancel invitation", {
-            description: String(result.error.message ?? result.error.code ?? JSON.stringify(result.error)),
+            description: String(
+              result.error.message ??
+                result.error.code ??
+                JSON.stringify(result.error),
+            ),
           });
           return;
         }
@@ -231,22 +246,31 @@ export function MembersPage() {
             </TableHeader>
             <TableBody>
               {rows.map((row) => {
-                const roleClass = roleColors[row.role] ?? "bg-gray-100 text-gray-600";
-                const sClass = statusStyles[row.status] ?? "bg-gray-100 text-gray-600";
+                const roleClass =
+                  roleColors[row.role] ?? "bg-gray-100 text-gray-600";
+                const sClass =
+                  statusStyles[row.status] ?? "bg-gray-100 text-gray-600";
                 const canEdit =
                   isAdminOrAbove &&
                   !row.isYou &&
                   row.type === "member" &&
                   row.role !== "super_admin";
 
-                const isPendingInvite = row.type === "invitation" && row.status === "pending";
+                const isPendingInvite =
+                  row.type === "invitation" && row.status === "pending";
                 const isDismissableInvite =
                   row.type === "invitation" && row.status !== "pending";
                 const isRemovableMember =
-                  row.type === "member" && !row.isYou && row.role !== "super_admin";
+                  row.type === "member" &&
+                  !row.isYou &&
+                  row.role !== "super_admin";
 
                 const canAction =
-                  isAdminOrAbove && (canEdit || isPendingInvite || isDismissableInvite || isRemovableMember);
+                  isAdminOrAbove &&
+                  (canEdit ||
+                    isPendingInvite ||
+                    isDismissableInvite ||
+                    isRemovableMember);
 
                 return (
                   <TableRow key={row.id}>
@@ -259,20 +283,30 @@ export function MembersPage() {
                           </span>
                         </span>
                       ) : (
-                        row.name ?? (
-                          <span className="text-muted-foreground italic">Invited</span>
-                        )
+                        (row.name ?? (
+                          <span className="text-muted-foreground italic">
+                            Invited
+                          </span>
+                        ))
                       )}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{row.email}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {row.email}
+                    </TableCell>
                     <TableCell>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${roleClass}`}>
+                      <span
+                        className={`text-xs px-2 py-0.5 rounded-full ${roleClass}`}
+                      >
                         {roleLabels[row.role] ?? row.role}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full capitalize ${sClass}`}>
-                        {row.status === "pending" && <Clock className="h-3 w-3" />}
+                      <span
+                        className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full capitalize ${sClass}`}
+                      >
+                        {row.status === "pending" && (
+                          <Clock className="h-3 w-3" />
+                        )}
                         {row.status}
                       </span>
                     </TableCell>
@@ -283,13 +317,19 @@ export function MembersPage() {
                       {canAction && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                            >
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             {canEdit && (
-                              <DropdownMenuItem onClick={() => setEditTarget(row)}>
+                              <DropdownMenuItem
+                                onClick={() => setEditTarget(row)}
+                              >
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
                               </DropdownMenuItem>
@@ -367,14 +407,16 @@ export function MembersPage() {
             open={!!deleteTarget}
             onOpenChange={(open) => !open && setDeleteTarget(null)}
             title={
-              deleteTarget?.type === "invitation" && deleteTarget?.status === "pending"
+              deleteTarget?.type === "invitation" &&
+              deleteTarget?.status === "pending"
                 ? "Cancel Invitation"
                 : deleteTarget?.type === "invitation"
                   ? "Delete Invitation"
                   : "Remove Member"
             }
             description={
-              deleteTarget?.type === "invitation" && deleteTarget?.status === "pending"
+              deleteTarget?.type === "invitation" &&
+              deleteTarget?.status === "pending"
                 ? `Are you sure you want to cancel the invitation for ${deleteTarget?.email}?`
                 : deleteTarget?.type === "invitation"
                   ? `Are you sure you want to delete the invitation record for ${deleteTarget?.email}?`
@@ -382,7 +424,8 @@ export function MembersPage() {
             }
             onConfirm={handleDelete}
             confirmLabel={
-              deleteTarget?.type === "invitation" && deleteTarget?.status === "pending"
+              deleteTarget?.type === "invitation" &&
+              deleteTarget?.status === "pending"
                 ? "Cancel Invite"
                 : deleteTarget?.type === "invitation"
                   ? "Delete"

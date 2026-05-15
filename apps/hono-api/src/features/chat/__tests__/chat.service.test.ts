@@ -12,11 +12,26 @@ vi.mock("../../../db/index.js", () => ({
 vi.mock("../broadcasting.service.js", () => ({
   broadcastOrganizationEvent: vi.fn(),
   broadcastRoomEvent: vi.fn(),
-  buildConversationNewEvent: vi.fn((p: unknown) => ({ type: "conversation:new", payload: p })),
-  buildConversationAcceptedEvent: vi.fn((p: unknown) => ({ type: "conversation:accepted", payload: p })),
-  buildConversationReleasedEvent: vi.fn((p: unknown) => ({ type: "conversation:released", payload: p })),
-  buildConversationResolvedEvent: vi.fn((p: unknown) => ({ type: "conversation:resolved", payload: p })),
-  buildMessageNewEvent: vi.fn((p: unknown) => ({ type: "message:new", payload: p })),
+  buildConversationNewEvent: vi.fn((p: unknown) => ({
+    type: "conversation:new",
+    payload: p,
+  })),
+  buildConversationAcceptedEvent: vi.fn((p: unknown) => ({
+    type: "conversation:accepted",
+    payload: p,
+  })),
+  buildConversationReleasedEvent: vi.fn((p: unknown) => ({
+    type: "conversation:released",
+    payload: p,
+  })),
+  buildConversationResolvedEvent: vi.fn((p: unknown) => ({
+    type: "conversation:resolved",
+    payload: p,
+  })),
+  buildMessageNewEvent: vi.fn((p: unknown) => ({
+    type: "message:new",
+    payload: p,
+  })),
 }));
 
 const { db } = await import("../../../db/index.js");
@@ -27,8 +42,11 @@ const mockUpdate = db.update as ReturnType<typeof vi.fn>;
 const mockTransaction = db.transaction as ReturnType<typeof vi.fn>;
 
 const broadcasting = await import("../broadcasting.service.js");
-const mockBroadcastOrganizationEvent = broadcasting.broadcastOrganizationEvent as ReturnType<typeof vi.fn>;
-const mockBroadcastRoomEvent = broadcasting.broadcastRoomEvent as ReturnType<typeof vi.fn>;
+const mockBroadcastOrganizationEvent =
+  broadcasting.broadcastOrganizationEvent as ReturnType<typeof vi.fn>;
+const mockBroadcastRoomEvent = broadcasting.broadcastRoomEvent as ReturnType<
+  typeof vi.fn
+>;
 
 /**
  * Creates a chainable mock that mimics Drizzle's query builder.
@@ -393,9 +411,9 @@ describe("chat.service", () => {
       const selectChain = chainMock([]);
       mockSelect.mockReturnValueOnce(selectChain);
 
-      await expect(getConversationWithParticipants("conv-999", "org-1")).rejects.toThrow(
-        "Conversation not found: conv-999",
-      );
+      await expect(
+        getConversationWithParticipants("conv-999", "org-1"),
+      ).rejects.toThrow("Conversation not found: conv-999");
     });
   });
 
@@ -422,7 +440,12 @@ describe("chat.service", () => {
       mockUpdate.mockReturnValueOnce(updateChain);
       mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
 
-      const result = await acceptConversation("conv-1", "org-1", "operator-1", "Alice");
+      const result = await acceptConversation(
+        "conv-1",
+        "org-1",
+        "operator-1",
+        "Alice",
+      );
 
       expect(result).toEqual(updatedRow);
       expect(mockUpdate).toHaveBeenCalled();
@@ -457,7 +480,9 @@ describe("chat.service", () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      await expect(acceptConversation("conv-1", "org-1", "operator-2", "Bob")).rejects.toThrow(
+      await expect(
+        acceptConversation("conv-1", "org-1", "operator-2", "Bob"),
+      ).rejects.toThrow(
         "Conversation conv-1 is already assigned or no longer pending",
       );
       expect(mockBroadcastOrganizationEvent).not.toHaveBeenCalled();
@@ -467,7 +492,9 @@ describe("chat.service", () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      await expect(acceptConversation("conv-999", "org-1", "operator-1", "Alice")).rejects.toThrow(
+      await expect(
+        acceptConversation("conv-999", "org-1", "operator-1", "Alice"),
+      ).rejects.toThrow(
         "Conversation conv-999 is already assigned or no longer pending",
       );
     });
@@ -499,7 +526,8 @@ describe("chat.service", () => {
       conversationId: "conv-1",
       senderId: null,
       type: "system",
-      content: "Alice left the conversation you'll be able to chat with them again soon",
+      content:
+        "Alice left the conversation you'll be able to chat with them again soon",
       createdAt: "2026-01-01T00:00:00Z",
     };
 
@@ -516,7 +544,12 @@ describe("chat.service", () => {
       mockUpdate.mockReturnValueOnce(updateChain);
       mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
 
-      const result = await leaveConversation("conv-1", "org-1", "operator-1", "Alice");
+      const result = await leaveConversation(
+        "conv-1",
+        "org-1",
+        "operator-1",
+        "Alice",
+      );
 
       expect(result).toEqual(updatedRow);
       expect(mockUpdate).toHaveBeenCalled();
@@ -551,7 +584,9 @@ describe("chat.service", () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      await expect(leaveConversation("conv-1", "org-1", "operator-wrong", "Wrong")).rejects.toThrow(
+      await expect(
+        leaveConversation("conv-1", "org-1", "operator-wrong", "Wrong"),
+      ).rejects.toThrow(
         "Conversation conv-1 is not assigned to user operator-wrong",
       );
       expect(mockBroadcastOrganizationEvent).not.toHaveBeenCalled();
@@ -561,7 +596,9 @@ describe("chat.service", () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      await expect(leaveConversation("conv-999", "org-1", "operator-1", "Alice")).rejects.toThrow(
+      await expect(
+        leaveConversation("conv-999", "org-1", "operator-1", "Alice"),
+      ).rejects.toThrow(
         "Conversation conv-999 is not assigned to user operator-1",
       );
     });
@@ -573,7 +610,8 @@ describe("chat.service", () => {
       conversationId: "conv-1",
       senderId: null,
       type: "system",
-      content: "Alice resolved the conversation you'll be able to chat with them again soon",
+      content:
+        "Alice resolved the conversation you'll be able to chat with them again soon",
       createdAt: "2026-01-01T00:00:00Z",
     };
 
@@ -590,7 +628,12 @@ describe("chat.service", () => {
       mockUpdate.mockReturnValueOnce(updateChain);
       mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
 
-      const result = await resolveConversation("conv-1", "org-1", "operator-1", "Alice");
+      const result = await resolveConversation(
+        "conv-1",
+        "org-1",
+        "operator-1",
+        "Alice",
+      );
 
       expect(result).toEqual(updatedRow);
       expect(mockUpdate).toHaveBeenCalled();
@@ -625,7 +668,9 @@ describe("chat.service", () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      await expect(resolveConversation("conv-999", "org-1", "operator-1", "Alice")).rejects.toThrow(
+      await expect(
+        resolveConversation("conv-999", "org-1", "operator-1", "Alice"),
+      ).rejects.toThrow(
         "Conversation conv-999 is not assigned to user operator-1",
       );
     });
@@ -633,14 +678,22 @@ describe("chat.service", () => {
 
   describe("validateSendAuthorization", () => {
     it("allows visitor who is a participant and returns conversation data", async () => {
-      const convData = { status: "pending", assignedTo: null, organizationId: "org-1" };
+      const convData = {
+        status: "pending",
+        assignedTo: null,
+        organizationId: "org-1",
+      };
       const selectConvChain = chainMock([convData]);
       mockSelect.mockReturnValueOnce(selectConvChain);
 
       const selectPartChain = chainMock([{ id: "part-1" }]);
       mockSelect.mockReturnValueOnce(selectPartChain);
 
-      const result = await validateSendAuthorization("conv-1", "visitor-1", "visitor");
+      const result = await validateSendAuthorization(
+        "conv-1",
+        "visitor-1",
+        "visitor",
+      );
       expect(result).toEqual(convData);
     });
 
@@ -659,11 +712,19 @@ describe("chat.service", () => {
     });
 
     it("allows operator who is assignedTo and returns conversation data", async () => {
-      const convData = { status: "active", assignedTo: "operator-1", organizationId: "org-1" };
+      const convData = {
+        status: "active",
+        assignedTo: "operator-1",
+        organizationId: "org-1",
+      };
       const selectConvChain = chainMock([convData]);
       mockSelect.mockReturnValueOnce(selectConvChain);
 
-      const result = await validateSendAuthorization("conv-1", "operator-1", "operator");
+      const result = await validateSendAuthorization(
+        "conv-1",
+        "operator-1",
+        "operator",
+      );
       expect(result).toEqual(convData);
     });
 
@@ -690,11 +751,19 @@ describe("chat.service", () => {
     });
 
     it("allows admin who IS assignedTo and returns conversation data", async () => {
-      const convData = { status: "active", assignedTo: "admin-1", organizationId: "org-1" };
+      const convData = {
+        status: "active",
+        assignedTo: "admin-1",
+        organizationId: "org-1",
+      };
       const selectConvChain = chainMock([convData]);
       mockSelect.mockReturnValueOnce(selectConvChain);
 
-      const result = await validateSendAuthorization("conv-1", "admin-1", "admin");
+      const result = await validateSendAuthorization(
+        "conv-1",
+        "admin-1",
+        "admin",
+      );
       expect(result).toEqual(convData);
     });
 
@@ -750,9 +819,9 @@ describe("chat.service", () => {
       const updateChain = chainMock([]);
       mockUpdate.mockReturnValueOnce(updateChain);
 
-      await expect(softDeleteConversation("conv-deleted", "org-1")).rejects.toThrow(
-        "Conversation not found: conv-deleted",
-      );
+      await expect(
+        softDeleteConversation("conv-deleted", "org-1"),
+      ).rejects.toThrow("Conversation not found: conv-deleted");
     });
   });
 
@@ -785,7 +854,12 @@ describe("chat.service", () => {
       mockUpdate.mockReturnValueOnce(updateChain);
 
       await expect(
-        updateConversationSubject("conv-1", "org-1", "wrong-user", "New subject"),
+        updateConversationSubject(
+          "conv-1",
+          "org-1",
+          "wrong-user",
+          "New subject",
+        ),
       ).rejects.toThrow(
         "Conversation conv-1 is not assigned to user wrong-user",
       );
@@ -796,7 +870,12 @@ describe("chat.service", () => {
       mockUpdate.mockReturnValueOnce(updateChain);
 
       await expect(
-        updateConversationSubject("conv-999", "org-1", "operator-1", "New subject"),
+        updateConversationSubject(
+          "conv-999",
+          "org-1",
+          "operator-1",
+          "New subject",
+        ),
       ).rejects.toThrow(
         "Conversation conv-999 is not assigned to user operator-1",
       );
@@ -857,7 +936,10 @@ describe("chat.service", () => {
     });
 
     it("throws MessageNotFoundError for already-deleted message", async () => {
-      const deletedMessage = { ...existingMessage, deletedAt: "2026-01-01T00:00:00.000Z" };
+      const deletedMessage = {
+        ...existingMessage,
+        deletedAt: "2026-01-01T00:00:00.000Z",
+      };
       // The WHERE clause filters deletedAt IS NULL, so no rows returned
       const selectChain = chainMock([]);
       mockSelect.mockReturnValueOnce(selectChain);
@@ -1155,7 +1237,9 @@ describe("chat.service", () => {
       mockSelect.mockReturnValueOnce(participantChain);
 
       // Query 2: get lastReadMessage's createdAt
-      const lastReadChain = chainMock([{ createdAt: "2026-01-01T00:03:00.000Z" }]);
+      const lastReadChain = chainMock([
+        { createdAt: "2026-01-01T00:03:00.000Z" },
+      ]);
       mockSelect.mockReturnValueOnce(lastReadChain);
 
       // Query 3: count visitor messages after cutoff
@@ -1194,10 +1278,12 @@ describe("chat.service", () => {
   describe("markAsRead", () => {
     it("updates lastReadMessageId when lastReadMessageId is null (first read)", async () => {
       // Query 1: get participant
-      const participantChain = chainMock([{
-        id: "part-1",
-        lastReadMessageId: null,
-      }]);
+      const participantChain = chainMock([
+        {
+          id: "part-1",
+          lastReadMessageId: null,
+        },
+      ]);
       mockSelect.mockReturnValueOnce(participantChain);
 
       // Update: set lastReadMessageId
@@ -1210,18 +1296,24 @@ describe("chat.service", () => {
 
     it("updates lastReadMessageId when new message is newer", async () => {
       // Query 1: get participant
-      const participantChain = chainMock([{
-        id: "part-1",
-        lastReadMessageId: "msg-3",
-      }]);
+      const participantChain = chainMock([
+        {
+          id: "part-1",
+          lastReadMessageId: "msg-3",
+        },
+      ]);
       mockSelect.mockReturnValueOnce(participantChain);
 
       // Query 2: get current lastReadMessage createdAt
-      const currentMsgChain = chainMock([{ createdAt: "2026-01-01T00:03:00.000Z" }]);
+      const currentMsgChain = chainMock([
+        { createdAt: "2026-01-01T00:03:00.000Z" },
+      ]);
       mockSelect.mockReturnValueOnce(currentMsgChain);
 
       // Query 3: get new message createdAt
-      const newMsgChain = chainMock([{ createdAt: "2026-01-01T00:05:00.000Z" }]);
+      const newMsgChain = chainMock([
+        { createdAt: "2026-01-01T00:05:00.000Z" },
+      ]);
       mockSelect.mockReturnValueOnce(newMsgChain);
 
       // Update
@@ -1234,18 +1326,24 @@ describe("chat.service", () => {
 
     it("does NOT update when new message is older (monotonic enforcement)", async () => {
       // Query 1: get participant
-      const participantChain = chainMock([{
-        id: "part-1",
-        lastReadMessageId: "msg-5",
-      }]);
+      const participantChain = chainMock([
+        {
+          id: "part-1",
+          lastReadMessageId: "msg-5",
+        },
+      ]);
       mockSelect.mockReturnValueOnce(participantChain);
 
       // Query 2: get current lastReadMessage createdAt (newer)
-      const currentMsgChain = chainMock([{ createdAt: "2026-01-01T00:05:00.000Z" }]);
+      const currentMsgChain = chainMock([
+        { createdAt: "2026-01-01T00:05:00.000Z" },
+      ]);
       mockSelect.mockReturnValueOnce(currentMsgChain);
 
       // Query 3: get new message createdAt (older)
-      const newMsgChain = chainMock([{ createdAt: "2026-01-01T00:03:00.000Z" }]);
+      const newMsgChain = chainMock([
+        { createdAt: "2026-01-01T00:03:00.000Z" },
+      ]);
       mockSelect.mockReturnValueOnce(newMsgChain);
 
       const result = await markAsRead("conv-1", "user-1", "msg-3");
@@ -1283,7 +1381,9 @@ describe("chat.service", () => {
       mockSelect.mockReturnValueOnce(participantChain);
 
       // Query 2: get lastReadMessage's createdAt
-      const lastReadChain = chainMock([{ createdAt: "2026-01-01T00:02:00.000Z" }]);
+      const lastReadChain = chainMock([
+        { createdAt: "2026-01-01T00:02:00.000Z" },
+      ]);
       mockSelect.mockReturnValueOnce(lastReadChain);
 
       // Query 3: count non-visitor messages after cutoff
@@ -1327,7 +1427,10 @@ describe("chat.service", () => {
       const countChain = chainMock([{ count: 0 }]);
       mockSelect.mockReturnValueOnce(countChain);
 
-      const result = await getUnreadCountForVisitor("conv-1", "visitor-unknown");
+      const result = await getUnreadCountForVisitor(
+        "conv-1",
+        "visitor-unknown",
+      );
       expect(result).toBe(0);
     });
   });
@@ -1369,10 +1472,7 @@ describe("chat.service", () => {
       const chain = chainMock(queryResult);
       mockSelect.mockReturnValueOnce(chain);
 
-      const result = await getBulkUnreadCounts(
-        ["conv-1", "conv-2"],
-        "user-1",
-      );
+      const result = await getBulkUnreadCounts(["conv-1", "conv-2"], "user-1");
 
       expect(result.get("conv-1")).toBe(3);
       expect(result.get("conv-2")).toBeUndefined();
@@ -1554,7 +1654,9 @@ describe("chat.service", () => {
     }
 
     it("calls broadcastOrganizationEvent with message:new when broadcastContext is provided", async () => {
-      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      const selectChain = chainMock([
+        { status: "active", organizationId: "org-1" },
+      ]);
       mockSelect.mockReturnValueOnce(selectChain);
       mockSendBroadcastTransaction();
 
@@ -1562,7 +1664,10 @@ describe("chat.service", () => {
         conversationId: "conv-1",
         senderId: "visitor-user-1",
         content: "Hello from visitor",
-        broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+        broadcastContext: {
+          senderName: "Visitor",
+          senderRole: "visitor" as const,
+        },
       });
 
       expect(mockBroadcastOrganizationEvent).toHaveBeenCalledOnce();
@@ -1583,7 +1688,9 @@ describe("chat.service", () => {
     });
 
     it("does not call broadcastOrganizationEvent when broadcastContext is absent", async () => {
-      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      const selectChain = chainMock([
+        { status: "active", organizationId: "org-1" },
+      ]);
       mockSelect.mockReturnValueOnce(selectChain);
       mockSendBroadcastTransaction();
 
@@ -1600,7 +1707,9 @@ describe("chat.service", () => {
       mockBroadcastOrganizationEvent.mockImplementationOnce(() => {
         throw new Error("broadcast failed");
       });
-      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      const selectChain = chainMock([
+        { status: "active", organizationId: "org-1" },
+      ]);
       mockSelect.mockReturnValueOnce(selectChain);
       mockSendBroadcastTransaction();
 
@@ -1609,7 +1718,10 @@ describe("chat.service", () => {
           conversationId: "conv-1",
           senderId: "visitor-user-1",
           content: "Hello",
-          broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+          broadcastContext: {
+            senderName: "Visitor",
+            senderRole: "visitor" as const,
+          },
         }),
       ).resolves.not.toThrow();
     });
@@ -1622,7 +1734,10 @@ describe("chat.service", () => {
           conversationId: "conv-1",
           senderId: "visitor-user-1",
           content: "Hello",
-          broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+          broadcastContext: {
+            senderName: "Visitor",
+            senderRole: "visitor" as const,
+          },
         },
         { status: "active", assignedTo: null, organizationId: "org-from-data" },
       );
@@ -1634,7 +1749,9 @@ describe("chat.service", () => {
     });
 
     it("also broadcasts to conversation room so visitors receive message:new events", async () => {
-      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      const selectChain = chainMock([
+        { status: "active", organizationId: "org-1" },
+      ]);
       mockSelect.mockReturnValueOnce(selectChain);
       mockSendBroadcastTransaction();
 
@@ -1642,7 +1759,10 @@ describe("chat.service", () => {
         conversationId: "conv-1",
         senderId: "visitor-user-1",
         content: "Hello from visitor",
-        broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+        broadcastContext: {
+          senderName: "Visitor",
+          senderRole: "visitor" as const,
+        },
       });
 
       expect(mockBroadcastRoomEvent).toHaveBeenCalledOnce();
@@ -1660,7 +1780,9 @@ describe("chat.service", () => {
     });
 
     it("does not call broadcastRoomEvent when broadcastContext is absent", async () => {
-      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      const selectChain = chainMock([
+        { status: "active", organizationId: "org-1" },
+      ]);
       mockSelect.mockReturnValueOnce(selectChain);
       mockSendBroadcastTransaction();
 
@@ -1677,7 +1799,9 @@ describe("chat.service", () => {
       mockBroadcastRoomEvent.mockImplementationOnce(() => {
         throw new Error("room broadcast failed");
       });
-      const selectChain = chainMock([{ status: "active", organizationId: "org-1" }]);
+      const selectChain = chainMock([
+        { status: "active", organizationId: "org-1" },
+      ]);
       mockSelect.mockReturnValueOnce(selectChain);
       mockSendBroadcastTransaction();
 
@@ -1686,7 +1810,10 @@ describe("chat.service", () => {
           conversationId: "conv-1",
           senderId: "visitor-user-1",
           content: "Hello",
-          broadcastContext: { senderName: "Visitor", senderRole: "visitor" as const },
+          broadcastContext: {
+            senderName: "Visitor",
+            senderRole: "visitor" as const,
+          },
         }),
       ).resolves.not.toThrow();
     });
@@ -1708,7 +1835,10 @@ describe("chat.service", () => {
     it("inserts a system message with null senderId and type system", async () => {
       mockInsert.mockReturnValue(chainMock([systemMessageRow]));
 
-      const result = await createSystemMessage("conv-1", "John joined the conversation");
+      const result = await createSystemMessage(
+        "conv-1",
+        "John joined the conversation",
+      );
 
       expect(mockInsert).toHaveBeenCalledOnce();
       expect(result).toEqual(systemMessageRow);
@@ -1734,7 +1864,10 @@ describe("chat.service", () => {
     it("returns the inserted message row", async () => {
       mockInsert.mockReturnValue(chainMock([systemMessageRow]));
 
-      const result = await createSystemMessage("conv-1", "Operator left the conversation");
+      const result = await createSystemMessage(
+        "conv-1",
+        "Operator left the conversation",
+      );
 
       expect(result).toBeDefined();
       expect(result!.type).toBe("system");
@@ -1783,7 +1916,11 @@ describe("chat.service", () => {
     });
 
     it("returns unread counts for conversations assigned to the user", async () => {
-      const assignedConv = { ...baseConversation, assignedTo: "user-1", status: "active" as const };
+      const assignedConv = {
+        ...baseConversation,
+        assignedTo: "user-1",
+        status: "active" as const,
+      };
       const convRows = [assignedConv];
       const countRows = [{ count: 1 }];
       const unreadRows = [{ conversationId: "conv-1", count: 3 }];

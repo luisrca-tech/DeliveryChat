@@ -7,7 +7,14 @@ export function handleMessageNew(
   msg: MessageNewPayload,
   ctx: WebSocketHandlerContext,
 ): { clearTypingForSender: boolean } {
-  const { activeConversationId, processedMsgIds, messagesQueryKey, invalidateQueries, setQueryData, markAsRead } = ctx;
+  const {
+    activeConversationId,
+    processedMsgIds,
+    messagesQueryKey,
+    invalidateQueries,
+    setQueryData,
+    markAsRead,
+  } = ctx;
 
   if (processedMsgIds.has(msg.id)) return { clearTypingForSender: false };
   processedMsgIds.add(msg.id);
@@ -29,19 +36,21 @@ export function handleMessageNew(
     editedAt: msg.editedAt ?? null,
   };
 
-  setQueryData(
-    messagesQueryKey(msg.conversationId),
-    (old: unknown) => {
-      const prev = old as { messages: Message[]; limit: number; offset: number } | undefined;
-      if (!prev) return { messages: [newMessage], limit: 50, offset: 0 };
-      if (prev.messages.some((m) => m.id === msg.id)) return prev;
-      return { ...prev, messages: [newMessage, ...prev.messages] };
-    },
-  );
+  setQueryData(messagesQueryKey(msg.conversationId), (old: unknown) => {
+    const prev = old as
+      | { messages: Message[]; limit: number; offset: number }
+      | undefined;
+    if (!prev) return { messages: [newMessage], limit: 50, offset: 0 };
+    if (prev.messages.some((m) => m.id === msg.id)) return prev;
+    return { ...prev, messages: [newMessage, ...prev.messages] };
+  });
 
   invalidateQueries();
 
-  if (msg.senderRole === "visitor" && msg.conversationId === activeConversationId) {
+  if (
+    msg.senderRole === "visitor" &&
+    msg.conversationId === activeConversationId
+  ) {
     markAsRead(msg.conversationId).catch(console.error);
   }
 

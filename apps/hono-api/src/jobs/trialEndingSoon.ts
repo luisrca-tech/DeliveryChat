@@ -56,4 +56,3 @@ export async function sendTrialEndingSoonReminders(): Promise<{
 
   return { scanned: trialingOrgs.length, sent, skippedMissingEmail };
 }
-

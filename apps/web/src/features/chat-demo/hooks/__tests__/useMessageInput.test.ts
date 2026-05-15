@@ -34,7 +34,9 @@ describe("useMessageInput", () => {
     );
 
     act(() => {
-      result.current.handleInputChange({ target: { value: "hello" } } as React.ChangeEvent<HTMLInputElement>);
+      result.current.handleInputChange({
+        target: { value: "hello" },
+      } as React.ChangeEvent<HTMLInputElement>);
     });
 
     expect(result.current.value).toBe("hello");
@@ -49,7 +51,9 @@ describe("useMessageInput", () => {
     );
 
     act(() => {
-      result.current.handleInputChange({ target: { value: "Hello world" } } as React.ChangeEvent<HTMLInputElement>);
+      result.current.handleInputChange({
+        target: { value: "Hello world" },
+      } as React.ChangeEvent<HTMLInputElement>);
     });
 
     await act(async () => {
@@ -73,7 +77,9 @@ describe("useMessageInput", () => {
     );
 
     act(() => {
-      result.current.handleInputChange({ target: { value: "Hello" } } as React.ChangeEvent<HTMLInputElement>);
+      result.current.handleInputChange({
+        target: { value: "Hello" },
+      } as React.ChangeEvent<HTMLInputElement>);
     });
 
     await act(async () => {
@@ -86,7 +92,12 @@ describe("useMessageInput", () => {
   });
 
   it("rolls back optimistic message if send throws", async () => {
-    const ws = { readyState: WebSocket.OPEN, send: vi.fn().mockImplementation(() => { throw new Error("send failed"); }) };
+    const ws = {
+      readyState: WebSocket.OPEN,
+      send: vi.fn().mockImplementation(() => {
+        throw new Error("send failed");
+      }),
+    };
     const wsRef = { current: ws as unknown as WebSocket };
 
     const { result } = renderHook(() =>
@@ -94,7 +105,9 @@ describe("useMessageInput", () => {
     );
 
     act(() => {
-      result.current.handleInputChange({ target: { value: "Hello" } } as React.ChangeEvent<HTMLInputElement>);
+      result.current.handleInputChange({
+        target: { value: "Hello" },
+      } as React.ChangeEvent<HTMLInputElement>);
     });
 
     await act(async () => {

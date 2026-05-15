@@ -77,9 +77,15 @@ function renderDispatch(overrides: Partial<HookOptions> = {}) {
   };
 }
 
-function dispatchEvent(handleWsMessage: (e: MessageEvent) => void, type: string, payload: unknown) {
+function dispatchEvent(
+  handleWsMessage: (e: MessageEvent) => void,
+  type: string,
+  payload: unknown,
+) {
   act(() => {
-    handleWsMessage(new MessageEvent("message", { data: JSON.stringify({ type, payload }) }));
+    handleWsMessage(
+      new MessageEvent("message", { data: JSON.stringify({ type, payload }) }),
+    );
   });
 }
 
@@ -216,7 +222,9 @@ describe("useWebSocketDispatch", () => {
     const { result, setMessages } = renderDispatch();
 
     act(() => {
-      result.current.handleWsMessage(new MessageEvent("message", { data: "not json" }));
+      result.current.handleWsMessage(
+        new MessageEvent("message", { data: "not json" }),
+      );
     });
 
     expect(setMessages).not.toHaveBeenCalled();

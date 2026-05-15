@@ -65,6 +65,7 @@ Send a message to a conversation. The server persists it, sends an `message:ack`
 ```
 
 **Authorization:**
+
 - **Visitors:** Must be a participant of the conversation
 - **Operators/Admins:** Must be the assigned operator (`assignedTo` field)
 
@@ -136,7 +137,9 @@ Soft-delete a previously sent message. Only the original sender can delete. The 
 Heartbeat to keep the connection alive. Server responds with `pong`.
 
 ```typescript
-{ type: "ping" }
+{
+  type: "ping";
+}
 ```
 
 ---
@@ -345,29 +348,31 @@ Sent when the server encounters an error processing a client event.
 Response to a `ping` heartbeat.
 
 ```typescript
-{ type: "pong" }
+{
+  type: "pong";
+}
 ```
 
 ---
 
 ## Error Codes
 
-| Code | Meaning | When |
-|---|---|---|
-| `UNAUTHORIZED` | Authentication failed | Invalid session, expired token, bad appId |
-| `PARSE_ERROR` | Malformed JSON | Client sent non-JSON data |
-| `VALIDATION_ERROR` | Schema validation failed | Missing/invalid fields in event payload |
-| `FORBIDDEN` | Not authorized for action | Not a participant, not assigned to conversation |
-| `CONVERSATION_NOT_FOUND` | Conversation does not exist | Invalid or deleted conversation ID |
-| `CONVERSATION_NOT_ACTIVE` | Conversation is closed/pending | Trying to send to a non-active conversation |
-| `MESSAGE_NOT_FOUND` | Message does not exist | Invalid, deleted, or non-existent message ID |
-| `NOT_MESSAGE_SENDER` | Not the original sender | Trying to edit/delete another user's message |
+| Code                      | Meaning                        | When                                            |
+| ------------------------- | ------------------------------ | ----------------------------------------------- |
+| `UNAUTHORIZED`            | Authentication failed          | Invalid session, expired token, bad appId       |
+| `PARSE_ERROR`             | Malformed JSON                 | Client sent non-JSON data                       |
+| `VALIDATION_ERROR`        | Schema validation failed       | Missing/invalid fields in event payload         |
+| `FORBIDDEN`               | Not authorized for action      | Not a participant, not assigned to conversation |
+| `CONVERSATION_NOT_FOUND`  | Conversation does not exist    | Invalid or deleted conversation ID              |
+| `CONVERSATION_NOT_ACTIVE` | Conversation is closed/pending | Trying to send to a non-active conversation     |
+| `MESSAGE_NOT_FOUND`       | Message does not exist         | Invalid, deleted, or non-existent message ID    |
+| `NOT_MESSAGE_SENDER`      | Not the original sender        | Trying to edit/delete another user's message    |
 
 ## Heartbeat
 
-| Client | Interval | Mechanism |
-|---|---|---|
+| Client          | Interval   | Mechanism               |
+| --------------- | ---------- | ----------------------- |
 | Admin dashboard | 30 seconds | `setInterval` ping/pong |
-| Widget | 25 seconds | `setInterval` ping/pong |
+| Widget          | 25 seconds | `setInterval` ping/pong |
 
 If the server does not receive a ping within the expected window, the connection may be considered stale. Clients implement auto-reconnect with exponential backoff on disconnect.

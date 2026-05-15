@@ -4,10 +4,7 @@ import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
 import { user } from "../../db/schema/users.js";
-import type {
-  ConversationStatus,
-  ParticipantRole,
-} from "@repo/types";
+import type { ConversationStatus, ParticipantRole } from "@repo/types";
 import {
   broadcastOrganizationEvent,
   broadcastRoomEvent,
@@ -29,9 +26,7 @@ export class ConversationNotFoundError extends Error {
 
 export class ConversationNotActiveError extends Error {
   constructor(conversationId: string, status: string) {
-    super(
-      `Conversation ${conversationId} is not active (status: ${status})`,
-    );
+    super(`Conversation ${conversationId} is not active (status: ${status})`);
     this.name = "ConversationNotActiveError";
   }
 }
@@ -89,16 +84,16 @@ export class NotAssignedToConversationError extends Error {
 
 export class ConversationAlreadyAssignedError extends Error {
   constructor(conversationId: string) {
-    super(`Conversation ${conversationId} is already assigned or no longer pending`);
+    super(
+      `Conversation ${conversationId} is already assigned or no longer pending`,
+    );
     this.name = "ConversationAlreadyAssignedError";
   }
 }
 
 export class ConversationNotAssignedError extends Error {
   constructor(conversationId: string, userId: string) {
-    super(
-      `Conversation ${conversationId} is not assigned to user ${userId}`,
-    );
+    super(`Conversation ${conversationId} is not assigned to user ${userId}`);
     this.name = "ConversationNotAssignedError";
   }
 }
@@ -449,10 +444,7 @@ export async function getMessageHistoryForMember(
     .leftJoin(
       conversationParticipants,
       and(
-        eq(
-          conversationParticipants.conversationId,
-          messages.conversationId,
-        ),
+        eq(conversationParticipants.conversationId, messages.conversationId),
         eq(conversationParticipants.userId, messages.senderId),
       ),
     )
@@ -525,7 +517,8 @@ export async function closeConversation(
     )
     .returning();
 
-  if (!updated) throw new ConversationUpdateFailedError(conversationId, "close");
+  if (!updated)
+    throw new ConversationUpdateFailedError(conversationId, "close");
 
   return updated;
 }
@@ -645,7 +638,10 @@ export async function acceptConversation(
       }),
     );
   } catch (err) {
-    console.error("[chat.service] acceptConversation lifecycle broadcast failed", err);
+    console.error(
+      "[chat.service] acceptConversation lifecycle broadcast failed",
+      err,
+    );
   }
 
   try {
@@ -655,7 +651,10 @@ export async function acceptConversation(
       `${operatorName} joined the conversation`,
     );
   } catch (err) {
-    console.error("[chat.service] acceptConversation system message failed", err);
+    console.error(
+      "[chat.service] acceptConversation system message failed",
+      err,
+    );
   }
 
   return updated;
@@ -683,7 +682,8 @@ export async function leaveConversation(
     )
     .returning();
 
-  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
+  if (!updated)
+    throw new ConversationNotAssignedError(conversationId, operatorId);
 
   try {
     broadcastOrganizationEvent(
@@ -691,7 +691,10 @@ export async function leaveConversation(
       buildConversationReleasedEvent({ conversationId }),
     );
   } catch (err) {
-    console.error("[chat.service] leaveConversation lifecycle broadcast failed", err);
+    console.error(
+      "[chat.service] leaveConversation lifecycle broadcast failed",
+      err,
+    );
   }
 
   try {
@@ -701,7 +704,10 @@ export async function leaveConversation(
       `${operatorName} left the conversation you'll be able to chat with them again soon`,
     );
   } catch (err) {
-    console.error("[chat.service] leaveConversation system message failed", err);
+    console.error(
+      "[chat.service] leaveConversation system message failed",
+      err,
+    );
   }
 
   return updated;
@@ -729,7 +735,8 @@ export async function resolveConversation(
     )
     .returning();
 
-  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
+  if (!updated)
+    throw new ConversationNotAssignedError(conversationId, operatorId);
 
   try {
     broadcastOrganizationEvent(
@@ -740,7 +747,10 @@ export async function resolveConversation(
       }),
     );
   } catch (err) {
-    console.error("[chat.service] resolveConversation lifecycle broadcast failed", err);
+    console.error(
+      "[chat.service] resolveConversation lifecycle broadcast failed",
+      err,
+    );
   }
 
   try {
@@ -750,7 +760,10 @@ export async function resolveConversation(
       `${operatorName} resolved the conversation`,
     );
   } catch (err) {
-    console.error("[chat.service] resolveConversation system message failed", err);
+    console.error(
+      "[chat.service] resolveConversation system message failed",
+      err,
+    );
   }
 
   return updated;
@@ -777,7 +790,8 @@ export async function updateConversationSubject(
     )
     .returning();
 
-  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
+  if (!updated)
+    throw new ConversationNotAssignedError(conversationId, operatorId);
 
   return updated;
 }

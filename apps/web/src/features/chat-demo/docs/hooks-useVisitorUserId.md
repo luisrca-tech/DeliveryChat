@@ -14,7 +14,7 @@ Tracks the authenticated visitor's user id as returned by the API. Once captured
 function useVisitorUserId(): {
   visitorUserId: string | null;
   captureVisitorId(id: string | null): void;
-}
+};
 ```
 
 - `captureVisitorId` — idempotent: ignores null and ignores subsequent non-null calls once a value has been set (first-write-wins).

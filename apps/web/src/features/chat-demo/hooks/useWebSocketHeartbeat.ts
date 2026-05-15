@@ -13,17 +13,14 @@ export function useWebSocketHeartbeat() {
     }
   }, []);
 
-  const startHeartbeat = useCallback(
-    (wsRef: RefObject<WebSocket | null>) => {
-      if (pingRef.current) clearInterval(pingRef.current);
-      pingRef.current = setInterval(() => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
-          wsRef.current.send(JSON.stringify({ type: "ping" }));
-        }
-      }, HEARTBEAT_MS);
-    },
-    [],
-  );
+  const startHeartbeat = useCallback((wsRef: RefObject<WebSocket | null>) => {
+    if (pingRef.current) clearInterval(pingRef.current);
+    pingRef.current = setInterval(() => {
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: "ping" }));
+      }
+    }, HEARTBEAT_MS);
+  }, []);
 
   return { startHeartbeat, stopHeartbeat };
 }

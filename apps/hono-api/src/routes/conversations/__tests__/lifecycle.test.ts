@@ -22,8 +22,7 @@ vi.mock("../../../features/chat/chat.service.js", async (importOriginal) => {
     >();
   return {
     ...actual,
-    acceptConversation: (...args: unknown[]) =>
-      mockAcceptConversation(...args),
+    acceptConversation: (...args: unknown[]) => mockAcceptConversation(...args),
     leaveConversation: (...args: unknown[]) => mockLeaveConversation(...args),
     resolveConversation: (...args: unknown[]) =>
       mockResolveConversation(...args),
@@ -104,8 +103,9 @@ vi.mock("../../../lib/middleware/billing.js", () => ({
 }));
 
 vi.mock("../../../lib/middleware/unifiedRateLimit.js", () => ({
-  createUnifiedRateLimitMiddleware: () =>
-    async (_c: any, next: () => Promise<void>) => next(),
+  createUnifiedRateLimitMiddleware:
+    () => async (_c: any, next: () => Promise<void>) =>
+      next(),
 }));
 
 const { lifecycleRoute } = await import("../lifecycle.js");

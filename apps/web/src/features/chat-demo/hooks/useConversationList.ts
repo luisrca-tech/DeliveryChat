@@ -35,7 +35,11 @@ export function useConversationList({
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loadingConvs, setLoadingConvs] = useState(true);
-  const [newForm, setNewForm] = useState<NewFormState>({ visible: false, subject: "", creating: false });
+  const [newForm, setNewForm] = useState<NewFormState>({
+    visible: false,
+    subject: "",
+    creating: false,
+  });
 
   useEffect(() => {
     setLoadingConvs(true);
@@ -49,7 +53,10 @@ export function useConversationList({
       .finally(() => setLoadingConvs(false));
   }, [client, captureVisitorId]);
 
-  const showNewForm = useCallback(() => setNewForm((f) => ({ ...f, visible: true })), []);
+  const showNewForm = useCallback(
+    () => setNewForm((f) => ({ ...f, visible: true })),
+    [],
+  );
 
   const hideNewForm = useCallback(
     () => setNewForm({ visible: false, subject: "", creating: false }),
@@ -69,7 +76,9 @@ export function useConversationList({
         void (async () => {
           try {
             const { conversation } = await client.createConversation(subject);
-            const visitor = conversation.participants?.find((p) => p.role === "visitor");
+            const visitor = conversation.participants?.find(
+              (p) => p.role === "visitor",
+            );
             if (visitor) captureVisitorId(visitor.userId);
             setConversations((prev) => [conversation, ...prev]);
             if (onConversationCreated) {

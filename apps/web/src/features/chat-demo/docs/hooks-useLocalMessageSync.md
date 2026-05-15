@@ -14,7 +14,7 @@ None — all state lives in `localStorage`.
 function useLocalMessageSync(): {
   getLastMessageId(conversationId: string): string | undefined;
   setLastMessageId(conversationId: string, messageId: string): void;
-}
+};
 ```
 
 - `getLastMessageId` — reads the stored last-seen message id, or `undefined` if none.

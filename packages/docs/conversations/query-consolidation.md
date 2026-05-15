@@ -6,11 +6,11 @@ The message-send hot path was consolidated from 4 sequential conversation querie
 
 ## Changes
 
-| Function | Before | After |
-|---|---|---|
-| `validateSendAuthorization()` | Returns `void` | Returns `ConversationData` |
-| `sendMessage()` | Always queries conversation | Accepts optional pre-fetched data |
-| `handleMessageSend()` | Separate `assignedTo` fetch | Uses data from validation |
+| Function                      | Before                      | After                             |
+| ----------------------------- | --------------------------- | --------------------------------- |
+| `validateSendAuthorization()` | Returns `void`              | Returns `ConversationData`        |
+| `sendMessage()`               | Always queries conversation | Accepts optional pre-fetched data |
+| `handleMessageSend()`         | Separate `assignedTo` fetch | Uses data from validation         |
 
 ## `updatedAt` semantics
 

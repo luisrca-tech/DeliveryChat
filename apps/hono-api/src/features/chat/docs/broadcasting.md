@@ -8,10 +8,10 @@ Real-time events are broadcast to WebSocket connections via `broadcastOrganizati
 
 Organisation-level and room-level broadcasts for conversation and message lifecycle events are **called inside service functions**, not in route handlers:
 
-| Service function | Broadcast event | Scope | When |
-|---|---|---|---|
-| `createConversation` | `conversation:new` | Organization | After the DB transaction commits |
-| `sendMessage` (when `broadcastContext` is provided) | `message:new` | Organization + Room | After the DB transaction commits |
+| Service function                                    | Broadcast event    | Scope               | When                             |
+| --------------------------------------------------- | ------------------ | ------------------- | -------------------------------- |
+| `createConversation`                                | `conversation:new` | Organization        | After the DB transaction commits |
+| `sendMessage` (when `broadcastContext` is provided) | `message:new`      | Organization + Room | After the DB transaction commits |
 
 Route handlers call the service and return the HTTP response. They do not call broadcast functions directly (except `editMessage` and `deleteMessage` which broadcast `message:edited`/`message:deleted` to the room from the route handler).
 

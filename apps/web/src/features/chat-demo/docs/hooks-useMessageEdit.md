@@ -22,7 +22,7 @@ function useMessageEdit(
   setEditingContent(content: string): void;
   handleSaveEdit(msg: OptimisticMessage): Promise<void>;
   handleDelete(msg: OptimisticMessage): Promise<void>;
-}
+};
 ```
 
 - `onReplace` / `onRemove` — callbacks into the message list (owned by the caller, later by `useMessageHistory`).

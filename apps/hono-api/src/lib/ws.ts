@@ -1,23 +1,29 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import type { Hono } from "hono";
 
-let nodeWebSocket: ReturnType<typeof createNodeWebSocket> | null = null;
+type NodeWebSocketHelpers = ReturnType<typeof createNodeWebSocket>;
 
-export function initWebSocket(app: Hono) {
+let nodeWebSocket: NodeWebSocketHelpers | null = null;
+
+export function initWebSocket(app: Hono): NodeWebSocketHelpers {
   nodeWebSocket = createNodeWebSocket({ app });
   return nodeWebSocket;
 }
 
-export function getUpgradeWebSocket() {
+export function getUpgradeWebSocket(): NodeWebSocketHelpers["upgradeWebSocket"] {
   if (!nodeWebSocket) {
-    throw new Error("WebSocket not initialized. Call initWebSocket(app) first.");
+    throw new Error(
+      "WebSocket not initialized. Call initWebSocket(app) first.",
+    );
   }
   return nodeWebSocket.upgradeWebSocket;
 }
 
-export function getInjectWebSocket() {
+export function getInjectWebSocket(): NodeWebSocketHelpers["injectWebSocket"] {
   if (!nodeWebSocket) {
-    throw new Error("WebSocket not initialized. Call initWebSocket(app) first.");
+    throw new Error(
+      "WebSocket not initialized. Call initWebSocket(app) first.",
+    );
   }
   return nodeWebSocket.injectWebSocket;
 }

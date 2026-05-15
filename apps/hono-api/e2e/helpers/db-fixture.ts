@@ -200,10 +200,11 @@ export async function cleanupTestData(data: E2ETestData) {
   await db
     .delete(conversationParticipants)
     .where(
-      inArray(
-        conversationParticipants.userId,
-        [data.operatorUser.id, data.adminUser.id, data.visitorUser.id],
-      ),
+      inArray(conversationParticipants.userId, [
+        data.operatorUser.id,
+        data.adminUser.id,
+        data.visitorUser.id,
+      ]),
     );
 
   await db
@@ -220,13 +221,9 @@ export async function cleanupTestData(data: E2ETestData) {
     .delete(conversations)
     .where(eq(conversations.organizationId, data.org.id));
 
-  await db
-    .delete(apiKeys)
-    .where(eq(apiKeys.applicationId, data.app.id));
+  await db.delete(apiKeys).where(eq(apiKeys.applicationId, data.app.id));
 
-  await db
-    .delete(member)
-    .where(eq(member.organizationId, data.org.id));
+  await db.delete(member).where(eq(member.organizationId, data.org.id));
 
   await db
     .delete(applications)

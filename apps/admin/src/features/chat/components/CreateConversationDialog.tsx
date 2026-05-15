@@ -20,7 +20,11 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function CreateConversationDialog({ currentUserId, open, onOpenChange }: Props) {
+export function CreateConversationDialog({
+  currentUserId,
+  open,
+  onOpenChange,
+}: Props) {
   const [subject, setSubject] = useState("");
   const [selectedMembers, setSelectedMembers] = useState<OrgMember[]>([]);
   const [visitorId, setVisitorId] = useState("");
@@ -93,7 +97,8 @@ export function CreateConversationDialog({ currentUserId, open, onOpenChange }: 
               placeholder="Paste a visitor ID to include"
             />
             <p className="text-xs text-muted-foreground">
-              Add a visitor by their ID if they need to be part of this conversation
+              Add a visitor by their ID if they need to be part of this
+              conversation
             </p>
           </div>
         </div>
@@ -104,7 +109,10 @@ export function CreateConversationDialog({ currentUserId, open, onOpenChange }: 
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={mutation.isPending || (selectedMembers.length === 0 && !visitorId.trim())}
+            disabled={
+              mutation.isPending ||
+              (selectedMembers.length === 0 && !visitorId.trim())
+            }
           >
             {mutation.isPending ? "Creating..." : "Create"}
           </Button>

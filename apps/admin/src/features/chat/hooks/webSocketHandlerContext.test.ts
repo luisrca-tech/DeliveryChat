@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { WebSocketHandlerContext } from "../types/chat.types";
-import type { MessageNewPayload, MessageEditedPayload, MessageDeletedPayload } from "@repo/types";
+import type {
+  MessageNewPayload,
+  MessageEditedPayload,
+  MessageDeletedPayload,
+} from "@repo/types";
 import { handleMessageNew } from "./handleMessageNew";
 import { handleMessageEdited } from "./handleMessageEdited";
 import { handleMessageDeleted } from "./handleMessageDeleted";

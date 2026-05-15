@@ -38,13 +38,19 @@ export function ParticipantPanel({ conversationId }: Props) {
   );
 }
 
-function ParticipantRow({ participant }: { participant: ConversationParticipant }) {
+function ParticipantRow({
+  participant,
+}: {
+  participant: ConversationParticipant;
+}) {
   const roleClass = roleColors[participant.role] ?? "bg-gray-100 text-gray-600";
 
   return (
     <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-accent/50">
       <span className="text-sm truncate">{participant.userId}</span>
-      <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${roleClass}`}>
+      <span
+        className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${roleClass}`}
+      >
         {participant.role}
       </span>
     </div>

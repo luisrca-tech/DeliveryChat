@@ -19,9 +19,7 @@ function faviconHrefWithMtime(): string {
 
 export default defineConfig({
   define: {
-    "import.meta.env.VITE_FAVICON_HREF": JSON.stringify(
-      faviconHrefWithMtime(),
-    ),
+    "import.meta.env.VITE_FAVICON_HREF": JSON.stringify(faviconHrefWithMtime()),
   },
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
   server: {

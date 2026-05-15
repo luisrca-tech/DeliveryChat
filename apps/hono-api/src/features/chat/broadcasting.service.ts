@@ -27,19 +27,28 @@ export function buildMessageNewEvent(
 
 export function buildConversationAcceptedEvent(
   payload: ConversationAcceptedPayload,
-): Extract<WSServerEvent, { type: typeof WSServerEventType.CONVERSATION_ACCEPTED }> {
+): Extract<
+  WSServerEvent,
+  { type: typeof WSServerEventType.CONVERSATION_ACCEPTED }
+> {
   return { type: "conversation:accepted", payload };
 }
 
 export function buildConversationReleasedEvent(
   payload: ConversationReleasedPayload,
-): Extract<WSServerEvent, { type: typeof WSServerEventType.CONVERSATION_RELEASED }> {
+): Extract<
+  WSServerEvent,
+  { type: typeof WSServerEventType.CONVERSATION_RELEASED }
+> {
   return { type: "conversation:released", payload };
 }
 
 export function buildConversationResolvedEvent(
   payload: ConversationResolvedPayload,
-): Extract<WSServerEvent, { type: typeof WSServerEventType.CONVERSATION_RESOLVED }> {
+): Extract<
+  WSServerEvent,
+  { type: typeof WSServerEventType.CONVERSATION_RESOLVED }
+> {
   return { type: "conversation:resolved", payload };
 }
 
@@ -72,7 +81,11 @@ export function broadcastOrganizationEvent(
   event: WSServerEvent,
   excludeConnectionId?: string,
 ): void {
-  roomManager.broadcastToOrganization(organizationId, JSON.stringify(event), excludeConnectionId);
+  roomManager.broadcastToOrganization(
+    organizationId,
+    JSON.stringify(event),
+    excludeConnectionId,
+  );
 }
 
 export function broadcastRoomEvent(
@@ -80,7 +93,11 @@ export function broadcastRoomEvent(
   event: WSServerEvent,
   excludeConnectionId?: string,
 ): void {
-  roomManager.broadcast(conversationId, JSON.stringify(event), excludeConnectionId);
+  roomManager.broadcast(
+    conversationId,
+    JSON.stringify(event),
+    excludeConnectionId,
+  );
 }
 
 export function broadcastStaffEvent(
@@ -88,5 +105,9 @@ export function broadcastStaffEvent(
   event: WSServerEvent,
   excludeConnectionId?: string,
 ): void {
-  roomManager.broadcastToStaff(organizationId, JSON.stringify(event), excludeConnectionId);
+  roomManager.broadcastToStaff(
+    organizationId,
+    JSON.stringify(event),
+    excludeConnectionId,
+  );
 }

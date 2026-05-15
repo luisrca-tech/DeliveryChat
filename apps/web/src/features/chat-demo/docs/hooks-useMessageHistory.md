@@ -8,24 +8,24 @@ Replaces the `messages`/`loadingMsgs` state, the selectedId-driven fetch effect,
 
 ## Owned state
 
-| State | Type | Purpose |
-|---|---|---|
-| `messages` | `OptimisticMessage[]` | Current conversation messages, oldest-first |
-| `loadingMsgs` | `boolean` | True while message fetch is in flight |
+| State            | Type                                | Purpose                                           |
+| ---------------- | ----------------------------------- | ------------------------------------------------- |
+| `messages`       | `OptimisticMessage[]`               | Current conversation messages, oldest-first       |
+| `loadingMsgs`    | `boolean`                           | True while message fetch is in flight             |
 | `messagesEndRef` | `RefObject<HTMLDivElement \| null>` | Attached to a sentinel div; scroll effect uses it |
 
 ## Exposed API
 
-| Name | Type | Description |
-|---|---|---|
-| `messages` | `OptimisticMessage[]` | Message list for rendering |
-| `setMessages` | `Dispatch<SetStateAction<OptimisticMessage[]>>` | Passed to `useWebSocketDispatch` for reducer writes |
-| `loadingMsgs` | `boolean` | Show skeleton while loading |
-| `messagesEndRef` | `RefObject<HTMLDivElement \| null>` | Attach to a div at the bottom of the message list |
-| `appendMessage` | `(msg: OptimisticMessage) => void` | Adds an optimistic message to the end |
-| `replaceMessage` | `(id, content, editedAt) => void` | Updates content and editedAt by message id |
-| `removeMessage` | `(id: string) => void` | Removes a message by id |
-| `rollbackMessage` | `(clientId: string) => void` | Removes an optimistic message by clientId on send failure |
+| Name              | Type                                            | Description                                               |
+| ----------------- | ----------------------------------------------- | --------------------------------------------------------- |
+| `messages`        | `OptimisticMessage[]`                           | Message list for rendering                                |
+| `setMessages`     | `Dispatch<SetStateAction<OptimisticMessage[]>>` | Passed to `useWebSocketDispatch` for reducer writes       |
+| `loadingMsgs`     | `boolean`                                       | Show skeleton while loading                               |
+| `messagesEndRef`  | `RefObject<HTMLDivElement \| null>`             | Attach to a div at the bottom of the message list         |
+| `appendMessage`   | `(msg: OptimisticMessage) => void`              | Adds an optimistic message to the end                     |
+| `replaceMessage`  | `(id, content, editedAt) => void`               | Updates content and editedAt by message id                |
+| `removeMessage`   | `(id: string) => void`                          | Removes a message by id                                   |
+| `rollbackMessage` | `(clientId: string) => void`                    | Removes an optimistic message by clientId on send failure |
 
 ## Behavior notes
 

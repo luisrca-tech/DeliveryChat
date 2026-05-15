@@ -23,7 +23,10 @@ import { useWebSocketDispatch } from "../hooks/useWebSocketDispatch";
 import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
 import { useConversationList } from "../hooks/useConversationList";
 import { useMessageHistory } from "../hooks/useMessageHistory";
-import { ConversationListPanel, MessageThreadPanel } from "./ChatDemoComponents";
+import {
+  ConversationListPanel,
+  MessageThreadPanel,
+} from "./ChatDemoComponents";
 
 interface ChatDemoIslandProps {
   apiUrl: string;
@@ -32,14 +35,19 @@ interface ChatDemoIslandProps {
 }
 
 export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
-  const clientRef = useRef(createChatClient({ apiUrl, apiKey, appId, visitorId: resolveVisitorId() }));
+  const clientRef = useRef(
+    createChatClient({ apiUrl, apiKey, appId, visitorId: resolveVisitorId() }),
+  );
 
   // onMessageRef breaks the circular dep between useWebSocketDispatch (needs wsRef) and
   // useWebSocketConnection (needs handleWsMessage). Populated right after dispatch is created.
   const onMessageRef = useRef<(e: MessageEvent) => void>(() => {});
 
-  const [operatorTypingName, setOperatorTypingName] = useState<string | null>(null);
-  const [messageToDelete, setMessageToDelete] = useState<OptimisticMessage | null>(null);
+  const [operatorTypingName, setOperatorTypingName] = useState<string | null>(
+    null,
+  );
+  const [messageToDelete, setMessageToDelete] =
+    useState<OptimisticMessage | null>(null);
 
   const onConversationCreatedRef = useRef<(id: string) => void>(() => {});
   const stableOnConversationCreated = useMemo(
@@ -51,7 +59,8 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   useEditWindowTicker();
   const { getLastMessageId, setLastMessageId } = useLocalMessageSync();
   const { visitorUserId, captureVisitorId } = useVisitorUserId();
-  const { unreadCounts, setUnreadCounts, clearUnread, refreshUnread } = useUnreadCounts(clientRef.current);
+  const { unreadCounts, setUnreadCounts, clearUnread, refreshUnread } =
+    useUnreadCounts(clientRef.current);
 
   // --- Data hooks ---
   const {
@@ -65,7 +74,11 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     hideNewForm,
     setNewSubject,
     handleCreateConversation,
-  } = useConversationList({ client: clientRef.current, captureVisitorId, onConversationCreated: stableOnConversationCreated });
+  } = useConversationList({
+    client: clientRef.current,
+    captureVisitorId,
+    onConversationCreated: stableOnConversationCreated,
+  });
 
   const {
     messages,
@@ -76,11 +89,22 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     replaceMessage,
     removeMessage,
     rollbackMessage,
-  } = useMessageHistory({ selectedId, client: clientRef.current, setLastMessageId, clearUnread });
+  } = useMessageHistory({
+    selectedId,
+    client: clientRef.current,
+    setLastMessageId,
+    clearUnread,
+  });
 
   // --- Edit hook ---
-  const { editingState, handleStartEdit, handleCancelEdit, setEditingContent, handleSaveEdit, handleDelete } =
-    useMessageEdit(clientRef.current, replaceMessage, removeMessage);
+  const {
+    editingState,
+    handleStartEdit,
+    handleCancelEdit,
+    setEditingContent,
+    handleSaveEdit,
+    handleDelete,
+  } = useMessageEdit(clientRef.current, replaceMessage, removeMessage);
 
   // --- WebSocket hooks ---
   const onMarkAsRead = useCallback(
@@ -90,13 +114,14 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     [],
   );
 
-  const { wsRef, wsStatus, conversationClosedRef, selectedIdRef } = useWebSocketConnection({
-    selectedId,
-    client: clientRef.current,
-    getLastMessageId,
-    onMessageRef,
-    onResetTyping: useCallback(() => setOperatorTypingName(null), []),
-  });
+  const { wsRef, wsStatus, conversationClosedRef, selectedIdRef } =
+    useWebSocketConnection({
+      selectedId,
+      client: clientRef.current,
+      getLastMessageId,
+      onMessageRef,
+      onResetTyping: useCallback(() => setOperatorTypingName(null), []),
+    });
 
   const { handleWsMessage } = useWebSocketDispatch({
     wsRef,
@@ -122,9 +147,18 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     error: sendError,
     handleInputChange: handleInputChangeBase,
     handleSend,
-  } = useMessageInput(wsRef, selectedId, visitorUserId, appendMessage, rollbackMessage);
+  } = useMessageInput(
+    wsRef,
+    selectedId,
+    visitorUserId,
+    appendMessage,
+    rollbackMessage,
+  );
 
-  const { notifyTyping, sendTypingStop } = useTypingIndicator(wsRef, selectedId);
+  const { notifyTyping, sendTypingStop } = useTypingIndicator(
+    wsRef,
+    selectedId,
+  );
 
   const handleInputChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -181,7 +215,9 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
             <div className="h-2 w-2 rounded-full bg-primary animate-glow" />
             <span className="text-xs font-medium">Live Chat Active</span>
           </div>
-          <div className="text-xs text-muted-foreground">Chat with our team...</div>
+          <div className="text-xs text-muted-foreground">
+            Chat with our team...
+          </div>
         </div>
       )}
       <ConversationListPanel
@@ -219,11 +255,18 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         handleEditKeyDown={handleEditKeyDown}
       />
 
-      <AlertDialog open={messageToDelete !== null} onOpenChange={(open) => { if (!open) setMessageToDelete(null); }}>
+      <AlertDialog
+        open={messageToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setMessageToDelete(null);
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete message?</AlertDialogTitle>
-            <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+            <AlertDialogDescription>
+              This action cannot be undone.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>

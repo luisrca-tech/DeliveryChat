@@ -30,7 +30,9 @@ export function getTenantSlugFromHeaders(headers: Headers): string | null {
   return getHostSubdomain(uiHost);
 }
 
-export function getTenantSlugFromExplicitHeader(headers: Headers): string | null {
+export function getTenantSlugFromExplicitHeader(
+  headers: Headers,
+): string | null {
   const raw = headers.get(TENANT_SLUG_HEADER);
   if (!raw) return null;
 

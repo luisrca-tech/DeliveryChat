@@ -2,7 +2,9 @@ import { describe, it, expect, vi } from "vitest";
 import { handleConversationLifecycle } from "./handleConversationLifecycle";
 import type { WebSocketHandlerContext } from "../types/chat.types";
 
-function createCtx(overrides: Partial<WebSocketHandlerContext> = {}): WebSocketHandlerContext {
+function createCtx(
+  overrides: Partial<WebSocketHandlerContext> = {},
+): WebSocketHandlerContext {
   return {
     activeConversationId: null,
     processedMsgIds: new Set(),
@@ -38,5 +40,4 @@ describe("handleConversationLifecycle", () => {
     handleConversationLifecycle("conversation:resolved", ctx);
     expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
   });
-
 });

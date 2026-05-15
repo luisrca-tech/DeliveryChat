@@ -21,13 +21,12 @@ export default function OrganizationInvitationEmail(
       title="You're invited!"
       footerHint="This invitation expires in 7 days."
     >
-      <Text style={{ margin: "0 0 16px 0", color: "#374151" }}>
-        Hi there,
-      </Text>
+      <Text style={{ margin: "0 0 16px 0", color: "#374151" }}>Hi there,</Text>
       <Text style={{ margin: "0 0 18px 0", color: "#374151" }}>
         <strong>{inviterName}</strong> has invited you to join{" "}
-        <strong>{organizationName}</strong> as {roleLabel === "Operator" ? "an" : "a"}{" "}
-        <strong>{roleLabel}</strong> on Delivery Chat.
+        <strong>{organizationName}</strong> as{" "}
+        {roleLabel === "Operator" ? "an" : "a"} <strong>{roleLabel}</strong> on
+        Delivery Chat.
       </Text>
 
       <Section style={{ textAlign: "center", margin: "22px 0 18px" }}>
@@ -46,9 +45,7 @@ export default function OrganizationInvitationEmail(
         </Button>
       </Section>
 
-      <Text
-        style={{ margin: "0 0 6px 0", fontSize: "13px", color: "#6b7280" }}
-      >
+      <Text style={{ margin: "0 0 6px 0", fontSize: "13px", color: "#6b7280" }}>
         If you don't want to join, you can simply ignore this email or click the
         link below to decline.
       </Text>

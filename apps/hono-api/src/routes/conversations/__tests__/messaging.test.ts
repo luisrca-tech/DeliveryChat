@@ -23,8 +23,7 @@ vi.mock("../../../features/chat/chat.service.js", async (importOriginal) => {
     >();
   return {
     ...actual,
-    createConversation: (...args: unknown[]) =>
-      mockCreateConversation(...args),
+    createConversation: (...args: unknown[]) => mockCreateConversation(...args),
     getConversationWithParticipants: (...args: unknown[]) =>
       mockGetConversationWithParticipants(...args),
     sendMessage: (...args: unknown[]) => mockSendMessage(...args),
@@ -106,8 +105,9 @@ vi.mock("../../../lib/middleware/unifiedAuth.js", () => ({
 }));
 
 vi.mock("../../../lib/middleware/unifiedRateLimit.js", () => ({
-  createUnifiedRateLimitMiddleware: () =>
-    async (_c: any, next: () => Promise<void>) => next(),
+  createUnifiedRateLimitMiddleware:
+    () => async (_c: any, next: () => Promise<void>) =>
+      next(),
 }));
 
 const { messagingRoute } = await import("../messaging.js");
@@ -179,14 +179,11 @@ describe("Conversations messaging endpoints", () => {
       };
       mockSendMessage.mockResolvedValue(fakeMessage);
 
-      const res = await app.request(
-        `/conversations/${CONV_ID}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "Hello" }),
-        },
-      );
+      const res = await app.request(`/conversations/${CONV_ID}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "Hello" }),
+      });
 
       expect(res.status).toBe(201);
       const body = await res.json();
@@ -213,14 +210,11 @@ describe("Conversations messaging endpoints", () => {
       };
       mockSendMessage.mockResolvedValue(fakeMessage);
 
-      const res = await app.request(
-        `/conversations/${CONV_ID}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "Hi there" }),
-        },
-      );
+      const res = await app.request(`/conversations/${CONV_ID}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "Hi there" }),
+      });
 
       expect(res.status).toBe(201);
       expect(mockSendMessage).toHaveBeenCalledWith(
@@ -237,14 +231,11 @@ describe("Conversations messaging endpoints", () => {
       mockUnifiedAuthContext = visitorAuth();
       mockIsParticipant.mockResolvedValue(false);
 
-      const res = await app.request(
-        `/conversations/${CONV_ID}/messages`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ content: "Hello" }),
-        },
-      );
+      const res = await app.request(`/conversations/${CONV_ID}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: "Hello" }),
+      });
 
       expect(res.status).toBe(404);
     });

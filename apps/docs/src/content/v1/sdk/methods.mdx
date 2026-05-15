@@ -1,0 +1,196 @@
+# SDK Methods
+
+Complete reference for all public methods available on the SDK.
+
+## Initialization
+
+### `init(options)`
+
+Initialize the SDK and (unless headless) render the chat widget.
+
+```typescript
+import { init } from "@deliverychat/sdk";
+
+init({
+  appId: "your-app-uuid",
+  position: "bottom-right",
+  headless: false,
+});
+```
+
+| Option | Type | Required | Default | Description |
+|--------|------|----------|---------|-------------|
+| `appId` | `string` | Yes | — | Your application UUID |
+| `apiBaseUrl` | `string` | No | Auto-detected | Override the API base URL |
+| `position` | `"bottom-left" \| "bottom-right"` | No | `"bottom-right"` | Launcher position |
+| `autoOpen` | `boolean` | No | `false` | Open chat on load |
+| `autoOpenDelay` | `number` | No | `5000` | Delay in ms before auto-open |
+| `colors` | `Partial<WidgetColors>` | No | — | Override widget colors |
+| `launcherLogoUrl` | `string \| null` | No | — | Custom launcher logo URL |
+| `headless` | `boolean` | No | `false` | Skip UI rendering entirely |
+
+### `destroy()`
+
+Remove the widget, close the WebSocket, and release all resources.
+
+```typescript
+import { destroy } from "@deliverychat/sdk";
+
+destroy();
+```
+
+After calling `destroy()`, you can call `init()` again to re-initialize.
+
+## Widget Control
+
+All widget control methods require `init()` to have been called. In headless mode, these are no-ops.
+
+### `open()`
+
+Open the chat window.
+
+```typescript
+const chat = getSdkApi();
+chat.open();
+```
+
+### `close()`
+
+Close the chat window.
+
+```typescript
+chat.close();
+```
+
+### `toggle()`
+
+Toggle the chat window open or closed.
+
+```typescript
+chat.toggle();
+```
+
+### `hideWidget()`
+
+Hide the launcher button. The chat window (if open) is not affected.
+
+```typescript
+chat.hideWidget();
+```
+
+### `showWidget()`
+
+Show the launcher button.
+
+```typescript
+chat.showWidget();
+```
+
+## Messaging
+
+### `sendMessage(text)`
+
+Send a message and wait for server acknowledgment. Creates a conversation automatically if none exists.
+
+```typescript
+const message = await chat.sendMessage("Hello!");
+console.log(message.id, message.status); // "msg_abc123", "sent"
+```
+
+**Parameters:**
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `text` | `string` | The message content |
+
+**Returns:** `Promise<ChatMessage>`
+
+```typescript
+type ChatMessage = {
+  id: string;
+  content: string;
+  type: "text" | "system";
+  senderRole: "visitor" | "operator" | "admin";
+  senderId: string;
+  status: "pending" | "sent" | "failed";
+  createdAt: string;
+  editedAt?: string | null;
+  isDeleted?: boolean;
+};
+```
+
+**Throws** if the WebSocket is disconnected, the server rejects the message, or the 15-second ACK timeout expires.
+
+### `getConversation()`
+
+Get the current conversation state, or `null` if no conversation exists.
+
+```typescript
+const conv = chat.getConversation();
+if (conv) {
+  console.log(conv.id, conv.status, conv.messages.length);
+}
+```
+
+**Returns:** `ConversationSnapshot | null`
+
+```typescript
+type ConversationSnapshot = {
+  id: string;
+  status: string;
+  messages: ChatMessage[];
+};
+```
+
+## Identity
+
+### `identify(params)`
+
+Associate the current anonymous visitor with known user data. See [Visitor Identity](/v1/sdk/identity) for the full guide.
+
+```typescript
+await chat.identify({
+  name: "Jane Doe",
+  email: "jane@example.com",
+  externalId: "user_123",
+  metadata: { plan: "premium" },
+});
+```
+
+**Parameters:**
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string` | No | Visitor display name |
+| `email` | `string` | No | Visitor email |
+| `externalId` | `string` | No | Your internal user ID |
+| `metadata` | `Record<string, unknown>` | No | Arbitrary key-value data |
+| `hmac` | `string` | No | HMAC-SHA256 signature (required when verification is enabled) |
+
+**Returns:** `Promise<IdentityResult>`
+
+## Events
+
+### `on(event, callback)`
+
+Subscribe to an event. See [Events](/v1/sdk/events) for all available events.
+
+```typescript
+chat.on("message:received", (message) => {
+  console.log(message.content);
+});
+```
+
+### `off(event, callback)`
+
+Unsubscribe a previously registered callback.
+
+```typescript
+const handler = (msg: ChatMessage) => console.log(msg);
+chat.on("message:received", handler);
+chat.off("message:received", handler);
+```
+
+<Callout type="info" title="Pre-init listeners">
+  You can call <code>on()</code> before <code>init()</code> — listeners are registered immediately on the internal emitter. This is useful for the CDN script tag pattern where <code>on()</code> calls may be queued before the script loads.
+</Callout>

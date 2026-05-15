@@ -3,10 +3,7 @@ import viteReact from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 export default defineConfig({
-  plugins: [
-    tsconfigPaths({ projects: ["./tsconfig.json"] }),
-    viteReact(),
-  ],
+  plugins: [tsconfigPaths({ projects: ["./tsconfig.json"] }), viteReact()],
   test: {
     environment: "jsdom",
     include: ["src/**/*.test.{ts,tsx}"],

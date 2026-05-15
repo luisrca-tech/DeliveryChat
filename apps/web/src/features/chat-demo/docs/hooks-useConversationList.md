@@ -8,27 +8,27 @@ Single hook that replaces the three `useState` calls for conversations/selectedI
 
 ## Owned state
 
-| State | Type | Purpose |
-|---|---|---|
-| `conversations` | `Conversation[]` | All loaded conversations, newest-first after creation |
-| `selectedId` | `string \| null` | Currently viewed conversation |
-| `loadingConvs` | `boolean` | True while initial fetch is in flight |
-| `newForm` | `{ visible, subject, creating }` | Entire new-conversation form in one object |
+| State           | Type                             | Purpose                                               |
+| --------------- | -------------------------------- | ----------------------------------------------------- |
+| `conversations` | `Conversation[]`                 | All loaded conversations, newest-first after creation |
+| `selectedId`    | `string \| null`                 | Currently viewed conversation                         |
+| `loadingConvs`  | `boolean`                        | True while initial fetch is in flight                 |
+| `newForm`       | `{ visible, subject, creating }` | Entire new-conversation form in one object            |
 
 ## Exposed API
 
-| Name | Type | Description |
-|---|---|---|
-| `conversations` | `Conversation[]` | Conversation list |
-| `setConversations` | `Dispatch<SetStateAction<Conversation[]>>` | External setter — used by `useWebSocketDispatch` to prepend new conversations |
-| `selectedId` | `string \| null` | Currently selected conversation id |
-| `setSelectedId` | `Dispatch<SetStateAction<string \| null>>` | Used by wiring layer on conversation select |
-| `loadingConvs` | `boolean` | Show skeleton while loading |
-| `newForm` | `NewFormState` | Read-only form state for rendering |
-| `showNewForm` | `() => void` | Opens the new-conversation form |
-| `hideNewForm` | `() => void` | Closes and resets the form |
-| `setNewSubject` | `(subject: string) => void` | Updates subject field |
-| `handleCreateConversation` | `(e: React.FormEvent) => Promise<void>` | Submit handler — calls client, prepends conversation, sets selectedId |
+| Name                       | Type                                       | Description                                                                   |
+| -------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------- |
+| `conversations`            | `Conversation[]`                           | Conversation list                                                             |
+| `setConversations`         | `Dispatch<SetStateAction<Conversation[]>>` | External setter — used by `useWebSocketDispatch` to prepend new conversations |
+| `selectedId`               | `string \| null`                           | Currently selected conversation id                                            |
+| `setSelectedId`            | `Dispatch<SetStateAction<string \| null>>` | Used by wiring layer on conversation select                                   |
+| `loadingConvs`             | `boolean`                                  | Show skeleton while loading                                                   |
+| `newForm`                  | `NewFormState`                             | Read-only form state for rendering                                            |
+| `showNewForm`              | `() => void`                               | Opens the new-conversation form                                               |
+| `hideNewForm`              | `() => void`                               | Closes and resets the form                                                    |
+| `setNewSubject`            | `(subject: string) => void`                | Updates subject field                                                         |
+| `handleCreateConversation` | `(e: React.FormEvent) => Promise<void>`    | Submit handler — calls client, prepends conversation, sets selectedId         |
 
 ## Test strategy
 

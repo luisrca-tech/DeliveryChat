@@ -18,7 +18,9 @@ function makeMsg(id: string, clientId?: string): OptimisticMessage {
 
 function makeClient(overrides: Partial<ChatClient> = {}): ChatClient {
   return {
-    getMessages: vi.fn().mockResolvedValue({ messages: [], limit: 20, offset: 0 }),
+    getMessages: vi
+      .fn()
+      .mockResolvedValue({ messages: [], limit: 20, offset: 0 }),
     markAsRead: vi.fn().mockResolvedValue({ success: true }),
     ...overrides,
   } as unknown as ChatClient;
@@ -29,14 +31,22 @@ describe("useMessageHistory", () => {
   let clearUnread: (conversationId: string) => void;
 
   beforeEach(() => {
-    setLastMessageId = vi.fn() as unknown as (conversationId: string, messageId: string) => void;
+    setLastMessageId = vi.fn() as unknown as (
+      conversationId: string,
+      messageId: string,
+    ) => void;
     clearUnread = vi.fn() as unknown as (conversationId: string) => void;
   });
 
   it("does not fetch when selectedId is null", () => {
     const client = makeClient();
     renderHook(() =>
-      useMessageHistory({ selectedId: null, client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: null,
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
     expect(client.getMessages).not.toHaveBeenCalled();
   });
@@ -44,11 +54,18 @@ describe("useMessageHistory", () => {
   it("fetches and reverses messages when selectedId is set", async () => {
     const msgs = [makeMsg("msg-1"), makeMsg("msg-2")];
     const client = makeClient({
-      getMessages: vi.fn().mockResolvedValue({ messages: msgs, limit: 20, offset: 0 }),
+      getMessages: vi
+        .fn()
+        .mockResolvedValue({ messages: msgs, limit: 20, offset: 0 }),
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
@@ -61,11 +78,18 @@ describe("useMessageHistory", () => {
   it("calls setLastMessageId with the last message id after reversing", async () => {
     const msgs = [makeMsg("msg-1"), makeMsg("msg-2")];
     const client = makeClient({
-      getMessages: vi.fn().mockResolvedValue({ messages: msgs, limit: 20, offset: 0 }),
+      getMessages: vi
+        .fn()
+        .mockResolvedValue({ messages: msgs, limit: 20, offset: 0 }),
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
@@ -76,11 +100,18 @@ describe("useMessageHistory", () => {
 
   it("calls clearUnread after a successful fetch", async () => {
     const client = makeClient({
-      getMessages: vi.fn().mockResolvedValue({ messages: [], limit: 20, offset: 0 }),
+      getMessages: vi
+        .fn()
+        .mockResolvedValue({ messages: [], limit: 20, offset: 0 }),
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
@@ -94,7 +125,12 @@ describe("useMessageHistory", () => {
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
@@ -105,12 +141,26 @@ describe("useMessageHistory", () => {
   it("refetches when selectedId changes", async () => {
     const getMessages = vi
       .fn()
-      .mockResolvedValueOnce({ messages: [makeMsg("msg-a")], limit: 20, offset: 0 })
-      .mockResolvedValueOnce({ messages: [makeMsg("msg-b")], limit: 20, offset: 0 });
+      .mockResolvedValueOnce({
+        messages: [makeMsg("msg-a")],
+        limit: 20,
+        offset: 0,
+      })
+      .mockResolvedValueOnce({
+        messages: [makeMsg("msg-b")],
+        limit: 20,
+        offset: 0,
+      });
     const client = makeClient({ getMessages });
 
     const { result, rerender } = renderHook(
-      ({ id }) => useMessageHistory({ selectedId: id, client, setLastMessageId, clearUnread }),
+      ({ id }) =>
+        useMessageHistory({
+          selectedId: id,
+          client,
+          setLastMessageId,
+          clearUnread,
+        }),
       { initialProps: { id: "conv-1" } },
     );
 
@@ -125,32 +175,62 @@ describe("useMessageHistory", () => {
 
   it("appendMessage adds to the end of the list", async () => {
     const client = makeClient({
-      getMessages: vi.fn().mockResolvedValue({ messages: [makeMsg("msg-1")], limit: 20, offset: 0 }),
+      getMessages: vi
+        .fn()
+        .mockResolvedValue({
+          messages: [makeMsg("msg-1")],
+          limit: 20,
+          offset: 0,
+        }),
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
 
     act(() => result.current.appendMessage(makeMsg("msg-2")));
 
-    expect(result.current.messages[result.current.messages.length - 1].id).toBe("msg-2");
+    expect(result.current.messages[result.current.messages.length - 1].id).toBe(
+      "msg-2",
+    );
   });
 
   it("replaceMessage updates content and editedAt by id", async () => {
     const client = makeClient({
-      getMessages: vi.fn().mockResolvedValue({ messages: [makeMsg("msg-1")], limit: 20, offset: 0 }),
+      getMessages: vi
+        .fn()
+        .mockResolvedValue({
+          messages: [makeMsg("msg-1")],
+          limit: 20,
+          offset: 0,
+        }),
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
 
-    act(() => result.current.replaceMessage("msg-1", "Updated content", "2024-01-01T00:00:00Z"));
+    act(() =>
+      result.current.replaceMessage(
+        "msg-1",
+        "Updated content",
+        "2024-01-01T00:00:00Z",
+      ),
+    );
 
     expect(result.current.messages[0].content).toBe("Updated content");
     expect(result.current.messages[0].editedAt).toBe("2024-01-01T00:00:00Z");
@@ -166,7 +246,12 @@ describe("useMessageHistory", () => {
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
@@ -179,11 +264,18 @@ describe("useMessageHistory", () => {
 
   it("rollbackMessage removes an optimistic message by clientId", async () => {
     const client = makeClient({
-      getMessages: vi.fn().mockResolvedValue({ messages: [], limit: 20, offset: 0 }),
+      getMessages: vi
+        .fn()
+        .mockResolvedValue({ messages: [], limit: 20, offset: 0 }),
     });
 
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: "conv-1", client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: "conv-1",
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
 
     await waitFor(() => expect(result.current.loadingMsgs).toBe(false));
@@ -197,7 +289,12 @@ describe("useMessageHistory", () => {
   it("exposes messagesEndRef for scroll attachment", () => {
     const client = makeClient();
     const { result } = renderHook(() =>
-      useMessageHistory({ selectedId: null, client, setLastMessageId, clearUnread }),
+      useMessageHistory({
+        selectedId: null,
+        client,
+        setLastMessageId,
+        clearUnread,
+      }),
     );
     expect(result.current.messagesEndRef).toBeDefined();
     expect(result.current.messagesEndRef.current).toBeNull();

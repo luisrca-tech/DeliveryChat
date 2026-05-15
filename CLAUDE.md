@@ -8,18 +8,18 @@ DeliveryChat is a **multi-tenant SaaS chat platform** built as a Turborepo monor
 
 ## Monorepo Structure
 
-| App/Package | Framework | Port | Purpose |
-|---|---|---|---|
-| `apps/admin` | TanStack Router + React 19 | 3000 | Admin dashboard (visitors, settings, billing, API keys) |
-| `apps/widget` | React Router v7 + React 19 | 3001 | Embeddable chat widget (iframe + IIFE build) |
-| `apps/web` | Astro v5 | 3002 | Landing page with registration flow |
-| `apps/hono-api` | Hono v4 + Drizzle ORM | 8000 | Backend API (all business logic, auth, billing) |
-| `apps/docs` | Next.js | 3003 | Documentation site |
-| `packages/types` | TypeScript | - | Shared types, Zod schemas, validation |
-| `packages/ui` | React | - | Shared UI components (shadcn-based) |
-| `packages/emails` | React Email | - | Transactional email templates |
-| `packages/infisical` | TypeScript | - | Infisical SDK wrapper |
-| `packages/docs` | Markdown | - | Feature documentation |
+| App/Package          | Framework                  | Port | Purpose                                                 |
+| -------------------- | -------------------------- | ---- | ------------------------------------------------------- |
+| `apps/admin`         | TanStack Router + React 19 | 3000 | Admin dashboard (visitors, settings, billing, API keys) |
+| `apps/widget`        | React Router v7 + React 19 | 3001 | Embeddable chat widget (iframe + IIFE build)            |
+| `apps/web`           | Astro v5                   | 3002 | Landing page with registration flow                     |
+| `apps/hono-api`      | Hono v4 + Drizzle ORM      | 8000 | Backend API (all business logic, auth, billing)         |
+| `apps/docs`          | Next.js                    | 3003 | Documentation site                                      |
+| `packages/types`     | TypeScript                 | -    | Shared types, Zod schemas, validation                   |
+| `packages/ui`        | React                      | -    | Shared UI components (shadcn-based)                     |
+| `packages/emails`    | React Email                | -    | Transactional email templates                           |
+| `packages/infisical` | TypeScript                 | -    | Infisical SDK wrapper                                   |
+| `packages/docs`      | Markdown                   | -    | Feature documentation                                   |
 
 ## Common Commands
 
@@ -112,6 +112,7 @@ Middleware guards in `src/lib/middleware/`, applied per-route:
 ### Tenant Resolution
 
 Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
+
 1. `X-Tenant-Slug` header (explicit)
 2. `Origin` → `Referer` → `X-Forwarded-Host` → `Host` (derived)
 3. Special handling: `localhost` → no tenant; `*.localhost` → strip suffix; `*.vercel.app` → parse `[tenant]---[hash]` format; `api`/`api-dev`/`www` → no tenant.
@@ -138,11 +139,13 @@ Subdomain resolution priority in `requestContext.ts` + `tenant.ts`:
 ### Conversations & Messaging
 
 Support conversation lifecycle with real-time WebSocket updates. Three core tables:
+
 - **`conversations`** — scoped to an organization + optional application. Statuses: `pending` → `active` → `closed`. Has `assignedTo` (operator who accepted). Default status: `pending`. Soft-delete via `deletedAt`.
 - **`messages`** — belongs to a conversation. Has `senderId` (references `user`), `messageTypeEnum` (default `text`), soft-delete via `deletedAt`. Messages can be sent while conversation is `pending` or `active`.
 - **`conversationParticipants`** — join table with `participantRoleEnum`, unique constraint on `(conversationId, userId)`, tracks `lastReadMessageId` for read receipts.
 
 **Conversation lifecycle:**
+
 1. Visitor sends first message → conversation created as `pending` → appears in operator queue
 2. Operator clicks Accept → `POST /conversations/:id/accept` (race-condition safe: `WHERE assignedTo IS NULL`) → status `active`, `assignedTo` set
 3. Operator clicks Leave Chat → `POST /conversations/:id/leave` → status back to `pending`, `assignedTo` null → returns to queue
@@ -151,6 +154,7 @@ Support conversation lifecycle with real-time WebSocket updates. Three core tabl
 **Visibility rules:** Operators see pending (queue) + their own active. Admins/super_admins see all.
 
 **WebSocket architecture:**
+
 - Endpoint: `GET /v1/ws` — upgrade handled in `src/routes/ws.ts`, init in `src/lib/ws.ts`.
 - Dual auth: session cookie (admin) or API key + appId query params (widget).
 - `InMemoryRoomManager` tracks connections per organization. Supports `room:join`, `room:leave`, `message:send`, `ping` client events.
@@ -162,6 +166,7 @@ Relations defined in `schema/relations.ts`.
 ### Secrets Management
 
 All environment variables managed via **Infisical** (not `.env` files). Folder-based organization:
+
 - `/hono-api/`, `/admin/`, `/web/`, `/widget/`
 - Dev scripts use `infisical run --path=/[app]` to inject secrets.
 - Must run `infisical login` before development.

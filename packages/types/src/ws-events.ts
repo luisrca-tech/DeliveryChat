@@ -76,7 +76,10 @@ export type WSClientEvent =
   | { type: typeof WSClientEventType.ROOM_LEAVE; payload: RoomLeavePayload }
   | { type: typeof WSClientEventType.MESSAGE_SEND; payload: MessageSendPayload }
   | { type: typeof WSClientEventType.MESSAGE_EDIT; payload: MessageEditPayload }
-  | { type: typeof WSClientEventType.MESSAGE_DELETE; payload: MessageDeletePayload }
+  | {
+      type: typeof WSClientEventType.MESSAGE_DELETE;
+      payload: MessageDeletePayload;
+    }
   | { type: typeof WSClientEventType.TYPING_START; payload: TypingStartPayload }
   | { type: typeof WSClientEventType.TYPING_STOP; payload: TypingStopPayload }
   | { type: typeof WSClientEventType.PING };

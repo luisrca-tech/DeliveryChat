@@ -30,9 +30,9 @@ The factory generates only an `onSettled` callback that invalidates all conversa
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `lib/conversationMutationFactory.ts` | Factory function |
-| `lib/conversationMutationFactory.test.ts` | Factory tests (snapshot, rollback, invalidation) |
-| `lib/conversationsQueryKeys.ts` | Standalone query key definitions (extracted to break import cycles) |
-| `hooks/useConversationMutations.ts` | Consumer hooks (5 hooks, each ≤5 lines) |
+| File                                      | Purpose                                                             |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| `lib/conversationMutationFactory.ts`      | Factory function                                                    |
+| `lib/conversationMutationFactory.test.ts` | Factory tests (snapshot, rollback, invalidation)                    |
+| `lib/conversationsQueryKeys.ts`           | Standalone query key definitions (extracted to break import cycles) |
+| `hooks/useConversationMutations.ts`       | Consumer hooks (5 hooks, each ≤5 lines)                             |

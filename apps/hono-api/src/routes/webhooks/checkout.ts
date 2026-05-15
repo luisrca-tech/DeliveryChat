@@ -13,9 +13,7 @@ export async function handleCheckoutSessionCompleted(
   const selectedPlan = session.metadata?.plan ?? null;
 
   if (!customerId) {
-    console.error(
-      "[Webhook] checkout.session.completed: Missing customer ID",
-    );
+    console.error("[Webhook] checkout.session.completed: Missing customer ID");
     return;
   }
 

@@ -43,9 +43,7 @@ describe("useSubjectEditor", () => {
   });
 
   it("starts in non-editing state", () => {
-    const { result } = renderHook(() =>
-      useSubjectEditor(makeConversation()),
-    );
+    const { result } = renderHook(() => useSubjectEditor(makeConversation()));
     expect(result.current.isEditing).toBe(false);
     expect(result.current.draft).toBe("");
     expect(result.current.isPending).toBe(false);
@@ -74,9 +72,7 @@ describe("useSubjectEditor", () => {
   });
 
   it("cancels editing and resets draft", () => {
-    const { result } = renderHook(() =>
-      useSubjectEditor(makeConversation()),
-    );
+    const { result } = renderHook(() => useSubjectEditor(makeConversation()));
 
     act(() => result.current.startEditing());
     act(() => result.current.setDraft("changed"));
@@ -105,9 +101,7 @@ describe("useSubjectEditor", () => {
   });
 
   it("does not save when draft is empty or whitespace-only", () => {
-    const { result } = renderHook(() =>
-      useSubjectEditor(makeConversation()),
-    );
+    const { result } = renderHook(() => useSubjectEditor(makeConversation()));
 
     act(() => result.current.startEditing());
     act(() => result.current.setDraft("   "));
@@ -117,13 +111,13 @@ describe("useSubjectEditor", () => {
   });
 
   it("exits editing mode on successful save", () => {
-    mockMutate.mockImplementation((_data: unknown, opts: { onSuccess: () => void }) => {
-      opts.onSuccess();
-    });
-
-    const { result } = renderHook(() =>
-      useSubjectEditor(makeConversation()),
+    mockMutate.mockImplementation(
+      (_data: unknown, opts: { onSuccess: () => void }) => {
+        opts.onSuccess();
+      },
     );
+
+    const { result } = renderHook(() => useSubjectEditor(makeConversation()));
 
     act(() => result.current.startEditing());
     act(() => result.current.setDraft("Updated"));
@@ -133,9 +127,7 @@ describe("useSubjectEditor", () => {
   });
 
   it("provides an inputRef", () => {
-    const { result } = renderHook(() =>
-      useSubjectEditor(makeConversation()),
-    );
+    const { result } = renderHook(() => useSubjectEditor(makeConversation()));
     expect(result.current.inputRef).toBeDefined();
     expect(result.current.inputRef.current).toBeNull();
   });

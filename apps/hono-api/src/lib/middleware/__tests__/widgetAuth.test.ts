@@ -9,7 +9,9 @@ vi.mock("../resolveApplication.js", () => ({
 const { resolveAndEnforceOrigin } = await import("../resolveApplication.js");
 const { requireWidgetAuth, getWidgetAuth } = await import("../widgetAuth.js");
 
-const mockAuthorize = resolveAndEnforceOrigin as unknown as ReturnType<typeof vi.fn>;
+const mockAuthorize = resolveAndEnforceOrigin as unknown as ReturnType<
+  typeof vi.fn
+>;
 
 type AppRow = {
   id: string;
@@ -32,7 +34,13 @@ function authorizedResult(app: AppRow = appRow()): AuthorizeResult {
   return { authorized: true, application: app };
 }
 
-function rejectedResult(overrides: Partial<{ status: 403 | 404; error: string; message: string }> = {}): AuthorizeResult {
+function rejectedResult(
+  overrides: Partial<{
+    status: 403 | 404;
+    error: string;
+    message: string;
+  }> = {},
+): AuthorizeResult {
   return {
     authorized: false,
     status: overrides.status ?? 403,
@@ -66,7 +74,13 @@ describe("requireWidgetAuth", () => {
   });
 
   it("returns 404 when application is not found", async () => {
-    mockAuthorize.mockResolvedValue(rejectedResult({ status: 404, error: "app_not_found", message: "Application not found" }));
+    mockAuthorize.mockResolvedValue(
+      rejectedResult({
+        status: 404,
+        error: "app_not_found",
+        message: "Application not found",
+      }),
+    );
     const res = await createApp().request("/test", {
       method: "GET",
       headers: { "X-App-Id": APP_ID },

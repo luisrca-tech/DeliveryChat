@@ -70,7 +70,8 @@ Customer's DOM                    Shadow DOM (inside #delivery-chat-root)
 export function createShadowHost(): HTMLElement {
   const host = document.createElement("div");
   host.id = HOST_ID;
-  host.style.cssText = "position:fixed;inset:0;width:0;height:0;overflow:visible;pointer-events:none;z-index:9999";
+  host.style.cssText =
+    "position:fixed;inset:0;width:0;height:0;overflow:visible;pointer-events:none;z-index:9999";
   document.body.appendChild(host);
   return host;
 }
@@ -97,7 +98,10 @@ export function createShadowRoot(host: HTMLElement): ShadowRoot {
 **Implementation** (`css-vars.ts`):
 
 ```typescript
-export function applyCssVars(root: HTMLElement, settings: WidgetSettings): void {
+export function applyCssVars(
+  root: HTMLElement,
+  settings: WidgetSettings,
+): void {
   root.style.setProperty("--dc-primary-color", settings.colors.primary);
   root.style.setProperty("--dc-background-color", settings.colors.background);
   // ... etc
@@ -134,7 +138,7 @@ export const widgetRoute = new Hono().get("/settings/:appId", async (c) => {
   return c.json(
     { settings },
     200,
-    { "Cache-Control": "public, max-age=300" } // Cache for 5 min
+    { "Cache-Control": "public, max-age=300" }, // Cache for 5 min
   );
 });
 ```
@@ -148,9 +152,9 @@ Customers can override API settings directly in the init call:
 ```javascript
 DeliveryChat.init({
   appId: "app_abc123",
-  position: "bottom-left",  // Override position
-  autoOpen: true,           // Auto-open on load
-  colors: { primary: "#ff0000" },  // Override specific colors
+  position: "bottom-left", // Override position
+  autoOpen: true, // Auto-open on load
+  colors: { primary: "#ff0000" }, // Override specific colors
 });
 ```
 
@@ -158,9 +162,9 @@ DeliveryChat.init({
 
 ```typescript
 function mergeSettings(api, init) {
-  const base = { ...defaultSettings, ...api };      // API settings
+  const base = { ...defaultSettings, ...api }; // API settings
   const overrides = buildInitOverrides(base, init); // Init overrides
-  return { ...base, ...overrides };                  // Init wins!
+  return { ...base, ...overrides }; // Init wins!
 }
 ```
 

@@ -114,7 +114,9 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
   };
 
   return (
-    <div className={`group w-full flex flex-col ${isSelf ? "items-end" : "items-start"}`}>
+    <div
+      className={`group w-full flex flex-col ${isSelf ? "items-end" : "items-start"}`}
+    >
       {!isSelf && (
         <div className="flex items-center gap-1.5 mb-0.5 px-1">
           {message.senderName && (
@@ -130,7 +132,9 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
         </div>
       )}
 
-      <div className={`flex items-center gap-1 max-w-[70%] ${isSelf ? "flex-row-reverse" : "flex-row"}`}>
+      <div
+        className={`flex items-center gap-1 max-w-[70%] ${isSelf ? "flex-row-reverse" : "flex-row"}`}
+      >
         <div
           className={`flex-1 min-w-0 px-3 py-2 rounded-xl text-sm leading-relaxed ${
             isSelf
@@ -170,7 +174,9 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
             <>
               {message.content}
               {message.editedAt && (
-                <span className={`text-[10px] ml-1.5 italic ${isSelf ? "opacity-70" : "text-muted-foreground"}`}>
+                <span
+                  className={`text-[10px] ml-1.5 italic ${isSelf ? "opacity-70" : "text-muted-foreground"}`}
+                >
                   (edited)
                 </span>
               )}
@@ -189,13 +195,22 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
                 <MoreHorizontal className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align={isSelf ? "end" : "start"} className="w-36">
-              <DropdownMenuItem onSelect={handleCopy} className="cursor-pointer">
+            <DropdownMenuContent
+              align={isSelf ? "end" : "start"}
+              className="w-36"
+            >
+              <DropdownMenuItem
+                onSelect={handleCopy}
+                className="cursor-pointer"
+              >
                 <Copy className="mr-2 h-3.5 w-3.5" />
                 Copy
               </DropdownMenuItem>
               {canEdit && (
-                <DropdownMenuItem onSelect={handleStartEdit} className="cursor-pointer">
+                <DropdownMenuItem
+                  onSelect={handleStartEdit}
+                  className="cursor-pointer"
+                >
                   <Pencil className="mr-2 h-3.5 w-3.5" />
                   Edit
                 </DropdownMenuItem>

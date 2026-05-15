@@ -20,7 +20,7 @@ function useTypingIndicator(
 ): {
   notifyTyping(): void;
   sendTypingStop(): void;
-}
+};
 ```
 
 - `notifyTyping` — call on each input change. Sends `typing:start` once (idempotent), then resets the debounce timer.

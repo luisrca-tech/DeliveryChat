@@ -33,7 +33,9 @@ describe("useWebSocketHeartbeat", () => {
       vi.advanceTimersByTime(HEARTBEAT_MS);
     });
     expect(ws.send).toHaveBeenCalledTimes(1);
-    const sent = JSON.parse((ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string);
+    const sent = JSON.parse(
+      (ws.send as ReturnType<typeof vi.fn>).mock.calls[0][0] as string,
+    );
     expect(sent.type).toBe("ping");
 
     act(() => {

@@ -24,8 +24,17 @@ const statusColors: Record<string, string> = {
   closed: "bg-gray-100 text-gray-600",
 };
 
-export function ConversationListItem({ conversation, isSelected, onClick, appName, assignedToName, canDelete, onDelete }: Props) {
-  const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
+export function ConversationListItem({
+  conversation,
+  isSelected,
+  onClick,
+  appName,
+  assignedToName,
+  canDelete,
+  onDelete,
+}: Props) {
+  const statusClass =
+    statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
 
   return (
     <div
@@ -56,7 +65,9 @@ export function ConversationListItem({ conversation, isSelected, onClick, appNam
             <span className="text-sm font-medium truncate">
               {conversation.subject ?? "No subject"}
             </span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${statusClass}`}>
+            <span
+              className={`text-[10px] px-1.5 py-0.5 rounded-full shrink-0 ${statusClass}`}
+            >
               {conversation.status}
             </span>
             {canDelete && (
@@ -71,7 +82,10 @@ export function ConversationListItem({ conversation, isSelected, onClick, appNam
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
+                <DropdownMenuContent
+                  align="end"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <DropdownMenuItem
                     className="cursor-pointer"
                     onSelect={() => onDelete?.(conversation.id)}
@@ -88,14 +102,20 @@ export function ConversationListItem({ conversation, isSelected, onClick, appNam
               {new Date(conversation.updatedAt).toLocaleDateString()}
             </span>
             {appName && (
-              <span className="text-xs text-muted-foreground truncate max-w-[100px]" title={appName}>
+              <span
+                className="text-xs text-muted-foreground truncate max-w-[100px]"
+                title={appName}
+              >
                 · {appName}
               </span>
             )}
           </div>
           {assignedToName && (
             <div className="mt-0.5">
-              <span className="text-[11px] text-muted-foreground truncate block max-w-[200px]" title={`Assigned to: ${assignedToName}`}>
+              <span
+                className="text-[11px] text-muted-foreground truncate block max-w-[200px]"
+                title={`Assigned to: ${assignedToName}`}
+              >
                 Assigned to: {assignedToName}
               </span>
             </div>

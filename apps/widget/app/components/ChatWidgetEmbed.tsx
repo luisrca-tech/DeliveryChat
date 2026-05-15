@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import type { DeliveryChatAPI } from "@deliverychat/sdk";
 
 const APP_ID =
   (import.meta.env.VITE_WIDGET_APP_ID as string | undefined) ??
@@ -7,8 +8,7 @@ const APP_ID =
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string | undefined;
 
 const getDeliveryChat = () =>
-  (window as unknown as { DeliveryChat?: { init: (opts: unknown) => void } })
-    .DeliveryChat;
+  (window as unknown as { DeliveryChat?: DeliveryChatAPI }).DeliveryChat;
 
 export function ChatWidgetEmbed() {
   useEffect(() => {

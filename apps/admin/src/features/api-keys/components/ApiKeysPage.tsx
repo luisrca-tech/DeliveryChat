@@ -54,8 +54,7 @@ export function ApiKeysPage() {
   );
   const firstApplicationId = applications[0]?.id ?? null;
   const pickedIsValid =
-    pickedAppId != null &&
-    applications.some((a) => a.id === pickedAppId);
+    pickedAppId != null && applications.some((a) => a.id === pickedAppId);
   const selectedAppId = pickedIsValid ? pickedAppId : firstApplicationId;
 
   const { data: keysData, isLoading: keysLoading } =

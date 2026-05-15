@@ -5,9 +5,7 @@ import {
 } from "./conversationFilterInference";
 import type { Conversation } from "../types/chat.types";
 
-function makeConversation(
-  overrides: Partial<Conversation> = {},
-): Conversation {
+function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
   return {
     id: "conv-1",
     organizationId: "org-1",
@@ -68,12 +66,16 @@ describe("inferFilterForConversation", () => {
 
     it("returns 'all' for super_admin", () => {
       const conv = makeConversation({ status: "pending" });
-      expect(inferFilterForConversation(conv, "super_admin", USER_ID)).toBe("all");
+      expect(inferFilterForConversation(conv, "super_admin", USER_ID)).toBe(
+        "all",
+      );
     });
 
     it("returns 'queue' for operator", () => {
       const conv = makeConversation({ status: "pending" });
-      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe("queue");
+      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe(
+        "queue",
+      );
     });
   });
 
@@ -81,36 +83,55 @@ describe("inferFilterForConversation", () => {
     it("returns 'closed' regardless of role", () => {
       const conv = makeConversation({ status: "closed" });
       expect(inferFilterForConversation(conv, "admin", USER_ID)).toBe("closed");
-      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe("closed");
+      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe(
+        "closed",
+      );
     });
   });
 
   describe("active conversations", () => {
     it("returns 'all' for admin", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
       expect(inferFilterForConversation(conv, "admin", USER_ID)).toBe("all");
     });
 
     it("returns 'all' for super_admin", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
-      expect(inferFilterForConversation(conv, "super_admin", USER_ID)).toBe("all");
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
+      expect(inferFilterForConversation(conv, "super_admin", USER_ID)).toBe(
+        "all",
+      );
     });
 
     it("returns 'mine' for operator assigned to the conversation", () => {
       const conv = makeConversation({ status: "active", assignedTo: USER_ID });
-      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe("mine");
+      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe(
+        "mine",
+      );
     });
 
     it("returns 'queue' for operator not assigned to the conversation", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
-      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe("queue");
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
+      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe(
+        "queue",
+      );
     });
   });
 
   describe("fallback", () => {
     it("returns 'queue' for unknown status", () => {
       const conv = makeConversation({ status: "unknown" as any });
-      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe("queue");
+      expect(inferFilterForConversation(conv, "operator", USER_ID)).toBe(
+        "queue",
+      );
     });
   });
 });

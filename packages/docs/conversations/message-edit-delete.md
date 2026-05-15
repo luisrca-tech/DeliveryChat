@@ -19,9 +19,9 @@ Admins and super_admins do **not** have elevated privileges for editing or delet
 
 A single column was added to the `delivery_chat_messages` table:
 
-| Column | Type | Nullable | Default | Description |
-|---|---|---|---|---|
-| `edited_at` | timestamp | yes | -- | Set when the message content is updated. `NULL` means never edited. |
+| Column      | Type      | Nullable | Default | Description                                                         |
+| ----------- | --------- | -------- | ------- | ------------------------------------------------------------------- |
+| `edited_at` | timestamp | yes      | --      | Set when the message content is updated. `NULL` means never edited. |
 
 Soft delete continues to use the existing `deleted_at` column. No new indexes are required.
 
@@ -130,6 +130,7 @@ interface EditMessageInput {
 ```
 
 Flow:
+
 1. Fetch the message by ID (must not be soft-deleted).
 2. Verify `msg.senderId === userId` -- throw `NotMessageSenderError` if not.
 3. Verify the conversation is not closed -- throw error if it is.
@@ -147,6 +148,7 @@ interface DeleteMessageInput {
 ```
 
 Flow:
+
 1. Fetch the message by ID (must not be soft-deleted).
 2. Verify `msg.senderId === userId` -- throw `NotMessageSenderError` if not.
 3. Verify the conversation is not closed -- throw error if it is.
@@ -155,9 +157,9 @@ Flow:
 
 ### Error Classes
 
-| Error | Code | When |
-|---|---|---|
-| `MessageNotFoundError` | `MESSAGE_NOT_FOUND` | Message does not exist or is already deleted |
+| Error                   | Code                 | When                                          |
+| ----------------------- | -------------------- | --------------------------------------------- |
+| `MessageNotFoundError`  | `MESSAGE_NOT_FOUND`  | Message does not exist or is already deleted  |
 | `NotMessageSenderError` | `NOT_MESSAGE_SENDER` | Authenticated user is not the original sender |
 
 ## Widget UX
@@ -172,16 +174,17 @@ The widget follows a WhatsApp-style interaction model:
 
 ### Bubble States
 
-| State | Display |
-|---|---|
-| Normal | Standard message bubble |
-| Edited | Message content + "(edited)" label below the text |
-| Deleted | Gray placeholder: "This message was deleted" (no content shown) |
+| State   | Display                                                                |
+| ------- | ---------------------------------------------------------------------- |
+| Normal  | Standard message bubble                                                |
+| Edited  | Message content + "(edited)" label below the text                      |
+| Deleted | Gray placeholder: "This message was deleted" (no content shown)        |
 | Editing | Inline textarea replaces the message content with save/cancel controls |
 
 ### Optimistic Updates
 
 When the user triggers an edit or delete:
+
 1. The local state is updated immediately (optimistic).
 2. The WebSocket event (`message:edit` or `message:delete`) is sent to the server.
 3. The server broadcast (`message:edited` or `message:deleted`) confirms the change for all participants.

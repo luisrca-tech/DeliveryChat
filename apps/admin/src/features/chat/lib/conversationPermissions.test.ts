@@ -5,9 +5,7 @@ import {
 } from "./conversationPermissions";
 import type { Conversation } from "../types/chat.types";
 
-function makeConversation(
-  overrides: Partial<Conversation> = {},
-): Conversation {
+function makeConversation(overrides: Partial<Conversation> = {}): Conversation {
   return {
     id: "conv-1",
     organizationId: "org-1",
@@ -48,39 +46,67 @@ describe("isAdminRole", () => {
 describe("getConversationPermissions", () => {
   describe("canViewAll", () => {
     it("returns true for admin", () => {
-      const result = getConversationPermissions("admin", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "admin",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.canViewAll).toBe(true);
     });
 
     it("returns true for super_admin", () => {
-      const result = getConversationPermissions("super_admin", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "super_admin",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.canViewAll).toBe(true);
     });
 
     it("returns false for operator", () => {
-      const result = getConversationPermissions("operator", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "operator",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.canViewAll).toBe(false);
     });
 
     it("returns false for visitor", () => {
-      const result = getConversationPermissions("visitor", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "visitor",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.canViewAll).toBe(false);
     });
   });
 
   describe("canDelete", () => {
     it("returns true for admin", () => {
-      const result = getConversationPermissions("admin", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "admin",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.canDelete).toBe(true);
     });
 
     it("returns true for super_admin", () => {
-      const result = getConversationPermissions("super_admin", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "super_admin",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.canDelete).toBe(true);
     });
 
     it("returns false for operator", () => {
-      const result = getConversationPermissions("operator", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "operator",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.canDelete).toBe(false);
     });
   });
@@ -113,7 +139,10 @@ describe("getConversationPermissions", () => {
     });
 
     it("returns false when not assigned to current user", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
       const result = getConversationPermissions("operator", conv, USER_ID);
       expect(result.canLeave).toBe(false);
     });
@@ -139,7 +168,10 @@ describe("getConversationPermissions", () => {
     });
 
     it("returns false when not assigned", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
       const result = getConversationPermissions("operator", conv, USER_ID);
       expect(result.canResolve).toBe(false);
     });
@@ -159,7 +191,10 @@ describe("getConversationPermissions", () => {
     });
 
     it("returns false when not assigned", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
       const result = getConversationPermissions("operator", conv, USER_ID);
       expect(result.canEditSubject).toBe(false);
     });
@@ -179,13 +214,19 @@ describe("getConversationPermissions", () => {
     });
 
     it("returns false for staff not assigned to conversation", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
       const result = getConversationPermissions("operator", conv, USER_ID);
       expect(result.canSend).toBe(false);
     });
 
     it("returns true for visitor on active conversation", () => {
-      const conv = makeConversation({ status: "active", assignedTo: OTHER_USER_ID });
+      const conv = makeConversation({
+        status: "active",
+        assignedTo: OTHER_USER_ID,
+      });
       const result = getConversationPermissions("visitor", conv, USER_ID);
       expect(result.canSend).toBe(true);
     });
@@ -205,17 +246,29 @@ describe("getConversationPermissions", () => {
 
   describe("isAdmin flag", () => {
     it("returns true for admin role", () => {
-      const result = getConversationPermissions("admin", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "admin",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.isAdmin).toBe(true);
     });
 
     it("returns true for super_admin role", () => {
-      const result = getConversationPermissions("super_admin", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "super_admin",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.isAdmin).toBe(true);
     });
 
     it("returns false for operator role", () => {
-      const result = getConversationPermissions("operator", makeConversation(), USER_ID);
+      const result = getConversationPermissions(
+        "operator",
+        makeConversation(),
+        USER_ID,
+      );
       expect(result.isAdmin).toBe(false);
     });
   });

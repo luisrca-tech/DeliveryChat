@@ -45,8 +45,16 @@ export function useMessageEdit(
 
       setEditingState((prev) => (prev ? { ...prev, saving: true } : null));
       try {
-        const { message: updated } = await client.editMessage(msg.conversationId, msg.id, content);
-        onReplace(msg.id, updated.content, updated.editedAt ?? new Date().toISOString());
+        const { message: updated } = await client.editMessage(
+          msg.conversationId,
+          msg.id,
+          content,
+        );
+        onReplace(
+          msg.id,
+          updated.content,
+          updated.editedAt ?? new Date().toISOString(),
+        );
         setEditingState(null);
       } catch {
         setEditingState((prev) => (prev ? { ...prev, saving: false } : null));
@@ -67,5 +75,12 @@ export function useMessageEdit(
     [client, onRemove],
   );
 
-  return { editingState, handleStartEdit, handleCancelEdit, setEditingContent, handleSaveEdit, handleDelete };
+  return {
+    editingState,
+    handleStartEdit,
+    handleCancelEdit,
+    setEditingContent,
+    handleSaveEdit,
+    handleDelete,
+  };
 }

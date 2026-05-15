@@ -10,16 +10,22 @@ export function createUnifiedRateLimitMiddleware(): MiddlewareHandler {
     cause: "per_tenant",
     limits: async (c) => {
       const auth = getUnifiedAuth(c);
-      if (auth.type !== "member") return { perSecond: 999_999, perMinute: 999_999, perHour: 999_999 };
+      if (auth.type !== "member")
+        return { perSecond: 999_999, perMinute: 999_999, perHour: 999_999 };
 
-      const cached = (c as { get: (k: string) => unknown }).get("tenantRateLimits") as RateLimitConfig | undefined;
+      const cached = (c as { get: (k: string) => unknown }).get(
+        "tenantRateLimits",
+      ) as RateLimitConfig | undefined;
       if (cached) return cached;
 
       const limits = await getRateLimitsForTenant(
         auth.organization.id,
         auth.organization.plan,
       );
-      (c as { set: (k: string, v: unknown) => void }).set("tenantRateLimits", limits);
+      (c as { set: (k: string, v: unknown) => void }).set(
+        "tenantRateLimits",
+        limits,
+      );
       return limits;
     },
     keyGenerator: (c) => {
@@ -56,7 +62,9 @@ export function createUnifiedRateLimitMiddleware(): MiddlewareHandler {
   });
 
   return async (c, next) => {
-    const auth = (c as { get: (k: string) => unknown }).get("unifiedAuth") as UnifiedAuthContext | undefined;
+    const auth = (c as { get: (k: string) => unknown }).get("unifiedAuth") as
+      | UnifiedAuthContext
+      | undefined;
 
     if (!auth) {
       return next();

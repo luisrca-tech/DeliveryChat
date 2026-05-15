@@ -225,10 +225,7 @@ export const messagingRoute = new Hono()
         auth.type === "visitor" ? auth.visitorUserId : auth.user.id;
 
       if (auth.type === "visitor") {
-        const participantCheck = await isParticipant(
-          conversationId,
-          senderId,
-        );
+        const participantCheck = await isParticipant(conversationId, senderId);
         if (!participantCheck) {
           return jsonError(
             c,

@@ -99,8 +99,9 @@ vi.mock("../../../lib/middleware/unifiedAuth.js", () => ({
 }));
 
 vi.mock("../../../lib/middleware/unifiedRateLimit.js", () => ({
-  createUnifiedRateLimitMiddleware: () =>
-    async (_c: any, next: () => Promise<void>) => next(),
+  createUnifiedRateLimitMiddleware:
+    () => async (_c: any, next: () => Promise<void>) =>
+      next(),
 }));
 
 const { queriesRoute } = await import("../queries.js");

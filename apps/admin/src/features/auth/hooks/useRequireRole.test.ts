@@ -22,7 +22,11 @@ function createWrapper() {
     defaultOptions: { queries: { retry: false } },
   });
   return function Wrapper({ children }: { children: ReactNode }) {
-    return createElement(QueryClientProvider, { client: queryClient }, children);
+    return createElement(
+      QueryClientProvider,
+      { client: queryClient },
+      children,
+    );
   };
 }
 
@@ -37,7 +41,14 @@ describe("useRequireRole", () => {
 
   it("allows access when user has an allowed role", () => {
     vi.mocked(useBillingStatusQuery).mockReturnValue({
-      data: { role: "admin", plan: "BASIC", planStatus: "active", isReady: true, cancelAtPeriodEnd: false, trialEndsAt: null },
+      data: {
+        role: "admin",
+        plan: "BASIC",
+        planStatus: "active",
+        isReady: true,
+        cancelAtPeriodEnd: false,
+        trialEndsAt: null,
+      },
       isLoading: false,
     } as any);
 
@@ -53,14 +64,20 @@ describe("useRequireRole", () => {
 
   it("redirects when user role is not allowed", () => {
     vi.mocked(useBillingStatusQuery).mockReturnValue({
-      data: { role: "operator", plan: "BASIC", planStatus: "active", isReady: true, cancelAtPeriodEnd: false, trialEndsAt: null },
+      data: {
+        role: "operator",
+        plan: "BASIC",
+        planStatus: "active",
+        isReady: true,
+        cancelAtPeriodEnd: false,
+        trialEndsAt: null,
+      },
       isLoading: false,
     } as any);
 
-    renderHook(
-      () => useRequireRole(["admin", "super_admin"]),
-      { wrapper: createWrapper() },
-    );
+    renderHook(() => useRequireRole(["admin", "super_admin"]), {
+      wrapper: createWrapper(),
+    });
 
     expect(mockNavigate).toHaveBeenCalledWith({ to: "/" });
   });
@@ -87,10 +104,9 @@ describe("useRequireRole", () => {
       isLoading: false,
     } as any);
 
-    renderHook(
-      () => useRequireRole(["admin", "super_admin"]),
-      { wrapper: createWrapper() },
-    );
+    renderHook(() => useRequireRole(["admin", "super_admin"]), {
+      wrapper: createWrapper(),
+    });
 
     expect(mockNavigate).toHaveBeenCalledWith({ to: "/" });
   });

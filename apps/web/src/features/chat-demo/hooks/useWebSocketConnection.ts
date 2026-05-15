@@ -71,7 +71,8 @@ export function useWebSocketConnection({
         reconnectAttemptRef.current = 0;
         setWsStatus("connected");
 
-        const lastMessageId = getLastMessageId(selectedIdRef.current!) ?? undefined;
+        const lastMessageId =
+          getLastMessageId(selectedIdRef.current!) ?? undefined;
         ws.send(
           JSON.stringify({
             type: "room:join",
@@ -84,7 +85,9 @@ export function useWebSocketConnection({
 
         startHeartbeat(wsRef);
 
-        ws.addEventListener("message", (e) => onMessageRef.current(e as MessageEvent));
+        ws.addEventListener("message", (e) =>
+          onMessageRef.current(e as MessageEvent),
+        );
 
         ws.addEventListener("close", () => {
           stopHeartbeat();
@@ -116,7 +119,15 @@ export function useWebSocketConnection({
       stopHeartbeat();
       cancelReconnect();
     };
-  }, [selectedId, client, getLastMessageId, startHeartbeat, stopHeartbeat, scheduleReconnect, cancelReconnect]);
+  }, [
+    selectedId,
+    client,
+    getLastMessageId,
+    startHeartbeat,
+    stopHeartbeat,
+    scheduleReconnect,
+    cancelReconnect,
+  ]);
 
   return {
     wsRef,

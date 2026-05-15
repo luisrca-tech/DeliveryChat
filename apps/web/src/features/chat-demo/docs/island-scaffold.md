@@ -33,29 +33,29 @@ chat-client.ts            — createChatClient(): typed HTTP + WebSocket client
 
 ## Hook responsibilities (30-second navigation)
 
-| Hook | Owns | Returns |
-|---|---|---|
-| `useConversationList` | conversations fetch, selectedId, new-form state | conversations, selectedId, setConversations, setSelectedId, loadingConvs, newForm, showNewForm, hideNewForm, setNewSubject, handleCreateConversation |
-| `useMessageHistory` | message fetch, scroll ref, message mutators | messages, setMessages, loadingMsgs, messagesEndRef, appendMessage, replaceMessage, removeMessage, rollbackMessage |
-| `useMessageEdit` | inline edit/delete with 15-min window | editingState, handleStartEdit, handleCancelEdit, setEditingContent, handleSaveEdit, handleDelete |
-| `useMessageInput` | send flow + optimistic append | value, sending, error, handleInputChange, handleSend |
-| `useTypingIndicator` | typing:start / typing:stop debounce | notifyTyping, sendTypingStop |
-| `useUnreadCounts` | unread badge counts + read marking | unreadCounts, setUnreadCounts, clearUnread, refreshUnread |
-| `useVisitorUserId` | visitor user ID captured from first API response | visitorUserId, captureVisitorId |
-| `useLocalMessageSync` | last-seen message ID per conversation in localStorage | getLastMessageId, setLastMessageId |
-| `useEditWindowTicker` | 30-second interval re-render for edit-window expiry | (no return value) |
-| `useWebSocketConnection` | full WebSocket lifecycle: token, connect, heartbeat, reconnect | wsRef, wsStatus, conversationClosedRef, selectedIdRef |
-| `useWebSocketDispatch` | routes reducer events → state setters + side effects | handleWsMessage |
-| `useWebSocketReconnect` | exponential backoff scheduler (1 s → 30 s cap) | scheduleReconnect, cancelReconnect |
-| `useWebSocketHeartbeat` | 30-second ping while socket is open | startHeartbeat, stopHeartbeat |
+| Hook                     | Owns                                                           | Returns                                                                                                                                              |
+| ------------------------ | -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `useConversationList`    | conversations fetch, selectedId, new-form state                | conversations, selectedId, setConversations, setSelectedId, loadingConvs, newForm, showNewForm, hideNewForm, setNewSubject, handleCreateConversation |
+| `useMessageHistory`      | message fetch, scroll ref, message mutators                    | messages, setMessages, loadingMsgs, messagesEndRef, appendMessage, replaceMessage, removeMessage, rollbackMessage                                    |
+| `useMessageEdit`         | inline edit/delete with 15-min window                          | editingState, handleStartEdit, handleCancelEdit, setEditingContent, handleSaveEdit, handleDelete                                                     |
+| `useMessageInput`        | send flow + optimistic append                                  | value, sending, error, handleInputChange, handleSend                                                                                                 |
+| `useTypingIndicator`     | typing:start / typing:stop debounce                            | notifyTyping, sendTypingStop                                                                                                                         |
+| `useUnreadCounts`        | unread badge counts + read marking                             | unreadCounts, setUnreadCounts, clearUnread, refreshUnread                                                                                            |
+| `useVisitorUserId`       | visitor user ID captured from first API response               | visitorUserId, captureVisitorId                                                                                                                      |
+| `useLocalMessageSync`    | last-seen message ID per conversation in localStorage          | getLastMessageId, setLastMessageId                                                                                                                   |
+| `useEditWindowTicker`    | 30-second interval re-render for edit-window expiry            | (no return value)                                                                                                                                    |
+| `useWebSocketConnection` | full WebSocket lifecycle: token, connect, heartbeat, reconnect | wsRef, wsStatus, conversationClosedRef, selectedIdRef                                                                                                |
+| `useWebSocketDispatch`   | routes reducer events → state setters + side effects           | handleWsMessage                                                                                                                                      |
+| `useWebSocketReconnect`  | exponential backoff scheduler (1 s → 30 s cap)                 | scheduleReconnect, cancelReconnect                                                                                                                   |
+| `useWebSocketHeartbeat`  | 30-second ping while socket is open                            | startHeartbeat, stopHeartbeat                                                                                                                        |
 
 ## Environment variables
 
-| Variable            | Side   | Purpose                                        |
-| ------------------- | ------ | ---------------------------------------------- |
-| `PUBLIC_API_URL`    | client | Base URL for all REST and WebSocket calls      |
-| `DEMO_CHAT_API_KEY` | server | Bearer token passed as prop to the island      |
-| `DEMO_CHAT_APP_ID`  | server | App UUID passed as prop to the island          |
+| Variable            | Side   | Purpose                                   |
+| ------------------- | ------ | ----------------------------------------- |
+| `PUBLIC_API_URL`    | client | Base URL for all REST and WebSocket calls |
+| `DEMO_CHAT_API_KEY` | server | Bearer token passed as prop to the island |
+| `DEMO_CHAT_APP_ID`  | server | App UUID passed as prop to the island     |
 
 Server-side vars are injected into props at request time. `client:only="react"` is used because the island needs `localStorage` and `WebSocket` — both browser-only APIs.
 

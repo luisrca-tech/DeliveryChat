@@ -25,10 +25,12 @@ routes/webhooks/
 ## Handler Pattern
 
 Each handler file exports plain async functions that receive:
+
 1. The Stripe event data object (typed via `Stripe.Invoice`, `Stripe.Subscription`, etc.)
 2. A `HandlerContext` containing `tx` (database transaction) and `emailTasks` (deferred email queue)
 
 Handlers do not construct HTTP responses. The dispatcher in `index.ts` owns the full request lifecycle:
+
 1. Verify Stripe signature
 2. Check idempotency (insert into `processedEvents`)
 3. Open a database transaction

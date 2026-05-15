@@ -26,7 +26,10 @@ export function useSendMessage(
 ) {
   const queryClient = useQueryClient();
   const pendingRef = useRef<
-    Map<string, { conversationId: string; timer: ReturnType<typeof setTimeout> }>
+    Map<
+      string,
+      { conversationId: string; timer: ReturnType<typeof setTimeout> }
+    >
   >(new Map());
 
   // Listen for ACKs to confirm optimistic messages
@@ -44,7 +47,11 @@ export function useSendMessage(
       registerAckedId(event.payload.serverMessageId);
 
       // Replace optimistic message with server-confirmed data
-      queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
+      queryClient.setQueryData<{
+        messages: Message[];
+        limit: number;
+        offset: number;
+      }>(
         conversationsQueryKeys.messages(pending.conversationId, 50, 0),
         (old) => {
           if (!old) return old;
@@ -52,7 +59,11 @@ export function useSendMessage(
             ...old,
             messages: old.messages.map((msg) =>
               msg.id === event.payload.clientMessageId
-                ? { ...msg, id: event.payload.serverMessageId, createdAt: event.payload.createdAt }
+                ? {
+                    ...msg,
+                    id: event.payload.serverMessageId,
+                    createdAt: event.payload.createdAt,
+                  }
                 : msg,
             ),
           };
@@ -79,16 +90,18 @@ export function useSendMessage(
         createdAt: new Date().toISOString(),
       };
 
-      queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
-        conversationsQueryKeys.messages(conversationId, 50, 0),
-        (old) => {
-          if (!old) return { messages: [optimisticMessage], limit: 50, offset: 0 };
-          return {
-            ...old,
-            messages: [optimisticMessage, ...old.messages],
-          };
-        },
-      );
+      queryClient.setQueryData<{
+        messages: Message[];
+        limit: number;
+        offset: number;
+      }>(conversationsQueryKeys.messages(conversationId, 50, 0), (old) => {
+        if (!old)
+          return { messages: [optimisticMessage], limit: 50, offset: 0 };
+        return {
+          ...old,
+          messages: [optimisticMessage, ...old.messages],
+        };
+      });
 
       // Send via WebSocket
       sendEvent({

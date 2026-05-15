@@ -31,18 +31,15 @@ test.describe("REST: Conversation Management", () => {
     test("creates a support conversation via widget API", async ({
       request,
     }) => {
-      const response = await request.post(
-        "/api/v1/widget/conversations",
-        {
-          headers: {
-            Authorization: `Bearer ${testData.apiKeyRaw}`,
-            "X-App-Id": testData.app.id,
-            "X-Visitor-Id": testData.visitorUser.id,
-            "Content-Type": "application/json",
-          },
-          data: { subject: "Help with my order" },
+      const response = await request.post("/api/v1/widget/conversations", {
+        headers: {
+          Authorization: `Bearer ${testData.apiKeyRaw}`,
+          "X-App-Id": testData.app.id,
+          "X-Visitor-Id": testData.visitorUser.id,
+          "Content-Type": "application/json",
         },
-      );
+        data: { subject: "Help with my order" },
+      });
 
       expect(response.status()).toBe(201);
       const body = await response.json();
@@ -55,17 +52,14 @@ test.describe("REST: Conversation Management", () => {
     test("rejects widget conversation without X-Visitor-Id", async ({
       request,
     }) => {
-      const response = await request.post(
-        "/api/v1/widget/conversations",
-        {
-          headers: {
-            Authorization: `Bearer ${testData.apiKeyRaw}`,
-            "X-App-Id": testData.app.id,
-            "Content-Type": "application/json",
-          },
-          data: {},
+      const response = await request.post("/api/v1/widget/conversations", {
+        headers: {
+          Authorization: `Bearer ${testData.apiKeyRaw}`,
+          "X-App-Id": testData.app.id,
+          "Content-Type": "application/json",
         },
-      );
+        data: {},
+      });
 
       expect(response.status()).toBe(400);
     });
@@ -73,18 +67,15 @@ test.describe("REST: Conversation Management", () => {
     test("rejects widget conversation with invalid API key", async ({
       request,
     }) => {
-      const response = await request.post(
-        "/api/v1/widget/conversations",
-        {
-          headers: {
-            Authorization: "Bearer dk_test_invalidkeyinvalidkeyinvalidk",
-            "X-App-Id": testData.app.id,
-            "X-Visitor-Id": testData.visitorUser.id,
-            "Content-Type": "application/json",
-          },
-          data: {},
+      const response = await request.post("/api/v1/widget/conversations", {
+        headers: {
+          Authorization: "Bearer dk_test_invalidkeyinvalidkeyinvalidk",
+          "X-App-Id": testData.app.id,
+          "X-Visitor-Id": testData.visitorUser.id,
+          "Content-Type": "application/json",
         },
-      );
+        data: {},
+      });
 
       expect(response.status()).toBe(401);
     });
@@ -125,10 +116,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
     // Send ping to verify connection works
     sendWsEvent(ws, { type: "ping" });
 
-    const pong = await waitForMessage(
-      messages,
-      (m) => m.type === "pong",
-    );
+    const pong = await waitForMessage(messages, (m) => m.type === "pong");
     expect(pong.type).toBe("pong");
 
     ws.close();
@@ -232,18 +220,15 @@ test.describe("Business Rules", () => {
   test("widget conversation always has applicationId (support type)", async ({
     request,
   }) => {
-    const response = await request.post(
-      "/api/v1/widget/conversations",
-      {
-        headers: {
-          Authorization: `Bearer ${testData.apiKeyRaw}`,
-          "X-App-Id": testData.app.id,
-          "X-Visitor-Id": testData.visitorUser.id,
-          "Content-Type": "application/json",
-        },
-        data: { subject: "App ID enforcement test" },
+    const response = await request.post("/api/v1/widget/conversations", {
+      headers: {
+        Authorization: `Bearer ${testData.apiKeyRaw}`,
+        "X-App-Id": testData.app.id,
+        "X-Visitor-Id": testData.visitorUser.id,
+        "Content-Type": "application/json",
       },
-    );
+      data: { subject: "App ID enforcement test" },
+    });
 
     expect(response.status()).toBe(201);
     const body = await response.json();
@@ -254,18 +239,15 @@ test.describe("Business Rules", () => {
     request,
   }) => {
     // Create a conversation first
-    const createResp = await request.post(
-      "/api/v1/widget/conversations",
-      {
-        headers: {
-          Authorization: `Bearer ${testData.apiKeyRaw}`,
-          "X-App-Id": testData.app.id,
-          "X-Visitor-Id": testData.visitorUser.id,
-          "Content-Type": "application/json",
-        },
-        data: { subject: "History test" },
+    const createResp = await request.post("/api/v1/widget/conversations", {
+      headers: {
+        Authorization: `Bearer ${testData.apiKeyRaw}`,
+        "X-App-Id": testData.app.id,
+        "X-Visitor-Id": testData.visitorUser.id,
+        "Content-Type": "application/json",
       },
-    );
+      data: { subject: "History test" },
+    });
 
     const { conversation } = await createResp.json();
 

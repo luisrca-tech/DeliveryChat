@@ -146,11 +146,7 @@ describe("createRateLimiter", () => {
       await makeRequest(app, { "X-Key": "k1" });
 
       expect(onExceeded).toHaveBeenCalledOnce();
-      expect(onExceeded).toHaveBeenCalledWith(
-        expect.anything(),
-        "second",
-        1,
-      );
+      expect(onExceeded).toHaveBeenCalledWith(expect.anything(), "second", 1);
     });
   });
 });

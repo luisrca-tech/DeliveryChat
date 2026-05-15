@@ -18,7 +18,8 @@ export function inferFilterForConversation(
   role: string,
   userId: string,
 ): FilterId {
-  if (conversation.status === "pending") return isAdminRole(role) ? "all" : "queue";
+  if (conversation.status === "pending")
+    return isAdminRole(role) ? "all" : "queue";
   if (conversation.status === "closed") return "closed";
   if (conversation.status === "active") {
     if (isAdminRole(role)) return "all";

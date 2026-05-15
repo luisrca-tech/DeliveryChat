@@ -51,7 +51,9 @@ export function MemberFormDialog({
 }: Props) {
   const [name, setName] = useState(defaultValues?.name ?? "");
   const [email, setEmail] = useState(defaultValues?.email ?? "");
-  const [role, setRole] = useState<MemberRole>(defaultValues?.role ?? "operator");
+  const [role, setRole] = useState<MemberRole>(
+    defaultValues?.role ?? "operator",
+  );
 
   useEffect(() => {
     if (open) {
@@ -101,7 +103,10 @@ export function MemberFormDialog({
           </div>
           <div className="space-y-2">
             <Label>Role</Label>
-            <Select value={role} onValueChange={(v) => setRole(v as MemberRole)}>
+            <Select
+              value={role}
+              onValueChange={(v) => setRole(v as MemberRole)}
+            >
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
@@ -111,7 +116,8 @@ export function MemberFormDialog({
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              Operators can view and respond to conversations. Admins can also manage settings and members.
+              Operators can view and respond to conversations. Admins can also
+              manage settings and members.
             </p>
           </div>
         </div>
@@ -120,7 +126,10 @@ export function MemberFormDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting || !email.trim()}>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting || !email.trim()}
+          >
             {isSubmitting ? "Loading..." : submitLabel}
           </Button>
         </DialogFooter>

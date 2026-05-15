@@ -94,7 +94,9 @@ export async function getMessages(
 
 export async function acceptConversation(
   id: string,
-): Promise<{ conversation: { id: string; status: string; assignedTo: string } }> {
+): Promise<{
+  conversation: { id: string; status: string; assignedTo: string };
+}> {
   const res = await fetch(`${base()}/conversations/${id}/accept`, {
     method: "POST",
     headers: getTenantHeaders(),

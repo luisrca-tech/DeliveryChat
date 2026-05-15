@@ -31,7 +31,7 @@ function useWebSocketConnection(opts: UseWebSocketConnectionOptions): {
   wsStatus: WsStatus;
   conversationClosedRef: MutableRefObject<boolean>;
   selectedIdRef: MutableRefObject<string | null>;
-}
+};
 ```
 
 - `onMessageRef` — a ref (not a callback) so that `ChatDemoIsland` can populate `handleWsMessage` from `useWebSocketDispatch` after calling this hook, breaking the circular dependency.

@@ -55,7 +55,9 @@ vi.mock("./../../routes/ws.js", () => ({
   roomManager: { broadcastToOrganization: vi.fn() },
 }));
 vi.mock("../../lib/middleware/visitorRateLimit.js", () => ({
-  createVisitorRateLimitMiddleware: () => async (_c: any, next: () => Promise<void>) => next(),
+  createVisitorRateLimitMiddleware:
+    () => async (_c: any, next: () => Promise<void>) =>
+      next(),
   createVisitorWsRateLimiter: () => ({ check: () => ({ allowed: true }) }),
 }));
 vi.mock("../../lib/middleware/visitorRateLimitInstance.js", () => ({

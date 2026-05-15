@@ -6,14 +6,14 @@ All API routes moved from `/v1/*` to `/api/v1/*`. Better Auth remains at `/api/a
 
 ## Route Map
 
-| Before | After |
-|--------|-------|
+| Before                | After                     |
+| --------------------- | ------------------------- |
 | `/v1/conversations/*` | `/api/v1/conversations/*` |
-| `/v1/widget/*` | `/api/v1/widget/*` |
-| `/v1/ws` | `/api/v1/ws` |
-| `/v1/users/*` | `/api/v1/users/*` |
-| `/v1/register` | `/api/v1/register` |
-| `/api/auth/*` | `/api/auth/*` (unchanged) |
+| `/v1/widget/*`        | `/api/v1/widget/*`        |
+| `/v1/ws`              | `/api/v1/ws`              |
+| `/v1/users/*`         | `/api/v1/users/*`         |
+| `/v1/register`        | `/api/v1/register`        |
+| `/api/auth/*`         | `/api/auth/*` (unchanged) |
 
 ## Technical Details
 

@@ -10,7 +10,12 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@repo/ui/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@repo/ui/components/ui/tabs";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@repo/ui/components/ui/tabs";
 import { useAddParticipantMutation } from "../hooks/useConversationMutations";
 import { MemberCombobox } from "@/features/members/components/MemberCombobox";
 import type { ParticipantRole } from "@repo/types";
@@ -36,9 +41,12 @@ export function AddParticipantDialog({
 
   const handleSubmit = async () => {
     const userId = tab === "member" ? selectedMember?.id : visitorId.trim();
-    const role: ParticipantRole = tab === "member"
-      ? (selectedMember?.role === "super_admin" ? "admin" : (selectedMember?.role as ParticipantRole) ?? "operator")
-      : "visitor";
+    const role: ParticipantRole =
+      tab === "member"
+        ? selectedMember?.role === "super_admin"
+          ? "admin"
+          : ((selectedMember?.role as ParticipantRole) ?? "operator")
+        : "visitor";
 
     if (!userId) return;
 
@@ -67,7 +75,11 @@ export function AddParticipantDialog({
           <DialogTitle>Add Participant</DialogTitle>
         </DialogHeader>
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as "member" | "visitor")} className="py-4">
+        <Tabs
+          value={tab}
+          onValueChange={(v) => setTab(v as "member" | "visitor")}
+          className="py-4"
+        >
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="member">Team Member</TabsTrigger>
             <TabsTrigger value="visitor">Visitor</TabsTrigger>
@@ -104,7 +116,10 @@ export function AddParticipantDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={mutation.isPending || !canSubmit}>
+          <Button
+            onClick={handleSubmit}
+            disabled={mutation.isPending || !canSubmit}
+          >
             {mutation.isPending ? "Adding..." : "Add"}
           </Button>
         </DialogFooter>

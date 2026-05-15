@@ -47,7 +47,8 @@ function sendRateLimitError(conn: WSConnection, retryAfter: number) {
       type: "error",
       payload: {
         code: "RATE_LIMITED",
-        message: "Rate limit exceeded. Please wait before sending another message.",
+        message:
+          "Rate limit exceeded. Please wait before sending another message.",
         retryAfter,
       },
     }),
@@ -72,12 +73,18 @@ export function createEventHandler(
 
     const result = wsClientEventSchema.safeParse(parsed);
     if (!result.success) {
-      sendError(conn, "VALIDATION_ERROR", result.error.issues[0]?.message ?? "Invalid event");
+      sendError(
+        conn,
+        "VALIDATION_ERROR",
+        result.error.issues[0]?.message ?? "Invalid event",
+      );
       return;
     }
 
     const event = result.data;
-    console.log(`[WS:Handler] event=${event.type} connId=${conn.id} userId=${conn.userId} role=${conn.role}`);
+    console.log(
+      `[WS:Handler] event=${event.type} connId=${conn.id} userId=${conn.userId} role=${conn.role}`,
+    );
 
     switch (event.type) {
       case "room:join":
@@ -123,7 +130,9 @@ async function handleRoomJoin(
   roomManager: IRoomManager,
 ) {
   const canJoin = await isParticipant(payload.conversationId, conn.userId);
-  console.log(`[WS:Handler] room:join convId=${payload.conversationId} userId=${conn.userId} canJoin=${canJoin}`);
+  console.log(
+    `[WS:Handler] room:join convId=${payload.conversationId} userId=${conn.userId} canJoin=${canJoin}`,
+  );
 
   if (!canJoin) {
     sendError(conn, "FORBIDDEN", "Not a participant of this conversation");
@@ -189,7 +198,9 @@ async function handleMessageSend(
     throw error;
   }
 
-  console.log(`[WS:Handler] message:send convId=${payload.conversationId} senderId=${conn.userId} role=${conn.role}`);
+  console.log(
+    `[WS:Handler] message:send convId=${payload.conversationId} senderId=${conn.userId} role=${conn.role}`,
+  );
 
   let message;
   try {
@@ -220,7 +231,9 @@ async function handleMessageSend(
     throw error;
   }
 
-  console.log(`[WS:Handler] message persisted msgId=${message.id} — broadcasting to room`);
+  console.log(
+    `[WS:Handler] message persisted msgId=${message.id} — broadcasting to room`,
+  );
 
   sendEvent(conn, {
     type: "message:ack",

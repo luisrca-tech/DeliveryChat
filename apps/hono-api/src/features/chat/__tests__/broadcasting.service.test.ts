@@ -160,7 +160,11 @@ describe("Broadcast wrappers", () => {
   it("broadcastRoomEvent serializes event and calls roomManager.broadcast", () => {
     broadcastRoomEvent("conv-1", event);
     expect(mockBroadcast).toHaveBeenCalledOnce();
-    expect(mockBroadcast).toHaveBeenCalledWith("conv-1", JSON.stringify(event), undefined);
+    expect(mockBroadcast).toHaveBeenCalledWith(
+      "conv-1",
+      JSON.stringify(event),
+      undefined,
+    );
   });
 
   it("broadcastRoomEvent passes excludeConnectionId when provided", () => {

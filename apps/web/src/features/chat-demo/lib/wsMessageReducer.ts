@@ -45,17 +45,37 @@ export function wsMessageReducer(
       };
       const messages = state.messages.map((m) =>
         m.clientId === clientMessageId
-          ? { ...m, id: serverMessageId, createdAt, pending: false, clientId: undefined }
+          ? {
+              ...m,
+              id: serverMessageId,
+              createdAt,
+              pending: false,
+              clientId: undefined,
+            }
           : m,
       );
       const sideEffects: WsReducerSideEffect[] = selectedConversationId
-        ? [{ kind: "persist-last-message", conversationId: selectedConversationId, messageId: serverMessageId }]
+        ? [
+            {
+              kind: "persist-last-message",
+              conversationId: selectedConversationId,
+              messageId: serverMessageId,
+            },
+          ]
         : [];
       return { state: { ...state, messages }, sideEffects };
     }
 
     case "message:new": {
-      const { id, conversationId, senderId, content, createdAt, editedAt, type: msgType } = event.payload as {
+      const {
+        id,
+        conversationId,
+        senderId,
+        content,
+        createdAt,
+        editedAt,
+        type: msgType,
+      } = event.payload as {
         id: string;
         conversationId: string;
         senderId: string;
@@ -73,7 +93,16 @@ export function wsMessageReducer(
             ...state,
             messages: [
               ...state.messages,
-              { id, conversationId, senderId, content, createdAt, editedAt: editedAt ?? null, pending: false, type: msgType === "system" ? "system" : "text" },
+              {
+                id,
+                conversationId,
+                senderId,
+                content,
+                createdAt,
+                editedAt: editedAt ?? null,
+                pending: false,
+                type: msgType === "system" ? "system" : "text",
+              },
             ],
             operatorTypingName: null,
           },
@@ -84,7 +113,10 @@ export function wsMessageReducer(
         };
       }
 
-      return { state, sideEffects: [{ kind: "refresh-unread", conversationId }] };
+      return {
+        state,
+        sideEffects: [{ kind: "refresh-unread", conversationId }],
+      };
     }
 
     case "messages:sync": {
@@ -92,7 +124,8 @@ export function wsMessageReducer(
         conversationId: string;
         messages: Message[];
       };
-      if (conversationId !== selectedConversationId || !synced.length) return none;
+      if (conversationId !== selectedConversationId || !synced.length)
+        return none;
 
       const existingIds = new Set(state.messages.map((m) => m.id));
       const newMsgs = synced.filter((m) => !existingIds.has(m.id));
@@ -101,27 +134,36 @@ export function wsMessageReducer(
       const last = newMsgs[newMsgs.length - 1]!;
       return {
         state: { ...state, messages: [...state.messages, ...newMsgs] },
-        sideEffects: [{ kind: "persist-last-message", conversationId, messageId: last.id }],
+        sideEffects: [
+          { kind: "persist-last-message", conversationId, messageId: last.id },
+        ],
       };
     }
 
     case "message:edited": {
-      const { messageId, conversationId, content, editedAt } = event.payload as unknown as MessageEditedPayload;
+      const { messageId, conversationId, content, editedAt } =
+        event.payload as unknown as MessageEditedPayload;
       if (conversationId !== selectedConversationId) return none;
       return {
         state: {
           ...state,
-          messages: state.messages.map((m) => (m.id === messageId ? { ...m, content, editedAt } : m)),
+          messages: state.messages.map((m) =>
+            m.id === messageId ? { ...m, content, editedAt } : m,
+          ),
         },
         sideEffects: [],
       };
     }
 
     case "message:deleted": {
-      const { messageId, conversationId } = event.payload as unknown as MessageDeletedPayload;
+      const { messageId, conversationId } =
+        event.payload as unknown as MessageDeletedPayload;
       if (conversationId !== selectedConversationId) return none;
       return {
-        state: { ...state, messages: state.messages.filter((m) => m.id !== messageId) },
+        state: {
+          ...state,
+          messages: state.messages.filter((m) => m.id !== messageId),
+        },
         sideEffects: [],
       };
     }
@@ -132,7 +174,10 @@ export function wsMessageReducer(
         userName: string | null;
       };
       if (conversationId !== selectedConversationId) return none;
-      return { state: { ...state, operatorTypingName: userName ?? "Operator" }, sideEffects: [] };
+      return {
+        state: { ...state, operatorTypingName: userName ?? "Operator" },
+        sideEffects: [],
+      };
     }
 
     case "typing:stop": {
@@ -150,7 +195,9 @@ export function wsMessageReducer(
         state: {
           ...state,
           conversations: state.conversations.map((c) =>
-            c.id === conversationId ? { ...c, status: "active", assignedTo } : c,
+            c.id === conversationId
+              ? { ...c, status: "active", assignedTo }
+              : c,
           ),
         },
         sideEffects: [],
@@ -163,7 +210,9 @@ export function wsMessageReducer(
         state: {
           ...state,
           conversations: state.conversations.map((c) =>
-            c.id === conversationId ? { ...c, status: "pending", assignedTo: null } : c,
+            c.id === conversationId
+              ? { ...c, status: "pending", assignedTo: null }
+              : c,
           ),
         },
         sideEffects: [],
@@ -173,7 +222,9 @@ export function wsMessageReducer(
     case "conversation:resolved": {
       const { conversationId } = event.payload as { conversationId: string };
       const sideEffects: WsReducerSideEffect[] =
-        conversationId === selectedConversationId ? [{ kind: "close-socket" }] : [];
+        conversationId === selectedConversationId
+          ? [{ kind: "close-socket" }]
+          : [];
       return {
         state: {
           ...state,

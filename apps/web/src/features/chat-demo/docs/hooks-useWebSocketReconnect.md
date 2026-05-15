@@ -14,9 +14,12 @@ None (React state). Owns one ref:
 
 ```ts
 function useWebSocketReconnect(): {
-  scheduleReconnect(attemptRef: MutableRefObject<number>, connectFn: () => void): void;
+  scheduleReconnect(
+    attemptRef: MutableRefObject<number>,
+    connectFn: () => void,
+  ): void;
   cancelReconnect(): void;
-}
+};
 ```
 
 - `scheduleReconnect` — reads `attemptRef.current`, computes `min(1000 × 2^attempt, 30_000)` ms, increments the counter, and schedules `connectFn`.

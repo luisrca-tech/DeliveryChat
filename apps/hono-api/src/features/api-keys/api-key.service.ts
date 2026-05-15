@@ -184,7 +184,9 @@ export async function regenerateApiKey(
       keyPrefix,
       name: options?.name ?? existing.name,
       environment: existing.environment,
-      expiresAt: options?.expiresAt ? new Date(options.expiresAt) : existing.expiresAt,
+      expiresAt: options?.expiresAt
+        ? new Date(options.expiresAt)
+        : existing.expiresAt,
     });
 
     const [row] = await tx

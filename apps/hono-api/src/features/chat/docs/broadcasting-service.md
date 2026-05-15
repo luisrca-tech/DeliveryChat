@@ -10,17 +10,17 @@
 
 Pure functions that accept domain data and return a correctly typed `WSServerEvent`. One function per event type:
 
-| Factory | Event type |
-|---|---|
-| `buildConversationNewEvent` | `conversation:new` |
-| `buildMessageNewEvent` | `message:new` |
+| Factory                          | Event type              |
+| -------------------------------- | ----------------------- |
+| `buildConversationNewEvent`      | `conversation:new`      |
+| `buildMessageNewEvent`           | `message:new`           |
 | `buildConversationAcceptedEvent` | `conversation:accepted` |
 | `buildConversationReleasedEvent` | `conversation:released` |
 | `buildConversationResolvedEvent` | `conversation:resolved` |
-| `buildMessageEditedEvent` | `message:edited` |
-| `buildMessageDeletedEvent` | `message:deleted` |
-| `buildTypingStartEvent` | `typing:start` |
-| `buildTypingStopEvent` | `typing:stop` |
+| `buildMessageEditedEvent`        | `message:edited`        |
+| `buildMessageDeletedEvent`       | `message:deleted`       |
+| `buildTypingStartEvent`          | `typing:start`          |
+| `buildTypingStopEvent`           | `typing:stop`           |
 
 ### Broadcast Wrappers
 
@@ -36,12 +36,12 @@ Three functions that handle JSON serialization and delegate to the `roomManager`
 
 ## Callsite Migration
 
-| File | Before | After |
-|---|---|---|
-| `routes/publicApi.ts` | imported `roomManager` from `./ws.js`, inline `WSServerEvent` | uses `buildConversationNewEvent`, `buildMessageNewEvent`, `broadcastOrganizationEvent` |
-| `routes/widget.ts` | imported `roomManager` from `./ws.js`, inline `WSServerEvent` | uses `buildConversationNewEvent`, `broadcastOrganizationEvent` |
-| `routes/conversations.ts` | imported `roomManager` from `./ws.js`, inline `WSServerEvent` | uses `buildConversationAcceptedEvent`, `buildConversationReleasedEvent`, `buildConversationResolvedEvent`, `broadcastOrganizationEvent` |
-| `features/chat/chat.handlers.ts` | inline `WSServerEvent` construction | uses event factories; roomManager still passed as parameter for testability |
+| File                             | Before                                                        | After                                                                                                                                   |
+| -------------------------------- | ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `routes/publicApi.ts`            | imported `roomManager` from `./ws.js`, inline `WSServerEvent` | uses `buildConversationNewEvent`, `buildMessageNewEvent`, `broadcastOrganizationEvent`                                                  |
+| `routes/widget.ts`               | imported `roomManager` from `./ws.js`, inline `WSServerEvent` | uses `buildConversationNewEvent`, `broadcastOrganizationEvent`                                                                          |
+| `routes/conversations.ts`        | imported `roomManager` from `./ws.js`, inline `WSServerEvent` | uses `buildConversationAcceptedEvent`, `buildConversationReleasedEvent`, `buildConversationResolvedEvent`, `broadcastOrganizationEvent` |
+| `features/chat/chat.handlers.ts` | inline `WSServerEvent` construction                           | uses event factories; roomManager still passed as parameter for testability                                                             |
 
 ## Adding a New Event Type
 

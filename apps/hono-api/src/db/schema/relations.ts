@@ -5,19 +5,23 @@ import { conversationParticipants } from "./conversationParticipants";
 import { organization } from "./organization";
 import { applications } from "./applications";
 import { user } from "./users";
+import { visitorIdentities } from "./visitorIdentities";
 
-export const conversationsRelations = relations(conversations, ({ one, many }) => ({
-  organization: one(organization, {
-    fields: [conversations.organizationId],
-    references: [organization.id],
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    organization: one(organization, {
+      fields: [conversations.organizationId],
+      references: [organization.id],
+    }),
+    application: one(applications, {
+      fields: [conversations.applicationId],
+      references: [applications.id],
+    }),
+    messages: many(messages),
+    participants: many(conversationParticipants),
   }),
-  application: one(applications, {
-    fields: [conversations.applicationId],
-    references: [applications.id],
-  }),
-  messages: many(messages),
-  participants: many(conversationParticipants),
-}));
+);
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   conversation: one(conversations, {
@@ -44,6 +48,20 @@ export const conversationParticipantsRelations = relations(
     lastReadMessage: one(messages, {
       fields: [conversationParticipants.lastReadMessageId],
       references: [messages.id],
+    }),
+  }),
+);
+
+export const visitorIdentitiesRelations = relations(
+  visitorIdentities,
+  ({ one }) => ({
+    user: one(user, {
+      fields: [visitorIdentities.anonymousUserId],
+      references: [user.id],
+    }),
+    organization: one(organization, {
+      fields: [visitorIdentities.organizationId],
+      references: [organization.id],
     }),
   }),
 );

@@ -6,7 +6,9 @@ import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInst
 import { createEventHandler } from "../features/chat/chat.handlers.js";
 import { roomManager } from "../features/chat/room-manager-instance.js";
 import type { WSConnection } from "../features/chat/room-manager.js";
-const handleEvent = createEventHandler(roomManager, { visitorRateLimiter: sharedVisitorRateLimiter });
+const handleEvent = createEventHandler(roomManager, {
+  visitorRateLimiter: sharedVisitorRateLimiter,
+});
 
 const WS_ERROR_MESSAGES: Record<string, string> = {
   invalid_token: "Invalid or tampered WebSocket token",
@@ -84,9 +86,7 @@ wsRoute.get("/ws", async (c, next) => {
 
       async onMessage(event, _ws) {
         const data =
-          typeof event.data === "string"
-            ? event.data
-            : event.data.toString();
+          typeof event.data === "string" ? event.data : event.data.toString();
 
         if (!connection) {
           pendingMessages.push(data);
@@ -102,7 +102,10 @@ wsRoute.get("/ws", async (c, next) => {
 
       onClose() {
         if (connection) {
-          roomManager.unregisterConnection(connection.id, connection.organizationId);
+          roomManager.unregisterConnection(
+            connection.id,
+            connection.organizationId,
+          );
           roomManager.disconnectUser(connection.userId);
         }
       },
@@ -110,7 +113,10 @@ wsRoute.get("/ws", async (c, next) => {
       onError(error) {
         console.error("[WS] Connection error:", error);
         if (connection) {
-          roomManager.unregisterConnection(connection.id, connection.organizationId);
+          roomManager.unregisterConnection(
+            connection.id,
+            connection.organizationId,
+          );
           roomManager.disconnectUser(connection.userId);
         }
       },

@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { MessageSquare, LogOut, CheckCircle, MoreVertical, Pencil, Check, X } from "lucide-react";
+import {
+  MessageSquare,
+  LogOut,
+  CheckCircle,
+  MoreVertical,
+  Pencil,
+  Check,
+  X,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
@@ -26,8 +34,13 @@ const statusColors: Record<string, string> = {
   closed: "bg-gray-100 text-gray-600",
 };
 
-export function ChatHeader({ conversation, permissions, currentUserRole }: Props) {
-  const statusClass = statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
+export function ChatHeader({
+  conversation,
+  permissions,
+  currentUserRole,
+}: Props) {
+  const statusClass =
+    statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
   const leaveAction = useConversationAction("leave", currentUserRole);
   const resolveAction = useConversationAction("resolve", currentUserRole);
   const subject = useSubjectEditor(conversation);

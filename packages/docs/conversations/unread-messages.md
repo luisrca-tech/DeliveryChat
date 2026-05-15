@@ -13,16 +13,16 @@ Per-operator unread visitor message counting with real-time badges and toast not
 
 ## API
 
-| Endpoint | Description |
-|---|---|
-| `GET /v1/conversations` | Now includes `unreadCount` per conversation |
+| Endpoint                          | Description                                 |
+| --------------------------------- | ------------------------------------------- |
+| `GET /v1/conversations`           | Now includes `unreadCount` per conversation |
 | `POST /v1/conversations/:id/read` | Marks conversation as read for current user |
 
 ## Service Functions
 
-| Function | File |
-|---|---|
-| `getUnreadCount(conversationId, userId)` | `chat.service.ts` |
+| Function                                        | File              |
+| ----------------------------------------------- | ----------------- |
+| `getUnreadCount(conversationId, userId)`        | `chat.service.ts` |
 | `markAsRead(conversationId, userId, messageId)` | `chat.service.ts` |
 
 ## Admin Frontend
@@ -34,13 +34,13 @@ Per-operator unread visitor message counting with real-time badges and toast not
 
 ## Widget (Visitor-Facing)
 
-| Endpoint | Description |
-|---|---|
+| Endpoint                                  | Description                               |
+| ----------------------------------------- | ----------------------------------------- |
 | `GET /v1/widget/conversations/:id/unread` | Returns `{ unreadCount }` for the visitor |
-| `POST /v1/widget/conversations/:id/read` | Marks conversation as read for visitor |
+| `POST /v1/widget/conversations/:id/read`  | Marks conversation as read for visitor    |
 
-| Function | File |
-|---|---|
+| Function                                                  | File              |
+| --------------------------------------------------------- | ----------------- |
 | `getUnreadCountForVisitor(conversationId, visitorUserId)` | `chat.service.ts` |
 
 - Red badge on launcher button (capped at 99+, `aria-live="polite"`)

@@ -24,11 +24,11 @@ Vanilla JS chat widget with Shadow DOM, CSS variables, and public settings API.
 
 ## Init Options
 
-| Option        | Type                            | Required | Description           |
-| ------------- | ------------------------------- | -------- | --------------------- |
-| appId         | string                          | Yes      | Application UUID      |
-| position      | "bottom-left" \| "bottom-right" | No       | Override API settings |
-| autoOpen      | boolean                         | No       | Override API settings |
+| Option        | Type                            | Required | Description                |
+| ------------- | ------------------------------- | -------- | -------------------------- |
+| appId         | string                          | Yes      | Application UUID           |
+| position      | "bottom-left" \| "bottom-right" | No       | Override API settings      |
+| autoOpen      | boolean                         | No       | Override API settings      |
 | autoOpenDelay | number                          | No       | Override API settings (ms) |
 
 ## Async Load
@@ -66,5 +66,6 @@ bun run build:embed
 ```
 
 Output:
+
 - `dist-embed/widget.iife.js` — the bundle
 - `dist-embed/widget.iife.js.sri.json` — `{ file, algorithm, integrity, bytes }` artifact consumed by docs and release automation when publishing the embed snippet

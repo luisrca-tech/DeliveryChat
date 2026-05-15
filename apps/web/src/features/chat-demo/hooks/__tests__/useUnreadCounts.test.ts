@@ -34,7 +34,9 @@ describe("useUnreadCounts", () => {
   });
 
   it("increments unread count after refreshUnread resolves", async () => {
-    const client = makeClient({ getUnreadCount: vi.fn().mockResolvedValue({ unreadCount: 7 }) });
+    const client = makeClient({
+      getUnreadCount: vi.fn().mockResolvedValue({ unreadCount: 7 }),
+    });
     const { result } = renderHook(() => useUnreadCounts(client));
 
     await act(async () => {
@@ -45,7 +47,9 @@ describe("useUnreadCounts", () => {
   });
 
   it("does not throw if getUnreadCount rejects", async () => {
-    const client = makeClient({ getUnreadCount: vi.fn().mockRejectedValue(new Error("network error")) });
+    const client = makeClient({
+      getUnreadCount: vi.fn().mockRejectedValue(new Error("network error")),
+    });
     const { result } = renderHook(() => useUnreadCounts(client));
 
     await expect(

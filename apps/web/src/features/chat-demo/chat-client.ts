@@ -40,7 +40,11 @@ export type ChatClientOptions = {
   visitorId: string;
 };
 
-function buildHeaders(apiKey: string, appId: string, visitorId: string): HeadersInit {
+function buildHeaders(
+  apiKey: string,
+  appId: string,
+  visitorId: string,
+): HeadersInit {
   return {
     Authorization: `Bearer ${apiKey}`,
     "X-App-Id": appId,
@@ -50,7 +54,12 @@ function buildHeaders(apiKey: string, appId: string, visitorId: string): Headers
   };
 }
 
-export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClientOptions) {
+export function createChatClient({
+  apiUrl,
+  apiKey,
+  appId,
+  visitorId,
+}: ChatClientOptions) {
   const base = `${apiUrl}/api/v1/widget`;
 
   function headers(): HeadersInit {
@@ -64,7 +73,10 @@ export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClien
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      throw Object.assign(new Error(body.message ?? res.statusText), { status: res.status, body });
+      throw Object.assign(new Error(body.message ?? res.statusText), {
+        status: res.status,
+        body,
+      });
     }
     return res.json() as Promise<T>;
   }
@@ -74,7 +86,9 @@ export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClien
       return request("/ws-token", { method: "POST" });
     },
 
-    createConversation(subject?: string): Promise<{ conversation: Conversation }> {
+    createConversation(
+      subject?: string,
+    ): Promise<{ conversation: Conversation }> {
       return request("/conversations", {
         method: "POST",
         body: JSON.stringify({ subject }),
@@ -83,7 +97,13 @@ export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClien
 
     listConversations(
       opts?: PaginationOptions,
-    ): Promise<{ conversations: Conversation[]; visitorUserId: string; total: number; limit: number; offset: number }> {
+    ): Promise<{
+      conversations: Conversation[];
+      visitorUserId: string;
+      total: number;
+      limit: number;
+      offset: number;
+    }> {
       const params = new URLSearchParams();
       if (opts?.limit !== undefined) params.set("limit", String(opts.limit));
       if (opts?.offset !== undefined) params.set("offset", String(opts.offset));
@@ -103,7 +123,9 @@ export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClien
       if (opts?.limit !== undefined) params.set("limit", String(opts.limit));
       if (opts?.offset !== undefined) params.set("offset", String(opts.offset));
       const qs = params.toString();
-      return request(`/conversations/${conversationId}/messages${qs ? `?${qs}` : ""}`);
+      return request(
+        `/conversations/${conversationId}/messages${qs ? `?${qs}` : ""}`,
+      );
     },
 
     sendMessage(
@@ -152,7 +174,9 @@ export function createChatClient({ apiUrl, apiKey, appId, visitorId }: ChatClien
 
     async connectWebSocket(token: string): Promise<WebSocket> {
       const wsBase = apiUrl.replace(/^http/, "ws");
-      const ws = new WebSocket(`${wsBase}/api/v1/ws?token=${encodeURIComponent(token)}`);
+      const ws = new WebSocket(
+        `${wsBase}/api/v1/ws?token=${encodeURIComponent(token)}`,
+      );
       return new Promise((resolve, reject) => {
         ws.addEventListener("open", () => resolve(ws), { once: true });
         ws.addEventListener("error", reject, { once: true });

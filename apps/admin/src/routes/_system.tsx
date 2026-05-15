@@ -1,4 +1,9 @@
-import { createFileRoute, Outlet, redirect, useNavigate } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { getBearerToken } from "../lib/bearerToken";
 import { getSubdomain } from "../lib/subdomain";
 import { AppShell } from "@/features/layout/components/AppShell";

@@ -15,17 +15,19 @@ import { initWebSocket } from "./lib/ws.js";
 import { wsRoute } from "./routes/ws.js";
 import { queryMonitorMiddleware } from "./lib/middleware/queryMonitor.js";
 
-
 const app = new Hono();
 
 const { injectWebSocket } = initWebSocket(app);
 
 app.use("*", logger());
-app.use("*", queryMonitorMiddleware({
-  routeThresholds: {
-    "POST /api/v1/register": 25,
-  },
-}));
+app.use(
+  "*",
+  queryMonitorMiddleware({
+    routeThresholds: {
+      "POST /api/v1/register": 25,
+    },
+  }),
+);
 
 app.use(
   "*",
@@ -79,9 +81,10 @@ app.get("/widget.js", async (c) => {
   for (const widgetPath of candidates) {
     try {
       const content = await readFile(widgetPath, "utf-8");
-      const cacheControl = env.NODE_ENV === "production"
-        ? "public, max-age=3600"
-        : "no-cache, no-store, must-revalidate";
+      const cacheControl =
+        env.NODE_ENV === "production"
+          ? "public, max-age=3600"
+          : "no-cache, no-store, must-revalidate";
       return c.body(content, 200, {
         "Content-Type": "application/javascript; charset=utf-8",
         "Cache-Control": cacheControl,
@@ -91,7 +94,10 @@ app.get("/widget.js", async (c) => {
       continue;
     }
   }
-  return c.text("Widget not found. Run: cd apps/widget && bun run build:embed", 404);
+  return c.text(
+    "Widget not found. Run: cd apps/widget && bun run build:embed",
+    404,
+  );
 });
 
 app.get("/brand/logo.png", async (c) => {
@@ -193,9 +199,7 @@ const server = serve(
     port,
   },
   (info) => {
-    console.log(
-      `[Hono API] Server running on http://localhost:${info.port}`,
-    );
+    console.log(`[Hono API] Server running on http://localhost:${info.port}`);
   },
 );
 

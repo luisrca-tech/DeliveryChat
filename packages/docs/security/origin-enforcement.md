@@ -24,15 +24,16 @@ The column lives alongside the existing `applications.domain` field. `domain` re
 
 Implemented in `apps/hono-api/src/lib/security/originMatcher.ts` as a pure function; no database access, no I/O.
 
-| Input | Matches |
-|---|---|
-| `example.com` | `https://example.com`, `https://www.example.com` (implicit www equivalence, both directions) |
-| `www.example.com` | `https://example.com`, `https://www.example.com` |
-| `*.example.com` | `https://example.com` (apex) and any subdomain (`https://app.example.com`, `https://foo.bar.example.com`) |
-| anything | Hostname compared case-insensitively |
-| `http(s)://localhost`, `http(s)://localhost:*`, `*.localhost` | Allowed **only** when `testMode=true` |
+| Input                                                         | Matches                                                                                                   |
+| ------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `example.com`                                                 | `https://example.com`, `https://www.example.com` (implicit www equivalence, both directions)              |
+| `www.example.com`                                             | `https://example.com`, `https://www.example.com`                                                          |
+| `*.example.com`                                               | `https://example.com` (apex) and any subdomain (`https://app.example.com`, `https://foo.bar.example.com`) |
+| anything                                                      | Hostname compared case-insensitively                                                                      |
+| `http(s)://localhost`, `http(s)://localhost:*`, `*.localhost` | Allowed **only** when `testMode=true`                                                                     |
 
 Notable negatives:
+
 - Missing `Origin` header → rejected by `apiKeyAuth` (no origin, no check, no pass). `widgetAuth` preserves today's "skip if absent" for backward compat.
 - Non-wildcard entry **does not** cover subdomains. `example.com` does **not** match `evil.example.com`. This is a deliberate tightening vs. the legacy `validateOrigin()` which used `endsWith` and accidentally let subdomains through.
 - `127.0.0.1` is not covered by test-mode leniency — only `localhost` and `*.localhost`.
@@ -40,10 +41,10 @@ Notable negatives:
 
 ## Who calls what
 
-| Middleware | `testMode` signal | Missing origin |
-|---|---|---|
-| `widgetAuth` (X-App-Id only, no key) | `process.env.NODE_ENV !== "production"` | allowed (legacy) |
-| `apiKeyAuth` (Bearer `dk_*`) | `apiKey.environment === "test"` | rejected |
+| Middleware                            | `testMode` signal                       | Missing origin                   |
+| ------------------------------------- | --------------------------------------- | -------------------------------- |
+| `widgetAuth` (X-App-Id only, no key)  | `process.env.NODE_ENV !== "production"` | allowed (legacy)                 |
+| `apiKeyAuth` (Bearer `dk_*`)          | `apiKey.environment === "test"`         | rejected                         |
 | `authenticateWebSocket` (widget path) | `process.env.NODE_ENV !== "production"` | allowed (Phase 5 overhauls this) |
 
 Both `widgetAuth` and `apiKeyAuth` return HTTP 403 with a body that distinguishes origin rejection from other auth failures:
@@ -78,16 +79,16 @@ The script scans `applications`, identifies rows where `allowedOrigins = '{}'`, 
 
 ## Integration test matrix (Phase 3a acceptance)
 
-| Key env | Allow-list entry | Origin | Expected |
-|---|---|---|---|
-| live | `example.com` | `https://example.com` | 200 |
-| live | `*.example.com` | `https://shop.example.com` | 200 |
-| live | `example.com` | `http://localhost:3000` | 403 `origin_not_allowed` |
-| live | `example.com` | `https://evil.com` | 403 `origin_not_allowed` |
-| test | `example.com` | `http://localhost:3001` | 200 (test-mode leniency) |
-| test | `example.com` | `http://tenant.localhost` | 200 |
-| test | `example.com` | `https://evil.com` | 403 |
-| — | — | (missing) | 403 (apiKeyAuth) / 200 (widgetAuth) |
+| Key env | Allow-list entry | Origin                     | Expected                            |
+| ------- | ---------------- | -------------------------- | ----------------------------------- |
+| live    | `example.com`    | `https://example.com`      | 200                                 |
+| live    | `*.example.com`  | `https://shop.example.com` | 200                                 |
+| live    | `example.com`    | `http://localhost:3000`    | 403 `origin_not_allowed`            |
+| live    | `example.com`    | `https://evil.com`         | 403 `origin_not_allowed`            |
+| test    | `example.com`    | `http://localhost:3001`    | 200 (test-mode leniency)            |
+| test    | `example.com`    | `http://tenant.localhost`  | 200                                 |
+| test    | `example.com`    | `https://evil.com`         | 403                                 |
+| —       | —                | (missing)                  | 403 (apiKeyAuth) / 200 (widgetAuth) |
 
 ## Admin UI (Phase 3b)
 

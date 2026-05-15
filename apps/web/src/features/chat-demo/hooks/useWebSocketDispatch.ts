@@ -1,7 +1,10 @@
 import { useRef, useCallback } from "react";
 import type { RefObject, MutableRefObject } from "react";
 import { wsMessageReducer } from "../lib/wsMessageReducer";
-import type { WsReducerState, OptimisticMessage } from "../lib/wsMessageReducer";
+import type {
+  WsReducerState,
+  OptimisticMessage,
+} from "../lib/wsMessageReducer";
 import type { Conversation } from "../chat-client";
 
 export type WsDispatchOptions = {
@@ -34,7 +37,11 @@ export function useWebSocketDispatch({
   refreshUnread,
 }: WsDispatchOptions) {
   // Updated every render so the stable handleWsMessage always reads latest state.
-  const stateRef = useRef<WsReducerState>({ messages, conversations, operatorTypingName });
+  const stateRef = useRef<WsReducerState>({
+    messages,
+    conversations,
+    operatorTypingName,
+  });
   stateRef.current = { messages, conversations, operatorTypingName };
 
   const handleWsMessage = useCallback(
@@ -46,12 +53,20 @@ export function useWebSocketDispatch({
         return;
       }
 
-      const wsEvent = parsed as { type: string; payload: Record<string, unknown> };
+      const wsEvent = parsed as {
+        type: string;
+        payload: Record<string, unknown>;
+      };
       const current = stateRef.current;
-      const { state: next, sideEffects } = wsMessageReducer(current, wsEvent, selectedIdRef.current);
+      const { state: next, sideEffects } = wsMessageReducer(
+        current,
+        wsEvent,
+        selectedIdRef.current,
+      );
 
       if (next.messages !== current.messages) setMessages(next.messages);
-      if (next.conversations !== current.conversations) setConversations(next.conversations);
+      if (next.conversations !== current.conversations)
+        setConversations(next.conversations);
       if (next.operatorTypingName !== current.operatorTypingName)
         setOperatorTypingName(next.operatorTypingName);
 

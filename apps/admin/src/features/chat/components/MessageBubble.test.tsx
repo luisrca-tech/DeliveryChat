@@ -27,20 +27,20 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
 }
 
 describe("MessageBubble — hostile content rendering", () => {
-  it.each(HOSTILE_PAYLOADS)(
-    "escapes %s as text content",
-    (payload) => {
-      const { container } = render(
-        <MessageBubble message={makeMessage({ content: payload })} isSelf={false} />,
-      );
+  it.each(HOSTILE_PAYLOADS)("escapes %s as text content", (payload) => {
+    const { container } = render(
+      <MessageBubble
+        message={makeMessage({ content: payload })}
+        isSelf={false}
+      />,
+    );
 
-      expect(container.querySelector("script")).toBeNull();
-      expect(container.querySelector("iframe")).toBeNull();
-      // Visitor/operator own SVG icons from lucide are allowed; user-provided svg/img should not appear.
-      expect(container.querySelectorAll("img")).toHaveLength(0);
-      expect(screen.getByText(payload)).toBeTruthy();
-    },
-  );
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("iframe")).toBeNull();
+    // Visitor/operator own SVG icons from lucide are allowed; user-provided svg/img should not appear.
+    expect(container.querySelectorAll("img")).toHaveLength(0);
+    expect(screen.getByText(payload)).toBeTruthy();
+  });
 
   it("never executes inline event handlers from user content", () => {
     const globalAny = globalThis as unknown as { __xss?: boolean };

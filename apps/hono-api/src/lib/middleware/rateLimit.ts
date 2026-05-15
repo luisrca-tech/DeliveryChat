@@ -29,7 +29,8 @@ export function createTenantRateLimitMiddleware(): MiddlewareHandler {
     cause: "per_tenant",
     limits: async (c) => {
       const auth = getTenantAuth(c);
-      if (!auth) return { perSecond: 999_999, perMinute: 999_999, perHour: 999_999 };
+      if (!auth)
+        return { perSecond: 999_999, perMinute: 999_999, perHour: 999_999 };
       return getCachedTenantLimits(c, auth);
     },
     keyGenerator: (c) => {

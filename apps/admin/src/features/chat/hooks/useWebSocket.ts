@@ -9,7 +9,11 @@ import { markConversationAsRead } from "../lib/conversations.client";
 import { handleMessageNew } from "./handleMessageNew";
 import { handleMessageEdited } from "./handleMessageEdited";
 import { handleMessageDeleted } from "./handleMessageDeleted";
-import { handleConversationLifecycle, LIFECYCLE_EVENTS, type ConversationLifecycleEventType } from "./handleConversationLifecycle";
+import {
+  handleConversationLifecycle,
+  LIFECYCLE_EVENTS,
+  type ConversationLifecycleEventType,
+} from "./handleConversationLifecycle";
 import type { WSClientEvent, WSServerEvent } from "@repo/types";
 import type { WebSocketHandlerContext } from "../types/chat.types";
 
@@ -22,7 +26,6 @@ export type TypingUser = {
 } | null;
 
 const TYPING_TIMEOUT_MS = 3_000;
-
 
 export type AckedIdRegistrar = (serverMessageId: string) => void;
 
@@ -56,7 +59,11 @@ export function useWebSocket(activeConversationId: string | null) {
   }, []);
 
   const setActiveRoom = useCallback(
-    (conversationId: string | null, lastMessageId?: string, force?: boolean) => {
+    (
+      conversationId: string | null,
+      lastMessageId?: string,
+      force?: boolean,
+    ) => {
       managerRef.current?.setActiveRoom(conversationId, lastMessageId, force);
     },
     [],
@@ -80,8 +87,11 @@ export function useWebSocket(activeConversationId: string | null) {
           processedMsgIds: processedMsgIds.current,
           messagesQueryKey: (id) => conversationsQueryKeys.messages(id, 50, 0),
           invalidateQueries: () =>
-            queryClient.invalidateQueries({ queryKey: conversationsQueryKeys.all() }),
-          setQueryData: (key, updater) => queryClient.setQueryData(key, updater),
+            queryClient.invalidateQueries({
+              queryKey: conversationsQueryKeys.all(),
+            }),
+          setQueryData: (key, updater) =>
+            queryClient.setQueryData(key, updater),
           markAsRead: markConversationAsRead,
         };
 
@@ -105,7 +115,10 @@ export function useWebSocket(activeConversationId: string | null) {
             senderRole: payload.senderRole,
           });
           if (typingTimerRef.current) clearTimeout(typingTimerRef.current);
-          typingTimerRef.current = setTimeout(() => setTypingUser(null), TYPING_TIMEOUT_MS);
+          typingTimerRef.current = setTimeout(
+            () => setTypingUser(null),
+            TYPING_TIMEOUT_MS,
+          );
         } else if (event.type === "typing:stop") {
           const payload = event.payload;
           setTypingUser((current) =>
@@ -120,7 +133,10 @@ export function useWebSocket(activeConversationId: string | null) {
         } else if (event.type === "message:deleted") {
           handleMessageDeleted(event.payload, ctx);
         } else if (LIFECYCLE_EVENTS.has(event.type)) {
-          handleConversationLifecycle(event.type as ConversationLifecycleEventType, ctx);
+          handleConversationLifecycle(
+            event.type as ConversationLifecycleEventType,
+            ctx,
+          );
         }
 
         for (const handler of handlersRef.current) {
@@ -145,9 +161,19 @@ export function useWebSocket(activeConversationId: string | null) {
     clearTyping();
   }, [activeConversationId, clearTyping]);
 
-  const registerAckedId: AckedIdRegistrar = useCallback((serverMessageId: string) => {
-    processedMsgIds.current.add(serverMessageId);
-  }, []);
+  const registerAckedId: AckedIdRegistrar = useCallback(
+    (serverMessageId: string) => {
+      processedMsgIds.current.add(serverMessageId);
+    },
+    [],
+  );
 
-  return { isConnected, sendEvent, subscribe, setActiveRoom, typingUser, registerAckedId };
+  return {
+    isConnected,
+    sendEvent,
+    subscribe,
+    setActiveRoom,
+    typingUser,
+    registerAckedId,
+  };
 }

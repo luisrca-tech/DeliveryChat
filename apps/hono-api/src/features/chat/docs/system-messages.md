@@ -4,10 +4,10 @@ System messages are automated, immutable records inserted into conversation hist
 
 ## Events That Generate System Messages
 
-| Event | Content Format | Trigger |
-|-------|---------------|---------|
-| Accept | `"{operatorName} joined the conversation"` | `POST /conversations/:id/accept` |
-| Leave | `"{operatorName} left the conversation"` | `POST /conversations/:id/leave` |
+| Event   | Content Format                               | Trigger                           |
+| ------- | -------------------------------------------- | --------------------------------- |
+| Accept  | `"{operatorName} joined the conversation"`   | `POST /conversations/:id/accept`  |
+| Leave   | `"{operatorName} left the conversation"`     | `POST /conversations/:id/leave`   |
 | Resolve | `"{operatorName} resolved the conversation"` | `POST /conversations/:id/resolve` |
 
 ## Storage

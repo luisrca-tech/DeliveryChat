@@ -16,14 +16,10 @@ export const listApplicationsQuerySchema = z.object({
 
 export const createApplicationSchema = z.object({
   name: z.string().min(1).max(255),
-  domain: z
-    .string()
-    .min(1)
-    .max(255)
-    .regex(DOMAIN_REGEX, {
-      message:
-        "Domain must be a valid hostname (e.g. app.example.com or *.example.com)",
-    }),
+  domain: z.string().min(1).max(255).regex(DOMAIN_REGEX, {
+    message:
+      "Domain must be a valid hostname (e.g. app.example.com or *.example.com)",
+  }),
   description: z.string().optional(),
   settings: z.record(z.string(), z.unknown()).optional().default({}),
 });

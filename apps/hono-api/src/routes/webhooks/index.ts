@@ -35,10 +35,7 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
 
         switch (event.type) {
           case "invoice.paid":
-            await handleInvoicePaid(
-              event.data.object as Stripe.Invoice,
-              ctx,
-            );
+            await handleInvoicePaid(event.data.object as Stripe.Invoice, ctx);
             break;
 
           case "invoice.payment_failed":

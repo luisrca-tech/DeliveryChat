@@ -67,8 +67,7 @@ async function trySessionAuth(
     headers,
   })) as SessionWithUser | null;
 
-  const sessionUser =
-    sessionResult?.user ?? sessionResult?.data?.user ?? null;
+  const sessionUser = sessionResult?.user ?? sessionResult?.data?.user ?? null;
 
   if (!sessionUser?.id) return null;
 
@@ -85,8 +84,7 @@ async function trySessionAuth(
 
   const explicitTenant = getTenantSlugFromExplicitHeader(headers);
   const derivedTenant =
-    getTenantSlugFromHeaders(headers) ??
-    getHostSubdomain(headers.get("host"));
+    getTenantSlugFromHeaders(headers) ?? getHostSubdomain(headers.get("host"));
 
   if (explicitTenant && derivedTenant && explicitTenant !== derivedTenant) {
     return null;
@@ -107,10 +105,7 @@ async function trySessionAuth(
     })
     .from(member)
     .where(
-      and(
-        eq(member.userId, sessionUser.id),
-        eq(member.organizationId, org.id),
-      ),
+      and(eq(member.userId, sessionUser.id), eq(member.organizationId, org.id)),
     )
     .limit(1);
 

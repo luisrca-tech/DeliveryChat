@@ -16,19 +16,19 @@ function chainMock(result: unknown) {
   for (const method of ["from", "where", "limit"]) {
     chain[method] = vi.fn(() => chain);
   }
-  chain.then = (
-    resolve: (v: unknown) => void,
-    reject: (e: unknown) => void,
-  ) => Promise.resolve(result).then(resolve, reject);
+  chain.then = (resolve: (v: unknown) => void, reject: (e: unknown) => void) =>
+    Promise.resolve(result).then(resolve, reject);
   return chain;
 }
 
-function appRow(overrides: Partial<{
-  id: string;
-  domain: string;
-  allowedOrigins: string[];
-  organizationId: string;
-}> = {}) {
+function appRow(
+  overrides: Partial<{
+    id: string;
+    domain: string;
+    allowedOrigins: string[];
+    organizationId: string;
+  }> = {},
+) {
   return {
     id: "00000000-0000-0000-0000-000000000001",
     domain: "example.com",
@@ -46,7 +46,10 @@ describe("resolveAndEnforceOrigin", () => {
   it("returns app_not_found when application does not exist", async () => {
     mockSelect.mockReturnValue(chainMock([]));
 
-    const result = await resolveAndEnforceOrigin("00000000-0000-0000-0000-000000000001", "https://example.com");
+    const result = await resolveAndEnforceOrigin(
+      "00000000-0000-0000-0000-000000000001",
+      "https://example.com",
+    );
 
     expect(result.authorized).toBe(false);
     if (result.authorized) return;
@@ -55,7 +58,10 @@ describe("resolveAndEnforceOrigin", () => {
   });
 
   it("returns app_not_found for invalid UUID without querying DB", async () => {
-    const result = await resolveAndEnforceOrigin("bad-id", "https://example.com");
+    const result = await resolveAndEnforceOrigin(
+      "bad-id",
+      "https://example.com",
+    );
 
     expect(result.authorized).toBe(false);
     if (result.authorized) return;

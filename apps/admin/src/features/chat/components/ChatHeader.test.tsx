@@ -14,8 +14,10 @@ const mockSetDraft = vi.fn();
 
 vi.mock("../hooks/useConversationAction", () => ({
   useConversationAction: (type: string) => {
-    if (type === "leave") return { execute: mockExecuteLeave, isPending: false };
-    if (type === "resolve") return { execute: mockExecuteResolve, isPending: false };
+    if (type === "leave")
+      return { execute: mockExecuteLeave, isPending: false };
+    if (type === "resolve")
+      return { execute: mockExecuteResolve, isPending: false };
     return { execute: vi.fn(), isPending: false };
   },
 }));
@@ -78,12 +80,16 @@ function makePermissions(
 
 function getDropdownTrigger() {
   const buttons = screen.getAllByRole("button");
-  const trigger = buttons.find((btn) => btn.getAttribute("aria-haspopup") === "menu");
+  const trigger = buttons.find(
+    (btn) => btn.getAttribute("aria-haspopup") === "menu",
+  );
   if (!trigger) throw new Error("Dropdown trigger not found");
   return trigger;
 }
 
-async function openDropdownAndClickResolve(user: ReturnType<typeof userEvent.setup>) {
+async function openDropdownAndClickResolve(
+  user: ReturnType<typeof userEvent.setup>,
+) {
   await user.click(getDropdownTrigger());
   const menu = await screen.findByRole("menu");
   const resolveItem = within(menu).getByText("Mark as Solved");
@@ -108,7 +114,9 @@ describe("ChatHeader", () => {
     await openDropdownAndClickResolve(user);
 
     expect(
-      screen.getByText("Are you sure you want to mark this conversation as solved?"),
+      screen.getByText(
+        "Are you sure you want to mark this conversation as solved?",
+      ),
     ).toBeTruthy();
   });
 
@@ -125,7 +133,9 @@ describe("ChatHeader", () => {
     await openDropdownAndClickResolve(user);
 
     expect(
-      screen.getAllByText("Are you sure you want to mark this conversation as solved?").length,
+      screen.getAllByText(
+        "Are you sure you want to mark this conversation as solved?",
+      ).length,
     ).toBeGreaterThanOrEqual(1);
   });
 
@@ -167,7 +177,9 @@ describe("ChatHeader", () => {
     );
 
     expect(screen.getByText("Editable subject")).toBeTruthy();
-    const pencilButton = container.querySelector(".group button") as HTMLElement;
+    const pencilButton = container.querySelector(
+      ".group button",
+    ) as HTMLElement;
     expect(pencilButton).toBeTruthy();
   });
 
