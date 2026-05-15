@@ -1,5 +1,5 @@
 import type { MiddlewareHandler } from "hono";
-import { getUnifiedAuth } from "./unifiedAuth.js";
+import { getUnifiedAuth, type UnifiedAuthContext } from "./unifiedAuth.js";
 import { createRateLimiter } from "./rateLimitFactory.js";
 import { getRateLimitsForTenant } from "../../features/rate-limiting/rateLimitConfig.service.js";
 import { recordRateLimitExceeded } from "../../features/rate-limiting/rateLimitAlert.service.js";
@@ -56,7 +56,11 @@ export function createUnifiedRateLimitMiddleware(): MiddlewareHandler {
   });
 
   return async (c, next) => {
-    const auth = getUnifiedAuth(c);
+    const auth = (c as { get: (k: string) => unknown }).get("unifiedAuth") as UnifiedAuthContext | undefined;
+
+    if (!auth) {
+      return next();
+    }
 
     if (auth.type === "member") {
       return tenantLimiter(c, next);
