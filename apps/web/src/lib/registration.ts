@@ -12,7 +12,7 @@ export async function registerUser(
 ): Promise<RegistrationResult> {
   try {
     const apiUrl = getApiUrl();
-    const response = await fetch(`${apiUrl}/v1/register`, {
+    const response = await fetch(`${apiUrl}/api/v1/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
