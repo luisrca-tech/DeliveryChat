@@ -55,3 +55,7 @@ Returns a `Promise<IdentityResult>` with the upserted identity record.
 ## Headless Mode
 
 `identify()` works in both widget and headless modes. It requires `init()` to have been called first (throws if SDK is not initialized).
+
+## Architecture
+
+`SdkApi.identify()` delegates to `postIdentify()` in `api.ts`, the shared REST client used by all SDK→API interactions. This ensures identity calls benefit from the same URL normalization, header conventions, and error handling as `fetchSettings()` and `fetchWsToken()`, and are interceptable by the same mock infrastructure in tests.

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { fetchSettings, fetchWsToken } from "./api.js";
+import { fetchSettings, fetchWsToken, postIdentify } from "./api.js";
+import type { IdentifyPayload } from "./api.js";
 
 describe("fetchSettings", () => {
   const originalFetch = globalThis.fetch;
@@ -99,6 +100,112 @@ describe("fetchWsToken", () => {
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       "https://api.example.com/api/v1/widget/ws-token",
+      expect.any(Object),
+    );
+  });
+});
+
+describe("postIdentify", () => {
+  const originalFetch = globalThis.fetch;
+  const baseUrl = "https://api.example.com";
+  const appId = "app-1";
+  const visitorId = "visitor-1";
+  const payload: IdentifyPayload = {
+    name: "Jane Doe",
+    email: "jane@example.com",
+    externalId: "user-123",
+  };
+
+  beforeEach(() => {
+    globalThis.fetch = vi.fn();
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it("returns identity record on success", async () => {
+    const identity = {
+      id: "id-1",
+      anonymousUserId: visitorId,
+      organizationId: "org-1",
+      externalId: "user-123",
+      email: "jane@example.com",
+      name: "Jane Doe",
+      metadata: null,
+      hmacVerified: false,
+    };
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ identity }),
+    } as Response);
+
+    const result = await postIdentify(baseUrl, appId, visitorId, payload);
+
+    expect(result).toEqual(identity);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://api.example.com/api/v1/widget/identify",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-App-Id": appId,
+          "X-Visitor-Id": visitorId,
+        },
+        body: JSON.stringify(payload),
+      },
+    );
+  });
+
+  it("throws with status and message on non-ok response", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: false,
+      status: 422,
+      statusText: "Unprocessable Entity",
+      json: () => Promise.resolve({ message: "externalId is required for HMAC" }),
+    } as unknown as Response);
+
+    await expect(
+      postIdentify(baseUrl, appId, visitorId, payload),
+    ).rejects.toThrow("identify failed (422): externalId is required for HMAC");
+  });
+
+  it("falls back to statusText when error body has no message", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: false,
+      status: 500,
+      statusText: "Internal Server Error",
+      json: () => Promise.resolve({}),
+    } as unknown as Response);
+
+    await expect(
+      postIdentify(baseUrl, appId, visitorId, payload),
+    ).rejects.toThrow("identify failed (500): Internal Server Error");
+  });
+
+  it("handles unparseable error body gracefully", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: false,
+      status: 502,
+      statusText: "Bad Gateway",
+      json: () => Promise.reject(new Error("invalid json")),
+    } as unknown as Response);
+
+    await expect(
+      postIdentify(baseUrl, appId, visitorId, payload),
+    ).rejects.toThrow("identify failed (502): Bad Gateway");
+  });
+
+  it("strips trailing slash from apiBaseUrl", async () => {
+    vi.mocked(globalThis.fetch).mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ identity: { id: "id-1" } }),
+    } as Response);
+
+    await postIdentify("https://api.example.com/", appId, visitorId, payload);
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://api.example.com/api/v1/widget/identify",
       expect.any(Object),
     );
   });
