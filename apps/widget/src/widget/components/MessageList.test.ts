@@ -33,8 +33,8 @@ function makeMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
 function makeContext(overrides: Partial<BubbleContext> = {}): BubbleContext {
   return {
     visitorId: "visitor-1",
-    onEdit: () => {},
-    onDelete: () => {},
+    onEdit: () => { },
+    onDelete: () => { },
     ...overrides,
   };
 }
@@ -56,7 +56,7 @@ describe("MessageList — system messages", () => {
 
   it("does not render edit/delete controls for system messages", () => {
     const list = createMessageList(
-      [makeMessage({ type: "system", content: "Alice left the conversation", senderId: "" })],
+      [makeMessage({ type: "system", content: "Alice left the conversation you'll be able to chat with them again soon", senderId: "" })],
       makeContext(),
     );
 

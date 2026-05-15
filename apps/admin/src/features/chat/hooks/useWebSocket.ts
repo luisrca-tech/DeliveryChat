@@ -70,7 +70,7 @@ export function useWebSocket(activeConversationId: string | null) {
     const apiUrl = getApiUrl();
     const wsProtocol = apiUrl.startsWith("https") ? "wss" : "ws";
     const wsHost = apiUrl.replace(/^https?:\/\//, "");
-    const wsUrl = `${wsProtocol}://${wsHost}/v1/ws?tenant=${tenant}&sessionToken=${encodeURIComponent(token)}`;
+    const wsUrl = `${wsProtocol}://${wsHost}/api/v1/ws?tenant=${tenant}&sessionToken=${encodeURIComponent(token)}`;
 
     const manager = new WebSocketManager({
       url: wsUrl,

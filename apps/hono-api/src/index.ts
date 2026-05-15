@@ -23,7 +23,7 @@ const { injectWebSocket } = initWebSocket(app);
 app.use("*", logger());
 app.use("*", queryMonitorMiddleware({
   routeThresholds: {
-    "POST /v1/register": 25,
+    "POST /api/v1/register": 25,
   },
 }));
 
@@ -31,7 +31,7 @@ app.use(
   "*",
   cors({
     origin: (origin, c) => {
-      if (c.req.path.startsWith("/v1/widget/")) {
+      if (c.req.path.startsWith("/api/v1/widget/")) {
         return origin ?? "*";
       }
 
@@ -180,8 +180,8 @@ app.all("/api/auth/*", async (c) => {
   return auth.handler(c.req.raw);
 });
 
-app.route("/v1", api);
-app.route("/v1", wsRoute);
+app.route("/api/v1", api);
+app.route("/api/v1", wsRoute);
 
 export type AppType = typeof app;
 

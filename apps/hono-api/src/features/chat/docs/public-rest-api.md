@@ -1,12 +1,14 @@
 # Public REST API — Backend Implementation
 
+> **ARCHIVED (Phase 2C):** `publicApi.ts` has been deleted. All visitor conversation endpoints are now served by `conversations.ts` under the unified auth model (`requireAuth()`). See `unified-auth.md` for the current architecture. This document is retained for historical reference only.
+
 ## Overview
 
-The public REST API exposes chat functionality to third-party integrators via standard HTTP endpoints at `/v1/api/`. It mirrors the widget's capabilities but decouples them from the embedded widget, allowing any client to create conversations, send messages, and manage read state.
+The public REST API previously exposed chat functionality to third-party integrators via standard HTTP endpoints at `/v1/api/`. Its functionality has been consolidated into `conversations.ts` using the unified `requireAuth()` middleware, which handles both member and visitor authentication through a discriminated union context.
 
-## Route Registration
+## Route Registration (Deleted)
 
-Registered in `src/lib/api.ts` as `.route("/api", publicApiRoute)`. All routes share the `/v1/api/` prefix.
+Was registered in `src/lib/api.ts` as `.route("/api", publicApiRoute)`. This line and the import have been removed.
 
 ## Authentication & Middleware Chain
 

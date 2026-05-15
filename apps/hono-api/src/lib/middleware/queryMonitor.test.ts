@@ -122,15 +122,15 @@ describe("queryMonitor middleware", () => {
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     app.use("*", queryMonitorMiddleware({ threshold: 1 }));
-    app.get("/v1/conversations", (c) => {
+    app.get("/api/v1/conversations", (c) => {
       incrementQueryCount();
       incrementQueryCount();
       return c.text("ok");
     });
 
-    await app.request("/v1/conversations");
+    await app.request("/api/v1/conversations");
     expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("GET /v1/conversations"),
+      expect.stringContaining("GET /api/v1/conversations"),
     );
   });
 

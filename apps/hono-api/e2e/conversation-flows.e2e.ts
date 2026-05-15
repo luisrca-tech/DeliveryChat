@@ -29,17 +29,17 @@ test.afterAll(async () => {
 // ── Helper to build WS URLs ──
 
 function visitorWsUrl(visitorId: string) {
-  return `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${visitorId}`;
+  return `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${visitorId}`;
 }
 
 function operatorWsUrl() {
   // Operators use session auth, but for E2E we simulate via the widget path
   // using the operator's userId as visitorId (they're still in the participant table)
-  return `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${testData.operatorUser.id}`;
+  return `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${testData.operatorUser.id}`;
 }
 
 function adminWsUrl() {
-  return `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${testData.adminUser.id}`;
+  return `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${testData.adminUser.id}`;
 }
 
 // ── Flow 1: Visitor ↔ Operator (Support) ──

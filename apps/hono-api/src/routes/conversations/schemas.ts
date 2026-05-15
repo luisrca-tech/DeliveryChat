@@ -33,6 +33,18 @@ export const addParticipantSchema = z.object({
   role: z.enum(["visitor", "operator", "admin"]),
 });
 
-export const createWidgetConversationSchema = z.object({
-  subject: z.string().min(1).max(500).optional(),
+export const createConversationBodySchema = z.object({
+  subject: z.string().trim().min(1).max(500).optional(),
+});
+
+export const sendMessageBodySchema = z.object({
+  content: z.string().trim().min(1).max(5000),
+});
+
+export const editMessageBodySchema = z.object({
+  content: z.string().trim().min(1).max(5000),
+});
+
+export const markAsReadBodySchema = z.object({
+  messageId: z.string().uuid(),
 });

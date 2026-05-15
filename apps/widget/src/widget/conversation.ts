@@ -41,7 +41,7 @@ export async function createConversation(
   visitorId: string,
   subject?: string,
 ): Promise<ConversationResponse> {
-  const url = `${apiBaseUrl}/v1/widget/conversations`;
+  const url = `${apiBaseUrl}/api/v1/widget/conversations`;
   const res = await fetch(url, {
     method: "POST",
     headers: buildHeaders(appId, visitorId),
@@ -65,7 +65,7 @@ export async function getConversationMessages(
   limit = 50,
   offset = 0,
 ): Promise<MessagesResponse> {
-  const url = `${apiBaseUrl}/v1/widget/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`;
+  const url = `${apiBaseUrl}/api/v1/widget/conversations/${conversationId}/messages?limit=${limit}&offset=${offset}`;
   const res = await fetch(url, {
     headers: buildHeaders(appId),
   });
@@ -83,7 +83,7 @@ export async function getUnreadCount(
   conversationId: string,
   visitorId: string,
 ): Promise<number> {
-  const url = `${apiBaseUrl}/v1/widget/conversations/${conversationId}/unread`;
+  const url = `${apiBaseUrl}/api/v1/widget/conversations/${conversationId}/unread`;
   const res = await fetch(url, {
     headers: buildHeaders(appId, visitorId),
   });
@@ -100,7 +100,7 @@ export async function markConversationAsRead(
   conversationId: string,
   visitorId: string,
 ): Promise<void> {
-  const url = `${apiBaseUrl}/v1/widget/conversations/${conversationId}/read`;
+  const url = `${apiBaseUrl}/api/v1/widget/conversations/${conversationId}/read`;
   const res = await fetch(url, {
     method: "POST",
     headers: buildHeaders(appId, visitorId),

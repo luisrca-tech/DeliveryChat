@@ -32,7 +32,7 @@ test.describe("REST: Conversation Management", () => {
       request,
     }) => {
       const response = await request.post(
-        "/v1/widget/conversations",
+        "/api/v1/widget/conversations",
         {
           headers: {
             Authorization: `Bearer ${testData.apiKeyRaw}`,
@@ -56,7 +56,7 @@ test.describe("REST: Conversation Management", () => {
       request,
     }) => {
       const response = await request.post(
-        "/v1/widget/conversations",
+        "/api/v1/widget/conversations",
         {
           headers: {
             Authorization: `Bearer ${testData.apiKeyRaw}`,
@@ -74,7 +74,7 @@ test.describe("REST: Conversation Management", () => {
       request,
     }) => {
       const response = await request.post(
-        "/v1/widget/conversations",
+        "/api/v1/widget/conversations",
         {
           headers: {
             Authorization: "Bearer dk_test_invalidkeyinvalidkeyinvalidk",
@@ -99,7 +99,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   test.beforeAll(async ({ request }) => {
     // Create a support conversation for WS tests
     const response = await request.post(
-      "http://localhost:8000/v1/widget/conversations",
+      "http://localhost:8000/api/v1/widget/conversations",
       {
         headers: {
           Authorization: `Bearer ${testData.apiKeyRaw}`,
@@ -116,7 +116,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("connects via WebSocket with API key auth (widget)", async () => {
-    const wsUrl = `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
     const { ws, messages } = await connectWebSocket(wsUrl);
 
     // Give server time to process onOpen
@@ -135,7 +135,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("rejects WebSocket with invalid credentials", async () => {
-    const wsUrl = `ws://localhost:8000/v1/ws?token=dk_test_invalidkeyinvalidkeyinvalidk&appId=${testData.app.id}`;
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=dk_test_invalidkeyinvalidkeyinvalidk&appId=${testData.app.id}`;
 
     const result = await new Promise<{ errorReceived: boolean }>((resolve) => {
       const ws = new WebSocket(wsUrl);
@@ -161,7 +161,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("room:join fails for non-participant", async () => {
-    const wsUrl = `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
     const { ws, messages } = await connectWebSocket(wsUrl);
     await sleep(200);
 
@@ -181,7 +181,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("ping responds with pong", async () => {
-    const wsUrl = `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
     const { ws, messages } = await connectWebSocket(wsUrl);
     await sleep(200);
 
@@ -194,7 +194,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("rejects invalid event types", async () => {
-    const wsUrl = `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
     const { ws, messages } = await connectWebSocket(wsUrl);
     await sleep(200);
 
@@ -210,7 +210,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("rejects malformed JSON", async () => {
-    const wsUrl = `ws://localhost:8000/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
     const { ws, messages } = await connectWebSocket(wsUrl);
     await sleep(200);
 
@@ -233,7 +233,7 @@ test.describe("Business Rules", () => {
     request,
   }) => {
     const response = await request.post(
-      "/v1/widget/conversations",
+      "/api/v1/widget/conversations",
       {
         headers: {
           Authorization: `Bearer ${testData.apiKeyRaw}`,
@@ -255,7 +255,7 @@ test.describe("Business Rules", () => {
   }) => {
     // Create a conversation first
     const createResp = await request.post(
-      "/v1/widget/conversations",
+      "/api/v1/widget/conversations",
       {
         headers: {
           Authorization: `Bearer ${testData.apiKeyRaw}`,
@@ -271,7 +271,7 @@ test.describe("Business Rules", () => {
 
     // Fetch messages (should be empty for new conversation)
     const messagesResp = await request.get(
-      `/v1/widget/conversations/${conversation.id}/messages`,
+      `/api/v1/widget/conversations/${conversation.id}/messages`,
       {
         headers: {
           Authorization: `Bearer ${testData.apiKeyRaw}`,
@@ -292,7 +292,7 @@ test.describe("Business Rules", () => {
     request,
   }) => {
     const response = await request.get(
-      `/v1/widget/conversations/00000000-0000-0000-0000-000000000000/messages`,
+      `/api/v1/widget/conversations/00000000-0000-0000-0000-000000000000/messages`,
       {
         headers: {
           Authorization: `Bearer ${testData.apiKeyRaw}`,
