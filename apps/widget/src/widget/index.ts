@@ -11,9 +11,20 @@
 })();
 
 import { init, destroy, getSdkApi } from "@deliverychat/sdk";
-import type { InitOptions, DeliveryChatAPI } from "@deliverychat/sdk";
+import type { InitOptions, DeliveryChatAPI, SdkEventMap, IdentifyParams } from "@deliverychat/sdk";
 
 const sdkApi = getSdkApi();
+
+const queueHandlers: Record<string, (...args: unknown[]) => void> = {
+  init: (opts) => init(opts as InitOptions),
+  on: (event, callback) =>
+    typeof event === "string" && typeof callback === "function" &&
+    sdkApi.on(event as keyof SdkEventMap, callback as (...args: unknown[]) => void),
+  sendMessage: (text) =>
+    typeof text === "string" && sdkApi.sendMessage(text),
+  identify: (params) =>
+    typeof params === "object" && params !== null && sdkApi.identify(params as IdentifyParams),
+};
 
 const w = window as unknown as { DeliveryChat?: { queue?: unknown[] } };
 const queue = w.DeliveryChat?.queue;
@@ -21,15 +32,7 @@ if (Array.isArray(queue)) {
   for (const item of queue) {
     if (Array.isArray(item)) {
       const [method, ...args] = item;
-      if (method === "init") {
-        init(args[0] as InitOptions);
-      } else if (method === "on" && typeof args[0] === "string" && typeof args[1] === "function") {
-        sdkApi.on(args[0] as keyof import("@deliverychat/sdk").SdkEventMap, args[1]);
-      } else if (method === "sendMessage" && typeof args[0] === "string") {
-        sdkApi.sendMessage(args[0]);
-      } else if (method === "identify" && typeof args[0] === "object" && args[0] !== null) {
-        sdkApi.identify(args[0] as import("@deliverychat/sdk").IdentifyParams);
-      }
+      queueHandlers[method as string]?.(...args);
     }
   }
 }
