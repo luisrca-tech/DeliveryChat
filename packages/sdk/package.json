@@ -1,6 +1,6 @@
 {
   "name": "@deliverychat/sdk",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "DeliveryChat JavaScript SDK — embeddable chat widget with headless mode, typed events, and visitor identity",
   "license": "MIT",
   "type": "module",
@@ -27,6 +27,7 @@
   },
   "scripts": {
     "build": "vite build",
+    "prepublishOnly": "bun run build",
     "check-bundle-size": "node scripts/CheckBundleSize.js",
     "check-types": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",

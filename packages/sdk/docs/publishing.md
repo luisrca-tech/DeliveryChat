@@ -57,10 +57,20 @@ The ESM output is a single module. Consumers using modern bundlers can tree-shak
 
 ## Publishing
 
+The package includes a `prepublishOnly` script that runs `bun run build` automatically before every `npm publish`, ensuring dist artifacts are always fresh:
+
 ```bash
 cd packages/sdk
-bun run build
-npm publish --access public
+npm publish
 ```
 
+There is no need to run `bun run build` manually before publishing — the `prepublishOnly` hook handles it.
+
 The `files` field in `package.json` restricts the published package to `dist/` only.
+
+### Version History
+
+| Version | Status     | Notes                                             |
+| ------- | ---------- | ------------------------------------------------- |
+| `1.0.0` | **stable** | First stable release with publish safety net      |
+| `0.1.0` | deprecated | Placeholder release — use `1.0.0` or later        |
