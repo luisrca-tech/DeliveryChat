@@ -698,7 +698,7 @@ export async function leaveConversation(
     await broadcastSystemMessage(
       conversationId,
       organizationId,
-      `${operatorName} left the conversation`,
+      `${operatorName} left the conversation you'll be able to chat with them again soon`,
     );
   } catch (err) {
     console.error("[chat.service] leaveConversation system message failed", err);

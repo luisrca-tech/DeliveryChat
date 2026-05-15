@@ -499,7 +499,7 @@ describe("chat.service", () => {
       conversationId: "conv-1",
       senderId: null,
       type: "system",
-      content: "Alice left the conversation",
+      content: "Alice left the conversation you'll be able to chat with them again soon",
       createdAt: "2026-01-01T00:00:00Z",
     };
 
@@ -573,7 +573,7 @@ describe("chat.service", () => {
       conversationId: "conv-1",
       senderId: null,
       type: "system",
-      content: "Alice resolved the conversation",
+      content: "Alice resolved the conversation you'll be able to chat with them again soon",
       createdAt: "2026-01-01T00:00:00Z",
     };
 
