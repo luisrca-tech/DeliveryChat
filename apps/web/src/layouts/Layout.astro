@@ -3,9 +3,11 @@ import "@repo/ui/styles.css";
 import { Toaster } from "@repo/ui/components/ui/sonner";
 import { getFaviconPublicSrc } from "../lib/faviconPublicSrc";
 import { getApiUrl } from "../lib/urls";
+import { env } from "../env";
 
 const widgetApiBaseUrl = getApiUrl();
 const faviconSrc = getFaviconPublicSrc();
+const demoAppId = env.DEMO_CHAT_APP_ID;
 ---
 
 <!doctype html>
@@ -23,9 +25,9 @@ const faviconSrc = getFaviconPublicSrc();
     <Toaster client:load richColors />
 
     <script is:inline src={`${widgetApiBaseUrl}/widget.js`}></script>
-    <script is:inline define:vars={{ widgetApiBaseUrl }}>
+    <script is:inline define:vars={{ widgetApiBaseUrl, demoAppId }}>
       DeliveryChat.init({
-        appId: "ffd90330-2480-4870-8782-4559440aea7b",
+        appId: demoAppId,
         apiBaseUrl: widgetApiBaseUrl,
       });
     </script>
