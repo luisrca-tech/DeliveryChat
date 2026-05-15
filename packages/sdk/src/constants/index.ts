@@ -53,13 +53,10 @@ export const PERMANENT_ERROR_CODES = new Set([
   "INVALID_TOKEN",
   "APP_NOT_FOUND",
 ]);
-export const PERMANENT_CLOSE_CODES = new Set([
-  1008,
-]);
+export const PERMANENT_CLOSE_CODES = new Set([1008]);
 
 export const CONV_STORAGE_PREFIX = "dc_conv_";
 export const LAST_MSG_STORAGE_PREFIX = "dc_lastmsg_";
-
 
 export const TYPING_THROTTLE_MS = 2_000;
 export const LONG_PRESS_MS = 500;

@@ -4,7 +4,10 @@ import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { organization } from "../../db/schema/organization.js";
-import { requireWidgetAuth, getWidgetAuth } from "../../lib/middleware/widgetAuth.js";
+import {
+  requireWidgetAuth,
+  getWidgetAuth,
+} from "../../lib/middleware/widgetAuth.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../../lib/http.js";
 import { upsertVisitorIdentity } from "./identity.service.js";
 import { verifyHmac } from "./hmac.service.js";
@@ -19,7 +22,10 @@ const identifyBodySchema = z
   })
   .refine(
     (data) => data.name || data.email || data.externalId || data.metadata,
-    { message: "At least one identity field (name, email, externalId, or metadata) is required" },
+    {
+      message:
+        "At least one identity field (name, email, externalId, or metadata) is required",
+    },
   );
 
 export const identifyRoute = new Hono().post(
@@ -29,7 +35,11 @@ export const identifyRoute = new Hono().post(
   async (c) => {
     const widgetAuth = getWidgetAuth(c);
     if (!widgetAuth) {
-      return jsonError(c, HTTP_STATUS.UNAUTHORIZED, ERROR_MESSAGES.UNAUTHORIZED);
+      return jsonError(
+        c,
+        HTTP_STATUS.UNAUTHORIZED,
+        ERROR_MESSAGES.UNAUTHORIZED,
+      );
     }
 
     const visitorId = c.req.header("X-Visitor-Id")?.trim();

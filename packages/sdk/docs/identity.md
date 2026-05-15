@@ -26,16 +26,16 @@ await DeliveryChat.identify({
 
 ## Parameters
 
-| Field        | Type                     | Required | Description                        |
-|-------------|--------------------------|----------|------------------------------------|
-| `name`       | `string`                 | No*      | Display name                       |
-| `email`      | `string`                 | No*      | Email address                      |
-| `externalId` | `string`                 | No*      | Your system's user ID              |
-| `metadata`   | `Record<string, unknown>`| No*      | Arbitrary key-value data           |
-| `hmac`       | `string`                 | No**     | HMAC-SHA256 signature              |
+| Field        | Type                      | Required | Description              |
+| ------------ | ------------------------- | -------- | ------------------------ |
+| `name`       | `string`                  | No\*     | Display name             |
+| `email`      | `string`                  | No\*     | Email address            |
+| `externalId` | `string`                  | No\*     | Your system's user ID    |
+| `metadata`   | `Record<string, unknown>` | No\*     | Arbitrary key-value data |
+| `hmac`       | `string`                  | No\*\*   | HMAC-SHA256 signature    |
 
 \* At least one of `name`, `email`, `externalId`, or `metadata` must be provided.
-\** Required when the tenant has identity verification enabled.
+\*\* Required when the tenant has identity verification enabled.
 
 ## Return Value
 
@@ -48,7 +48,10 @@ Returns a `Promise<IdentityResult>` with the upserted identity record.
 ```html
 <script>
   window.DeliveryChat = window.DeliveryChat || { queue: [] };
-  window.DeliveryChat.queue.push(["identify", { name: "Jane", email: "jane@co.com" }]);
+  window.DeliveryChat.queue.push([
+    "identify",
+    { name: "Jane", email: "jane@co.com" },
+  ]);
 </script>
 ```
 

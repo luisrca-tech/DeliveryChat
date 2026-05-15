@@ -10,11 +10,11 @@ The SDK is published to npm as `@deliverychat/sdk`, providing ESM, CJS, and Type
 
 Vite lib-mode (`vite.config.ts`) produces:
 
-| Output | Path | Format | Consumers |
-|--------|------|--------|-----------|
-| ESM | `dist/index.mjs` | ES modules | Modern bundlers (Vite, esbuild, webpack 5+) |
-| CJS | `dist/index.cjs` | CommonJS | Node.js, legacy bundlers |
-| Types | `dist/*.d.ts` | TypeScript declarations | IDE autocomplete, type checking |
+| Output | Path             | Format                  | Consumers                                   |
+| ------ | ---------------- | ----------------------- | ------------------------------------------- |
+| ESM    | `dist/index.mjs` | ES modules              | Modern bundlers (Vite, esbuild, webpack 5+) |
+| CJS    | `dist/index.cjs` | CommonJS                | Node.js, legacy bundlers                    |
+| Types  | `dist/*.d.ts`    | TypeScript declarations | IDE autocomplete, type checking             |
 
 The `vite-plugin-dts` plugin generates declarations from source. Test files (`*.test.ts`) are excluded from declaration output.
 

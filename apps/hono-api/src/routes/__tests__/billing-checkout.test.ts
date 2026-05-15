@@ -4,7 +4,17 @@ import type Stripe from "stripe";
 
 function chainMock(result: unknown) {
   const chain: Record<string, unknown> = {};
-  const methods = ["from", "where", "innerJoin", "leftJoin", "orderBy", "limit", "offset", "values", "set"];
+  const methods = [
+    "from",
+    "where",
+    "innerJoin",
+    "leftJoin",
+    "orderBy",
+    "limit",
+    "offset",
+    "values",
+    "set",
+  ];
   for (const method of methods) {
     chain[method] = vi.fn(() => chain);
   }
@@ -83,7 +93,8 @@ let mockOrganization = {
 };
 
 vi.mock("../../lib/middleware/auth.js", () => ({
-  requireTenantAuth: () => async (_c: unknown, next: () => Promise<void>) => next(),
+  requireTenantAuth: () => async (_c: unknown, next: () => Promise<void>) =>
+    next(),
   requireRole: () => async (_c: unknown, next: () => Promise<void>) => next(),
   getTenantAuth: () => ({
     user: { id: "user-1" },
@@ -93,7 +104,9 @@ vi.mock("../../lib/middleware/auth.js", () => ({
 }));
 
 vi.mock("../../lib/middleware/rateLimit.js", () => ({
-  createTenantRateLimitMiddleware: () => async (_c: unknown, next: () => Promise<void>) => next(),
+  createTenantRateLimitMiddleware:
+    () => async (_c: unknown, next: () => Promise<void>) =>
+      next(),
 }));
 
 vi.mock("../../lib/http.js", async () => {

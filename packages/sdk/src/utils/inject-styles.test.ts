@@ -9,8 +9,9 @@ class FakeStyleSheet {
 }
 
 function getAppliedCss(shadow: ShadowRoot): string | null {
-  const adopted = (shadow as unknown as { adoptedStyleSheets?: FakeStyleSheet[] })
-    .adoptedStyleSheets;
+  const adopted = (
+    shadow as unknown as { adoptedStyleSheets?: FakeStyleSheet[] }
+  ).adoptedStyleSheets;
   if (adopted && adopted.length > 0) {
     return adopted.map((s) => s.cssText).join("\n");
   }

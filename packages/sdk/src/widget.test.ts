@@ -11,7 +11,12 @@ vi.mock("./config.js", () => ({
 }));
 
 const mockSdkApi = {
-  emitter: { on: vi.fn(), off: vi.fn(), emit: vi.fn(), removeAllListeners: vi.fn() },
+  emitter: {
+    on: vi.fn(),
+    off: vi.fn(),
+    emit: vi.fn(),
+    removeAllListeners: vi.fn(),
+  },
   markInitialized: vi.fn(),
   markDestroyed: vi.fn(),
   isHeadless: vi.fn(() => false),
@@ -45,9 +50,10 @@ vi.mock("./state.js", () => {
   return {
     getState: vi.fn((key: string) => state[key]),
     setState: vi.fn((key: string, value: unknown) => {
-      state[key] = typeof value === "function"
-        ? (value as (p: unknown) => unknown)(state[key])
-        : value;
+      state[key] =
+        typeof value === "function"
+          ? (value as (p: unknown) => unknown)(state[key])
+          : value;
     }),
     subscribe: vi.fn(() => () => {}),
   };
@@ -99,7 +105,10 @@ describe("widget init — headless mode", () => {
   it("marks SDK as initialized with headless flag", async () => {
     await init({ appId: "app-1", headless: true });
     const sdkApi = getSdkApi();
-    expect(sdkApi.markInitialized).toHaveBeenCalledWith({ headless: true, appId: "app-1" });
+    expect(sdkApi.markInitialized).toHaveBeenCalledWith({
+      headless: true,
+      appId: "app-1",
+    });
   });
 
   it("creates Shadow DOM host in normal (non-headless) mode", async () => {

@@ -22,29 +22,29 @@ widget.ts ──> SdkApi
 
 ### Public API (exposed via `window.DeliveryChat`)
 
-| Method | Description |
-|---|---|
-| `open()` | Opens the chat window, connects WS lazily, resets unread count |
-| `close()` | Closes the chat window |
-| `toggle()` | Toggles open/close |
-| `hideWidget()` / `showWidget()` | Controls launcher visibility |
-| `sendMessage(text)` | Sends a message, returns `Promise<ChatMessage>` |
-| `identify(params)` | Associates visitor with external identity |
-| `getConversation()` | Returns current conversation snapshot |
-| `on(event, cb)` / `off(event, cb)` | Event subscription |
+| Method                             | Description                                                    |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `open()`                           | Opens the chat window, connects WS lazily, resets unread count |
+| `close()`                          | Closes the chat window                                         |
+| `toggle()`                         | Toggles open/close                                             |
+| `hideWidget()` / `showWidget()`    | Controls launcher visibility                                   |
+| `sendMessage(text)`                | Sends a message, returns `Promise<ChatMessage>`                |
+| `identify(params)`                 | Associates visitor with external identity                      |
+| `getConversation()`                | Returns current conversation snapshot                          |
+| `on(event, cb)` / `off(event, cb)` | Event subscription                                             |
 
 ### Internal Orchestration (used by widget.ts)
 
-| Method | Description |
-|---|---|
-| `initChat({ appId })` | Initializes visitor, restores conversation history, connects WS if needed |
-| `openChat()` | Resets unread count, marks conversation as read, lazy WS connect |
-| `editMessage(id, content)` | Optimistic update + WS message |
-| `deleteMessage(id)` | Optimistic soft-delete + WS message |
-| `notifyTypingStart()` / `notifyTypingStop()` | Throttled typing indicators via WS |
-| `startNewChat()` | Resets conversation state and persistence |
-| `connectEagerly()` | Connects WS immediately (headless mode) |
-| `destroyChat()` | Full cleanup: pipeline, WS disconnect, persistence, state reset |
+| Method                                       | Description                                                               |
+| -------------------------------------------- | ------------------------------------------------------------------------- |
+| `initChat({ appId })`                        | Initializes visitor, restores conversation history, connects WS if needed |
+| `openChat()`                                 | Resets unread count, marks conversation as read, lazy WS connect          |
+| `editMessage(id, content)`                   | Optimistic update + WS message                                            |
+| `deleteMessage(id)`                          | Optimistic soft-delete + WS message                                       |
+| `notifyTypingStart()` / `notifyTypingStop()` | Throttled typing indicators via WS                                        |
+| `startNewChat()`                             | Resets conversation state and persistence                                 |
+| `connectEagerly()`                           | Connects WS immediately (headless mode)                                   |
+| `destroyChat()`                              | Full cleanup: pipeline, WS disconnect, persistence, state reset           |
 
 ## Singleton Pattern
 

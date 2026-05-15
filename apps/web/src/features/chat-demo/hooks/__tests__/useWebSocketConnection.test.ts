@@ -17,7 +17,10 @@ class MockWebSocket {
 
   removeEventListener(event: string, handler: (...args: unknown[]) => void) {
     const existing = this.handlers.get(event) ?? [];
-    this.handlers.set(event, existing.filter((h) => h !== handler));
+    this.handlers.set(
+      event,
+      existing.filter((h) => h !== handler),
+    );
   }
 
   trigger(event: string, ...args: unknown[]) {
@@ -62,7 +65,10 @@ describe("useWebSocketConnection", () => {
     await waitFor(() => {
       const lastSocket = sockets[sockets.length - 1];
       expect(lastSocket?.send).toHaveBeenCalledWith(
-        JSON.stringify({ type: "room:join", payload: { conversationId: "conv-1" } }),
+        JSON.stringify({
+          type: "room:join",
+          payload: { conversationId: "conv-1" },
+        }),
       );
     });
   });

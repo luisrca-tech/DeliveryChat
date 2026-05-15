@@ -1,7 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { Hono } from "hono";
 import { queryMonitorMiddleware } from "./queryMonitor.js";
-import { queryCounterStore, incrementQueryCount, recordQuery } from "./queryCounterStore.js";
+import {
+  queryCounterStore,
+  incrementQueryCount,
+  recordQuery,
+} from "./queryCounterStore.js";
 
 describe("queryMonitor middleware", () => {
   let app: Hono;
@@ -63,9 +67,7 @@ describe("queryMonitor middleware", () => {
     expect(warnSpy).toHaveBeenCalledWith(
       expect.stringContaining("[QUERY ALERT]"),
     );
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining("3 queries"),
-    );
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining("3 queries"));
   });
 
   it("does not warn when query count is within threshold", async () => {
@@ -159,9 +161,7 @@ describe("queryMonitor middleware", () => {
     });
 
     await app.request("/test");
-    expect(debugSpy).toHaveBeenCalledWith(
-      expect.stringContaining("1 queries"),
-    );
+    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining("1 queries"));
   });
 
   it("isolates query counts between concurrent requests", async () => {
@@ -185,9 +185,12 @@ describe("queryMonitor middleware", () => {
     it("adds Server-Timing header when X-Debug-Timing is set and user is super_admin", async () => {
       app.use("*", queryMonitorMiddleware());
       app.get("/test", (c) => {
-        c.set("auth" as never, {
-          membership: { role: "super_admin" },
-        } as never);
+        c.set(
+          "auth" as never,
+          {
+            membership: { role: "super_admin" },
+          } as never,
+        );
         recordQuery("SELECT * FROM conversations");
         recordQuery("SELECT * FROM messages");
         return c.text("ok");
@@ -207,9 +210,12 @@ describe("queryMonitor middleware", () => {
     it("does NOT add Server-Timing header without X-Debug-Timing header", async () => {
       app.use("*", queryMonitorMiddleware());
       app.get("/test", (c) => {
-        c.set("auth" as never, {
-          membership: { role: "super_admin" },
-        } as never);
+        c.set(
+          "auth" as never,
+          {
+            membership: { role: "super_admin" },
+          } as never,
+        );
         recordQuery("SELECT 1");
         return c.text("ok");
       });
@@ -221,9 +227,12 @@ describe("queryMonitor middleware", () => {
     it("does NOT add Server-Timing header when user is not super_admin", async () => {
       app.use("*", queryMonitorMiddleware());
       app.get("/test", (c) => {
-        c.set("auth" as never, {
-          membership: { role: "operator" },
-        } as never);
+        c.set(
+          "auth" as never,
+          {
+            membership: { role: "operator" },
+          } as never,
+        );
         recordQuery("SELECT 1");
         return c.text("ok");
       });
@@ -238,9 +247,12 @@ describe("queryMonitor middleware", () => {
     it("does NOT add Server-Timing header when user is admin (not super_admin)", async () => {
       app.use("*", queryMonitorMiddleware());
       app.get("/test", (c) => {
-        c.set("auth" as never, {
-          membership: { role: "admin" },
-        } as never);
+        c.set(
+          "auth" as never,
+          {
+            membership: { role: "admin" },
+          } as never,
+        );
         recordQuery("SELECT 1");
         return c.text("ok");
       });
@@ -285,9 +297,12 @@ describe("queryMonitor middleware", () => {
     it("includes per-query breakdown in Server-Timing when queries are recorded", async () => {
       app.use("*", queryMonitorMiddleware());
       app.get("/test", (c) => {
-        c.set("auth" as never, {
-          membership: { role: "super_admin" },
-        } as never);
+        c.set(
+          "auth" as never,
+          {
+            membership: { role: "super_admin" },
+          } as never,
+        );
         recordQuery("SELECT * FROM conversations");
         recordQuery("SELECT COUNT(*) FROM messages");
         return c.text("ok");

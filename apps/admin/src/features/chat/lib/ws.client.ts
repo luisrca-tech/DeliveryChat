@@ -19,7 +19,10 @@ export class WebSocketManager {
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private intentionalClose = false;
-  private activeRoom: { conversationId: string; lastMessageId?: string } | null = null;
+  private activeRoom: {
+    conversationId: string;
+    lastMessageId?: string;
+  } | null = null;
 
   constructor(config: WSClientConfig) {
     this.config = config;
@@ -30,10 +33,15 @@ export class WebSocketManager {
     lastMessageId?: string,
     force = false,
   ): void {
-    console.log(`[WS:Client] setActiveRoom convId=${conversationId} prev=${this.activeRoom?.conversationId ?? "none"} connected=${this.isConnected}`);
+    console.log(
+      `[WS:Client] setActiveRoom convId=${conversationId} prev=${this.activeRoom?.conversationId ?? "none"} connected=${this.isConnected}`,
+    );
 
     if (this.activeRoom && this.activeRoom.conversationId !== conversationId) {
-      this.send({ type: "room:leave", payload: { conversationId: this.activeRoom.conversationId } });
+      this.send({
+        type: "room:leave",
+        payload: { conversationId: this.activeRoom.conversationId },
+      });
     }
 
     if (!conversationId) {
@@ -43,7 +51,8 @@ export class WebSocketManager {
 
     const sameRoom =
       this.activeRoom?.conversationId === conversationId &&
-      (this.activeRoom.lastMessageId ?? undefined) === (lastMessageId ?? undefined);
+      (this.activeRoom.lastMessageId ?? undefined) ===
+        (lastMessageId ?? undefined);
     if (sameRoom && !force) {
       return;
     }
@@ -54,10 +63,15 @@ export class WebSocketManager {
       console.log(`[WS:Client] sending room:join for ${conversationId}`);
       this.send({
         type: "room:join",
-        payload: { conversationId, ...(lastMessageId ? { lastMessageId } : {}) },
+        payload: {
+          conversationId,
+          ...(lastMessageId ? { lastMessageId } : {}),
+        },
       });
     } else {
-      console.log(`[WS:Client] WS not connected — room:join buffered for ${conversationId}`);
+      console.log(
+        `[WS:Client] WS not connected — room:join buffered for ${conversationId}`,
+      );
     }
   }
 
@@ -89,15 +103,21 @@ export class WebSocketManager {
         this.reconnectAttempts = 0;
         this.config.onConnectionChange(true);
         this.startPing();
-        console.log(`[WS:Client] connected — activeRoom=${this.activeRoom?.conversationId ?? "none"}`);
+        console.log(
+          `[WS:Client] connected — activeRoom=${this.activeRoom?.conversationId ?? "none"}`,
+        );
 
         if (this.activeRoom) {
-          console.log(`[WS:Client] auto-joining room ${this.activeRoom.conversationId} on connect`);
+          console.log(
+            `[WS:Client] auto-joining room ${this.activeRoom.conversationId} on connect`,
+          );
           this.send({
             type: "room:join",
             payload: {
               conversationId: this.activeRoom.conversationId,
-              ...(this.activeRoom.lastMessageId ? { lastMessageId: this.activeRoom.lastMessageId } : {}),
+              ...(this.activeRoom.lastMessageId
+                ? { lastMessageId: this.activeRoom.lastMessageId }
+                : {}),
             },
           });
         }
@@ -106,7 +126,12 @@ export class WebSocketManager {
       this.ws.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data) as WSServerEvent;
-          console.log(`[WS:Client] received event=${parsed.type}`, parsed.type === "message:new" ? `from=${(parsed.payload as { senderId: string }).senderId}` : "");
+          console.log(
+            `[WS:Client] received event=${parsed.type}`,
+            parsed.type === "message:new"
+              ? `from=${(parsed.payload as { senderId: string }).senderId}`
+              : "",
+          );
           this.config.onEvent(parsed);
         } catch {
           // Ignore non-JSON messages

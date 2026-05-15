@@ -43,15 +43,20 @@ async function flushTokenFetch(): Promise<void> {
 
 describe("ConnectionEngine", () => {
   let engine: ConnectionEngine;
-  let onStateChange: ReturnType<typeof vi.fn<(state: ConnectionState, error?: ConnectionError) => void>>;
-  let onMessage: ReturnType<typeof vi.fn<(event: { type: string; payload?: unknown }) => void>>;
+  let onStateChange: ReturnType<
+    typeof vi.fn<(state: ConnectionState, error?: ConnectionError) => void>
+  >;
+  let onMessage: ReturnType<
+    typeof vi.fn<(event: { type: string; payload?: unknown }) => void>
+  >;
 
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     wsInstances.length = 0;
 
-    onStateChange = vi.fn<(state: ConnectionState, error?: ConnectionError) => void>();
+    onStateChange =
+      vi.fn<(state: ConnectionState, error?: ConnectionError) => void>();
     onMessage = vi.fn<(event: { type: string; payload?: unknown }) => void>();
     engine = new ConnectionEngine({ onStateChange, onMessage });
   });
@@ -300,12 +305,14 @@ describe("ConnectionEngine", () => {
     it("reports permanent error when server sends a permanent error code before close", async () => {
       await connect();
 
-      onMessage.mockImplementation((event: { type: string; payload?: unknown }) => {
-        if (event.type === "error") {
-          const payload = event.payload as { code: string };
-          engine.markServerError(payload.code);
-        }
-      });
+      onMessage.mockImplementation(
+        (event: { type: string; payload?: unknown }) => {
+          if (event.type === "error") {
+            const payload = event.payload as { code: string };
+            engine.markServerError(payload.code);
+          }
+        },
+      );
 
       latestWS().onmessage?.({
         data: JSON.stringify({

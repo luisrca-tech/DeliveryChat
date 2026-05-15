@@ -45,8 +45,6 @@ export const conversations = createTable(
       table.organizationId,
       table.status,
     ),
-    assignedToIdx: index("conversations_assigned_to_idx").on(
-      table.assignedTo,
-    ),
+    assignedToIdx: index("conversations_assigned_to_idx").on(table.assignedTo),
   }),
 );

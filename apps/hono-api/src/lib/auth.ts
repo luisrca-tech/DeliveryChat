@@ -1,11 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import {
-  anonymous,
-  bearer,
-  organization,
-  emailOTP,
-} from "better-auth/plugins";
+import { anonymous, bearer, organization, emailOTP } from "better-auth/plugins";
 import { db } from "../db/index.js";
 import * as schema from "../db/schema/index.js";
 import { member } from "../db/schema/member.js";
@@ -187,7 +182,14 @@ export const auth = betterAuth({
         operator,
       },
       async sendInvitationEmail(data) {
-        console.info("[Auth] Sending invitation email to:", data.email, "for org:", data.organization.name, "role:", data.role);
+        console.info(
+          "[Auth] Sending invitation email to:",
+          data.email,
+          "for org:",
+          data.organization.name,
+          "role:",
+          data.role,
+        );
         // Link points to the admin frontend, which calls acceptInvitation client-side
         const orgSlug = data.organization.slug;
         const isDev = process.env.NODE_ENV !== "production";
@@ -203,7 +205,10 @@ export const auth = betterAuth({
             role: data.role,
             inviteLink,
           });
-          console.info("[Auth] Invitation email sent successfully to:", data.email);
+          console.info(
+            "[Auth] Invitation email sent successfully to:",
+            data.email,
+          );
         } catch (error) {
           console.error("[Auth] Failed to send invitation email:", error);
         }
@@ -280,7 +285,11 @@ export const auth = betterAuth({
             .limit(1);
 
           if (pendingInvite) {
-            console.info("[Auth:databaseHooks] Activating invited user:", createdUser.id, createdUser.email);
+            console.info(
+              "[Auth:databaseHooks] Activating invited user:",
+              createdUser.id,
+              createdUser.email,
+            );
             await db
               .update(user)
               .set({ status: "ACTIVE" })

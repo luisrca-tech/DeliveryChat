@@ -61,7 +61,9 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
 
   test("visitor sends message, operator receives it in real-time", async () => {
     // 1. Connect both users
-    const visitor = await connectWebSocket(visitorWsUrl(testData.visitorUser.id));
+    const visitor = await connectWebSocket(
+      visitorWsUrl(testData.visitorUser.id),
+    );
     const operator = await connectWebSocket(operatorWsUrl());
     await sleep(500);
 
@@ -90,7 +92,9 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
     // 4. Visitor receives ACK
     const ack = await waitForMessage(
       visitor.messages,
-      (m) => m.type === "message:ack" && m.payload.clientMessageId === "visitor-msg-1",
+      (m) =>
+        m.type === "message:ack" &&
+        m.payload.clientMessageId === "visitor-msg-1",
       10000,
     );
     expect(ack.payload.serverMessageId).toBeDefined();
@@ -99,7 +103,9 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
     // 5. Operator receives the message
     const received = await waitForMessage(
       operator.messages,
-      (m) => m.type === "message:new" && m.payload.content === "Hi, I need help with my order!",
+      (m) =>
+        m.type === "message:new" &&
+        m.payload.content === "Hi, I need help with my order!",
       10000,
     );
     expect(received.payload.senderId).toBe(testData.visitorUser.id);
@@ -110,12 +116,17 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
   });
 
   test("operator responds, visitor receives it in real-time", async () => {
-    const visitor = await connectWebSocket(visitorWsUrl(testData.visitorUser.id));
+    const visitor = await connectWebSocket(
+      visitorWsUrl(testData.visitorUser.id),
+    );
     const operator = await connectWebSocket(operatorWsUrl());
     await sleep(300);
 
     sendWsEvent(visitor.ws, { type: "room:join", payload: { conversationId } });
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId } });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId },
+    });
     await sleep(300);
 
     // Operator responds
@@ -131,14 +142,18 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
     // Operator gets ACK
     const ack = await waitForMessage(
       operator.messages,
-      (m) => m.type === "message:ack" && m.payload.clientMessageId === "operator-msg-1",
+      (m) =>
+        m.type === "message:ack" &&
+        m.payload.clientMessageId === "operator-msg-1",
     );
     expect(ack.payload.serverMessageId).toBeDefined();
 
     // Visitor receives operator's message
     const received = await waitForMessage(
       visitor.messages,
-      (m) => m.type === "message:new" && m.payload.content === "Sure, let me check your order status.",
+      (m) =>
+        m.type === "message:new" &&
+        m.payload.content === "Sure, let me check your order status.",
     );
     expect(received.payload.senderId).toBe(testData.operatorUser.id);
 
@@ -147,12 +162,17 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
   });
 
   test("multiple messages in sequence maintain order", async () => {
-    const visitor = await connectWebSocket(visitorWsUrl(testData.visitorUser.id));
+    const visitor = await connectWebSocket(
+      visitorWsUrl(testData.visitorUser.id),
+    );
     const operator = await connectWebSocket(operatorWsUrl());
     await sleep(300);
 
     sendWsEvent(visitor.ws, { type: "room:join", payload: { conversationId } });
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId } });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId },
+    });
     await sleep(300);
 
     // Send 3 messages in sequence
@@ -213,7 +233,10 @@ test.describe("Flow 2: Operator ↔ Admin (Internal Conversation)", () => {
     const admin = await connectWebSocket(adminWsUrl());
     await sleep(300);
 
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId } });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId },
+    });
     sendWsEvent(admin.ws, { type: "room:join", payload: { conversationId } });
     await sleep(300);
 
@@ -230,7 +253,8 @@ test.describe("Flow 2: Operator ↔ Admin (Internal Conversation)", () => {
     // Admin receives
     const opMsg = await waitForMessage(
       admin.messages,
-      (m) => m.type === "message:new" && m.payload.content.includes("Customer #42"),
+      (m) =>
+        m.type === "message:new" && m.payload.content.includes("Customer #42"),
     );
     expect(opMsg.payload.senderId).toBe(testData.operatorUser.id);
 
@@ -260,7 +284,10 @@ test.describe("Flow 2: Operator ↔ Admin (Internal Conversation)", () => {
     const operator = await connectWebSocket(operatorWsUrl());
     await sleep(300);
 
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId } });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId },
+    });
     await sleep(200);
 
     sendWsEvent(operator.ws, {
@@ -274,7 +301,9 @@ test.describe("Flow 2: Operator ↔ Admin (Internal Conversation)", () => {
 
     const ack = await waitForMessage(
       operator.messages,
-      (m) => m.type === "message:ack" && m.payload.clientMessageId === "internal-no-app",
+      (m) =>
+        m.type === "message:ack" &&
+        m.payload.clientMessageId === "internal-no-app",
     );
     expect(ack.payload.serverMessageId).toBeDefined();
 
@@ -323,15 +352,26 @@ test.describe("Flow 3: Admin Escalation into Support Conversation", () => {
     await addParticipantInDB(supportConvId, testData.adminUser.id, "admin");
 
     // 2. Connect all three
-    const visitor = await connectWebSocket(visitorWsUrl(testData.visitorUser.id));
+    const visitor = await connectWebSocket(
+      visitorWsUrl(testData.visitorUser.id),
+    );
     const operator = await connectWebSocket(operatorWsUrl());
     const admin = await connectWebSocket(adminWsUrl());
     await sleep(300);
 
     // 3. All join the room
-    sendWsEvent(visitor.ws, { type: "room:join", payload: { conversationId: supportConvId } });
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId: supportConvId } });
-    sendWsEvent(admin.ws, { type: "room:join", payload: { conversationId: supportConvId } });
+    sendWsEvent(visitor.ws, {
+      type: "room:join",
+      payload: { conversationId: supportConvId },
+    });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId: supportConvId },
+    });
+    sendWsEvent(admin.ws, {
+      type: "room:join",
+      payload: { conversationId: supportConvId },
+    });
     await sleep(300);
 
     // 4. Visitor sends a message — both operator AND admin should receive it
@@ -347,14 +387,18 @@ test.describe("Flow 3: Admin Escalation into Support Conversation", () => {
     // Operator receives
     const opReceived = await waitForMessage(
       operator.messages,
-      (m) => m.type === "message:new" && m.payload.content.includes("waiting too long"),
+      (m) =>
+        m.type === "message:new" &&
+        m.payload.content.includes("waiting too long"),
     );
     expect(opReceived.payload.senderId).toBe(testData.visitorUser.id);
 
     // Admin receives too
     const adminReceived = await waitForMessage(
       admin.messages,
-      (m) => m.type === "message:new" && m.payload.content.includes("waiting too long"),
+      (m) =>
+        m.type === "message:new" &&
+        m.payload.content.includes("waiting too long"),
     );
     expect(adminReceived.payload.senderId).toBe(testData.visitorUser.id);
 
@@ -363,7 +407,8 @@ test.describe("Flow 3: Admin Escalation into Support Conversation", () => {
       type: "message:send",
       payload: {
         conversationId: supportConvId,
-        content: "I apologize for the delay. I am a manager and will handle this personally.",
+        content:
+          "I apologize for the delay. I am a manager and will handle this personally.",
         clientMessageId: "escalation-admin-1",
       },
     });
@@ -371,14 +416,18 @@ test.describe("Flow 3: Admin Escalation into Support Conversation", () => {
     // Visitor receives admin's message
     const visitorReceived = await waitForMessage(
       visitor.messages,
-      (m) => m.type === "message:new" && m.payload.content.includes("I am a manager"),
+      (m) =>
+        m.type === "message:new" &&
+        m.payload.content.includes("I am a manager"),
     );
     expect(visitorReceived.payload.senderId).toBe(testData.adminUser.id);
 
     // Operator also receives admin's message
     const opReceivedAdmin = await waitForMessage(
       operator.messages,
-      (m) => m.type === "message:new" && m.payload.content.includes("I am a manager"),
+      (m) =>
+        m.type === "message:new" &&
+        m.payload.content.includes("I am a manager"),
     );
     expect(opReceivedAdmin.payload.senderId).toBe(testData.adminUser.id);
 
@@ -407,12 +456,20 @@ test.describe("Flow 4: Reconnection and Message Sync", () => {
 
   test("visitor reconnects and receives missed messages via messages:sync", async () => {
     // 1. Visitor connects and joins
-    const visitor1 = await connectWebSocket(visitorWsUrl(testData.visitorUser.id));
+    const visitor1 = await connectWebSocket(
+      visitorWsUrl(testData.visitorUser.id),
+    );
     const operator = await connectWebSocket(operatorWsUrl());
     await sleep(300);
 
-    sendWsEvent(visitor1.ws, { type: "room:join", payload: { conversationId } });
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId } });
+    sendWsEvent(visitor1.ws, {
+      type: "room:join",
+      payload: { conversationId },
+    });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId },
+    });
     await sleep(300);
 
     // 2. Visitor sends a message to establish a known messageId
@@ -427,7 +484,9 @@ test.describe("Flow 4: Reconnection and Message Sync", () => {
 
     const firstAck = await waitForMessage(
       visitor1.messages,
-      (m) => m.type === "message:ack" && m.payload.clientMessageId === "reconnect-first",
+      (m) =>
+        m.type === "message:ack" &&
+        m.payload.clientMessageId === "reconnect-first",
     );
     const lastKnownMessageId = firstAck.payload.serverMessageId;
 
@@ -457,7 +516,9 @@ test.describe("Flow 4: Reconnection and Message Sync", () => {
     await sleep(200);
 
     // 5. Visitor reconnects with lastMessageId
-    const visitor2 = await connectWebSocket(visitorWsUrl(testData.visitorUser.id));
+    const visitor2 = await connectWebSocket(
+      visitorWsUrl(testData.visitorUser.id),
+    );
     await sleep(300);
 
     sendWsEvent(visitor2.ws, {
@@ -513,16 +574,30 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
   });
 
   test("messages in one room do not leak to another room", async () => {
-    const visitor = await connectWebSocket(visitorWsUrl(testData.visitorUser.id));
+    const visitor = await connectWebSocket(
+      visitorWsUrl(testData.visitorUser.id),
+    );
     const operator = await connectWebSocket(operatorWsUrl());
     const admin = await connectWebSocket(adminWsUrl());
     await sleep(300);
 
     // Visitor joins Conv A, Admin joins Conv B, Operator joins both
-    sendWsEvent(visitor.ws, { type: "room:join", payload: { conversationId: convA } });
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId: convA } });
-    sendWsEvent(operator.ws, { type: "room:join", payload: { conversationId: convB } });
-    sendWsEvent(admin.ws, { type: "room:join", payload: { conversationId: convB } });
+    sendWsEvent(visitor.ws, {
+      type: "room:join",
+      payload: { conversationId: convA },
+    });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId: convA },
+    });
+    sendWsEvent(operator.ws, {
+      type: "room:join",
+      payload: { conversationId: convB },
+    });
+    sendWsEvent(admin.ws, {
+      type: "room:join",
+      payload: { conversationId: convB },
+    });
     await sleep(300);
 
     // Send a message in Conv A
@@ -538,7 +613,9 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
     // Operator should receive it (they're in Conv A)
     const opReceived = await waitForMessage(
       operator.messages,
-      (m) => m.type === "message:new" && m.payload.content === "This is ONLY for Conv A",
+      (m) =>
+        m.type === "message:new" &&
+        m.payload.content === "This is ONLY for Conv A",
     );
     expect(opReceived).toBeDefined();
 
@@ -547,7 +624,10 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
     const adminGotConvAMessage = admin.messages.some((raw) => {
       try {
         const m = JSON.parse(raw);
-        return m.type === "message:new" && m.payload.content === "This is ONLY for Conv A";
+        return (
+          m.type === "message:new" &&
+          m.payload.content === "This is ONLY for Conv A"
+        );
       } catch {
         return false;
       }

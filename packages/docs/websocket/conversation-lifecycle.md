@@ -54,6 +54,7 @@ Widget                          REST API                        WebSocket
 ```
 
 **Database state after:**
+
 - `conversations`: new row, `status=pending`, `assignedTo=null`
 - `messages`: first message with `senderId=visitorId`
 - `conversation_participants`: visitor added with `role=visitor`
@@ -104,10 +105,12 @@ Sender                          Server                          Receiver
 ```
 
 **Message authorization rules:**
+
 - **Visitors:** Must be a participant of the conversation
 - **Operators/Admins:** Must be the `assignedTo` user of the conversation
 
 **Optimistic UI pattern:**
+
 1. Client generates a `clientMessageId` (UUID) and shows the message as "sending"
 2. Server persists, returns `message:ack` with the server-assigned `serverMessageId`
 3. Client replaces the pending message ID with the confirmed server ID
@@ -173,11 +176,11 @@ The widget receives `conversation:resolved` and updates the UI to show the conve
 
 ## Visibility Rules
 
-| Role | Sees in Queue (pending) | Sees in Active | Can Accept |
-|---|---|---|---|
-| Visitor | N/A | Own conversation only | N/A |
-| Operator | All pending conversations | Only assigned to them | Yes |
-| Admin / Super Admin | All pending conversations | All active conversations | Yes |
+| Role                | Sees in Queue (pending)   | Sees in Active           | Can Accept |
+| ------------------- | ------------------------- | ------------------------ | ---------- |
+| Visitor             | N/A                       | Own conversation only    | N/A        |
+| Operator            | All pending conversations | Only assigned to them    | Yes        |
+| Admin / Super Admin | All pending conversations | All active conversations | Yes        |
 
 ## Reconnection & Message Sync
 

@@ -11,19 +11,29 @@
 })();
 
 import { init, destroy, getSdkApi } from "@deliverychat/sdk";
-import type { InitOptions, DeliveryChatAPI, SdkEventMap, IdentifyParams } from "@deliverychat/sdk";
+import type {
+  InitOptions,
+  DeliveryChatAPI,
+  SdkEventMap,
+  IdentifyParams,
+} from "@deliverychat/sdk";
 
 const sdkApi = getSdkApi();
 
 const queueHandlers: Record<string, (...args: unknown[]) => void> = {
   init: (opts) => init(opts as InitOptions),
   on: (event, callback) =>
-    typeof event === "string" && typeof callback === "function" &&
-    sdkApi.on(event as keyof SdkEventMap, callback as (...args: unknown[]) => void),
-  sendMessage: (text) =>
-    typeof text === "string" && sdkApi.sendMessage(text),
+    typeof event === "string" &&
+    typeof callback === "function" &&
+    sdkApi.on(
+      event as keyof SdkEventMap,
+      callback as (...args: unknown[]) => void,
+    ),
+  sendMessage: (text) => typeof text === "string" && sdkApi.sendMessage(text),
   identify: (params) =>
-    typeof params === "object" && params !== null && sdkApi.identify(params as IdentifyParams),
+    typeof params === "object" &&
+    params !== null &&
+    sdkApi.identify(params as IdentifyParams),
 };
 
 const w = window as unknown as { DeliveryChat?: { queue?: unknown[] } };

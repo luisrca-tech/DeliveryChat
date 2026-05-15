@@ -22,19 +22,29 @@ vi.mock("./unifiedAuth.js", () => ({
 
 import { createUnifiedRateLimitMiddleware } from "./unifiedRateLimit.js";
 
-type UnifiedAuthContext = {
-  type: "member";
-  session: any;
-  user: { id: string; name: string };
-  organization: { id: string; plan: string } & Record<string, unknown>;
-  membership: { id: string; role: string; userId: string; organizationId: string };
-} | {
-  type: "visitor";
-  visitorId: string;
-  visitorUserId: string;
-  application: { id: string; organizationId: string } & Record<string, unknown>;
-  apiKey: { id: string; environment: "live" | "test" };
-};
+type UnifiedAuthContext =
+  | {
+      type: "member";
+      session: any;
+      user: { id: string; name: string };
+      organization: { id: string; plan: string } & Record<string, unknown>;
+      membership: {
+        id: string;
+        role: string;
+        userId: string;
+        organizationId: string;
+      };
+    }
+  | {
+      type: "visitor";
+      visitorId: string;
+      visitorUserId: string;
+      application: { id: string; organizationId: string } & Record<
+        string,
+        unknown
+      >;
+      apiKey: { id: string; environment: "live" | "test" };
+    };
 
 function createMemberAuth(orgId = "org-1"): UnifiedAuthContext {
   return {
@@ -42,7 +52,12 @@ function createMemberAuth(orgId = "org-1"): UnifiedAuthContext {
     session: {} as any,
     user: { id: "user-1", name: "Test User" },
     organization: { id: orgId, plan: "FREE" } as any,
-    membership: { id: "m-1", role: "operator", userId: "user-1", organizationId: orgId },
+    membership: {
+      id: "m-1",
+      role: "operator",
+      userId: "user-1",
+      organizationId: orgId,
+    },
   };
 }
 
@@ -55,7 +70,11 @@ function createVisitorAuth(
     type: "visitor",
     visitorId,
     visitorUserId,
-    application: { id: appId, organizationId: "org-1", allowedOrigins: [] } as any,
+    application: {
+      id: appId,
+      organizationId: "org-1",
+      allowedOrigins: [],
+    } as any,
     apiKey: { id: "key-1", environment: "live" },
   };
 }
@@ -143,7 +162,9 @@ describe("createUnifiedRateLimitMiddleware", () => {
 
   describe("bucket isolation", () => {
     it("visitor abuse does not consume the tenant rate limit bucket", async () => {
-      const visitorApp = createTestApp(createVisitorAuth("app-iso", "v-iso", "vu-iso"));
+      const visitorApp = createTestApp(
+        createVisitorAuth("app-iso", "v-iso", "vu-iso"),
+      );
       const memberApp = createTestApp(createMemberAuth("org-iso"));
 
       // Exhaust visitor bucket
@@ -161,7 +182,9 @@ describe("createUnifiedRateLimitMiddleware", () => {
 
   describe("rate limit headers", () => {
     it("returns Retry-After header on 429", async () => {
-      const app = createTestApp(createVisitorAuth("app-hdr", "v-hdr", "vu-hdr"));
+      const app = createTestApp(
+        createVisitorAuth("app-hdr", "v-hdr", "vu-hdr"),
+      );
 
       await app.request("/test");
       await app.request("/test");

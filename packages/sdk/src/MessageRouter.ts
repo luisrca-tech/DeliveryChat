@@ -161,9 +161,7 @@ export class MessageRouter {
 
     setState("messages", (prev) =>
       prev.map((msg) =>
-        msg.id === p.messageId
-          ? { ...msg, isDeleted: true, content: "" }
-          : msg,
+        msg.id === p.messageId ? { ...msg, isDeleted: true, content: "" } : msg,
       ),
     );
   }
@@ -186,7 +184,9 @@ export class MessageRouter {
     const syncedMessages: ChatMessage[] = p.messages.map((m) => ({
       id: m.id,
       content: m.content,
-      type: ((m as { type?: string }).type === "system" ? "system" : "text") as ChatMessage["type"],
+      type: ((m as { type?: string }).type === "system"
+        ? "system"
+        : "text") as ChatMessage["type"],
       senderRole: m.senderRole,
       senderId: m.senderId,
       status: "sent" as const,
@@ -214,7 +214,10 @@ export class MessageRouter {
       senderRole: p.senderRole,
     });
     if (this.typingTimer) clearTimeout(this.typingTimer);
-    this.typingTimer = setTimeout(() => setState("typingUser", null), WS_TYPING_TIMEOUT_MS);
+    this.typingTimer = setTimeout(
+      () => setState("typingUser", null),
+      WS_TYPING_TIMEOUT_MS,
+    );
   }
 
   private handleTypingStop(payload: unknown): void {
@@ -242,7 +245,9 @@ export class MessageRouter {
       setState("rateLimited", true);
       setState("rateLimitRetryAfter", retryAfter);
 
-      const rateLimitError = new Error(`[DeliveryChat] Rate limited: ${p.message}`);
+      const rateLimitError = new Error(
+        `[DeliveryChat] Rate limited: ${p.message}`,
+      );
       setState("messages", (prev) =>
         prev.map((msg) => {
           if (msg.status === "pending") {
@@ -262,7 +267,10 @@ export class MessageRouter {
       return;
     }
 
-    if (p.code === "CONVERSATION_NOT_ACTIVE" || p.code === "CONVERSATION_NOT_FOUND") {
+    if (
+      p.code === "CONVERSATION_NOT_ACTIVE" ||
+      p.code === "CONVERSATION_NOT_FOUND"
+    ) {
       clearStaleConversationPersistence();
       const convError = new Error(`[DeliveryChat] ${p.code}: ${p.message}`);
       setState("messages", (prev) =>
@@ -285,5 +293,4 @@ export class MessageRouter {
       this.typingTimer = null;
     }
   }
-
 }

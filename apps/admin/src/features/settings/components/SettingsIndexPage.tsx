@@ -1,4 +1,12 @@
-import { Settings, CreditCard, Package, Key, AppWindow, Gauge, Users } from "lucide-react";
+import {
+  Settings,
+  CreditCard,
+  Package,
+  Key,
+  AppWindow,
+  Gauge,
+  Users,
+} from "lucide-react";
 import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus";
 import { SettingsLinkCard } from "./SettingsLinkCard";
 

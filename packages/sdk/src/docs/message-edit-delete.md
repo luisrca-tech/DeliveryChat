@@ -4,12 +4,12 @@
 
 Each message bubble renders differently depending on its state:
 
-| State | Condition | Rendering |
-|---|---|---|
-| **Normal** | `editedAt` is null, `deletedAt` is null | Standard bubble with message content |
-| **Edited** | `editedAt` is set, `deletedAt` is null | Message content + "(edited)" label in muted text below content |
-| **Deleted** | `deletedAt` is set | Gray italic placeholder: "This message was deleted". No content shown. |
-| **Editing** | `editingMessageId === msg.id` | Inline textarea replaces content, with Save and Cancel buttons |
+| State       | Condition                               | Rendering                                                              |
+| ----------- | --------------------------------------- | ---------------------------------------------------------------------- |
+| **Normal**  | `editedAt` is null, `deletedAt` is null | Standard bubble with message content                                   |
+| **Edited**  | `editedAt` is set, `deletedAt` is null  | Message content + "(edited)" label in muted text below content         |
+| **Deleted** | `deletedAt` is set                      | Gray italic placeholder: "This message was deleted". No content shown. |
+| **Editing** | `editingMessageId === msg.id`           | Inline textarea replaces content, with Save and Cancel buttons         |
 
 ## Action Menu
 
@@ -27,6 +27,7 @@ The action menu is positioned absolutely above the message bubble, aligned to th
 ### Visibility rules
 
 Actions are hidden when:
+
 - The message was sent by another user
 - The message has `type: "system"`
 - The message is in a pending/failed state (no `serverMessageId`)
@@ -35,13 +36,13 @@ Actions are hidden when:
 
 ## CSS Classes
 
-| Class | Element | Purpose |
-|---|---|---|
-| `.message-actions` | Container div | Wraps edit/delete icon buttons, shown on hover/long-press |
+| Class              | Element        | Purpose                                                               |
+| ------------------ | -------------- | --------------------------------------------------------------------- |
+| `.message-actions` | Container div  | Wraps edit/delete icon buttons, shown on hover/long-press             |
 | `.message-editing` | Bubble wrapper | Applied to the bubble when in edit mode, adjusts padding for textarea |
-| `.message-deleted` | Bubble wrapper | Applied to deleted message placeholders, gray/italic styling |
-| `.edit-container` | Inner div | Contains the textarea, Save button, and Cancel button during editing |
-| `.delete-confirm` | Modal/overlay | Confirmation dialog before deleting a message |
+| `.message-deleted` | Bubble wrapper | Applied to deleted message placeholders, gray/italic styling          |
+| `.edit-container`  | Inner div      | Contains the textarea, Save button, and Cancel button during editing  |
+| `.delete-confirm`  | Modal/overlay  | Confirmation dialog before deleting a message                         |
 
 ## State Management
 
@@ -56,6 +57,7 @@ A single piece of state (`editingMessageId: string | null`) drives enter/exit of
 ### Edit textarea
 
 The textarea is pre-filled with the current message content. It auto-focuses on mount and supports:
+
 - **Enter** to save (without Shift)
 - **Shift+Enter** for newline
 - **Escape** to cancel
@@ -81,6 +83,7 @@ The textarea is pre-filled with the current message content. It auto-focuses on 
 ### Error recovery
 
 If the WebSocket event fails (connection lost, server error), the optimistic update is reverted:
+
 - Edited messages revert to their previous content.
 - Deleted messages reappear with their original content.
 

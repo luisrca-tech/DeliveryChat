@@ -13,8 +13,7 @@ type QueryCounterContext = {
   queries: QueryEntry[];
 };
 
-export const queryCounterStore =
-  new AsyncLocalStorage<QueryCounterContext>();
+export const queryCounterStore = new AsyncLocalStorage<QueryCounterContext>();
 
 export function incrementQueryCount(): void {
   const store = queryCounterStore.getStore();
@@ -30,9 +29,7 @@ export function recordQuery(sql: string): void {
   store.count++;
   store.queries.push({
     sql:
-      sql.length > MAX_SQL_LENGTH
-        ? sql.slice(0, MAX_SQL_LENGTH) + "..."
-        : sql,
+      sql.length > MAX_SQL_LENGTH ? sql.slice(0, MAX_SQL_LENGTH) + "..." : sql,
     timestamp: performance.now(),
   });
 }

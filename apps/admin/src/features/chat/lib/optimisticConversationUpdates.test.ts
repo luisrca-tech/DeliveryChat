@@ -74,7 +74,11 @@ describe("applyOptimisticAccept", () => {
 
   it("returns the data unchanged when conversation id is not found", () => {
     const data = makeListResponse();
-    const result = applyOptimisticAccept(data, "conv-nonexistent", "operator-99");
+    const result = applyOptimisticAccept(
+      data,
+      "conv-nonexistent",
+      "operator-99",
+    );
 
     expect(result).toEqual(data);
   });

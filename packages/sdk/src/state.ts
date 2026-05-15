@@ -50,9 +50,12 @@ export function getState<K extends keyof State>(key: K): State[K] {
 
 export function setState<K extends keyof State>(
   key: K,
-  value: State[K] | ((prev: State[K]) => State[K])
+  value: State[K] | ((prev: State[K]) => State[K]),
 ): void {
-  const next = typeof value === "function" ? (value as (p: State[K]) => State[K])(state[key]) : value;
+  const next =
+    typeof value === "function"
+      ? (value as (p: State[K]) => State[K])(state[key])
+      : value;
   if (state[key] === next) return;
   state = { ...state, [key]: next };
   listeners.get(key)?.forEach((fn) => fn(next));
@@ -60,7 +63,7 @@ export function setState<K extends keyof State>(
 
 export function subscribe<K extends keyof State>(
   key: K,
-  listener: Listener<State[K]>
+  listener: Listener<State[K]>,
 ): () => void {
   if (!listeners.has(key)) listeners.set(key, new Set());
   listeners.get(key)!.add(listener as Listener<unknown>);

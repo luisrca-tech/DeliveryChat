@@ -13,9 +13,12 @@ export function useMessageInput(
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setValue(e.target.value);
-  }, []);
+  const handleInputChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setValue(e.target.value);
+    },
+    [],
+  );
 
   const handleSend = useCallback(
     async (e?: React.FormEvent) => {

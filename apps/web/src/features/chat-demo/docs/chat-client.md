@@ -23,19 +23,19 @@ The `visitorId` must be provided by the caller (typically resolved via `resolveV
 
 #### Methods
 
-| Method | Endpoint |
-|---|---|
-| `getWsToken()` | `POST /api/ws-token` |
-| `createConversation(subject?)` | `POST /api/conversations` |
-| `listConversations(opts?)` | `GET /api/conversations` |
-| `getConversation(id)` | `GET /api/conversations/:id` |
-| `getMessages(conversationId, opts?)` | `GET /api/conversations/:id/messages` |
-| `sendMessage(conversationId, content)` | `POST /api/conversations/:id/messages` |
-| `editMessage(conversationId, messageId, content)` | `PATCH /api/conversations/:id/messages/:messageId` |
-| `deleteMessage(conversationId, messageId)` | `DELETE /api/conversations/:id/messages/:messageId` |
-| `markAsRead(conversationId, messageId)` | `POST /api/conversations/:id/read` |
-| `getUnreadCount(conversationId)` | `GET /api/conversations/:id/unread` |
-| `connectWebSocket(token)` | Opens `wss://<api-host>/v1/ws?token=<jwt>` |
+| Method                                            | Endpoint                                            |
+| ------------------------------------------------- | --------------------------------------------------- |
+| `getWsToken()`                                    | `POST /api/ws-token`                                |
+| `createConversation(subject?)`                    | `POST /api/conversations`                           |
+| `listConversations(opts?)`                        | `GET /api/conversations`                            |
+| `getConversation(id)`                             | `GET /api/conversations/:id`                        |
+| `getMessages(conversationId, opts?)`              | `GET /api/conversations/:id/messages`               |
+| `sendMessage(conversationId, content)`            | `POST /api/conversations/:id/messages`              |
+| `editMessage(conversationId, messageId, content)` | `PATCH /api/conversations/:id/messages/:messageId`  |
+| `deleteMessage(conversationId, messageId)`        | `DELETE /api/conversations/:id/messages/:messageId` |
+| `markAsRead(conversationId, messageId)`           | `POST /api/conversations/:id/read`                  |
+| `getUnreadCount(conversationId)`                  | `GET /api/conversations/:id/unread`                 |
+| `connectWebSocket(token)`                         | Opens `wss://<api-host>/v1/ws?token=<jwt>`          |
 
 ## visitorId module
 

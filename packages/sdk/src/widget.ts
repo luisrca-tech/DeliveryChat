@@ -173,7 +173,11 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     settings,
     getState("messages"),
     {
-      onSend: (text) => { getSdkApi().sendMessage(text).catch(() => {}); },
+      onSend: (text) => {
+        getSdkApi()
+          .sendMessage(text)
+          .catch(() => {});
+      },
       onTypingStart: () => getSdkApi().notifyTypingStart(),
       onTypingStop: () => getSdkApi().notifyTypingStop(),
       onClose: closeChat,
@@ -233,14 +237,19 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     chatWindow.insertBefore(statusBanner, messageListEl);
   }
 
-  const inputAreaEl = chatWindow.querySelector(".input-area") as HTMLElement | null;
+  const inputAreaEl = chatWindow.querySelector(
+    ".input-area",
+  ) as HTMLElement | null;
 
   const errorBanner = document.createElement("div");
   errorBanner.className = "error-banner";
   errorBanner.hidden = true;
   errorBanner.setAttribute("role", "alert");
   if (messageListEl) {
-    chatWindow.insertBefore(errorBanner, statusBanner.nextSibling ?? messageListEl);
+    chatWindow.insertBefore(
+      errorBanner,
+      statusBanner.nextSibling ?? messageListEl,
+    );
   }
 
   const unsubConnError = subscribe("connectionError", (error) => {
@@ -249,8 +258,12 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
       errorBanner.className = "error-banner";
       if (inputAreaEl) {
         inputAreaEl.classList.remove("input-disabled");
-        const input = inputAreaEl.querySelector("input") as HTMLInputElement | null;
-        const btn = inputAreaEl.querySelector("button") as HTMLButtonElement | null;
+        const input = inputAreaEl.querySelector(
+          "input",
+        ) as HTMLInputElement | null;
+        const btn = inputAreaEl.querySelector(
+          "button",
+        ) as HTMLButtonElement | null;
         if (input) input.disabled = false;
         if (btn) btn.disabled = false;
       }
@@ -259,14 +272,19 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
 
     errorBanner.textContent = error.userMessage;
     errorBanner.hidden = false;
-    errorBanner.className = error.type === "permanent"
-      ? "error-banner error-permanent"
-      : "error-banner error-temporary";
+    errorBanner.className =
+      error.type === "permanent"
+        ? "error-banner error-permanent"
+        : "error-banner error-temporary";
 
     if (error.type === "permanent" && inputAreaEl) {
       inputAreaEl.classList.add("input-disabled");
-      const input = inputAreaEl.querySelector("input") as HTMLInputElement | null;
-      const btn = inputAreaEl.querySelector("button") as HTMLButtonElement | null;
+      const input = inputAreaEl.querySelector(
+        "input",
+      ) as HTMLInputElement | null;
+      const btn = inputAreaEl.querySelector(
+        "button",
+      ) as HTMLButtonElement | null;
       if (input) input.disabled = true;
       if (btn) btn.disabled = true;
     }
@@ -284,7 +302,9 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
       statusBanner.textContent = "Connected with support";
       statusBanner.hidden = false;
       statusBanner.className = "status-banner status-active";
-      setTimeout(() => { statusBanner.hidden = true; }, 3000);
+      setTimeout(() => {
+        statusBanner.hidden = true;
+      }, 3000);
       if (inputAreaEl) inputAreaEl.hidden = false;
       newChatBtn.hidden = true;
     } else if (status === "closed") {
@@ -329,7 +349,10 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
       if (prev && prev !== msg) {
         if (msg.isDeleted && !prev.isDeleted) {
           markMessageDeleted(listEl, msg.id);
-        } else if (msg.content !== prev.content || msg.editedAt !== prev.editedAt) {
+        } else if (
+          msg.content !== prev.content ||
+          msg.editedAt !== prev.editedAt
+        ) {
           updateMessageContent(listEl, msg.id, msg.content, msg.editedAt);
         }
       }
@@ -350,48 +373,53 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   cleanupFns.push(unsubMessages);
 
   // Edit mode subscription
-  const unsubEditing = subscribe("editingMessageId", (editingId: string | null) => {
-    const listEl = getMessageListEl(chatWindow);
-    if (!listEl) return;
+  const unsubEditing = subscribe(
+    "editingMessageId",
+    (editingId: string | null) => {
+      const listEl = getMessageListEl(chatWindow);
+      if (!listEl) return;
 
-    // Exit any previous edit mode — .message-editing is on the bubble,
-    // but data-id is on the parent .message-row
-    listEl.querySelectorAll(".message-editing").forEach((bubble) => {
-      const row = bubble.closest(".message-row");
-      const msgId = row?.getAttribute("data-id") ?? null;
-      if (msgId && msgId !== editingId) {
-        const msg = getState("messages").find((m) => m.id === msgId);
-        exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt);
-      }
-    });
-
-    // Also handle the case where editingId is null — exit ALL edit modes
-    if (!editingId) {
-      listEl.querySelectorAll(".edit-container").forEach((container) => {
-        const row = container.closest(".message-row");
+      // Exit any previous edit mode — .message-editing is on the bubble,
+      // but data-id is on the parent .message-row
+      listEl.querySelectorAll(".message-editing").forEach((bubble) => {
+        const row = bubble.closest(".message-row");
         const msgId = row?.getAttribute("data-id") ?? null;
-        if (msgId) {
+        if (msgId && msgId !== editingId) {
           const msg = getState("messages").find((m) => m.id === msgId);
           exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt);
         }
       });
-      return;
-    }
 
-    const msg = getState("messages").find((m) => m.id === editingId);
-    if (msg && !msg.isDeleted) {
-      enterEditMode(
-        listEl,
-        editingId,
-        msg.content,
-        (newContent) => getSdkApi().editMessage(editingId, newContent),
-        () => setState("editingMessageId", null),
-      );
-    }
-  });
+      // Also handle the case where editingId is null — exit ALL edit modes
+      if (!editingId) {
+        listEl.querySelectorAll(".edit-container").forEach((container) => {
+          const row = container.closest(".message-row");
+          const msgId = row?.getAttribute("data-id") ?? null;
+          if (msgId) {
+            const msg = getState("messages").find((m) => m.id === msgId);
+            exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt);
+          }
+        });
+        return;
+      }
+
+      const msg = getState("messages").find((m) => m.id === editingId);
+      if (msg && !msg.isDeleted) {
+        enterEditMode(
+          listEl,
+          editingId,
+          msg.content,
+          (newContent) => getSdkApi().editMessage(editingId, newContent),
+          () => setState("editingMessageId", null),
+        );
+      }
+    },
+  );
   cleanupFns.push(unsubEditing);
 
-  const typingEl = chatWindow.querySelector(".typing-indicator") as HTMLElement | null;
+  const typingEl = chatWindow.querySelector(
+    ".typing-indicator",
+  ) as HTMLElement | null;
   const unsubTyping = subscribe("typingUser", (typingUser) => {
     if (!typingEl) return;
     if (typingUser) {
@@ -409,7 +437,9 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   cleanupFns.push(unsubTyping);
 
-  const badgeEl = launcher.querySelector(".launcher-badge") as HTMLElement | null;
+  const badgeEl = launcher.querySelector(
+    ".launcher-badge",
+  ) as HTMLElement | null;
   const unsubUnread = subscribe("unreadCount", (count: number) => {
     if (!badgeEl) return;
     if (count > 0) {

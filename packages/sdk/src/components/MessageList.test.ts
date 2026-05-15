@@ -33,8 +33,8 @@ function makeMessage(overrides: Partial<ChatMessage> = {}): ChatMessage {
 function makeContext(overrides: Partial<BubbleContext> = {}): BubbleContext {
   return {
     visitorId: "visitor-1",
-    onEdit: () => { },
-    onDelete: () => { },
+    onEdit: () => {},
+    onDelete: () => {},
     ...overrides,
   };
 }
@@ -42,7 +42,13 @@ function makeContext(overrides: Partial<BubbleContext> = {}): BubbleContext {
 describe("MessageList — system messages", () => {
   it("renders system messages as centered muted text, not chat bubbles", () => {
     const list = createMessageList(
-      [makeMessage({ type: "system", content: "Alice joined the conversation", senderId: "" })],
+      [
+        makeMessage({
+          type: "system",
+          content: "Alice joined the conversation",
+          senderId: "",
+        }),
+      ],
       makeContext(),
     );
 
@@ -56,7 +62,14 @@ describe("MessageList — system messages", () => {
 
   it("does not render edit/delete controls for system messages", () => {
     const list = createMessageList(
-      [makeMessage({ type: "system", content: "Alice left the conversation you'll be able to chat with them again soon", senderId: "" })],
+      [
+        makeMessage({
+          type: "system",
+          content:
+            "Alice left the conversation you'll be able to chat with them again soon",
+          senderId: "",
+        }),
+      ],
       makeContext(),
     );
 
@@ -68,7 +81,11 @@ describe("MessageList — system messages", () => {
     const list = createMessageList([], makeContext());
     appendMessage(
       list,
-      makeMessage({ type: "system", content: "Alice resolved the conversation", senderId: "" }),
+      makeMessage({
+        type: "system",
+        content: "Alice resolved the conversation",
+        senderId: "",
+      }),
       makeContext(),
     );
 
@@ -83,8 +100,19 @@ describe("MessageList — system messages", () => {
     const list = createMessageList(
       [
         makeMessage({ id: "m-1", type: "text", content: "hello" }),
-        makeMessage({ id: "m-2", type: "system", content: "Alice joined the conversation", senderId: "" }),
-        makeMessage({ id: "m-3", type: "text", content: "hi there", senderRole: "operator", senderId: "op-1" }),
+        makeMessage({
+          id: "m-2",
+          type: "system",
+          content: "Alice joined the conversation",
+          senderId: "",
+        }),
+        makeMessage({
+          id: "m-3",
+          type: "text",
+          content: "hi there",
+          senderRole: "operator",
+          senderId: "op-1",
+        }),
       ],
       makeContext(),
     );

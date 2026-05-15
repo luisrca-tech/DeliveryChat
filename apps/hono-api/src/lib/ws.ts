@@ -12,14 +12,18 @@ export function initWebSocket(app: Hono): NodeWebSocketHelpers {
 
 export function getUpgradeWebSocket(): NodeWebSocketHelpers["upgradeWebSocket"] {
   if (!nodeWebSocket) {
-    throw new Error("WebSocket not initialized. Call initWebSocket(app) first.");
+    throw new Error(
+      "WebSocket not initialized. Call initWebSocket(app) first.",
+    );
   }
   return nodeWebSocket.upgradeWebSocket;
 }
 
 export function getInjectWebSocket(): NodeWebSocketHelpers["injectWebSocket"] {
   if (!nodeWebSocket) {
-    throw new Error("WebSocket not initialized. Call initWebSocket(app) first.");
+    throw new Error(
+      "WebSocket not initialized. Call initWebSocket(app) first.",
+    );
   }
   return nodeWebSocket.injectWebSocket;
 }

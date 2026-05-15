@@ -9,7 +9,10 @@ if (!prefix) {
 }
 
 const rows = await db
-  .select({ applicationId: apiKeys.applicationId, keyPrefix: apiKeys.keyPrefix })
+  .select({
+    applicationId: apiKeys.applicationId,
+    keyPrefix: apiKeys.keyPrefix,
+  })
   .from(apiKeys)
   .where(like(apiKeys.keyPrefix, `${prefix}%`))
   .limit(5);

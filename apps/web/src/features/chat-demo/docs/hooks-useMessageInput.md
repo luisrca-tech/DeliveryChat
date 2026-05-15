@@ -25,7 +25,7 @@ function useMessageInput(
   error: string | null;
   handleInputChange(e: React.ChangeEvent<HTMLInputElement>): void;
   handleSend(e?: React.FormEvent): Promise<void>;
-}
+};
 ```
 
 - `onAppend` / `onRollback` — message list mutations owned by the caller.

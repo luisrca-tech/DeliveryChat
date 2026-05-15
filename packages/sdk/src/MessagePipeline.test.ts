@@ -17,7 +17,10 @@ vi.mock("./state.js", () => {
     getState: vi.fn((key: string) => stateStore[key]),
     setState: vi.fn((key: string, value: unknown) => {
       const prev = stateStore[key];
-      const next = typeof value === "function" ? (value as (p: unknown) => unknown)(prev) : value;
+      const next =
+        typeof value === "function"
+          ? (value as (p: unknown) => unknown)(prev)
+          : value;
       stateStore[key] = next;
     }),
   };
@@ -35,7 +38,10 @@ vi.mock("./conversation-persistence.js", () => ({
 import { MessagePipeline } from "./MessagePipeline.js";
 import { getState, setState } from "./state.js";
 import { createConversation } from "./conversation.js";
-import { saveConversationId, saveLastClientMessageId } from "./conversation-persistence.js";
+import {
+  saveConversationId,
+  saveLastClientMessageId,
+} from "./conversation-persistence.js";
 
 describe("MessagePipeline", () => {
   let pipeline: MessagePipeline;
@@ -69,7 +75,10 @@ describe("MessagePipeline", () => {
       setState("conversationId", "conv-1");
       setState("conversationStatus", "active");
 
-      const promise = pipeline.send("hello", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      const promise = pipeline.send("hello", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
 
       expect(setState).toHaveBeenCalledWith("messages", expect.any(Function));
       const messages = getState("messages") as ChatMessage[];
@@ -103,14 +112,29 @@ describe("MessagePipeline", () => {
 
     it("creates a conversation on first message then sends", async () => {
       vi.mocked(createConversation).mockResolvedValueOnce({
-        conversation: { id: "new-conv-1", organizationId: "org-1", applicationId: "app-1", type: "support", status: "pending", subject: null, createdAt: "2026-01-01T00:00:00Z" },
+        conversation: {
+          id: "new-conv-1",
+          organizationId: "org-1",
+          applicationId: "app-1",
+          type: "support",
+          status: "pending",
+          subject: null,
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       });
 
-      const promise = pipeline.send("first message", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      const promise = pipeline.send("first message", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
 
       await vi.advanceTimersByTimeAsync(0);
 
-      expect(createConversation).toHaveBeenCalledWith("http://localhost", "app-1", "visitor-1");
+      expect(createConversation).toHaveBeenCalledWith(
+        "http://localhost",
+        "app-1",
+        "visitor-1",
+      );
       expect(setState).toHaveBeenCalledWith("conversationId", "new-conv-1");
       expect(setState).toHaveBeenCalledWith("conversationStatus", "pending");
       expect(saveConversationId).toHaveBeenCalledWith("app-1", "new-conv-1");
@@ -125,7 +149,11 @@ describe("MessagePipeline", () => {
 
       expect(sendWS).toHaveBeenCalledWith({
         type: "message:send",
-        payload: { conversationId: "new-conv-1", content: "first message", clientMessageId: clientId },
+        payload: {
+          conversationId: "new-conv-1",
+          content: "first message",
+          clientMessageId: clientId,
+        },
       });
 
       pipeline.processAck({
@@ -163,7 +191,9 @@ describe("MessagePipeline", () => {
     });
 
     it("marks message as failed when conversation creation fails", async () => {
-      vi.mocked(createConversation).mockRejectedValueOnce(new Error("Network error"));
+      vi.mocked(createConversation).mockRejectedValueOnce(
+        new Error("Network error"),
+      );
 
       await expect(
         pipeline.send("hi", { appId: "app-1", apiBaseUrl: "http://localhost" }),
@@ -176,7 +206,10 @@ describe("MessagePipeline", () => {
     it("times out after 15 seconds", async () => {
       setState("conversationId", "conv-1");
 
-      const promise = pipeline.send("hello", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      const promise = pipeline.send("hello", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
 
       vi.advanceTimersByTime(15_001);
 
@@ -186,8 +219,14 @@ describe("MessagePipeline", () => {
     it("handles concurrent sends independently", async () => {
       setState("conversationId", "conv-1");
 
-      const p1 = pipeline.send("msg1", { appId: "app-1", apiBaseUrl: "http://localhost" });
-      const p2 = pipeline.send("msg2", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      const p1 = pipeline.send("msg1", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
+      const p2 = pipeline.send("msg2", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
 
       const messages = getState("messages") as ChatMessage[];
       expect(messages).toHaveLength(2);
@@ -211,10 +250,16 @@ describe("MessagePipeline", () => {
     it("saves lastClientMessageId for persistence", async () => {
       setState("conversationId", "conv-1");
 
-      const promise = pipeline.send("hello", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      const promise = pipeline.send("hello", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
       promise.catch(() => {});
 
-      expect(saveLastClientMessageId).toHaveBeenCalledWith("app-1", expect.any(String));
+      expect(saveLastClientMessageId).toHaveBeenCalledWith(
+        "app-1",
+        expect.any(String),
+      );
     });
   });
 
@@ -224,7 +269,10 @@ describe("MessagePipeline", () => {
       const sentListener = vi.fn();
       emitter.on("message:sent", sentListener);
 
-      pipeline.send("hello", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      pipeline.send("hello", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
 
       const messages = getState("messages") as ChatMessage[];
       const clientId = messages[0]!.id;
@@ -290,8 +338,14 @@ describe("MessagePipeline", () => {
     it("rejects all pending promises", async () => {
       setState("conversationId", "conv-1");
 
-      const p1 = pipeline.send("msg1", { appId: "app-1", apiBaseUrl: "http://localhost" });
-      const p2 = pipeline.send("msg2", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      const p1 = pipeline.send("msg1", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
+      const p2 = pipeline.send("msg2", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
 
       pipeline.clearAllPending();
 
@@ -304,7 +358,10 @@ describe("MessagePipeline", () => {
     it("rejects a specific pending promise", async () => {
       setState("conversationId", "conv-1");
 
-      const promise = pipeline.send("hello", { appId: "app-1", apiBaseUrl: "http://localhost" });
+      const promise = pipeline.send("hello", {
+        appId: "app-1",
+        apiBaseUrl: "http://localhost",
+      });
 
       const messages = getState("messages") as ChatMessage[];
       pipeline.rejectPending(messages[0]!.id, new Error("custom error"));

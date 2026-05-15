@@ -15,7 +15,7 @@ Each mutation implements three callbacks:
 ## Optimistic State Changes
 
 | Action  | `status`  | `assignedTo`    |
-|---------|-----------|-----------------|
+| ------- | --------- | --------------- |
 | Accept  | `active`  | `currentUserId` |
 | Leave   | `pending` | `null`          |
 | Resolve | `closed`  | _(unchanged)_   |

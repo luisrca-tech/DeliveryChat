@@ -1,7 +1,4 @@
-export function formatDateForEmail(
-  isoDate: string,
-  timeZone = "UTC",
-): string {
+export function formatDateForEmail(isoDate: string, timeZone = "UTC"): string {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return isoDate;
   return date.toLocaleString("en-US", {

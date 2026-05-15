@@ -5,7 +5,10 @@ import type { Route } from "./+types/playground";
 export function meta(_args: Route.MetaArgs) {
   return [
     { title: "Widget Playground" },
-    { name: "description", content: "Test the chat widget with a custom appId" },
+    {
+      name: "description",
+      content: "Test the chat widget with a custom appId",
+    },
   ];
 }
 
@@ -24,7 +27,10 @@ function safeGetItem(key: string, fallback: string): string {
 
 function getDeliveryChat(): DeliveryChatAPI | null {
   if (!isBrowser) return null;
-  return (window as unknown as { DeliveryChat?: DeliveryChatAPI }).DeliveryChat ?? null;
+  return (
+    (window as unknown as { DeliveryChat?: DeliveryChatAPI }).DeliveryChat ??
+    null
+  );
 }
 
 function removePlaygroundEmbedScripts(): void {
@@ -51,8 +57,8 @@ function loadPlaygroundEmbedScript(): Promise<void> {
 
 export default function Playground() {
   const [appId, setAppId] = useState(() => safeGetItem("pg_appId", ""));
-  const [apiBaseUrl, setApiBaseUrl] = useState(
-    () => safeGetItem("pg_apiBaseUrl", API_BASE_FALLBACK),
+  const [apiBaseUrl, setApiBaseUrl] = useState(() =>
+    safeGetItem("pg_apiBaseUrl", API_BASE_FALLBACK),
   );
   const [isActive, setIsActive] = useState(false);
 
@@ -172,8 +178,9 @@ export default function Playground() {
         {isActive && (
           <div className="mt-4 rounded-xl border border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30 p-4">
             <p className="text-sm text-green-800 dark:text-green-200">
-              <strong>Widget active</strong> — look for the chat button in the bottom-right corner.
-              Open it and send a message to create a support conversation.
+              <strong>Widget active</strong> — look for the chat button in the
+              bottom-right corner. Open it and send a message to create a
+              support conversation.
             </p>
           </div>
         )}
@@ -183,11 +190,20 @@ export default function Playground() {
             How to get the values
           </h2>
           <ol className="list-decimal list-inside space-y-2 text-slate-600 dark:text-slate-300 text-xs">
-            <li>Log into the <strong>Admin dashboard</strong> (port 3000)</li>
-            <li>Go to <strong>Settings &rarr; Applications</strong></li>
-            <li>Copy your <strong>Application ID</strong> (UUID)</li>
+            <li>
+              Log into the <strong>Admin dashboard</strong> (port 3000)
+            </li>
+            <li>
+              Go to <strong>Settings &rarr; Applications</strong>
+            </li>
+            <li>
+              Copy your <strong>Application ID</strong> (UUID)
+            </li>
             <li>Paste it above and click Start Chat</li>
-            <li>Open the <strong>Admin Conversations page</strong> in another tab to accept messages</li>
+            <li>
+              Open the <strong>Admin Conversations page</strong> in another tab
+              to accept messages
+            </li>
           </ol>
         </div>
       </div>

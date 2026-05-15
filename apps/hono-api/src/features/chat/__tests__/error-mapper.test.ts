@@ -69,7 +69,9 @@ describe("mapServiceErrorToResponse", () => {
   });
 
   it("maps ConversationNotActiveError to 422", async () => {
-    const app = createTestApp(new ConversationNotActiveError("conv-1", "closed"));
+    const app = createTestApp(
+      new ConversationNotActiveError("conv-1", "closed"),
+    );
     const res = await app.request("/test");
     expect(res.status).toBe(422);
     const body = await res.json();
@@ -77,7 +79,9 @@ describe("mapServiceErrorToResponse", () => {
   });
 
   it("maps ParticipantAlreadyExistsError to 409", async () => {
-    const app = createTestApp(new ParticipantAlreadyExistsError("conv-1", "user-1"));
+    const app = createTestApp(
+      new ParticipantAlreadyExistsError("conv-1", "user-1"),
+    );
     const res = await app.request("/test");
     expect(res.status).toBe(409);
     const body = await res.json();
@@ -85,7 +89,9 @@ describe("mapServiceErrorToResponse", () => {
   });
 
   it("maps NotAssignedToConversationError to 403", async () => {
-    const app = createTestApp(new NotAssignedToConversationError("conv-1", "user-1"));
+    const app = createTestApp(
+      new NotAssignedToConversationError("conv-1", "user-1"),
+    );
     const res = await app.request("/test");
     expect(res.status).toBe(403);
     const body = await res.json();
@@ -101,7 +107,9 @@ describe("mapServiceErrorToResponse", () => {
   });
 
   it("maps ConversationNotAssignedError to 404", async () => {
-    const app = createTestApp(new ConversationNotAssignedError("conv-1", "user-1"));
+    const app = createTestApp(
+      new ConversationNotAssignedError("conv-1", "user-1"),
+    );
     const res = await app.request("/test");
     expect(res.status).toBe(404);
     const body = await res.json();
@@ -109,7 +117,9 @@ describe("mapServiceErrorToResponse", () => {
   });
 
   it("maps ConversationUpdateFailedError to 404", async () => {
-    const app = createTestApp(new ConversationUpdateFailedError("conv-1", "resolve"));
+    const app = createTestApp(
+      new ConversationUpdateFailedError("conv-1", "resolve"),
+    );
     const res = await app.request("/test");
     expect(res.status).toBe(404);
     const body = await res.json();

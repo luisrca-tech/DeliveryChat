@@ -6,9 +6,9 @@
 
 ## Behavior
 
-| Auth Type | Limiter | Key | Limits Source |
-|-----------|---------|-----|---------------|
-| `member` | Tenant (per-org) | `tenant:{orgId}` | DB/plan-based (via `getRateLimitsForTenant`) |
+| Auth Type | Limiter               | Key                           | Limits Source                                       |
+| --------- | --------------------- | ----------------------------- | --------------------------------------------------- |
+| `member`  | Tenant (per-org)      | `tenant:{orgId}`              | DB/plan-based (via `getRateLimitsForTenant`)        |
 | `visitor` | Visitor (per-visitor) | `visitor:{appId}:{visitorId}` | Static (`VISITOR_RATE_LIMITS` from `planLimits.ts`) |
 
 ## Bucket Isolation

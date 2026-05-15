@@ -2,7 +2,10 @@ import type { QueryClient } from "@tanstack/react-query";
 import { conversationsQueryKeys } from "./conversationsQueryKeys";
 import type { ConversationsListResponse } from "../types/chat.types";
 
-type QueryCacheSnapshot = [readonly unknown[], ConversationsListResponse | undefined][];
+type QueryCacheSnapshot = [
+  readonly unknown[],
+  ConversationsListResponse | undefined,
+][];
 
 interface ConversationMutationConfig<TVariables, TData> {
   mutationFn: (variables: TVariables) => Promise<TData>;

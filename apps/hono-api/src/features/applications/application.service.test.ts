@@ -81,7 +81,11 @@ describe("getApplicationSettings", () => {
     vi.mocked(db.select).mockReturnValue({
       from: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([{ settings: { colors: { primary: "#ff0000" } } }]),
+          limit: vi
+            .fn()
+            .mockResolvedValue([
+              { settings: { colors: { primary: "#ff0000" } } },
+            ]),
         }),
       }),
     } as never);

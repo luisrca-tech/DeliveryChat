@@ -1,4 +1,10 @@
-import { boolean, jsonb, text, uniqueIndex, varchar } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  jsonb,
+  text,
+  uniqueIndex,
+  varchar,
+} from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { user } from "./users";

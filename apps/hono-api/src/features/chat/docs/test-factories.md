@@ -24,7 +24,11 @@ Returns a visitor auth context object with application and API key.
 ## Usage
 
 ```typescript
-import { TEST_IDS, createMemberAuthContext, createVisitorAuthContext } from "./factories.js";
+import {
+  TEST_IDS,
+  createMemberAuthContext,
+  createVisitorAuthContext,
+} from "./factories.js";
 
 const { MEMBER_USER_ID, ORG_ID, CONV_ID } = TEST_IDS;
 

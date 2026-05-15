@@ -41,11 +41,11 @@ ConnectionEngine    MessageRouter
 
 ## ConnectionEngine Interface
 
-| Method | Description |
-|---|---|
-| `connect(config)` | Fetches a WS token via REST, opens the WebSocket, starts ping timer |
-| `disconnect()` | Intentional close — stops ping, cancels reconnect, closes socket |
-| `send(message)` | JSON-stringifies and sends if socket is open; silently drops otherwise |
+| Method                  | Description                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------ |
+| `connect(config)`       | Fetches a WS token via REST, opens the WebSocket, starts ping timer            |
+| `disconnect()`          | Intentional close — stops ping, cancels reconnect, closes socket               |
+| `send(message)`         | JSON-stringifies and sends if socket is open; silently drops otherwise         |
 | `markServerError(code)` | Records the last server error code for permanent error classification on close |
 
 ### Callbacks (provided at construction)
@@ -55,12 +55,12 @@ ConnectionEngine    MessageRouter
 
 ## MessageRouter Interface
 
-| Method | Description |
-|---|---|
-| `handle(event)` | Dispatches a server event to the appropriate state mutation handler |
-| `trackPendingMessage(clientMessageId)` | Returns a promise that resolves on ACK or rejects on timeout/error |
-| `clearAllPending()` | Rejects all tracked promises (called on SDK destroy) |
-| `cleanup()` | Clears internal timers (typing, rate-limit cooldown) |
+| Method                                 | Description                                                         |
+| -------------------------------------- | ------------------------------------------------------------------- |
+| `handle(event)`                        | Dispatches a server event to the appropriate state mutation handler |
+| `trackPendingMessage(clientMessageId)` | Returns a promise that resolves on ACK or rejects on timeout/error  |
+| `clearAllPending()`                    | Rejects all tracked promises (called on SDK destroy)                |
+| `cleanup()`                            | Clears internal timers (typing, rate-limit cooldown)                |
 
 ## Reconnection Strategy
 

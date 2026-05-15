@@ -41,18 +41,16 @@ export function BillingAlert() {
         bannerKey,
         tone: "warning" as const,
         title: "Payment failed",
-        description:
-          isSuperAdmin
-            ? "Please update your payment method to restore full access."
-            : "Your organization’s payment failed. Please contact your Admin.",
-        action:
-          isSuperAdmin ? (
-            <Link to="/settings/billing" className="shrink-0">
-              <Button size="sm" variant="default">
-                Fix billing
-              </Button>
-            </Link>
-          ) : null,
+        description: isSuperAdmin
+          ? "Please update your payment method to restore full access."
+          : "Your organization’s payment failed. Please contact your Admin.",
+        action: isSuperAdmin ? (
+          <Link to="/settings/billing" className="shrink-0">
+            <Button size="sm" variant="default">
+              Fix billing
+            </Button>
+          </Link>
+        ) : null,
       };
     }
 
@@ -64,18 +62,16 @@ export function BillingAlert() {
             bannerKey,
             tone: "warning" as const,
             title: "Trial ended",
-            description:
-              isSuperAdmin
-                ? "Choose a plan to continue."
-                : "Your trial ended. Please contact your Admin to choose a plan.",
-            action:
-              isSuperAdmin ? (
-                <Link to="/onboarding/plans" className="shrink-0">
-                  <Button size="sm" variant="default">
-                    Choose plan
-                  </Button>
-                </Link>
-              ) : null,
+            description: isSuperAdmin
+              ? "Choose a plan to continue."
+              : "Your trial ended. Please contact your Admin to choose a plan.",
+            action: isSuperAdmin ? (
+              <Link to="/onboarding/plans" className="shrink-0">
+                <Button size="sm" variant="default">
+                  Choose plan
+                </Button>
+              </Link>
+            ) : null,
           };
         }
 
@@ -84,14 +80,13 @@ export function BillingAlert() {
           tone: "info" as const,
           title: "Trial active",
           description: `Trial ends in ${days} day${days === 1 ? "" : "s"}.`,
-          action:
-            isSuperAdmin ? (
-              <Link to="/settings/billing" className="shrink-0">
-                <Button size="sm" variant="outline">
-                  Manage billing
-                </Button>
-              </Link>
-            ) : null,
+          action: isSuperAdmin ? (
+            <Link to="/settings/billing" className="shrink-0">
+              <Button size="sm" variant="outline">
+                Manage billing
+              </Button>
+            </Link>
+          ) : null,
         };
       }
 
@@ -113,8 +108,7 @@ export function BillingAlert() {
       : null;
 
   const isDismissed =
-    dismissed ||
-    (storageKey ? readDismissedFromStorage(storageKey) : false);
+    dismissed || (storageKey ? readDismissedFromStorage(storageKey) : false);
 
   if (!banner || isDismissed) return null;
 

@@ -118,8 +118,14 @@ export type DeliveryChatAPI = {
   toggle: () => void;
   hideWidget: () => void;
   showWidget: () => void;
-  on: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
-  off: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
+  on: <K extends keyof SdkEventMap>(
+    event: K,
+    callback: Listener<SdkEventMap[K]>,
+  ) => void;
+  off: <K extends keyof SdkEventMap>(
+    event: K,
+    callback: Listener<SdkEventMap[K]>,
+  ) => void;
   sendMessage: (text: string) => Promise<ChatMessage>;
   identify: (params: IdentifyParams) => Promise<IdentityResult>;
   getConversation: () => ConversationSnapshot | null;

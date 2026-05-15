@@ -3,7 +3,9 @@ import type { ConversationsListResponse } from "../types/chat.types";
 function updateConversation(
   data: ConversationsListResponse,
   conversationId: string,
-  updater: (conv: ConversationsListResponse["conversations"][number]) => ConversationsListResponse["conversations"][number],
+  updater: (
+    conv: ConversationsListResponse["conversations"][number],
+  ) => ConversationsListResponse["conversations"][number],
 ): ConversationsListResponse {
   const idx = data.conversations.findIndex((c) => c.id === conversationId);
   if (idx === -1) return data;

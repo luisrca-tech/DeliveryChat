@@ -9,14 +9,24 @@ vi.mock("./conversation-persistence.js", () => ({
 
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
 
-function createMockPipeline(): MessagePipeline & { processAck: ReturnType<typeof vi.fn>; processIncoming: ReturnType<typeof vi.fn>; rejectPending: ReturnType<typeof vi.fn>; clearAllPending: ReturnType<typeof vi.fn> } {
+function createMockPipeline(): MessagePipeline & {
+  processAck: ReturnType<typeof vi.fn>;
+  processIncoming: ReturnType<typeof vi.fn>;
+  rejectPending: ReturnType<typeof vi.fn>;
+  clearAllPending: ReturnType<typeof vi.fn>;
+} {
   return {
     processAck: vi.fn(),
     processIncoming: vi.fn(),
     rejectPending: vi.fn(),
     clearAllPending: vi.fn(),
     send: vi.fn(),
-  } as unknown as MessagePipeline & { processAck: ReturnType<typeof vi.fn>; processIncoming: ReturnType<typeof vi.fn>; rejectPending: ReturnType<typeof vi.fn>; clearAllPending: ReturnType<typeof vi.fn> };
+  } as unknown as MessagePipeline & {
+    processAck: ReturnType<typeof vi.fn>;
+    processIncoming: ReturnType<typeof vi.fn>;
+    rejectPending: ReturnType<typeof vi.fn>;
+    clearAllPending: ReturnType<typeof vi.fn>;
+  };
 }
 
 describe("MessageRouter", () => {
@@ -40,7 +50,10 @@ describe("MessageRouter", () => {
 
     mockMarkServerError = vi.fn<(code: string) => void>();
     mockPipeline = createMockPipeline();
-    router = new MessageRouter({ markServerError: mockMarkServerError, pipeline: mockPipeline });
+    router = new MessageRouter({
+      markServerError: mockMarkServerError,
+      pipeline: mockPipeline,
+    });
   });
 
   describe("dispatch by event type", () => {
@@ -132,7 +145,11 @@ describe("MessageRouter", () => {
     });
 
     it("routes typing:stop to clear typingUser", () => {
-      setState("typingUser", { userId: "op-1", userName: "Alice", senderRole: "operator" });
+      setState("typingUser", {
+        userId: "op-1",
+        userName: "Alice",
+        senderRole: "operator",
+      });
 
       router.handle({
         type: "typing:stop",
@@ -145,7 +162,15 @@ describe("MessageRouter", () => {
     it("routes message:edited to update message content", () => {
       setState("conversationId", "conv-1");
       setState("messages", [
-        { id: "msg-1", content: "original", type: "text", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "msg-1",
+          content: "original",
+          type: "text",
+          senderRole: "admin",
+          senderId: "a1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       router.handle({
@@ -165,7 +190,15 @@ describe("MessageRouter", () => {
     it("routes message:deleted to mark message as deleted", () => {
       setState("conversationId", "conv-1");
       setState("messages", [
-        { id: "msg-1", content: "bye", type: "text", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "msg-1",
+          content: "bye",
+          type: "text",
+          senderRole: "admin",
+          senderId: "a1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       router.handle({
@@ -184,7 +217,15 @@ describe("MessageRouter", () => {
     it("routes messages:sync to merge missing messages", () => {
       setState("conversationId", "conv-1");
       setState("messages", [
-        { id: "msg-1", content: "first", type: "text", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "msg-1",
+          content: "first",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       router.handle({
@@ -192,8 +233,20 @@ describe("MessageRouter", () => {
         payload: {
           conversationId: "conv-1",
           messages: [
-            { id: "msg-1", content: "first", senderId: "v1", senderRole: "visitor", createdAt: "2026-01-01T00:00:00Z" },
-            { id: "msg-2", content: "second", senderId: "op-1", senderRole: "operator", createdAt: "2026-01-01T00:00:01Z" },
+            {
+              id: "msg-1",
+              content: "first",
+              senderId: "v1",
+              senderRole: "visitor",
+              createdAt: "2026-01-01T00:00:00Z",
+            },
+            {
+              id: "msg-2",
+              content: "second",
+              senderId: "op-1",
+              senderRole: "operator",
+              createdAt: "2026-01-01T00:00:01Z",
+            },
           ],
         },
       });
@@ -249,7 +302,15 @@ describe("MessageRouter", () => {
     it("does NOT call pipeline.processIncoming for duplicate messages", () => {
       setState("conversationId", "conv-1");
       setState("messages", [
-        { id: "msg-1", content: "Hello", type: "text", senderRole: "operator", senderId: "op-1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "msg-1",
+          content: "Hello",
+          type: "text",
+          senderRole: "operator",
+          senderId: "op-1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       router.handle({
@@ -269,33 +330,60 @@ describe("MessageRouter", () => {
 
     it("rejects pending via pipeline on RATE_LIMITED error", () => {
       setState("messages", [
-        { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "client-1",
+          content: "hi",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "pending",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       router.handle({
         type: "error",
-        payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter: 3 },
+        payload: {
+          code: "RATE_LIMITED",
+          message: "Rate limit exceeded",
+          retryAfter: 3,
+        },
       });
 
       expect(mockPipeline.rejectPending).toHaveBeenCalledWith(
         "client-1",
-        expect.objectContaining({ message: expect.stringContaining("Rate limited") }),
+        expect.objectContaining({
+          message: expect.stringContaining("Rate limited"),
+        }),
       );
     });
 
     it("rejects pending via pipeline on CONVERSATION_NOT_ACTIVE error", () => {
       setState("messages", [
-        { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "client-1",
+          content: "hi",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "pending",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       router.handle({
         type: "error",
-        payload: { code: "CONVERSATION_NOT_ACTIVE", message: "Conversation is not active" },
+        payload: {
+          code: "CONVERSATION_NOT_ACTIVE",
+          message: "Conversation is not active",
+        },
       });
 
       expect(mockPipeline.rejectPending).toHaveBeenCalledWith(
         "client-1",
-        expect.objectContaining({ message: expect.stringContaining("CONVERSATION_NOT_ACTIVE") }),
+        expect.objectContaining({
+          message: expect.stringContaining("CONVERSATION_NOT_ACTIVE"),
+        }),
       );
     });
   });
@@ -304,7 +392,11 @@ describe("MessageRouter", () => {
     it("sets rateLimited state and clears after retryAfter", async () => {
       router.handle({
         type: "error",
-        payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter: 3 },
+        payload: {
+          code: "RATE_LIMITED",
+          message: "Rate limit exceeded",
+          retryAfter: 3,
+        },
       });
 
       expect(getState("rateLimited")).toBe(true);

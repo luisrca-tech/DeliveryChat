@@ -17,7 +17,9 @@ describe("getBillingBannerDismissKey", () => {
   });
 
   it("returns null when planStatus is missing", () => {
-    expect(getBillingBannerDismissKey({ planStatus: undefined, trialEndsAt: null })).toBeNull();
+    expect(
+      getBillingBannerDismissKey({ planStatus: undefined, trialEndsAt: null }),
+    ).toBeNull();
   });
 
   it("returns past_due for past_due status", () => {
@@ -28,7 +30,10 @@ describe("getBillingBannerDismissKey", () => {
 
   it("returns trialing_no_end when trialing without trial end date", () => {
     expect(
-      getBillingBannerDismissKey({ planStatus: "trialing", trialEndsAt: undefined }),
+      getBillingBannerDismissKey({
+        planStatus: "trialing",
+        trialEndsAt: undefined,
+      }),
     ).toBe("trialing_no_end");
   });
 
@@ -53,9 +58,9 @@ describe("getBillingBannerDismissKey", () => {
 
 describe("getBillingAlertDismissStorageKey", () => {
   it("builds a namespaced key from session and banner", () => {
-    expect(getBillingAlertDismissStorageKey("sess_1", "trialing_countdown")).toBe(
-      `${BILLING_ALERT_DISMISS_STORAGE_PREFIX}:sess_1:trialing_countdown`,
-    );
+    expect(
+      getBillingAlertDismissStorageKey("sess_1", "trialing_countdown"),
+    ).toBe(`${BILLING_ALERT_DISMISS_STORAGE_PREFIX}:sess_1:trialing_countdown`);
   });
 });
 

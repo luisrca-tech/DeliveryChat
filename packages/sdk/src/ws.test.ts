@@ -32,7 +32,13 @@ class MockWS {
 
 vi.stubGlobal("WebSocket", MockWS);
 
-const { connectWS, disconnectWS, getMessageRouter, getMessagePipeline, resetWSModules } = await import("./ws.js");
+const {
+  connectWS,
+  disconnectWS,
+  getMessageRouter,
+  getMessagePipeline,
+  resetWSModules,
+} = await import("./ws.js");
 
 function latestWS(): MockWS {
   return wsInstances[wsInstances.length - 1]!;
@@ -146,7 +152,10 @@ describe("WebSocket error classification", () => {
     it("treats INVALID_TOKEN as permanent error", async () => {
       await connect();
 
-      simulateServerError("INVALID_TOKEN", "Invalid or tampered WebSocket token");
+      simulateServerError(
+        "INVALID_TOKEN",
+        "Invalid or tampered WebSocket token",
+      );
       simulateClose();
 
       const error = getState("connectionError");
@@ -268,7 +277,15 @@ describe("WebSocket error classification", () => {
       await connect();
       setState("conversationId", "conv-mine");
       setState("messages", [
-        { id: "msg-1", content: "original", type: "text", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "msg-1",
+          content: "original",
+          type: "text",
+          senderRole: "admin",
+          senderId: "a1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       latestWS().onmessage?.({
@@ -291,7 +308,15 @@ describe("WebSocket error classification", () => {
       await connect();
       setState("conversationId", "conv-mine");
       setState("messages", [
-        { id: "msg-1", content: "still here", type: "text", senderRole: "admin", senderId: "a1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "msg-1",
+          content: "still here",
+          type: "text",
+          senderRole: "admin",
+          senderId: "a1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       latestWS().onmessage?.({
@@ -402,7 +427,11 @@ describe("WebSocket error classification", () => {
       latestWS().onmessage?.({
         data: JSON.stringify({
           type: "error",
-          payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter },
+          payload: {
+            code: "RATE_LIMITED",
+            message: "Rate limit exceeded",
+            retryAfter,
+          },
         }),
       });
     }
@@ -432,8 +461,24 @@ describe("WebSocket error classification", () => {
     it("marks pending messages as failed on rate limit", async () => {
       await connect();
       setState("messages", [
-        { id: "m1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
-        { id: "m2", content: "ok", type: "text", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2026-01-01T00:00:01Z" },
+        {
+          id: "m1",
+          content: "hi",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "pending",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
+        {
+          id: "m2",
+          content: "ok",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:01Z",
+        },
       ]);
 
       simulateRateLimit(2);
@@ -469,7 +514,15 @@ describe("WebSocket error classification", () => {
     it("routes message:ack through pipeline.processAck (updates state)", async () => {
       await connect();
       setState("messages", [
-        { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+        {
+          id: "client-1",
+          content: "hi",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "pending",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
       ]);
 
       latestWS().onmessage?.({

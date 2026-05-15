@@ -8,7 +8,12 @@ import {
   getUnreadCount,
   markConversationAsRead,
 } from "./conversation.js";
-import { connectWS, disconnectWS, sendWSMessage, getMessagePipeline } from "./ws.js";
+import {
+  connectWS,
+  disconnectWS,
+  sendWSMessage,
+  getMessagePipeline,
+} from "./ws.js";
 import {
   setActiveAppIdForPersistence,
   loadPersistedConversationId,
@@ -16,7 +21,12 @@ import {
 } from "./conversation-persistence.js";
 import { TYPING_THROTTLE_MS } from "./constants/index.js";
 import type { SdkEventMap } from "./SdkEventMap.js";
-import type { ChatMessage, ConversationSnapshot, IdentifyParams, IdentityResult } from "./types/index.js";
+import type {
+  ChatMessage,
+  ConversationSnapshot,
+  IdentifyParams,
+  IdentityResult,
+} from "./types/index.js";
 
 type Listener<T> = (payload: T) => void;
 
@@ -105,7 +115,10 @@ class SdkApi {
       throw new Error("[DeliveryChat] WebSocket not initialized.");
     }
 
-    const result = await pipeline.send(text, { appId: this.appId, apiBaseUrl: getApiBaseUrl() });
+    const result = await pipeline.send(text, {
+      appId: this.appId,
+      apiBaseUrl: getApiBaseUrl(),
+    });
     this.lastTypingSent = 0;
     return result;
   }
@@ -117,7 +130,9 @@ class SdkApi {
     }
     const visitorId = getState("visitorId");
     if (!visitorId) {
-      throw new Error("[DeliveryChat] visitorId not available. Was init() called?");
+      throw new Error(
+        "[DeliveryChat] visitorId not available. Was init() called?",
+      );
     }
     return postIdentify(getApiBaseUrl(), this.appId, visitorId, params);
   }
@@ -131,11 +146,17 @@ class SdkApi {
     return { id, status: status ?? "pending", messages };
   }
 
-  on<K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>): void {
+  on<K extends keyof SdkEventMap>(
+    event: K,
+    callback: Listener<SdkEventMap[K]>,
+  ): void {
     this.emitter.on(event, callback);
   }
 
-  off<K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>): void {
+  off<K extends keyof SdkEventMap>(
+    event: K,
+    callback: Listener<SdkEventMap[K]>,
+  ): void {
     this.emitter.off(event, callback);
   }
 
@@ -168,8 +189,12 @@ class SdkApi {
 
     const conversationId = getState("conversationId");
     if (conversationId) {
-      markConversationAsRead(getApiBaseUrl(), this.appId, conversationId, visitorId)
-        .catch(() => {});
+      markConversationAsRead(
+        getApiBaseUrl(),
+        this.appId,
+        conversationId,
+        visitorId,
+      ).catch(() => {});
     }
 
     if (getState("connectionStatus") === "disconnected") {
@@ -208,9 +233,7 @@ class SdkApi {
 
     setState("messages", (prev) =>
       prev.map((msg) =>
-        msg.id === messageId
-          ? { ...msg, isDeleted: true, content: "" }
-          : msg,
+        msg.id === messageId ? { ...msg, isDeleted: true, content: "" } : msg,
       ),
     );
 
@@ -303,14 +326,22 @@ class SdkApi {
         .map((m) => ({
           id: m.id,
           content: m.content,
-          type: (m.type === "system" ? "system" : "text") as ChatMessage["type"],
-          senderRole: m.type === "system" ? ("operator" as const) : this.resolveSenderRole(m.senderId),
+          type: (m.type === "system"
+            ? "system"
+            : "text") as ChatMessage["type"],
+          senderRole:
+            m.type === "system"
+              ? ("operator" as const)
+              : this.resolveSenderRole(m.senderId),
           senderId: m.senderId ?? "",
           status: "sent" as const,
           createdAt: m.createdAt,
           editedAt: (m as { editedAt?: string | null }).editedAt ?? null,
         }))
-        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        .sort(
+          (a, b) =>
+            new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+        );
 
       setState("messages", restored);
 

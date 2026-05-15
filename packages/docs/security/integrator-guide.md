@@ -55,13 +55,13 @@ Replace `https://your-cdn.com` with the host serving `widget.js` and `https://yo
 
 ### Why each directive is here
 
-| Directive | Why |
-|---|---|
-| `script-src 'self' https://your-cdn.com` | Permits your own scripts and the widget bundle. SRI on the embed `<script>` covers tamper detection. |
-| `style-src 'self'` | The widget injects its CSS via Constructable Stylesheets (`adoptedStyleSheets`), which **does not** require `'unsafe-inline'`. Do not weaken this directive on the widget's behalf. |
-| `img-src ... https://your-api.example.com` | The widget loads brand assets (logo, icons) from the API host. |
-| `connect-src ... https://your-api.example.com wss://your-api.example.com` | Settings fetch (HTTPS) and chat transport (WebSocket). |
-| `frame-ancestors 'none'` | Defensive: prevents your page (and the embedded widget) from being framed. |
+| Directive                                                                 | Why                                                                                                                                                                                 |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `script-src 'self' https://your-cdn.com`                                  | Permits your own scripts and the widget bundle. SRI on the embed `<script>` covers tamper detection.                                                                                |
+| `style-src 'self'`                                                        | The widget injects its CSS via Constructable Stylesheets (`adoptedStyleSheets`), which **does not** require `'unsafe-inline'`. Do not weaken this directive on the widget's behalf. |
+| `img-src ... https://your-api.example.com`                                | The widget loads brand assets (logo, icons) from the API host.                                                                                                                      |
+| `connect-src ... https://your-api.example.com wss://your-api.example.com` | Settings fetch (HTTPS) and chat transport (WebSocket).                                                                                                                              |
+| `frame-ancestors 'none'`                                                  | Defensive: prevents your page (and the embedded widget) from being framed.                                                                                                          |
 
 ### What the widget does NOT need
 
@@ -78,14 +78,14 @@ If a future widget version forces any of those, treat it as a **regression** and
 
 The widget runtime is audited per build to ensure it does not introduce CSP-relaxing patterns:
 
-| Pattern | Status in widget runtime |
-|---|---|
-| `eval` / `new Function(...)` | Not used. |
-| `<script>` injection into the host document | Not used. |
-| Inline `<style>` injection into the host document | Not used. |
-| Inline `<style>` injection into the Shadow Root | Replaced with Constructable Stylesheets (`adoptedStyleSheets`) in Phase 2. |
-| Inline event handler attributes (`onclick="..."`) | Not used; events bound via `addEventListener`. |
-| `style="..."` attributes parsed from HTML | Not used; programmatic `element.style.*` writes (not subject to `style-src`). |
+| Pattern                                           | Status in widget runtime                                                      |
+| ------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `eval` / `new Function(...)`                      | Not used.                                                                     |
+| `<script>` injection into the host document       | Not used.                                                                     |
+| Inline `<style>` injection into the host document | Not used.                                                                     |
+| Inline `<style>` injection into the Shadow Root   | Replaced with Constructable Stylesheets (`adoptedStyleSheets`) in Phase 2.    |
+| Inline event handler attributes (`onclick="..."`) | Not used; events bound via `addEventListener`.                                |
+| `style="..."` attributes parsed from HTML         | Not used; programmatic `element.style.*` writes (not subject to `style-src`). |
 
 A violation in any of these rows means the integrator CSP cannot be `'self'`-only and the regression must be repaired in the widget — not papered over by relaxing CSP.
 

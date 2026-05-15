@@ -23,7 +23,9 @@ describe("isValidLogoUrl", () => {
   });
 
   it("returns false for data protocol", () => {
-    expect(isValidLogoUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+    expect(isValidLogoUrl("data:text/html,<script>alert(1)</script>")).toBe(
+      false,
+    );
   });
 
   it("returns true for valid https URL", () => {
@@ -49,13 +51,15 @@ describe("isValidLauncherImageUrl", () => {
   });
 
   it("allows http on localhost", () => {
-    expect(isValidLauncherImageUrl("http://localhost:8000/brand/logo.png")).toBe(
-      true,
-    );
+    expect(
+      isValidLauncherImageUrl("http://localhost:8000/brand/logo.png"),
+    ).toBe(true);
   });
 
   it("allows http on 127.0.0.1", () => {
-    expect(isValidLauncherImageUrl("http://127.0.0.1:8000/logo.png")).toBe(true);
+    expect(isValidLauncherImageUrl("http://127.0.0.1:8000/logo.png")).toBe(
+      true,
+    );
   });
 
   it("rejects http on arbitrary hosts", () => {

@@ -1,6 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockGetConversationMessages, mockMarkConversationAsRead, mockGetUnreadCount } = vi.hoisted(() => ({
+const {
+  mockGetConversationMessages,
+  mockMarkConversationAsRead,
+  mockGetUnreadCount,
+} = vi.hoisted(() => ({
   mockGetConversationMessages: vi.fn(),
   mockMarkConversationAsRead: vi.fn(),
   mockGetUnreadCount: vi.fn(),
@@ -51,8 +55,17 @@ vi.mock("./api.js", () => ({
 
 import { getSdkApi, resetSdkApi } from "./SdkApi.js";
 import { getState, setState } from "./state.js";
-import { connectWS, disconnectWS, sendWSMessage, getMessagePipeline } from "./ws.js";
-import { loadPersistedConversationId, removeAllConversationKeysForApp, setActiveAppIdForPersistence } from "./conversation-persistence.js";
+import {
+  connectWS,
+  disconnectWS,
+  sendWSMessage,
+  getMessagePipeline,
+} from "./ws.js";
+import {
+  loadPersistedConversationId,
+  removeAllConversationKeysForApp,
+  setActiveAppIdForPersistence,
+} from "./conversation-persistence.js";
 
 describe("SdkApi", () => {
   beforeEach(() => {
@@ -73,31 +86,45 @@ describe("SdkApi", () => {
 
   describe("before init", () => {
     it("open() throws a clear error", () => {
-      expect(() => getSdkApi().open()).toThrow("[DeliveryChat] SDK not initialized. Call init() first.");
+      expect(() => getSdkApi().open()).toThrow(
+        "[DeliveryChat] SDK not initialized. Call init() first.",
+      );
     });
 
     it("close() throws a clear error", () => {
-      expect(() => getSdkApi().close()).toThrow("[DeliveryChat] SDK not initialized. Call init() first.");
+      expect(() => getSdkApi().close()).toThrow(
+        "[DeliveryChat] SDK not initialized. Call init() first.",
+      );
     });
 
     it("toggle() throws a clear error", () => {
-      expect(() => getSdkApi().toggle()).toThrow("[DeliveryChat] SDK not initialized. Call init() first.");
+      expect(() => getSdkApi().toggle()).toThrow(
+        "[DeliveryChat] SDK not initialized. Call init() first.",
+      );
     });
 
     it("hideWidget() throws a clear error", () => {
-      expect(() => getSdkApi().hideWidget()).toThrow("[DeliveryChat] SDK not initialized. Call init() first.");
+      expect(() => getSdkApi().hideWidget()).toThrow(
+        "[DeliveryChat] SDK not initialized. Call init() first.",
+      );
     });
 
     it("showWidget() throws a clear error", () => {
-      expect(() => getSdkApi().showWidget()).toThrow("[DeliveryChat] SDK not initialized. Call init() first.");
+      expect(() => getSdkApi().showWidget()).toThrow(
+        "[DeliveryChat] SDK not initialized. Call init() first.",
+      );
     });
 
     it("sendMessage() throws before init", async () => {
-      await expect(getSdkApi().sendMessage("hello")).rejects.toThrow("SDK not initialized");
+      await expect(getSdkApi().sendMessage("hello")).rejects.toThrow(
+        "SDK not initialized",
+      );
     });
 
     it("getConversation() throws before init", () => {
-      expect(() => getSdkApi().getConversation()).toThrow("SDK not initialized");
+      expect(() => getSdkApi().getConversation()).toThrow(
+        "SDK not initialized",
+      );
     });
   });
 
@@ -183,8 +210,13 @@ describe("SdkApi", () => {
       const listener = vi.fn();
       api.on("message:received", listener);
       api.emitter.emit("message:received", {
-        id: "1", content: "hello", type: "text", senderRole: "operator",
-        senderId: "op1", status: "sent", createdAt: "2024-01-01",
+        id: "1",
+        content: "hello",
+        type: "text",
+        senderRole: "operator",
+        senderId: "op1",
+        status: "sent",
+        createdAt: "2024-01-01",
       });
       expect(listener).toHaveBeenCalledOnce();
     });
@@ -213,11 +245,15 @@ describe("SdkApi", () => {
       api.markInitialized({ appId: "app-1" });
 
       const mockMsg = {
-        id: "s1", content: "hello", type: "text" as const,
-        senderRole: "visitor" as const, senderId: "v1",
-        status: "sent" as const, createdAt: "2024-01-01",
+        id: "s1",
+        content: "hello",
+        type: "text" as const,
+        senderRole: "visitor" as const,
+        senderId: "v1",
+        status: "sent" as const,
+        createdAt: "2024-01-01",
       };
-      vi.mocked(getMessagePipeline)().send.mockResolvedValueOnce(mockMsg);
+      vi.mocked(getMessagePipeline()!.send).mockResolvedValueOnce(mockMsg);
 
       const result = await api.sendMessage("hello");
       expect(result).toEqual(mockMsg);
@@ -233,7 +269,15 @@ describe("SdkApi", () => {
       const api = getSdkApi();
       api.markInitialized();
       const messages = [
-        { id: "m1", content: "hi", type: "text" as const, senderRole: "visitor" as const, senderId: "v1", status: "sent" as const, createdAt: "2024-01-01" },
+        {
+          id: "m1",
+          content: "hi",
+          type: "text" as const,
+          senderRole: "visitor" as const,
+          senderId: "v1",
+          status: "sent" as const,
+          createdAt: "2024-01-01",
+        },
       ];
       setState("conversationId", "conv-1");
       setState("conversationStatus", "active");
@@ -256,13 +300,32 @@ describe("SdkApi", () => {
     });
 
     it("restores conversation history when persisted conversationId exists", async () => {
-      vi.mocked(loadPersistedConversationId).mockReturnValueOnce("conv-persisted");
+      vi.mocked(loadPersistedConversationId).mockReturnValueOnce(
+        "conv-persisted",
+      );
       mockGetConversationMessages.mockResolvedValueOnce({
         messages: [
-          { id: "msg-1", conversationId: "conv-persisted", senderId: "visitor-123", senderName: null, type: "text", content: "Hello", createdAt: "2026-01-01T00:00:00Z" },
-          { id: "msg-2", conversationId: "conv-persisted", senderId: "op-1", senderName: "Agent", type: "text", content: "Hi!", createdAt: "2026-01-01T00:01:00Z" },
+          {
+            id: "msg-1",
+            conversationId: "conv-persisted",
+            senderId: "visitor-123",
+            senderName: null,
+            type: "text",
+            content: "Hello",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+          {
+            id: "msg-2",
+            conversationId: "conv-persisted",
+            senderId: "op-1",
+            senderName: "Agent",
+            type: "text",
+            content: "Hi!",
+            createdAt: "2026-01-01T00:01:00Z",
+          },
         ],
-        limit: 50, offset: 0,
+        limit: 50,
+        offset: 0,
       });
 
       const api = getSdkApi();
@@ -272,12 +335,19 @@ describe("SdkApi", () => {
       const messages = getState("messages");
       expect(messages).toHaveLength(2);
       expect(messages[0]).toMatchObject({ id: "msg-1", senderRole: "visitor" });
-      expect(messages[1]).toMatchObject({ id: "msg-2", senderRole: "operator" });
+      expect(messages[1]).toMatchObject({
+        id: "msg-2",
+        senderRole: "operator",
+      });
     });
 
     it("connects WS when restoring a persisted conversation", async () => {
       vi.mocked(loadPersistedConversationId).mockReturnValueOnce("conv-1");
-      mockGetConversationMessages.mockResolvedValueOnce({ messages: [], limit: 50, offset: 0 });
+      mockGetConversationMessages.mockResolvedValueOnce({
+        messages: [],
+        limit: 50,
+        offset: 0,
+      });
 
       const api = getSdkApi();
       await api.initChat({ appId: "app-1" });
@@ -298,8 +368,12 @@ describe("SdkApi", () => {
     });
 
     it("clears persisted conversation on 404", async () => {
-      vi.mocked(loadPersistedConversationId).mockReturnValueOnce("conv-deleted");
-      mockGetConversationMessages.mockRejectedValueOnce(new Error("Failed to fetch messages (404)"));
+      vi.mocked(loadPersistedConversationId).mockReturnValueOnce(
+        "conv-deleted",
+      );
+      mockGetConversationMessages.mockRejectedValueOnce(
+        new Error("Failed to fetch messages (404)"),
+      );
 
       const api = getSdkApi();
       await api.initChat({ appId: "app-1" });
@@ -312,10 +386,27 @@ describe("SdkApi", () => {
       vi.mocked(loadPersistedConversationId).mockReturnValueOnce("conv-order");
       mockGetConversationMessages.mockResolvedValueOnce({
         messages: [
-          { id: "msg-new", conversationId: "conv-order", senderId: "op-1", senderName: "Agent", type: "text", content: "Second", createdAt: "2026-01-01T00:01:00Z" },
-          { id: "msg-old", conversationId: "conv-order", senderId: "v-1", senderName: null, type: "text", content: "First", createdAt: "2026-01-01T00:00:00Z" },
+          {
+            id: "msg-new",
+            conversationId: "conv-order",
+            senderId: "op-1",
+            senderName: "Agent",
+            type: "text",
+            content: "Second",
+            createdAt: "2026-01-01T00:01:00Z",
+          },
+          {
+            id: "msg-old",
+            conversationId: "conv-order",
+            senderId: "v-1",
+            senderName: null,
+            type: "text",
+            content: "First",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
         ],
-        limit: 50, offset: 0,
+        limit: 50,
+        offset: 0,
       });
 
       const api = getSdkApi();
@@ -350,7 +441,10 @@ describe("SdkApi", () => {
       api.openChat();
 
       expect(mockMarkConversationAsRead).toHaveBeenCalledWith(
-        "https://api.test.com", "app-1", "conv-1", "visitor-123",
+        "https://api.test.com",
+        "app-1",
+        "conv-1",
+        "visitor-123",
       );
     });
 
@@ -369,18 +463,30 @@ describe("SdkApi", () => {
       await api.initChat({ appId: "app-1" });
       setState("conversationId", "conv-1");
       setState("messages", [
-        { id: "m1", content: "old", type: "text", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2024-01-01" },
+        {
+          id: "m1",
+          content: "old",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "sent",
+          createdAt: "2024-01-01",
+        },
       ]);
 
       api.editMessage("m1", "new content");
 
       const messages = getState("messages");
-      expect(messages[0].content).toBe("new content");
-      expect(messages[0].editedAt).toBeTruthy();
+      expect(messages[0]!.content).toBe("new content");
+      expect(messages[0]!.editedAt).toBeTruthy();
       expect(getState("editingMessageId")).toBeNull();
       expect(sendWSMessage).toHaveBeenCalledWith({
         type: "message:edit",
-        payload: { conversationId: "conv-1", messageId: "m1", content: "new content" },
+        payload: {
+          conversationId: "conv-1",
+          messageId: "m1",
+          content: "new content",
+        },
       });
     });
 
@@ -400,14 +506,22 @@ describe("SdkApi", () => {
       await api.initChat({ appId: "app-1" });
       setState("conversationId", "conv-1");
       setState("messages", [
-        { id: "m1", content: "hello", type: "text", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2024-01-01" },
+        {
+          id: "m1",
+          content: "hello",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "sent",
+          createdAt: "2024-01-01",
+        },
       ]);
 
       api.deleteMessage("m1");
 
       const messages = getState("messages");
-      expect(messages[0].isDeleted).toBe(true);
-      expect(messages[0].content).toBe("");
+      expect(messages[0]!.isDeleted).toBe(true);
+      expect(messages[0]!.content).toBe("");
       expect(sendWSMessage).toHaveBeenCalledWith({
         type: "message:delete",
         payload: { conversationId: "conv-1", messageId: "m1" },
@@ -473,7 +587,17 @@ describe("SdkApi", () => {
       await api.initChat({ appId: "app-1" });
       setState("conversationId", "conv-1");
       setState("conversationStatus", "closed");
-      setState("messages", [{ id: "m1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2024-01-01" }]);
+      setState("messages", [
+        {
+          id: "m1",
+          content: "hi",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "sent",
+          createdAt: "2024-01-01",
+        },
+      ]);
 
       api.startNewChat();
 
@@ -529,7 +653,17 @@ describe("SdkApi", () => {
       const api = getSdkApi();
       await api.initChat({ appId: "app-1" });
       setState("conversationId", "conv-1");
-      setState("messages", [{ id: "m1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "sent", createdAt: "2024-01-01" }]);
+      setState("messages", [
+        {
+          id: "m1",
+          content: "hi",
+          type: "text",
+          senderRole: "visitor",
+          senderId: "v1",
+          status: "sent",
+          createdAt: "2024-01-01",
+        },
+      ]);
 
       api.destroyChat();
 
@@ -561,11 +695,15 @@ describe("SdkApi", () => {
 
       // Send message
       const mockMsg = {
-        id: "s1", content: "hello", type: "text" as const,
-        senderRole: "visitor" as const, senderId: "v1",
-        status: "sent" as const, createdAt: "2024-01-01",
+        id: "s1",
+        content: "hello",
+        type: "text" as const,
+        senderRole: "visitor" as const,
+        senderId: "v1",
+        status: "sent" as const,
+        createdAt: "2024-01-01",
       };
-      vi.mocked(getMessagePipeline)().send.mockResolvedValueOnce(mockMsg);
+      vi.mocked(getMessagePipeline()!.send).mockResolvedValueOnce(mockMsg);
       const sent = await api.sendMessage("hello");
       expect(sent).toEqual(mockMsg);
 
@@ -573,11 +711,11 @@ describe("SdkApi", () => {
       setState("conversationId", "conv-1");
       setState("messages", [mockMsg]);
       api.editMessage("s1", "updated");
-      expect(getState("messages")[0].content).toBe("updated");
+      expect(getState("messages")[0]!.content).toBe("updated");
 
       // Delete message
       api.deleteMessage("s1");
-      expect(getState("messages")[0].isDeleted).toBe(true);
+      expect(getState("messages")[0]!.isDeleted).toBe(true);
 
       // Start new chat
       api.startNewChat();

@@ -24,10 +24,7 @@ describe("writeSriArtifact", () => {
       bytes: 11,
     });
 
-    const written = readFileSync(
-      join(dir, "widget.iife.js.sri.json"),
-      "utf-8",
-    );
+    const written = readFileSync(join(dir, "widget.iife.js.sri.json"), "utf-8");
     expect(written.endsWith("\n")).toBe(true);
     expect(JSON.parse(written)).toEqual(artifact);
     expect(written).toBe(`${JSON.stringify(artifact, null, 2)}\n`);

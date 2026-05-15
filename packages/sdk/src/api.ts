@@ -1,6 +1,6 @@
 export async function fetchSettings(
   apiBaseUrl: string,
-  appId: string
+  appId: string,
 ): Promise<Record<string, unknown> | null> {
   const url = `${apiBaseUrl.replace(/\/$/, "")}/api/v1/widget/settings/${appId}`;
   const res = await fetch(url);

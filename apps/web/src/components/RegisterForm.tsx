@@ -85,7 +85,7 @@ export default function RegisterForm() {
     loginUrl.searchParams.set("redirect", "/onboarding/plans");
     loginUrl.searchParams.set(
       "message",
-      "Account created. Please sign in to continue."
+      "Account created. Please sign in to continue.",
     );
     setTimeout(() => {
       window.location.href = loginUrl.toString();

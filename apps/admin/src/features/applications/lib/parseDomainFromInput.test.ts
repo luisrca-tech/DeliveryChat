@@ -37,9 +37,7 @@ describe("parseDomainFromInput", () => {
   });
 
   it("handles wildcard domain with https URL", () => {
-    expect(parseDomainFromInput("https://*.example.com")).toBe(
-      "*.example.com",
-    );
+    expect(parseDomainFromInput("https://*.example.com")).toBe("*.example.com");
   });
 
   it("handles leading-dot domain via fallback when URL parsing fails", () => {

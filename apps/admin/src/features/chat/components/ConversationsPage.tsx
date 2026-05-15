@@ -17,8 +17,11 @@ import { Route } from "@/routes/_system/conversations";
 import type { ConversationsListResponse } from "../types/chat.types";
 
 export function ConversationsPage() {
-  const { conversationId: selectedId, filter: urlFilter, appId } =
-    Route.useSearch();
+  const {
+    conversationId: selectedId,
+    filter: urlFilter,
+    appId,
+  } = Route.useSearch();
   const navigate = useNavigate({ from: Route.fullPath });
   const queryClient = useQueryClient();
   const ws = useWebSocket(selectedId ?? null);
@@ -92,7 +95,12 @@ export function ConversationsPage() {
     ws.subscribe,
   );
 
-  useConversationNotifications(ws.subscribe, selectedId ?? null, setSelectedId, sessionUserId);
+  useConversationNotifications(
+    ws.subscribe,
+    selectedId ?? null,
+    setSelectedId,
+    sessionUserId,
+  );
 
   const onFiltersChange = (newFilter: string, newAppId: string | undefined) => {
     navigate({

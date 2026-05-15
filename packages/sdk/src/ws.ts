@@ -17,7 +17,11 @@ let router: MessageRouter | null = null;
 let pipeline: MessagePipeline | null = null;
 let emitter: EventEmitter<SdkEventMap> | null = null;
 
-function getOrCreateModules(): { engine: ConnectionEngine; router: MessageRouter; pipeline: MessagePipeline } {
+function getOrCreateModules(): {
+  engine: ConnectionEngine;
+  router: MessageRouter;
+  pipeline: MessagePipeline;
+} {
   if (!engine || !router || !pipeline) {
     emitter = emitter ?? new EventEmitter<SdkEventMap>();
     pipeline = new MessagePipeline({

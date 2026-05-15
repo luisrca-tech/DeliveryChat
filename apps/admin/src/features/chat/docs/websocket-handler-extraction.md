@@ -6,11 +6,11 @@ Three inline cache-mutating event handlers were extracted from `useWebSocket`'s 
 
 ## Extracted Handlers
 
-| Handler | Event | Behavior |
-|---|---|---|
-| `handleMessageEdited` | `message:edited` | Updates message content and `editedAt` in the messages cache |
-| `handleMessageDeleted` | `message:deleted` | Marks message as deleted and clears content in the messages cache |
-| `handleConversationLifecycle` | `conversation:new`, `conversation:accepted`, `conversation:released`, `conversation:resolved` | Fires `invalidateQueries` to refresh the conversation list |
+| Handler                       | Event                                                                                         | Behavior                                                          |
+| ----------------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| `handleMessageEdited`         | `message:edited`                                                                              | Updates message content and `editedAt` in the messages cache      |
+| `handleMessageDeleted`        | `message:deleted`                                                                             | Marks message as deleted and clears content in the messages cache |
+| `handleConversationLifecycle` | `conversation:new`, `conversation:accepted`, `conversation:released`, `conversation:resolved` | Fires `invalidateQueries` to refresh the conversation list        |
 
 ## Dependency Injection Pattern
 
@@ -26,11 +26,11 @@ The `typing:start` and `typing:stop` handlers remain inline in `useWebSocket` si
 
 ## Files
 
-| File | Purpose |
-|---|---|
-| `hooks/handleMessageEdited.ts` | Extracted handler |
-| `hooks/handleMessageEdited.test.ts` | 3 test cases |
-| `hooks/handleMessageDeleted.ts` | Extracted handler |
-| `hooks/handleMessageDeleted.test.ts` | 3 test cases |
-| `hooks/handleConversationLifecycle.ts` | Extracted handler |
-| `hooks/handleConversationLifecycle.test.ts` | 5 test cases |
+| File                                        | Purpose           |
+| ------------------------------------------- | ----------------- |
+| `hooks/handleMessageEdited.ts`              | Extracted handler |
+| `hooks/handleMessageEdited.test.ts`         | 3 test cases      |
+| `hooks/handleMessageDeleted.ts`             | Extracted handler |
+| `hooks/handleMessageDeleted.test.ts`        | 3 test cases      |
+| `hooks/handleConversationLifecycle.ts`      | Extracted handler |
+| `hooks/handleConversationLifecycle.test.ts` | 5 test cases      |

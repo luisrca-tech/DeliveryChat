@@ -12,7 +12,12 @@ type MemberAuthContext = {
   session: SessionResult;
   user: { id: string; name: string };
   organization: ResolvedOrganization;
-  membership: { id: string; role: string; userId: string; organizationId: string };
+  membership: {
+    id: string;
+    role: string;
+    userId: string;
+    organizationId: string;
+  };
 };
 
 type VisitorAuthContext = {
@@ -44,13 +49,13 @@ Runs after `requireAuth()`. Returns 403 if `auth.type !== "member"`. Use on endp
 
 All five member-only conversation endpoints now use `requireAuth()` + `requireMember()`:
 
-| Endpoint | Previous Middleware | Current Middleware |
-|---|---|---|
-| `POST /:id/accept` | `requireTenantAuth()` | `requireAuth()` → `requireMember()` |
-| `POST /:id/leave` | `requireTenantAuth()` | `requireAuth()` → `requireMember()` |
-| `POST /:id/resolve` | `requireTenantAuth()` | `requireAuth()` → `requireMember()` |
-| `DELETE /:id` | `requireTenantAuth()` → `requireRole("admin")` | `requireAuth()` → `requireMember()` → inline role check |
-| `PATCH /:id/subject` | `requireTenantAuth()` | `requireAuth()` → `requireMember()` |
+| Endpoint             | Previous Middleware                            | Current Middleware                                      |
+| -------------------- | ---------------------------------------------- | ------------------------------------------------------- |
+| `POST /:id/accept`   | `requireTenantAuth()`                          | `requireAuth()` → `requireMember()`                     |
+| `POST /:id/leave`    | `requireTenantAuth()`                          | `requireAuth()` → `requireMember()`                     |
+| `POST /:id/resolve`  | `requireTenantAuth()`                          | `requireAuth()` → `requireMember()`                     |
+| `DELETE /:id`        | `requireTenantAuth()` → `requireRole("admin")` | `requireAuth()` → `requireMember()` → inline role check |
+| `PATCH /:id/subject` | `requireTenantAuth()`                          | `requireAuth()` → `requireMember()`                     |
 
 Visitors now receive **403 Forbidden** instead of **401 Unauthorized** on these endpoints. This is semantically correct: the visitor is authenticated but not authorized for member-only operations.
 
@@ -64,14 +69,15 @@ The `requireRole("admin")` middleware on the delete endpoint was replaced with a
 
 All inline database queries have been extracted from `conversations.ts` into `chat.service.ts`. Route handlers are now thin wrappers that validate input, call the appropriate service function, and return the response. Two new service functions were added:
 
-| Service Function | Replaces | Notes |
-|---|---|---|
-| `listConversationsForMember()` | Inline `db.select()` in GET `/` member path | Handles filtering, counting, and unread count aggregation |
+| Service Function               | Replaces                                                | Notes                                                                                |
+| ------------------------------ | ------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `listConversationsForMember()` | Inline `db.select()` in GET `/` member path             | Handles filtering, counting, and unread count aggregation                            |
 | `getMessageHistoryForMember()` | Inline `db.select()` in GET `/:id/messages` member path | Joins sender name/role, validates org ownership (throws `ConversationNotFoundError`) |
 
 `conversations.ts` no longer imports `db`, `drizzle-orm`, or any schema modules.
 
 Orphaned files deleted:
+
 - `participant-guard.ts` — was only used by the deleted `publicApi.ts`
 - `__tests__/participant-guard.test.ts` — test for the deleted file
 
@@ -87,6 +93,7 @@ Orphaned files deleted:
 When `trySessionAuth()` encounters a failure (disabled account, tenant mismatch, missing membership), it returns `null` instead of an error response. This allows the fallback to the API key path. The behavior is intentional for the unified flow — a request might carry both a session cookie and API key headers, and a session failure shouldn't block a valid API key auth.
 
 However, this differs from `requireTenantAuth()`'s standalone behavior, which returns explicit 401/403 errors for each failure case. In practice this means: if an operator's account is disabled and they somehow also send API key headers, they'd authenticate as a visitor instead of seeing a "disabled account" error. This is acceptable because:
+
 1. The two auth paths serve fundamentally different clients (admin dashboard vs. widget).
 2. A disabled operator would never have valid API key + visitor headers in a real request.
 3. Endpoints behind `requireMember()` would still block them.

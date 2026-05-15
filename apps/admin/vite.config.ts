@@ -22,9 +22,7 @@ function faviconHrefWithMtime(): string {
 
 const config = defineConfig({
   define: {
-    "import.meta.env.VITE_FAVICON_HREF": JSON.stringify(
-      faviconHrefWithMtime(),
-    ),
+    "import.meta.env.VITE_FAVICON_HREF": JSON.stringify(faviconHrefWithMtime()),
   },
   plugins: [
     devtools({

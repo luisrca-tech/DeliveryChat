@@ -11,7 +11,7 @@ Forces a component re-render every 30 seconds so that the 15-minute edit-window 
 ## Exposed API
 
 ```ts
-function useEditWindowTicker(): number
+function useEditWindowTicker(): number;
 ```
 
 Returns the current tick count. Callers ignore the value; returning it ensures React's reconciler sees a new reference and re-renders.

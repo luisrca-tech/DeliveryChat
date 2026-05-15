@@ -73,24 +73,32 @@ export class InMemoryRoomManager implements IRoomManager {
     this.userConnections.get(connection.userId)!.add(conversationId);
 
     const roomSize = this.rooms.get(conversationId)!.size;
-    console.log(`[RoomManager] JOIN room=${conversationId} connId=${connection.id} userId=${connection.userId} role=${connection.role} roomSize=${roomSize}`);
+    console.log(
+      `[RoomManager] JOIN room=${conversationId} connId=${connection.id} userId=${connection.userId} role=${connection.role} roomSize=${roomSize}`,
+    );
   }
 
   leave(conversationId: string, connectionId: string): void {
     const room = this.rooms.get(conversationId);
     if (!room) {
-      console.log(`[RoomManager] LEAVE room=${conversationId} connId=${connectionId} — room not found`);
+      console.log(
+        `[RoomManager] LEAVE room=${conversationId} connId=${connectionId} — room not found`,
+      );
       return;
     }
 
     const connection = room.get(connectionId);
     if (!connection) {
-      console.log(`[RoomManager] LEAVE room=${conversationId} connId=${connectionId} — connection not in room`);
+      console.log(
+        `[RoomManager] LEAVE room=${conversationId} connId=${connectionId} — connection not in room`,
+      );
       return;
     }
 
     room.delete(connectionId);
-    console.log(`[RoomManager] LEAVE room=${conversationId} connId=${connectionId} userId=${connection.userId} roomSize=${room.size}`);
+    console.log(
+      `[RoomManager] LEAVE room=${conversationId} connId=${connectionId} userId=${connection.userId} roomSize=${room.size}`,
+    );
 
     if (room.size === 0) {
       this.rooms.delete(conversationId);
@@ -112,7 +120,9 @@ export class InMemoryRoomManager implements IRoomManager {
   ): void {
     const room = this.rooms.get(conversationId);
     if (!room) {
-      console.log(`[RoomManager] BROADCAST room=${conversationId} — NO ROOM FOUND (0 recipients)`);
+      console.log(
+        `[RoomManager] BROADCAST room=${conversationId} — NO ROOM FOUND (0 recipients)`,
+      );
       return;
     }
 
@@ -125,7 +135,9 @@ export class InMemoryRoomManager implements IRoomManager {
         recipients.push(`${conn.userId}(${conn.role})`);
       }
     }
-    console.log(`[RoomManager] BROADCAST room=${conversationId} sent=${sent} excluded=${excludeConnectionId ?? "none"} recipients=[${recipients.join(", ")}]`);
+    console.log(
+      `[RoomManager] BROADCAST room=${conversationId} sent=${sent} excluded=${excludeConnectionId ?? "none"} recipients=[${recipients.join(", ")}]`,
+    );
   }
 
   getConnections(conversationId: string): WSConnection[] {
@@ -143,10 +155,14 @@ export class InMemoryRoomManager implements IRoomManager {
   disconnectUser(userId: string): void {
     const rooms = this.userConnections.get(userId);
     if (!rooms) {
-      console.log(`[RoomManager] DISCONNECT userId=${userId} — no rooms to clean`);
+      console.log(
+        `[RoomManager] DISCONNECT userId=${userId} — no rooms to clean`,
+      );
       return;
     }
-    console.log(`[RoomManager] DISCONNECT userId=${userId} rooms=[${Array.from(rooms).join(", ")}]`);
+    console.log(
+      `[RoomManager] DISCONNECT userId=${userId} rooms=[${Array.from(rooms).join(", ")}]`,
+    );
 
     for (const conversationId of rooms) {
       const room = this.rooms.get(conversationId);
@@ -171,7 +187,9 @@ export class InMemoryRoomManager implements IRoomManager {
     const currentCount = this.userConnectionCount.get(userId)?.size ?? 0;
 
     if (currentCount >= this.maxConnectionsPerUser) {
-      console.log(`[RoomManager] REGISTER REJECTED connId=${connection.id} userId=${userId} — limit ${this.maxConnectionsPerUser} reached`);
+      console.log(
+        `[RoomManager] REGISTER REJECTED connId=${connection.id} userId=${userId} — limit ${this.maxConnectionsPerUser} reached`,
+      );
       return false;
     }
 
@@ -186,10 +204,14 @@ export class InMemoryRoomManager implements IRoomManager {
     }
     this.userConnectionCount.get(userId)!.add(connection.id);
 
-    console.log(`[RoomManager] REGISTER connId=${connection.id} userId=${userId} role=${connection.role} orgId=${orgId} orgSize=${this.orgConnections.get(orgId)!.size}`);
+    console.log(
+      `[RoomManager] REGISTER connId=${connection.id} userId=${userId} role=${connection.role} orgId=${orgId} orgSize=${this.orgConnections.get(orgId)!.size}`,
+    );
 
     const timer = setTimeout(() => {
-      console.log(`[RoomManager] EXPIRED connId=${connection.id} userId=${userId} — max lifetime reached`);
+      console.log(
+        `[RoomManager] EXPIRED connId=${connection.id} userId=${userId} — max lifetime reached`,
+      );
       connection.ws.close(4008, "session_expired");
       this.unregisterConnection(connection.id, orgId);
       this.removeConnectionFromRooms(connection.id, userId);
@@ -200,7 +222,10 @@ export class InMemoryRoomManager implements IRoomManager {
     return true;
   }
 
-  private removeConnectionFromRooms(connectionId: string, userId: string): void {
+  private removeConnectionFromRooms(
+    connectionId: string,
+    userId: string,
+  ): void {
     const rooms = this.userConnections.get(userId);
     if (!rooms) return;
 

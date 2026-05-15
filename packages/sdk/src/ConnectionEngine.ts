@@ -105,7 +105,8 @@ export class ConnectionEngine {
 
         const closeCode = (event as CloseEvent)?.code;
         const isPermanent =
-          (this.lastServerErrorCode && PERMANENT_ERROR_CODES.has(this.lastServerErrorCode)) ||
+          (this.lastServerErrorCode &&
+            PERMANENT_ERROR_CODES.has(this.lastServerErrorCode)) ||
           (closeCode !== undefined && PERMANENT_CLOSE_CODES.has(closeCode));
 
         if (isPermanent) {
@@ -182,7 +183,10 @@ export class ConnectionEngine {
       this.ws.onmessage = null;
       this.ws.onclose = null;
       this.ws.onerror = null;
-      if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+      if (
+        this.ws.readyState === WebSocket.OPEN ||
+        this.ws.readyState === WebSocket.CONNECTING
+      ) {
         this.ws.close();
       }
       this.ws = null;

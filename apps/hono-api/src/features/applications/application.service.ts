@@ -39,9 +39,7 @@ export async function getApplicationSettings(
   const [row] = await db
     .select({ settings: applications.settings })
     .from(applications)
-    .where(
-      and(eq(applications.id, id), isNull(applications.deletedAt)),
-    )
+    .where(and(eq(applications.id, id), isNull(applications.deletedAt)))
     .limit(1);
   return row ? (row.settings as Record<string, unknown>) : null;
 }

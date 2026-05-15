@@ -16,8 +16,10 @@ vi.mock("./hmac.service.js", () => ({
 let mockOrgRow: Record<string, unknown> | null = null;
 
 vi.mock("../../lib/middleware/widgetAuth.js", () => ({
-  requireWidgetAuth: () => async (_c: unknown, next: () => Promise<void>) => next(),
-  getWidgetAuth: (c: { get: (key: string) => unknown }) => c.get("widgetAuth") ?? null,
+  requireWidgetAuth: () => async (_c: unknown, next: () => Promise<void>) =>
+    next(),
+  getWidgetAuth: (c: { get: (key: string) => unknown }) =>
+    c.get("widgetAuth") ?? null,
 }));
 
 vi.mock("../../db/index.js", () => ({
@@ -32,10 +34,12 @@ vi.mock("../../db/index.js", () => ({
   },
 }));
 
-function createApp(widgetAuthOverrides?: Partial<{
-  organizationId: string;
-  application: { id: string; organizationId: string };
-}>) {
+function createApp(
+  widgetAuthOverrides?: Partial<{
+    organizationId: string;
+    application: { id: string; organizationId: string };
+  }>,
+) {
   const app = new Hono();
 
   app.use("*", async (c, next) => {
@@ -208,7 +212,11 @@ describe("POST /identify", () => {
     });
 
     expect(res.status).toBe(403);
-    expect(mockVerifyHmac).toHaveBeenCalledWith("secret-key", "ext-1", "bad-signature");
+    expect(mockVerifyHmac).toHaveBeenCalledWith(
+      "secret-key",
+      "ext-1",
+      "bad-signature",
+    );
   });
 
   it("upserts with hmacVerified=true when signature is valid", async () => {

@@ -25,20 +25,26 @@ routes/conversations/
 ## Sub-Module Responsibilities
 
 ### queries.ts
+
 Read-only endpoints with dual-auth (visitor + member):
+
 - `GET /` — list conversations (visitor: scoped by participant; member: scoped by org with role-based visibility)
 - `GET /:id` — conversation detail with participants
 - `GET /:id/messages` — message history with pagination
 
 ### messaging.ts
+
 Mutation endpoints with dual-auth:
+
 - `POST /` — create conversation
 - `POST /:id/messages` — send message
 - `PATCH /:id/messages/:messageId` — edit message (with WebSocket broadcast)
 - `DELETE /:id/messages/:messageId` — soft-delete message (with WebSocket broadcast)
 
 ### lifecycle.ts
+
 Member-only endpoints for conversation state transitions:
+
 - `POST /:id/accept` — accept conversation (operator takes ownership, auto-adds as participant)
 - `POST /:id/leave` — release conversation back to pending queue
 - `POST /:id/resolve` — mark conversation as closed
@@ -46,7 +52,9 @@ Member-only endpoints for conversation state transitions:
 - `DELETE /:id` — soft-delete conversation (admin/super_admin only)
 
 ### readReceipts.ts
+
 Dual-auth endpoints for tracking read state:
+
 - `POST /:id/read` — mark conversation as read up to a specific message
 - `GET /:id/unread` — get unread message count for current user
 

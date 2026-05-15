@@ -32,23 +32,26 @@ Headers:
 ```
 
 The endpoint validates the app ID and (optionally) the `Origin` against the application's allowed-origins list via `requireWidgetAuth()`, then signs an HMAC-SHA256 token binding:
+
 - `appId` — the application UUID
 - `origin` — the `Origin` header value (or `""` if absent)
 - `visitorId` — the anonymous visitor ID
 
 **Response:**
+
 ```json
 { "token": "<base64url-payload>.<base64url-signature>" }
 ```
 
 **Token structure (`WsTokenPayload`):**
+
 ```typescript
 {
   appId: string;
   origin: string;
   visitorId: string;
-  iat: number;  // issued-at (unix seconds)
-  exp: number;  // expires-at (iat + 120s)
+  iat: number; // issued-at (unix seconds)
+  exp: number; // expires-at (iat + 120s)
 }
 ```
 
@@ -59,6 +62,7 @@ GET /v1/ws?token=<ws-token>
 ```
 
 **Verification flow:**
+
 1. Split token into `payload.signature`, verify HMAC-SHA256 with `WS_TOKEN_SECRET`
    - FAIL → error: `INVALID_TOKEN`
 2. Check `exp` against current time
@@ -71,13 +75,13 @@ GET /v1/ws?token=<ws-token>
 
 ### Token Properties
 
-| Property | Value |
-|---|---|
-| Algorithm | HMAC-SHA256 |
-| TTL | 120 seconds |
-| Binding | `(appId, origin, visitorId)` |
+| Property  | Value                                                                                                 |
+| --------- | ----------------------------------------------------------------------------------------------------- |
+| Algorithm | HMAC-SHA256                                                                                           |
+| TTL       | 120 seconds                                                                                           |
+| Binding   | `(appId, origin, visitorId)`                                                                          |
 | Transport | Query string (`?token=`) — required because the browser WebSocket API does not support custom headers |
-| Replay | Not prevented within TTL window (accepted residual risk) |
+| Replay    | Not prevented within TTL window (accepted residual risk)                                              |
 
 ## Path B: Session Authentication (Admin/Operators)
 
@@ -85,17 +89,17 @@ Used by the admin dashboard. Authenticated via Better Auth session tokens.
 
 ### Query Parameters
 
-| Param | Required | Description |
-|---|---|---|
-| `sessionToken` | Optional | Session token (alternative to cookie-based auth) |
-| `tenant` | Optional | Tenant slug (alternative to `X-Tenant-Slug` header) |
+| Param          | Required | Description                                         |
+| -------------- | -------- | --------------------------------------------------- |
+| `sessionToken` | Optional | Session token (alternative to cookie-based auth)    |
+| `tenant`       | Optional | Tenant slug (alternative to `X-Tenant-Slug` header) |
 
 ### Headers (alternatives to query params)
 
-| Header | Description |
-|---|---|
-| `Cookie` | Better Auth session cookie |
-| `X-Tenant-Slug` | Tenant subdomain slug |
+| Header          | Description                |
+| --------------- | -------------------------- |
+| `Cookie`        | Better Auth session cookie |
+| `X-Tenant-Slug` | Tenant subdomain slug      |
 
 ### Validation Flow
 
@@ -123,9 +127,9 @@ interface AuthenticatedWSUser {
   userId: string;
   userName: string | null;
   organizationId: string;
-  role: ParticipantRole;           // "visitor" | "operator" | "admin"
+  role: ParticipantRole; // "visitor" | "operator" | "admin"
   authType: "session" | "widget";
-  applicationId?: string;          // Only present for widget auth
+  applicationId?: string; // Only present for widget auth
 }
 ```
 

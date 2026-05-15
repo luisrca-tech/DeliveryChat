@@ -5,7 +5,10 @@ import {
   EDIT_ICON,
   DELETE_ICON,
 } from "../constants/icons.js";
-import { setTrustedInnerHTML, type TrustedStaticHTML } from "../utils/trusted-html.js";
+import {
+  setTrustedInnerHTML,
+  type TrustedStaticHTML,
+} from "../utils/trusted-html.js";
 import {
   LONG_PRESS_MS,
   EDIT_WINDOW_MS,
@@ -14,10 +17,7 @@ import {
 
 export type { BubbleContext };
 
-function attachLongPress(
-  el: HTMLElement,
-  onLongPress: () => void,
-): void {
+function attachLongPress(el: HTMLElement, onLongPress: () => void): void {
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   el.addEventListener(
@@ -51,7 +51,6 @@ function attachLongPress(
   );
 }
 
-
 function dismissAllDropdowns(root: HTMLElement): void {
   root.querySelectorAll(".message-dropdown.open").forEach((el) => {
     el.classList.remove("open");
@@ -60,7 +59,6 @@ function dismissAllDropdowns(root: HTMLElement): void {
     el.classList.remove("active");
   });
 }
-
 
 export function createMessageList(
   messages: ChatMessage[],
@@ -74,7 +72,9 @@ export function createMessageList(
   const fragment = document.createDocumentFragment();
   for (const msg of messages) {
     fragment.appendChild(
-      msg.type === "system" ? createSystemRow(msg) : createBubble(msg, ctx, list),
+      msg.type === "system"
+        ? createSystemRow(msg)
+        : createBubble(msg, ctx, list),
     );
   }
   list.appendChild(fragment);
@@ -82,7 +82,10 @@ export function createMessageList(
   // Dismiss dropdowns on click/tap outside
   list.addEventListener("click", (e) => {
     const target = e.target as HTMLElement;
-    if (!target.closest(".message-more-btn") && !target.closest(".message-dropdown")) {
+    if (
+      !target.closest(".message-more-btn") &&
+      !target.closest(".message-dropdown")
+    ) {
       dismissAllDropdowns(list);
     }
   });
@@ -91,7 +94,10 @@ export function createMessageList(
     "touchstart",
     (e) => {
       const target = e.target as HTMLElement;
-      if (!target.closest(".message-more-btn") && !target.closest(".message-dropdown")) {
+      if (
+        !target.closest(".message-more-btn") &&
+        !target.closest(".message-dropdown")
+      ) {
         dismissAllDropdowns(list);
       }
     },
@@ -107,7 +113,10 @@ export function appendMessage(
   ctx: BubbleContext,
 ): void {
   const typingEl = list.querySelector(".typing-indicator");
-  const el = message.type === "system" ? createSystemRow(message) : createBubble(message, ctx, list);
+  const el =
+    message.type === "system"
+      ? createSystemRow(message)
+      : createBubble(message, ctx, list);
   if (typingEl) {
     list.insertBefore(el, typingEl);
   } else {
@@ -160,10 +169,7 @@ export function updateMessageContent(
   }
 }
 
-export function markMessageDeleted(
-  list: HTMLElement,
-  messageId: string,
-): void {
+export function markMessageDeleted(list: HTMLElement, messageId: string): void {
   const row = list.querySelector(`[data-id="${messageId}"]`);
   if (!row) return;
 
@@ -200,7 +206,9 @@ export function enterEditMode(
 
   // Hide the bubble and dropdown anchor entirely
   bubble.style.display = "none";
-  const dropdownAnchor = row.querySelector(".message-dropdown-anchor") as HTMLElement | null;
+  const dropdownAnchor = row.querySelector(
+    ".message-dropdown-anchor",
+  ) as HTMLElement | null;
   if (dropdownAnchor) dropdownAnchor.style.display = "none";
 
   // Create edit form — appended to the row, not inside the bubble
@@ -283,7 +291,9 @@ export function exitEditMode(
 
   // Restore bubble and dropdown
   bubble.style.display = "";
-  const dropdownAnchor = row.querySelector(".message-dropdown-anchor") as HTMLElement | null;
+  const dropdownAnchor = row.querySelector(
+    ".message-dropdown-anchor",
+  ) as HTMLElement | null;
   if (dropdownAnchor) dropdownAnchor.style.display = "";
 
   const textEl = bubble.querySelector(".message-text");
@@ -319,7 +329,11 @@ function createSystemRow(msg: ChatMessage): HTMLElement {
   return row;
 }
 
-function createBubble(msg: ChatMessage, ctx: BubbleContext, listEl: HTMLElement): HTMLElement {
+function createBubble(
+  msg: ChatMessage,
+  ctx: BubbleContext,
+  listEl: HTMLElement,
+): HTMLElement {
   const isVisitor = msg.senderRole === "visitor";
 
   const row = document.createElement("div");

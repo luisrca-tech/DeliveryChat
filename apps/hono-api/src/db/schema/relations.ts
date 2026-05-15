@@ -7,18 +7,21 @@ import { applications } from "./applications";
 import { user } from "./users";
 import { visitorIdentities } from "./visitorIdentities";
 
-export const conversationsRelations = relations(conversations, ({ one, many }) => ({
-  organization: one(organization, {
-    fields: [conversations.organizationId],
-    references: [organization.id],
+export const conversationsRelations = relations(
+  conversations,
+  ({ one, many }) => ({
+    organization: one(organization, {
+      fields: [conversations.organizationId],
+      references: [organization.id],
+    }),
+    application: one(applications, {
+      fields: [conversations.applicationId],
+      references: [applications.id],
+    }),
+    messages: many(messages),
+    participants: many(conversationParticipants),
   }),
-  application: one(applications, {
-    fields: [conversations.applicationId],
-    references: [applications.id],
-  }),
-  messages: many(messages),
-  participants: many(conversationParticipants),
-}));
+);
 
 export const messagesRelations = relations(messages, ({ one }) => ({
   conversation: one(conversations, {

@@ -12,9 +12,7 @@ type InputAreaResult = {
   destroy: () => void;
 };
 
-export function createInputArea(
-  callbacks: InputCallbacks,
-): InputAreaResult {
+export function createInputArea(callbacks: InputCallbacks): InputAreaResult {
   const container = document.createElement("div");
   container.className = "input-area";
 

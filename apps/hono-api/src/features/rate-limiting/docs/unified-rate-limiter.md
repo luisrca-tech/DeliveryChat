@@ -3,6 +3,7 @@
 ## Problem
 
 `rateLimit.ts` (tenant) and `visitorRateLimit.ts` (visitor) duplicate ~50 lines of identical infrastructure:
+
 - The recursive middleware chain that threads 3 `hono-rate-limiter` instances (per-second, per-minute, per-hour)
 - Store allocation (one `MemoryStore` per window)
 - 429 response formatting (with divergent shapes — tenant returns `currentLimit`, visitor returns `cause` and `window`)
@@ -12,6 +13,7 @@ This duplication means any fix to the chain pattern must be applied in two place
 ## Solution
 
 Extract a single `createRateLimiter` factory in `lib/middleware/rateLimitFactory.ts` that hides:
+
 - The 3-window `hono-rate-limiter` instantiation
 - The recursive middleware chain
 - `MemoryStore` allocation

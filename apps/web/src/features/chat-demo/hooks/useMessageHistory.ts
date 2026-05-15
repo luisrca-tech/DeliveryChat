@@ -26,7 +26,12 @@ export function useMessageHistory({
     client
       .getMessages(selectedId)
       .then(({ messages: msgs }) => {
-        const ordered = [...msgs].reverse().map((m) => ({ ...m, type: m.type === "system" ? "system" as const : "text" as const }));
+        const ordered = [...msgs]
+          .reverse()
+          .map((m) => ({
+            ...m,
+            type: m.type === "system" ? ("system" as const) : ("text" as const),
+          }));
         setMessages(ordered);
         const lastMsg = ordered[ordered.length - 1];
         if (lastMsg) {
@@ -52,9 +57,14 @@ export function useMessageHistory({
     setMessages((prev) => [...prev, msg]);
   }, []);
 
-  const replaceMessage = useCallback((id: string, content: string, editedAt: string) => {
-    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, content, editedAt } : m)));
-  }, []);
+  const replaceMessage = useCallback(
+    (id: string, content: string, editedAt: string) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === id ? { ...m, content, editedAt } : m)),
+      );
+    },
+    [],
+  );
 
   const removeMessage = useCallback((id: string) => {
     setMessages((prev) => prev.filter((m) => m.id !== id));

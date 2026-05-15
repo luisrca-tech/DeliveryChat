@@ -1,6 +1,12 @@
-import { trustedStaticHTML, type TrustedStaticHTML } from "../utils/trusted-html.js";
+import {
+  trustedStaticHTML,
+  type TrustedStaticHTML,
+} from "../utils/trusted-html.js";
 
-export const ICON_SVGS: Record<"chat" | "question" | "message", TrustedStaticHTML> = {
+export const ICON_SVGS: Record<
+  "chat" | "question" | "message",
+  TrustedStaticHTML
+> = {
   chat: trustedStaticHTML(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10S2 17.523 2 12zm10-8a8 8 0 100 16 8 8 0 000-16z"/><path d="M8 12a1 1 0 011-1h4a1 1 0 110 2H9a1 1 0 01-1-1z"/></svg>`,
   ),

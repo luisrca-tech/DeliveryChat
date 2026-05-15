@@ -13,7 +13,11 @@ type Props = {
   onOpenChange: (open: boolean) => void;
 };
 
-export function InviteMemberDialog({ organizationId, open, onOpenChange }: Props) {
+export function InviteMemberDialog({
+  organizationId,
+  open,
+  onOpenChange,
+}: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const queryClient = useQueryClient();
 
@@ -28,7 +32,8 @@ export function InviteMemberDialog({ organizationId, open, onOpenChange }: Props
 
       if (result.error) {
         toast.error("Failed to invite member", {
-          description: result.error.message ?? result.error.code ?? "Unknown error",
+          description:
+            result.error.message ?? result.error.code ?? "Unknown error",
         });
         return;
       }

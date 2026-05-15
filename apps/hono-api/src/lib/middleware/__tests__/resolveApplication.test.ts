@@ -18,10 +18,8 @@ function chainMock(result: unknown) {
   for (const method of ["from", "where", "limit"]) {
     chain[method] = vi.fn(() => chain);
   }
-  chain.then = (
-    resolve: (v: unknown) => void,
-    reject: (e: unknown) => void,
-  ) => Promise.resolve(result).then(resolve, reject);
+  chain.then = (resolve: (v: unknown) => void, reject: (e: unknown) => void) =>
+    Promise.resolve(result).then(resolve, reject);
   return chain;
 }
 

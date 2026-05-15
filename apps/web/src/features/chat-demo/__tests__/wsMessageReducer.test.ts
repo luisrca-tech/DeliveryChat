@@ -28,7 +28,9 @@ function makeConversation(overrides?: Partial<Conversation>): Conversation {
   };
 }
 
-function makeMessage(overrides?: Partial<OptimisticMessage>): OptimisticMessage {
+function makeMessage(
+  overrides?: Partial<OptimisticMessage>,
+): OptimisticMessage {
   return {
     id: "msg-1",
     conversationId: "conv-1",
@@ -45,14 +47,22 @@ function makeMessage(overrides?: Partial<OptimisticMessage>): OptimisticMessage 
 
 describe("wsMessageReducer / message:ack", () => {
   it("replaces an optimistic message matched by clientId", () => {
-    const optimistic = makeMessage({ id: "tmp-1", clientId: "tmp-1", pending: true });
+    const optimistic = makeMessage({
+      id: "tmp-1",
+      clientId: "tmp-1",
+      pending: true,
+    });
     const state = makeState({ messages: [optimistic] });
 
     const { state: next, sideEffects } = wsMessageReducer(
       state,
       {
         type: "message:ack",
-        payload: { clientMessageId: "tmp-1", serverMessageId: "srv-1", createdAt: "2024-01-02T00:00:00Z" },
+        payload: {
+          clientMessageId: "tmp-1",
+          serverMessageId: "srv-1",
+          createdAt: "2024-01-02T00:00:00Z",
+        },
       },
       "conv-1",
     );
@@ -77,7 +87,11 @@ describe("wsMessageReducer / message:ack", () => {
       state,
       {
         type: "message:ack",
-        payload: { clientMessageId: "unknown-id", serverMessageId: "srv-1", createdAt: "2024-01-02T00:00:00Z" },
+        payload: {
+          clientMessageId: "unknown-id",
+          serverMessageId: "srv-1",
+          createdAt: "2024-01-02T00:00:00Z",
+        },
       },
       "conv-1",
     );
@@ -91,14 +105,22 @@ describe("wsMessageReducer / message:ack", () => {
   });
 
   it("emits no persist-last-message side effect when selectedConversationId is null", () => {
-    const optimistic = makeMessage({ id: "tmp-1", clientId: "tmp-1", pending: true });
+    const optimistic = makeMessage({
+      id: "tmp-1",
+      clientId: "tmp-1",
+      pending: true,
+    });
     const state = makeState({ messages: [optimistic] });
 
     const { sideEffects } = wsMessageReducer(
       state,
       {
         type: "message:ack",
-        payload: { clientMessageId: "tmp-1", serverMessageId: "srv-1", createdAt: "2024-01-02T00:00:00Z" },
+        payload: {
+          clientMessageId: "tmp-1",
+          serverMessageId: "srv-1",
+          createdAt: "2024-01-02T00:00:00Z",
+        },
       },
       null,
     );
@@ -131,8 +153,16 @@ describe("wsMessageReducer / message:new", () => {
     expect(next.messages).toHaveLength(1);
     expect(next.messages[0]!.id).toBe("msg-2");
     expect(next.operatorTypingName).toBeNull();
-    expect(sideEffects).toContainEqual({ kind: "persist-last-message", conversationId: "conv-1", messageId: "msg-2" });
-    expect(sideEffects).toContainEqual({ kind: "mark-as-read", conversationId: "conv-1", messageId: "msg-2" });
+    expect(sideEffects).toContainEqual({
+      kind: "persist-last-message",
+      conversationId: "conv-1",
+      messageId: "msg-2",
+    });
+    expect(sideEffects).toContainEqual({
+      kind: "mark-as-read",
+      conversationId: "conv-1",
+      messageId: "msg-2",
+    });
   });
 
   it("is idempotent — does not append a duplicate message", () => {
@@ -165,7 +195,13 @@ describe("wsMessageReducer / message:new", () => {
       state,
       {
         type: "message:new",
-        payload: { id: "msg-2", conversationId: "conv-1", senderId: "op-1", content: "Hey", createdAt: "2024-01-01T01:00:00Z" },
+        payload: {
+          id: "msg-2",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          content: "Hey",
+          createdAt: "2024-01-01T01:00:00Z",
+        },
       },
       "conv-1",
     );
@@ -180,13 +216,22 @@ describe("wsMessageReducer / message:new", () => {
       state,
       {
         type: "message:new",
-        payload: { id: "msg-3", conversationId: "conv-2", senderId: "op-1", content: "Hey", createdAt: "2024-01-01T01:00:00Z" },
+        payload: {
+          id: "msg-3",
+          conversationId: "conv-2",
+          senderId: "op-1",
+          content: "Hey",
+          createdAt: "2024-01-01T01:00:00Z",
+        },
       },
       "conv-1",
     );
 
     expect(next.messages).toHaveLength(0);
-    expect(sideEffects).toContainEqual({ kind: "refresh-unread", conversationId: "conv-2" });
+    expect(sideEffects).toContainEqual({
+      kind: "refresh-unread",
+      conversationId: "conv-2",
+    });
   });
 });
 
@@ -221,7 +266,10 @@ describe("wsMessageReducer / messages:sync", () => {
 
     const { state: next, sideEffects } = wsMessageReducer(
       state,
-      { type: "messages:sync", payload: { conversationId: "conv-1", messages: [] } },
+      {
+        type: "messages:sync",
+        payload: { conversationId: "conv-1", messages: [] },
+      },
       "conv-1",
     );
 
@@ -235,7 +283,10 @@ describe("wsMessageReducer / messages:sync", () => {
 
     const { state: next, sideEffects } = wsMessageReducer(
       state,
-      { type: "messages:sync", payload: { conversationId: "conv-1", messages: [msg] } },
+      {
+        type: "messages:sync",
+        payload: { conversationId: "conv-1", messages: [msg] },
+      },
       "conv-1",
     );
 
@@ -248,7 +299,13 @@ describe("wsMessageReducer / messages:sync", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "messages:sync", payload: { conversationId: "conv-2", messages: [makeMessage({ conversationId: "conv-2" })] } },
+      {
+        type: "messages:sync",
+        payload: {
+          conversationId: "conv-2",
+          messages: [makeMessage({ conversationId: "conv-2" })],
+        },
+      },
       "conv-1",
     );
 
@@ -267,7 +324,12 @@ describe("wsMessageReducer / message:edited", () => {
       state,
       {
         type: "message:edited",
-        payload: { messageId: "msg-1", conversationId: "conv-1", content: "Updated content", editedAt: "2024-01-01T02:00:00Z" },
+        payload: {
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          content: "Updated content",
+          editedAt: "2024-01-01T02:00:00Z",
+        },
       },
       "conv-1",
     );
@@ -282,7 +344,15 @@ describe("wsMessageReducer / message:edited", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:edited", payload: { messageId: "msg-1", conversationId: "conv-2", content: "x", editedAt: "2024-01-01T02:00:00Z" } },
+      {
+        type: "message:edited",
+        payload: {
+          messageId: "msg-1",
+          conversationId: "conv-2",
+          content: "x",
+          editedAt: "2024-01-01T02:00:00Z",
+        },
+      },
       "conv-1",
     );
 
@@ -300,7 +370,10 @@ describe("wsMessageReducer / message:deleted", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:deleted", payload: { messageId: "msg-1", conversationId: "conv-1" } },
+      {
+        type: "message:deleted",
+        payload: { messageId: "msg-1", conversationId: "conv-1" },
+      },
       "conv-1",
     );
 
@@ -314,7 +387,10 @@ describe("wsMessageReducer / message:deleted", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:deleted", payload: { messageId: "non-existent", conversationId: "conv-1" } },
+      {
+        type: "message:deleted",
+        payload: { messageId: "non-existent", conversationId: "conv-1" },
+      },
       "conv-1",
     );
 
@@ -327,7 +403,10 @@ describe("wsMessageReducer / message:deleted", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "message:deleted", payload: { messageId: "msg-1", conversationId: "conv-2" } },
+      {
+        type: "message:deleted",
+        payload: { messageId: "msg-1", conversationId: "conv-2" },
+      },
       "conv-1",
     );
 
@@ -343,7 +422,10 @@ describe("wsMessageReducer / typing:start", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "typing:start", payload: { conversationId: "conv-1", userName: "Alice" } },
+      {
+        type: "typing:start",
+        payload: { conversationId: "conv-1", userName: "Alice" },
+      },
       "conv-1",
     );
 
@@ -355,7 +437,10 @@ describe("wsMessageReducer / typing:start", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "typing:start", payload: { conversationId: "conv-1", userName: null } },
+      {
+        type: "typing:start",
+        payload: { conversationId: "conv-1", userName: null },
+      },
       "conv-1",
     );
 
@@ -367,7 +452,10 @@ describe("wsMessageReducer / typing:start", () => {
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "typing:start", payload: { conversationId: "conv-2", userName: "Alice" } },
+      {
+        type: "typing:start",
+        payload: { conversationId: "conv-2", userName: "Alice" },
+      },
       "conv-1",
     );
 
@@ -407,12 +495,19 @@ describe("wsMessageReducer / typing:stop", () => {
 
 describe("wsMessageReducer / conversation:accepted", () => {
   it("sets conversation status to active and updates assignedTo", () => {
-    const conv = makeConversation({ id: "conv-1", status: "pending", assignedTo: null });
+    const conv = makeConversation({
+      id: "conv-1",
+      status: "pending",
+      assignedTo: null,
+    });
     const state = makeState({ conversations: [conv] });
 
     const { state: next } = wsMessageReducer(
       state,
-      { type: "conversation:accepted", payload: { conversationId: "conv-1", assignedTo: "op-2" } },
+      {
+        type: "conversation:accepted",
+        payload: { conversationId: "conv-1", assignedTo: "op-2" },
+      },
       "conv-1",
     );
 
@@ -426,7 +521,10 @@ describe("wsMessageReducer / conversation:accepted", () => {
 
     wsMessageReducer(
       state,
-      { type: "conversation:accepted", payload: { conversationId: "conv-1", assignedTo: "op-2" } },
+      {
+        type: "conversation:accepted",
+        payload: { conversationId: "conv-1", assignedTo: "op-2" },
+      },
       "conv-1",
     );
 
@@ -438,7 +536,11 @@ describe("wsMessageReducer / conversation:accepted", () => {
 
 describe("wsMessageReducer / conversation:released", () => {
   it("sets conversation status to pending and clears assignedTo", () => {
-    const conv = makeConversation({ id: "conv-1", status: "active", assignedTo: "op-1" });
+    const conv = makeConversation({
+      id: "conv-1",
+      status: "active",
+      assignedTo: "op-1",
+    });
     const state = makeState({ conversations: [conv] });
 
     const { state: next } = wsMessageReducer(
@@ -523,7 +625,13 @@ describe("wsMessageReducer / pure function contract", () => {
       state,
       {
         type: "message:new",
-        payload: { id: "msg-2", conversationId: "conv-1", senderId: "op-1", content: "Hey", createdAt: "2024-01-01T01:00:00Z" },
+        payload: {
+          id: "msg-2",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          content: "Hey",
+          createdAt: "2024-01-01T01:00:00Z",
+        },
       },
       "conv-1",
     );
@@ -537,7 +645,10 @@ describe("wsMessageReducer / pure function contract", () => {
 
     wsMessageReducer(
       state,
-      { type: "conversation:accepted", payload: { conversationId: "conv-1", assignedTo: "op-2" } },
+      {
+        type: "conversation:accepted",
+        payload: { conversationId: "conv-1", assignedTo: "op-2" },
+      },
       "conv-1",
     );
 

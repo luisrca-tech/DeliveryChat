@@ -7,6 +7,7 @@ Phase 4 adds message sending, WebSocket-backed real-time delivery, and a connect
 ## Message Sending
 
 Messages are sent via WebSocket `message:send` event (not HTTP POST). This provides:
+
 - Lower latency (no separate HTTP round-trip)
 - Native `message:ack` confirmation for optimistic UI replacement
 - Single transport for both sending and receiving
@@ -24,6 +25,7 @@ If the WebSocket is not open, an inline error is shown and no optimistic message
 ## WebSocket Lifecycle
 
 On conversation select:
+
 1. Previous WebSocket is closed (cleanup)
 2. `POST /ws-token` fetches a signed JWT
 3. `connectWebSocket(token)` opens `wss://<api-host>/v1/ws?token=<jwt>`
@@ -34,17 +36,18 @@ On conversation deselect or component cleanup: WebSocket is closed and ping inte
 
 ## Server Events Handled
 
-| Event | Action |
-|---|---|
-| `message:ack` | Replace optimistic message with server ID + timestamp |
-| `message:new` | Append incoming operator message to the list |
-| `conversation:accepted` | Update conversation status to `active`, set `assignedTo` |
+| Event                   | Action                                                      |
+| ----------------------- | ----------------------------------------------------------- |
+| `message:ack`           | Replace optimistic message with server ID + timestamp       |
+| `message:new`           | Append incoming operator message to the list                |
+| `conversation:accepted` | Update conversation status to `active`, set `assignedTo`    |
 | `conversation:released` | Update conversation status to `pending`, clear `assignedTo` |
-| `conversation:resolved` | Update conversation status to `closed` |
+| `conversation:resolved` | Update conversation status to `closed`                      |
 
 ## Connection Status Indicator
 
 A WiFi icon in the conversation header reflects WebSocket state:
+
 - `connecting` — yellow pulsing WiFi icon
 - `connected` — green WiFi icon
 - `disconnected` — muted WifiOff icon

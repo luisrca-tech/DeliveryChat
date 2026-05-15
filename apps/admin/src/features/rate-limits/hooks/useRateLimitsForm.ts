@@ -21,7 +21,7 @@ export function useRateLimitsForm({
     <K extends keyof FormValues>(field: K, value: FormValues[K]) => {
       setValues((prev) => ({ ...prev, [field]: value }));
     },
-    []
+    [],
   );
 
   const handleSubmit = useCallback(
@@ -29,7 +29,7 @@ export function useRateLimitsForm({
       e.preventDefault();
       onSubmit(values);
     },
-    [onSubmit, values]
+    [onSubmit, values],
   );
 
   return {

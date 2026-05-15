@@ -12,9 +12,7 @@ export type UpsertVisitorIdentityInput = {
   hmacVerified?: boolean;
 };
 
-export async function upsertVisitorIdentity(
-  input: UpsertVisitorIdentityInput,
-) {
+export async function upsertVisitorIdentity(input: UpsertVisitorIdentityInput) {
   const [result] = await db
     .insert(visitorIdentities)
     .values({
@@ -36,7 +34,8 @@ export async function upsertVisitorIdentity(
         email: input.email ?? sql`${visitorIdentities.email}`,
         name: input.name ?? sql`${visitorIdentities.name}`,
         metadata: input.metadata ?? sql`${visitorIdentities.metadata}`,
-        hmacVerified: input.hmacVerified ?? sql`${visitorIdentities.hmacVerified}`,
+        hmacVerified:
+          input.hmacVerified ?? sql`${visitorIdentities.hmacVerified}`,
         updatedAt: sql`now()`,
       },
     })

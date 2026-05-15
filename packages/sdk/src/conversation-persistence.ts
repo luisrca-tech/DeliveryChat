@@ -1,5 +1,8 @@
 import { setState } from "./state.js";
-import { CONV_STORAGE_PREFIX, LAST_MSG_STORAGE_PREFIX } from "./constants/index.js";
+import {
+  CONV_STORAGE_PREFIX,
+  LAST_MSG_STORAGE_PREFIX,
+} from "./constants/index.js";
 
 let activeAppId: string | null = null;
 
@@ -15,7 +18,10 @@ export function loadPersistedConversationId(appId: string): string | null {
   }
 }
 
-export function saveConversationId(appId: string, conversationId: string): void {
+export function saveConversationId(
+  appId: string,
+  conversationId: string,
+): void {
   try {
     localStorage.setItem(`${CONV_STORAGE_PREFIX}${appId}`, conversationId);
   } catch {
@@ -23,7 +29,10 @@ export function saveConversationId(appId: string, conversationId: string): void 
   }
 }
 
-export function saveLastClientMessageId(appId: string, clientMessageId: string): void {
+export function saveLastClientMessageId(
+  appId: string,
+  clientMessageId: string,
+): void {
   try {
     localStorage.setItem(`${LAST_MSG_STORAGE_PREFIX}${appId}`, clientMessageId);
   } catch {

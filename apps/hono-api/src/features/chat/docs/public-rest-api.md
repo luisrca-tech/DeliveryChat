@@ -78,12 +78,12 @@ Offset-based pagination with `limit` + `offset` query parameters. List endpoints
 
 The visitor rate limiter applies three sliding windows configured via `VISITOR_RATE_LIMITS` in `planLimits.ts`. On 429 responses, the following headers are included:
 
-| Header | Value |
-|--------|-------|
-| `Retry-After` | Seconds until the client should retry |
-| `X-RateLimit-Limit` | Maximum requests allowed in the violated window |
-| `X-RateLimit-Remaining` | Always `0` on a 429 |
-| `X-RateLimit-Reset` | Unix timestamp (seconds) when the window resets |
+| Header                  | Value                                           |
+| ----------------------- | ----------------------------------------------- |
+| `Retry-After`           | Seconds until the client should retry           |
+| `X-RateLimit-Limit`     | Maximum requests allowed in the violated window |
+| `X-RateLimit-Remaining` | Always `0` on a 429                             |
+| `X-RateLimit-Reset`     | Unix timestamp (seconds) when the window resets |
 
 ## WebSocket Integration
 
@@ -102,13 +102,13 @@ All conversation-scoped routes (`/conversations/:id` and `/conversations/:id/*`)
 
 Service-layer errors thrown by `chat.service.ts` are mapped to HTTP responses by `mapServiceErrorToResponse()` in `error-mapper.ts`. The mapper handles:
 
-| Error Class | HTTP Status | Error Code |
-|---|---|---|
-| `MessageNotFoundError` | 404 | `not_found` |
-| `NotMessageSenderError` | 403 | `forbidden` |
-| `MessageEditWindowExpiredError` | 422 | `edit_window_expired` |
-| `ConversationNotFoundError` | 404 | `not_found` |
-| `ConversationNotActiveError` | 422 | `conversation_not_active` |
+| Error Class                     | HTTP Status | Error Code                |
+| ------------------------------- | ----------- | ------------------------- |
+| `MessageNotFoundError`          | 404         | `not_found`               |
+| `NotMessageSenderError`         | 403         | `forbidden`               |
+| `MessageEditWindowExpiredError` | 422         | `edit_window_expired`     |
+| `ConversationNotFoundError`     | 404         | `not_found`               |
+| `ConversationNotActiveError`    | 422         | `conversation_not_active` |
 
 Route handlers call the mapper in their catch blocks instead of repeating `instanceof` chains. Unknown errors are re-thrown.
 

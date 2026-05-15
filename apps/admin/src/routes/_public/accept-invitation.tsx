@@ -161,8 +161,7 @@ function AcceptInvitationPage() {
               setIsSubmitting(false);
               return;
             }
-            const token =
-              signInResult.response?.headers?.get("set-auth-token");
+            const token = signInResult.response?.headers?.get("set-auth-token");
             if (token) setBearerToken(token);
           } else {
             setSubmitError(
@@ -172,8 +171,7 @@ function AcceptInvitationPage() {
             return;
           }
         } else {
-          const token =
-            signUpResult.response?.headers?.get("set-auth-token");
+          const token = signUpResult.response?.headers?.get("set-auth-token");
           if (token) setBearerToken(token);
         }
       }
@@ -270,7 +268,11 @@ function AcceptInvitationPage() {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label>Email</Label>
-          <Input value={invitation?.email ?? ""} disabled className="bg-muted" />
+          <Input
+            value={invitation?.email ?? ""}
+            disabled
+            className="bg-muted"
+          />
         </div>
 
         {!isReturningUser && (
@@ -291,7 +293,11 @@ function AcceptInvitationPage() {
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder={isReturningUser ? "Your existing password" : "At least 8 characters"}
+            placeholder={
+              isReturningUser
+                ? "Your existing password"
+                : "At least 8 characters"
+            }
             autoFocus={isReturningUser}
           />
         </div>

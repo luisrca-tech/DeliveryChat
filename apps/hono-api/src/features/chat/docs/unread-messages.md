@@ -10,8 +10,8 @@ Per-operator unread message counting for admin chat conversations. Operators and
 2. **Per-participant tracking** — each operator/admin has their own independent read position via `conversationParticipants.lastReadMessageId`.
 3. **Monotonic advancement** — `lastReadMessageId` only moves forward (newer messages). It never regresses to an older message.
 4. **Auto-mark on open** — when an operator opens a conversation, the frontend calls `POST /conversations/:id/read` to advance `lastReadMessageId` to the latest message.
-6. **Auto-read while focused** — if the user is already viewing a conversation and a new visitor message arrives, `markAsRead` is called automatically before refreshing the list, ensuring the count stays at 0.
-5. **Soft-delete awareness** — deleted messages (`deletedAt IS NOT NULL`) are excluded from unread counts.
+5. **Auto-read while focused** — if the user is already viewing a conversation and a new visitor message arrives, `markAsRead` is called automatically before refreshing the list, ensuring the count stays at 0.
+6. **Soft-delete awareness** — deleted messages (`deletedAt IS NOT NULL`) are excluded from unread counts.
 
 ## Database
 

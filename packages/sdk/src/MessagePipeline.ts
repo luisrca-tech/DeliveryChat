@@ -1,6 +1,9 @@
 import { setState, getState } from "./state.js";
 import { createConversation } from "./conversation.js";
-import { saveConversationId, saveLastClientMessageId } from "./conversation-persistence.js";
+import {
+  saveConversationId,
+  saveLastClientMessageId,
+} from "./conversation-persistence.js";
 import type { EventEmitter } from "./EventEmitter.js";
 import type { SdkEventMap } from "./SdkEventMap.js";
 import type { ChatMessage } from "./types/index.js";

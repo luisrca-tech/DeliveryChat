@@ -1,5 +1,4 @@
-const envBase =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
+const envBase = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "";
 
 let runtimeBaseUrl: string | null = null;
 

@@ -8,7 +8,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
-import { MessageCircle, Plus, X, Send, Wifi, WifiOff, MoreHorizontal, Copy, Pencil, Trash2, Check } from "lucide-react";
+import {
+  MessageCircle,
+  Plus,
+  X,
+  Send,
+  Wifi,
+  WifiOff,
+  MoreHorizontal,
+  Copy,
+  Pencil,
+  Trash2,
+  Check,
+} from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import type { Conversation } from "../chat-client";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
@@ -48,9 +60,12 @@ export function StatusBadge({ status }: { status: string }) {
 }
 
 export function ConnectionDot({ status }: { status: WsStatus }) {
-  if (status === "connected") return <Wifi className="h-3 w-3 text-green-500 flex-shrink-0" />;
+  if (status === "connected")
+    return <Wifi className="h-3 w-3 text-green-500 flex-shrink-0" />;
   if (status === "connecting")
-    return <Wifi className="h-3 w-3 text-yellow-500 flex-shrink-0 animate-pulse" />;
+    return (
+      <Wifi className="h-3 w-3 text-yellow-500 flex-shrink-0 animate-pulse" />
+    );
   return <WifiOff className="h-3 w-3 text-muted-foreground/50 flex-shrink-0" />;
 }
 
@@ -93,16 +108,26 @@ export function ConversationListPanel({
   return (
     <div className="w-[240px] flex-shrink-0 border-r border-border flex flex-col">
       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-        <span className="text-xs font-semibold text-foreground">Conversations</span>
+        <span className="text-xs font-semibold text-foreground">
+          Conversations
+        </span>
         {!newForm.visible && (
-          <Button size="icon" variant="ghost" className="h-6 w-6" onClick={showNewForm}>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-6 w-6"
+            onClick={showNewForm}
+          >
             <Plus className="h-3.5 w-3.5" />
           </Button>
         )}
       </div>
 
       {newForm.visible && (
-        <form onSubmit={handleCreateConversation} className="p-2 border-b border-border space-y-1.5">
+        <form
+          onSubmit={handleCreateConversation}
+          className="p-2 border-b border-border space-y-1.5"
+        >
           <Input
             autoFocus
             placeholder="Subject (optional)…"
@@ -111,10 +136,21 @@ export function ConversationListPanel({
             className="h-7 text-xs"
           />
           <div className="flex gap-1">
-            <Button type="submit" size="sm" className="flex-1 h-6 text-xs" disabled={newForm.creating}>
+            <Button
+              type="submit"
+              size="sm"
+              className="flex-1 h-6 text-xs"
+              disabled={newForm.creating}
+            >
               {newForm.creating ? "Creating…" : "Start chat"}
             </Button>
-            <Button type="button" size="icon" variant="ghost" className="h-6 w-6" onClick={hideNewForm}>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-6 w-6"
+              onClick={hideNewForm}
+            >
               <X className="h-3 w-3" />
             </Button>
           </div>
@@ -125,7 +161,10 @@ export function ConversationListPanel({
         {loadingConvs ? (
           <div className="p-2 space-y-1.5">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="h-12 rounded-md bg-muted/50 animate-pulse" />
+              <div
+                key={i}
+                className="h-12 rounded-md bg-muted/50 animate-pulse"
+              />
             ))}
           </div>
         ) : conversations.length === 0 ? (
@@ -146,7 +185,9 @@ export function ConversationListPanel({
               >
                 <div className="flex items-start gap-1.5">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] font-medium truncate">{conv.subject || "No subject"}</p>
+                    <p className="text-[11px] font-medium truncate">
+                      {conv.subject || "No subject"}
+                    </p>
                     <p className="text-[10px] text-muted-foreground mt-0.5">
                       {new Date(conv.createdAt).toLocaleDateString()}
                     </p>
@@ -187,7 +228,10 @@ export interface MessageThreadPanelProps {
   setEditingContent: (content: string) => void;
   handleSaveEdit: (msg: OptimisticMessage) => Promise<void>;
   onRequestDelete: (msg: OptimisticMessage) => void;
-  handleEditKeyDown: (e: React.KeyboardEvent<HTMLInputElement>, msg: OptimisticMessage) => void;
+  handleEditKeyDown: (
+    e: React.KeyboardEvent<HTMLInputElement>,
+    msg: OptimisticMessage,
+  ) => void;
 }
 
 export function MessageThreadPanel({
@@ -216,7 +260,9 @@ export function MessageThreadPanel({
     return (
       <div className="flex-1 flex flex-col items-center justify-center gap-3 text-muted-foreground">
         <MessageCircle className="h-8 w-8 opacity-20" />
-        <p className="text-xs opacity-50">Select a conversation or start a new one</p>
+        <p className="text-xs opacity-50">
+          Select a conversation or start a new one
+        </p>
       </div>
     );
   }
@@ -225,7 +271,9 @@ export function MessageThreadPanel({
     <div className="flex-1 flex flex-col min-w-0">
       <div className="px-3 py-2 border-b border-border flex items-center gap-2">
         <MessageCircle className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-        <p className="text-[11px] font-medium truncate flex-1">{conversation.subject || "No subject"}</p>
+        <p className="text-[11px] font-medium truncate flex-1">
+          {conversation.subject || "No subject"}
+        </p>
         <ConnectionDot status={wsStatus} />
         <StatusBadge status={conversation.status} />
       </div>
@@ -236,7 +284,10 @@ export function MessageThreadPanel({
             {[1, 2, 3].map((i) => (
               <div
                 key={i}
-                className={cn("h-7 w-40 rounded-lg bg-muted/50 animate-pulse", i % 2 === 0 && "ml-auto")}
+                className={cn(
+                  "h-7 w-40 rounded-lg bg-muted/50 animate-pulse",
+                  i % 2 === 0 && "ml-auto",
+                )}
               />
             ))}
           </div>
@@ -250,13 +301,16 @@ export function MessageThreadPanel({
               if (msg.type === "system") {
                 return (
                   <div key={msg.id} className="flex justify-center py-1">
-                    <span className="text-[10px] text-muted-foreground italic">{msg.content}</span>
+                    <span className="text-[10px] text-muted-foreground italic">
+                      {msg.content}
+                    </span>
                   </div>
                 );
               }
 
               const isVisitor =
-                msg.senderId === visitorUserId || (msg.pending && msg.clientId !== undefined);
+                msg.senderId === visitorUserId ||
+                (msg.pending && msg.clientId !== undefined);
               const canModify =
                 isVisitor &&
                 !msg.pending &&
@@ -313,14 +367,21 @@ export function MessageThreadPanel({
                               <MoreHorizontal className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="start" className="min-w-[120px]">
+                          <DropdownMenuContent
+                            align="start"
+                            className="min-w-[120px]"
+                          >
                             <DropdownMenuItem
-                              onClick={() => navigator.clipboard.writeText(msg.content)}
+                              onClick={() =>
+                                navigator.clipboard.writeText(msg.content)
+                              }
                             >
                               <Copy className="h-3.5 w-3.5 mr-2" />
                               Copy
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleStartEdit(msg)}>
+                            <DropdownMenuItem
+                              onClick={() => handleStartEdit(msg)}
+                            >
                               <Pencil className="h-3.5 w-3.5 mr-2" />
                               Edit
                             </DropdownMenuItem>
@@ -337,12 +398,18 @@ export function MessageThreadPanel({
                       <div
                         className={cn(
                           "min-w-0 max-w-full break-words rounded-lg px-2.5 py-1.5 text-[11px] leading-relaxed transition-opacity",
-                          isVisitor ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
+                          isVisitor
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-foreground",
                           msg.pending && "opacity-60",
                         )}
                       >
                         {msg.content}
-                        {msg.editedAt && <span className="ml-1 text-[9px] opacity-60">(edited)</span>}
+                        {msg.editedAt && (
+                          <span className="ml-1 text-[9px] opacity-60">
+                            (edited)
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -356,7 +423,9 @@ export function MessageThreadPanel({
 
       {conversation.status === "closed" ? (
         <div className="p-3 border-t border-border bg-muted/30 text-center">
-          <p className="text-xs text-muted-foreground">This conversation has been resolved</p>
+          <p className="text-xs text-muted-foreground">
+            This conversation has been resolved
+          </p>
         </div>
       ) : (
         <div className="border-t border-border p-2 space-y-1">
@@ -365,7 +434,9 @@ export function MessageThreadPanel({
               {operatorTypingName} is typing…
             </p>
           )}
-          {sendError && <p className="text-[10px] text-destructive px-1">{sendError}</p>}
+          {sendError && (
+            <p className="text-[10px] text-destructive px-1">{sendError}</p>
+          )}
           <form onSubmit={handleSend} className="flex gap-1.5">
             <Input
               value={inputValue}
@@ -375,7 +446,12 @@ export function MessageThreadPanel({
               className="flex-1 h-7 text-xs"
               disabled={sending}
             />
-            <Button type="submit" size="icon" className="h-7 w-7" disabled={sending || !inputValue.trim()}>
+            <Button
+              type="submit"
+              size="icon"
+              className="h-7 w-7"
+              disabled={sending || !inputValue.trim()}
+            >
               <Send className="h-3 w-3" />
             </Button>
           </form>

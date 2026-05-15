@@ -19,7 +19,7 @@ describe("trusted-html", () => {
     setTrustedInnerHTML(host, svg);
 
     expect(host.querySelector("svg")).not.toBeNull();
-    expect(host.innerHTML).toBe("<svg aria-hidden=\"true\"></svg>");
+    expect(host.innerHTML).toBe('<svg aria-hidden="true"></svg>');
   });
 
   it("trustedStaticHTML preserves the original string contents", () => {

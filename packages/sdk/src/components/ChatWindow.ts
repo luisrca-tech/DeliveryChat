@@ -1,4 +1,8 @@
-import type { WidgetSettings, ChatMessage, BubbleContext } from "../types/index.js";
+import type {
+  WidgetSettings,
+  ChatMessage,
+  BubbleContext,
+} from "../types/index.js";
 import { createHeader } from "./Header.js";
 import {
   createMessageList,

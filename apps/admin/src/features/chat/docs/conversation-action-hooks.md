@@ -9,6 +9,7 @@ Dedicated hooks that encapsulate the full side-effect chain for conversation lif
 Accepts a pending conversation and joins the WebSocket room.
 
 Side effects on success:
+
 1. Fires `acceptMutation.mutateAsync(conversationId)` (with optimistic update)
 2. Navigates to "mine" (operator) or "all" (admin) filter
 3. Shows success toast
@@ -22,6 +23,7 @@ On other errors: shows generic failure toast.
 Leaves an active conversation, returning it to the queue.
 
 Side effects on success:
+
 1. Fires `leaveMutation.mutateAsync(conversationId)` (with optimistic update)
 2. Navigates to "queue" filter
 3. Shows success toast
@@ -31,6 +33,7 @@ Side effects on success:
 Resolves an active conversation, marking it as closed.
 
 Side effects on success:
+
 1. Fires `resolveMutation.mutateAsync(conversationId)` (with optimistic update)
 2. Navigates to "closed" filter
 3. Shows success toast

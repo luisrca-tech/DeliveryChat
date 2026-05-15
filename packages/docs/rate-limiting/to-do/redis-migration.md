@@ -25,7 +25,11 @@ cd apps/hono-api && bun add @hono-rate-limiter/redis @upstash/redis
 ```ts
 type RedisClient = {
   scriptLoad: (script: string) => Promise<string>;
-  evalsha: <TArgs extends unknown[], TData = unknown>(sha1: string, keys: string[], args: TArgs) => Promise<TData>;
+  evalsha: <TArgs extends unknown[], TData = unknown>(
+    sha1: string,
+    keys: string[],
+    args: TArgs,
+  ) => Promise<TData>;
   decr: (key: string) => Promise<number>;
   del: (key: string) => Promise<number>;
 };

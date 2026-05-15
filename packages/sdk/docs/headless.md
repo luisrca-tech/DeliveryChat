@@ -24,22 +24,23 @@ DeliveryChat.on("message:received", (msg) => {
 
 ## Behavior Differences
 
-| Feature | Normal Mode | Headless Mode |
-|---|---|---|
-| Shadow DOM / UI rendering | Yes | No |
-| WebSocket connection | Lazy (on chat open) | Eager (on init) |
-| `open()` / `close()` / `toggle()` | Sets UI state | No-op |
-| `hideWidget()` / `showWidget()` | Sets visibility | No-op |
-| `sendMessage()` | Available | Available |
-| `getConversation()` | Available | Available |
-| `open` / `close` events | Emitted | Suppressed |
-| `ready` / `message:*` / `conversation:*` events | Emitted | Emitted |
+| Feature                                         | Normal Mode         | Headless Mode   |
+| ----------------------------------------------- | ------------------- | --------------- |
+| Shadow DOM / UI rendering                       | Yes                 | No              |
+| WebSocket connection                            | Lazy (on chat open) | Eager (on init) |
+| `open()` / `close()` / `toggle()`               | Sets UI state       | No-op           |
+| `hideWidget()` / `showWidget()`                 | Sets visibility     | No-op           |
+| `sendMessage()`                                 | Available           | Available       |
+| `getConversation()`                             | Available           | Available       |
+| `open` / `close` events                         | Emitted             | Suppressed      |
+| `ready` / `message:*` / `conversation:*` events | Emitted             | Emitted         |
 
 ## Architecture
 
 ### Init Path (`widget.ts`)
 
 When `headless: true` is passed to `init()`:
+
 1. Settings are fetched and merged (same as normal mode)
 2. Chat controller is initialized (visitor ID, conversation restoration)
 3. Event bridge is connected
@@ -50,6 +51,7 @@ When `headless: true` is passed to `init()`:
 ### Promise-based sendMessage
 
 `sendMessage(text)` returns a `Promise<ChatMessage>` that:
+
 - Resolves when the server sends a `message:ack` WebSocket event
 - Rejects on rate limiting, conversation errors, or a 15-second timeout
 - Uses the `PendingMessages` module to track promises by `clientMessageId`, avoiding circular dependencies between `chat-controller.ts` and `ws.ts`

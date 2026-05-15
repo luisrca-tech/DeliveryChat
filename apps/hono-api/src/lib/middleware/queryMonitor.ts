@@ -27,9 +27,7 @@ function shouldEmitServerTiming(c: {
   const debugHeader = c.req.header("X-Debug-Timing");
   if (debugHeader !== "true") return false;
 
-  const auth = c.get("auth") as
-    | { membership?: { role?: string } }
-    | undefined;
+  const auth = c.get("auth") as { membership?: { role?: string } } | undefined;
   return auth?.membership?.role === "super_admin";
 }
 
@@ -93,8 +91,7 @@ export function queryMonitorMiddleware(
         const method = c.req.method;
         const path = new URL(c.req.url).pathname;
         const routeKey = `${method} ${path}`;
-        const threshold =
-          routeThresholds?.[routeKey] ?? defaultThreshold;
+        const threshold = routeThresholds?.[routeKey] ?? defaultThreshold;
 
         if (shouldEmitServerTiming(c)) {
           c.header(

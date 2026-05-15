@@ -45,15 +45,21 @@ export function ConversationListPanel({
   const selectedAppId = appIdFromUrl ?? ALL_APPS;
 
   const handleFilterChange = (value: string) => {
-    onFiltersChange(value, selectedAppId === ALL_APPS ? undefined : selectedAppId);
+    onFiltersChange(
+      value,
+      selectedAppId === ALL_APPS ? undefined : selectedAppId,
+    );
   };
 
   const handleAppChange = (value: string) => {
     onFiltersChange(activeFilter, value === ALL_APPS ? undefined : value);
   };
 
-  const visibleOptions = filterOptions.filter((opt) => !opt.adminOnly || isAdmin);
-  const currentOption = visibleOptions.find((opt) => opt.id === activeFilter) ?? visibleOptions[0]!;
+  const visibleOptions = filterOptions.filter(
+    (opt) => !opt.adminOnly || isAdmin,
+  );
+  const currentOption =
+    visibleOptions.find((opt) => opt.id === activeFilter) ?? visibleOptions[0]!;
 
   const { data: appsData } = useApplicationsQuery(
     100,
@@ -116,7 +122,11 @@ export function ConversationListPanel({
             </SelectTrigger>
             <SelectContent>
               {visibleOptions.map((opt) => (
-                <SelectItem className="cursor-pointer" key={opt.id} value={opt.id}>
+                <SelectItem
+                  className="cursor-pointer"
+                  key={opt.id}
+                  value={opt.id}
+                >
                   {opt.label}
                 </SelectItem>
               ))}
@@ -129,9 +139,15 @@ export function ConversationListPanel({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem className="cursor-pointer" value={ALL_APPS}>All</SelectItem>
+                <SelectItem className="cursor-pointer" value={ALL_APPS}>
+                  All
+                </SelectItem>
                 {applications.map((app) => (
-                  <SelectItem className="cursor-pointer" key={app.id} value={app.id}>
+                  <SelectItem
+                    className="cursor-pointer"
+                    key={app.id}
+                    value={app.id}
+                  >
                     {app.name}
                   </SelectItem>
                 ))}
@@ -160,8 +176,12 @@ export function ConversationListPanel({
             conversation={conv}
             isSelected={conv.id === selectedId}
             onClick={() => onSelect(conv.id)}
-            appName={showAllApps ? appNameMap.get(conv.applicationId ?? "") : undefined}
-            assignedToName={conv.assignedTo ? memberNameMap.get(conv.assignedTo) : undefined}
+            appName={
+              showAllApps ? appNameMap.get(conv.applicationId ?? "") : undefined
+            }
+            assignedToName={
+              conv.assignedTo ? memberNameMap.get(conv.assignedTo) : undefined
+            }
             canDelete={isAdmin}
             onDelete={setDeleteTargetId}
           />

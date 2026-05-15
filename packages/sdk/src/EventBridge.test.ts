@@ -28,7 +28,10 @@ vi.mock("./state.js", () => {
     getState: vi.fn((key: string) => stateStore[key]),
     setState: vi.fn((key: string, value: unknown) => {
       const prev = stateStore[key];
-      const next = typeof value === "function" ? (value as (p: unknown) => unknown)(prev) : value;
+      const next =
+        typeof value === "function"
+          ? (value as (p: unknown) => unknown)(prev)
+          : value;
       if (prev === next) return;
       stateStore[key] = next;
       subscriptions.get(key)?.forEach((fn) => fn(next));

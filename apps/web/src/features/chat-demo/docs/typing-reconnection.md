@@ -50,6 +50,7 @@ On successful reconnect, `reconnectAttemptRef` is reset to 0 and `room:join` is 
 Managed by: **`useLocalMessageSync`** (`hooks/useLocalMessageSync.ts`).
 
 Updated when:
+
 - Messages are loaded from REST on conversation open (`getMessages`).
 - `message:ack` is received (optimistic message confirmed) — via `useWebSocketDispatch` → `setLastMessageId`.
 - `message:new` is received while the conversation is open — via `useWebSocketDispatch`.

@@ -93,13 +93,11 @@ async function authenticateWithSession(
     headers,
   })) as SessionWithUser | null;
 
-  const sessionUser =
-    sessionResult?.user ?? sessionResult?.data?.user ?? null;
+  const sessionUser = sessionResult?.user ?? sessionResult?.data?.user ?? null;
 
   if (!sessionUser?.id) return null;
 
-  const tenantSlug =
-    c.req.header("X-Tenant-Slug") ?? c.req.query("tenant");
+  const tenantSlug = c.req.header("X-Tenant-Slug") ?? c.req.query("tenant");
 
   if (!tenantSlug) return null;
 
@@ -122,7 +120,9 @@ async function authenticateWithSession(
   if (!membership) return null;
 
   const role: ParticipantRole =
-    membership.role === "super_admin" ? "admin" : (membership.role as ParticipantRole);
+    membership.role === "super_admin"
+      ? "admin"
+      : (membership.role as ParticipantRole);
 
   return {
     userId: sessionUser.id,

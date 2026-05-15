@@ -30,7 +30,7 @@ type WsDispatchOptions = {
 
 function useWebSocketDispatch(opts: WsDispatchOptions): {
   handleWsMessage: (event: MessageEvent) => void;
-}
+};
 ```
 
 - `handleWsMessage` is a stable function (same identity across renders). Register it as a WebSocket `message` listener or pass it via a ref.
@@ -39,12 +39,12 @@ function useWebSocketDispatch(opts: WsDispatchOptions): {
 
 After `wsMessageReducer` returns:
 
-| Effect | Action |
-|---|---|
-| `close-socket` | `wsRef.current?.close()`, set to `null`, set `conversationClosedRef.current = true` |
-| `persist-last-message` | calls `setLastMessageId` |
-| `mark-as-read` | calls `onMarkAsRead` |
-| `refresh-unread` | calls `refreshUnread` (async, non-fatal) |
+| Effect                 | Action                                                                              |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `close-socket`         | `wsRef.current?.close()`, set to `null`, set `conversationClosedRef.current = true` |
+| `persist-last-message` | calls `setLastMessageId`                                                            |
+| `mark-as-read`         | calls `onMarkAsRead`                                                                |
+| `refresh-unread`       | calls `refreshUnread` (async, non-fatal)                                            |
 
 ## Test strategy
 

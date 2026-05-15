@@ -34,8 +34,12 @@ export type OriginEnforceResult =
   | { allowed: false; error: string; message: string };
 
 export function enforceOrigin(input: OriginEnforceInput): OriginEnforceResult {
-  const { origin, allowedOrigins, keyEnvironment, requireOrigin = false } =
-    input;
+  const {
+    origin,
+    allowedOrigins,
+    keyEnvironment,
+    requireOrigin = false,
+  } = input;
 
   if (!origin) {
     if (requireOrigin) {

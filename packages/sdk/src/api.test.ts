@@ -64,7 +64,11 @@ describe("fetchWsToken", () => {
       json: () => Promise.resolve({ token: "signed-token-123" }),
     } as Response);
 
-    const token = await fetchWsToken("https://api.example.com", "app-1", "visitor-1");
+    const token = await fetchWsToken(
+      "https://api.example.com",
+      "app-1",
+      "visitor-1",
+    );
 
     expect(token).toBe("signed-token-123");
     expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -162,7 +166,8 @@ describe("postIdentify", () => {
       ok: false,
       status: 422,
       statusText: "Unprocessable Entity",
-      json: () => Promise.resolve({ message: "externalId is required for HMAC" }),
+      json: () =>
+        Promise.resolve({ message: "externalId is required for HMAC" }),
     } as unknown as Response);
 
     await expect(

@@ -10,21 +10,21 @@ Centralizes all filter-tab derivation logic into two pure functions, eliminating
 
 Given a conversation lifecycle action (`accept`, `leave`, `resolve`) and the current user's role, returns the filter tab that should be active after the action completes.
 
-| Action | Admin/Super Admin | Operator |
-|--------|-------------------|----------|
-| accept | `all` | `mine` |
-| leave | `queue` | `queue` |
-| resolve | `closed` | `closed` |
+| Action  | Admin/Super Admin | Operator |
+| ------- | ----------------- | -------- |
+| accept  | `all`             | `mine`   |
+| leave   | `queue`           | `queue`  |
+| resolve | `closed`          | `closed` |
 
 ### `inferFilterForConversation(conversation, role, userId) → FilterId`
 
 Given a conversation's current state, returns the filter tab where that conversation would be visible. Used for deep-link/refresh scenarios where the URL has a `conversationId` but no `filter`.
 
-| Status | Admin/Super Admin | Operator (assigned) | Operator (not assigned) |
-|--------|-------------------|---------------------|------------------------|
-| pending | `all` | `queue` | `queue` |
-| active | `all` | `mine` | `queue` |
-| closed | `closed` | `closed` | `closed` |
+| Status  | Admin/Super Admin | Operator (assigned) | Operator (not assigned) |
+| ------- | ----------------- | ------------------- | ----------------------- |
+| pending | `all`             | `queue`             | `queue`                 |
+| active  | `all`             | `mine`              | `queue`                 |
+| closed  | `closed`          | `closed`            | `closed`                |
 
 ## Consumers
 

@@ -13,7 +13,13 @@ type Props = {
 
 const TYPING_THROTTLE_MS = 2_000;
 
-export function MessageInput({ onSend, onTypingStart, onTypingStop, disabled, placeholder }: Props) {
+export function MessageInput({
+  onSend,
+  onTypingStart,
+  onTypingStop,
+  disabled,
+  placeholder,
+}: Props) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const lastTypingSentRef = useRef(0);

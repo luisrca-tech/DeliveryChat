@@ -9,7 +9,13 @@ function makeConversation(id = "conv-1"): Conversation {
     status: "pending",
     subject: null,
     assignedTo: null,
-    participants: [{ userId: "visitor-1", role: "visitor", joinedAt: new Date().toISOString() }],
+    participants: [
+      {
+        userId: "visitor-1",
+        role: "visitor",
+        joinedAt: new Date().toISOString(),
+      },
+    ],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
@@ -39,12 +45,20 @@ describe("useConversationList", () => {
   });
 
   it("starts loading with empty conversations and no selection", () => {
-    const client = makeClient({ listConversations: vi.fn().mockReturnValue(new Promise(() => {})) });
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const client = makeClient({
+      listConversations: vi.fn().mockReturnValue(new Promise(() => {})),
+    });
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
     expect(result.current.loadingConvs).toBe(true);
     expect(result.current.conversations).toEqual([]);
     expect(result.current.selectedId).toBeNull();
-    expect(result.current.newForm).toEqual({ visible: false, subject: "", creating: false });
+    expect(result.current.newForm).toEqual({
+      visible: false,
+      subject: "",
+      creating: false,
+    });
   });
 
   it("populates conversations and calls captureVisitorId on successful fetch", async () => {
@@ -59,7 +73,9 @@ describe("useConversationList", () => {
       }),
     });
 
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
 
     await waitFor(() => expect(result.current.loadingConvs).toBe(false));
 
@@ -72,7 +88,9 @@ describe("useConversationList", () => {
       listConversations: vi.fn().mockRejectedValue(new Error("Network error")),
     });
 
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
 
     await waitFor(() => expect(result.current.loadingConvs).toBe(false));
     expect(result.current.conversations).toEqual([]);
@@ -80,7 +98,9 @@ describe("useConversationList", () => {
 
   it("shows and hides the new conversation form", () => {
     const client = makeClient();
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
 
     expect(result.current.newForm.visible).toBe(false);
 
@@ -93,7 +113,9 @@ describe("useConversationList", () => {
 
   it("hideNewForm resets subject and creating to defaults", () => {
     const client = makeClient();
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
 
     act(() => {
       result.current.showNewForm();
@@ -102,12 +124,18 @@ describe("useConversationList", () => {
 
     act(() => result.current.hideNewForm());
 
-    expect(result.current.newForm).toEqual({ visible: false, subject: "", creating: false });
+    expect(result.current.newForm).toEqual({
+      visible: false,
+      subject: "",
+      creating: false,
+    });
   });
 
   it("updates the new conversation subject", () => {
     const client = makeClient();
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
 
     act(() => result.current.setNewSubject("Help with order"));
 
@@ -122,7 +150,10 @@ describe("useConversationList", () => {
     const capture = vi.fn();
 
     const { result } = renderHook(() =>
-      useConversationList({ client, captureVisitorId: capture as unknown as (id: string) => void }),
+      useConversationList({
+        client,
+        captureVisitorId: capture as unknown as (id: string) => void,
+      }),
     );
 
     act(() => {
@@ -138,7 +169,11 @@ describe("useConversationList", () => {
 
     expect(result.current.conversations[0]).toBe(conv);
     expect(result.current.selectedId).toBe("new-conv");
-    expect(result.current.newForm).toEqual({ visible: false, subject: "", creating: false });
+    expect(result.current.newForm).toEqual({
+      visible: false,
+      subject: "",
+      creating: false,
+    });
     expect(capture).toHaveBeenCalledWith("visitor-1");
   });
 
@@ -147,7 +182,9 @@ describe("useConversationList", () => {
       createConversation: vi.fn().mockRejectedValue(new Error("server error")),
     });
 
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
 
     await act(async () => {
       await result.current.handleCreateConversation({
@@ -160,7 +197,9 @@ describe("useConversationList", () => {
 
   it("exposes setConversations and setSelectedId for external wiring", () => {
     const client = makeClient();
-    const { result } = renderHook(() => useConversationList({ client, captureVisitorId }));
+    const { result } = renderHook(() =>
+      useConversationList({ client, captureVisitorId }),
+    );
 
     act(() => {
       result.current.setSelectedId("some-id");

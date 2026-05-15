@@ -13,12 +13,12 @@ The widget runs inside the host page's JavaScript realm. Shadow DOM is not a sec
 
 ## Approved static-SVG sites
 
-| File | Line (approx.) | Content |
-|---|---|---|
-| `components/Header.ts` | `closeBtn.innerHTML = '<svg …>'` | Close icon — fully inline literal |
-| `components/Launcher.ts` | `btn.innerHTML = ICON_SVGS[icon]` | One of three pre-composed SVG constants |
-| `components/MessageList.ts` | `moreBtn.innerHTML = MORE_ICON` | `...` icon — module-level constant |
-| `components/MessageList.ts` | `iconSpan.innerHTML = iconSvg` | `COPY_ICON` / `EDIT_ICON` / `DELETE_ICON` — passed from module constants |
+| File                        | Line (approx.)                    | Content                                                                  |
+| --------------------------- | --------------------------------- | ------------------------------------------------------------------------ |
+| `components/Header.ts`      | `closeBtn.innerHTML = '<svg …>'`  | Close icon — fully inline literal                                        |
+| `components/Launcher.ts`    | `btn.innerHTML = ICON_SVGS[icon]` | One of three pre-composed SVG constants                                  |
+| `components/MessageList.ts` | `moreBtn.innerHTML = MORE_ICON`   | `...` icon — module-level constant                                       |
+| `components/MessageList.ts` | `iconSpan.innerHTML = iconSvg`    | `COPY_ICON` / `EDIT_ICON` / `DELETE_ICON` — passed from module constants |
 
 Any new `innerHTML` usage requires the same disable comment with a `-- static SVG …` justification. Code review catches any unjustified disable.
 

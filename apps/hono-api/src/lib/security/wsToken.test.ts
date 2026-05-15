@@ -112,9 +112,7 @@ describe("verifyWsToken", () => {
   it("rejects a token with tampered payload", () => {
     const token = signWsToken(validPayload, SECRET);
     const parts = token.split(".");
-    const decoded = JSON.parse(
-      Buffer.from(parts[0]!, "base64url").toString(),
-    );
+    const decoded = JSON.parse(Buffer.from(parts[0]!, "base64url").toString());
     decoded.visitorId = "attacker-id";
     parts[0] = Buffer.from(JSON.stringify(decoded)).toString("base64url");
     const tampered = parts.join(".");

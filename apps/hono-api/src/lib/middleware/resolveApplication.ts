@@ -20,7 +20,12 @@ type HttpStatusCode = (typeof HTTP_STATUS)[keyof typeof HTTP_STATUS];
 
 export type AuthorizeResult =
   | { authorized: true; application: ResolvedApplication }
-  | { authorized: false; status: HttpStatusCode; error: string; message: string };
+  | {
+      authorized: false;
+      status: HttpStatusCode;
+      error: string;
+      message: string;
+    };
 
 export async function resolveAndEnforceOrigin(
   appId: string,
@@ -29,7 +34,12 @@ export async function resolveAndEnforceOrigin(
 ): Promise<AuthorizeResult> {
   const application = await resolveApplicationById(appId);
   if (!application) {
-    return { authorized: false, status: HTTP_STATUS.NOT_FOUND, error: "app_not_found", message: "Application not found" };
+    return {
+      authorized: false,
+      status: HTTP_STATUS.NOT_FOUND,
+      error: "app_not_found",
+      message: "Application not found",
+    };
   }
 
   const originCheck = enforceOrigin({
@@ -40,7 +50,12 @@ export async function resolveAndEnforceOrigin(
   });
 
   if (!originCheck.allowed) {
-    return { authorized: false, status: HTTP_STATUS.FORBIDDEN, error: originCheck.error, message: originCheck.message };
+    return {
+      authorized: false,
+      status: HTTP_STATUS.FORBIDDEN,
+      error: originCheck.error,
+      message: originCheck.message,
+    };
   }
 
   return { authorized: true, application };

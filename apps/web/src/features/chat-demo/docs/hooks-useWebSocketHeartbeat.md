@@ -16,7 +16,7 @@ None (React state). Owns one ref:
 function useWebSocketHeartbeat(): {
   startHeartbeat(wsRef: RefObject<WebSocket | null>): void;
   stopHeartbeat(): void;
-}
+};
 ```
 
 - `startHeartbeat(wsRef)` — clears any existing interval, starts a new 30-second interval that reads `wsRef.current` on each tick. If the socket is not `OPEN`, the tick is skipped.

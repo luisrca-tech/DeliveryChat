@@ -5,9 +5,7 @@ type TenantHeadersOptions = {
   json?: boolean;
 };
 
-export function getTenantHeaders(
-  options?: TenantHeadersOptions,
-): HeadersInit {
+export function getTenantHeaders(options?: TenantHeadersOptions): HeadersInit {
   const tenant = getSubdomain();
   const token = getBearerToken();
 
@@ -25,4 +23,3 @@ export function getTenantHeaders(
 
   return headers;
 }
-

@@ -68,7 +68,9 @@ describe("listConversationsQuerySchema", () => {
   });
 
   it("rejects invalid status values", () => {
-    const result = listConversationsQuerySchema.safeParse({ status: "unknown" });
+    const result = listConversationsQuerySchema.safeParse({
+      status: "unknown",
+    });
     expect(result.success).toBe(false);
   });
 
@@ -90,7 +92,9 @@ describe("listConversationsQuerySchema", () => {
 
 describe("updateConversationSubjectSchema", () => {
   it("accepts valid subject", () => {
-    const result = updateConversationSubjectSchema.safeParse({ subject: "Help with order" });
+    const result = updateConversationSubjectSchema.safeParse({
+      subject: "Help with order",
+    });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.subject).toBe("Help with order");
@@ -98,7 +102,9 @@ describe("updateConversationSubjectSchema", () => {
   });
 
   it("trims whitespace", () => {
-    const result = updateConversationSubjectSchema.safeParse({ subject: "  trimmed  " });
+    const result = updateConversationSubjectSchema.safeParse({
+      subject: "  trimmed  ",
+    });
     expect(result.success).toBe(true);
     if (result.success) {
       expect(result.data.subject).toBe("trimmed");
@@ -111,12 +117,16 @@ describe("updateConversationSubjectSchema", () => {
   });
 
   it("rejects whitespace-only subject", () => {
-    const result = updateConversationSubjectSchema.safeParse({ subject: "   " });
+    const result = updateConversationSubjectSchema.safeParse({
+      subject: "   ",
+    });
     expect(result.success).toBe(false);
   });
 
   it("rejects subject exceeding 500 chars", () => {
-    const result = updateConversationSubjectSchema.safeParse({ subject: "a".repeat(501) });
+    const result = updateConversationSubjectSchema.safeParse({
+      subject: "a".repeat(501),
+    });
     expect(result.success).toBe(false);
   });
 });

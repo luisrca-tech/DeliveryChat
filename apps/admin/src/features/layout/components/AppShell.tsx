@@ -40,7 +40,9 @@ export function AppShell(props: { children: ReactNode }) {
                 className="h-8 w-auto max-w-[140px] object-contain shrink-0"
               />
               <div className="min-w-0">
-                <p className="font-bold tracking-tight truncate">Delivery Chat</p>
+                <p className="font-bold tracking-tight truncate">
+                  Delivery Chat
+                </p>
                 <p className="text-xs text-muted-foreground">Admin</p>
               </div>
             </div>
@@ -50,7 +52,9 @@ export function AppShell(props: { children: ReactNode }) {
             variant="ghost"
             size="icon"
             onClick={() => setIsSidebarCollapsed((prev) => !prev)}
-            aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={
+              isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+            }
             title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             className={isSidebarCollapsed ? "mx-auto" : ""}
           >
@@ -68,17 +72,29 @@ export function AppShell(props: { children: ReactNode }) {
               className={`w-full ${isSidebarCollapsed ? "justify-center" : "justify-start"}`}
               title="Dashboard"
             >
-              <LayoutDashboard className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+              <LayoutDashboard
+                className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
+              />
               {!isSidebarCollapsed && "Dashboard"}
             </Button>
           </Link>
-          <Link to="/conversations" search={{ conversationId: undefined, filter: undefined, appId: undefined }} className="block">
+          <Link
+            to="/conversations"
+            search={{
+              conversationId: undefined,
+              filter: undefined,
+              appId: undefined,
+            }}
+            className="block"
+          >
             <Button
               variant="ghost"
               className={`w-full ${isSidebarCollapsed ? "justify-center" : "justify-start"}`}
               title="Conversations"
             >
-              <MessageSquare className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+              <MessageSquare
+                className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
+              />
               {!isSidebarCollapsed && "Conversations"}
             </Button>
           </Link>
@@ -90,7 +106,9 @@ export function AppShell(props: { children: ReactNode }) {
               className={`w-full ${isSidebarCollapsed ? "justify-center" : "justify-start"}`}
               title="Settings"
             >
-              <Settings className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
+              <Settings
+                className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
+              />
               {!isSidebarCollapsed && "Settings"}
             </Button>
           </Link>

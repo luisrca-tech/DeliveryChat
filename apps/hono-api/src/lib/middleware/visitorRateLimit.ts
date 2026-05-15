@@ -10,7 +10,13 @@ type VisitorRateLimitConfig = {
 
 export type RateLimitCheckResult =
   | { allowed: true }
-  | { allowed: false; retryAfter: number; window: RateLimitWindow; limit: number; resetAt: number };
+  | {
+      allowed: false;
+      retryAfter: number;
+      window: RateLimitWindow;
+      limit: number;
+      resetAt: number;
+    };
 
 export type VisitorRateLimiter = ReturnType<typeof createVisitorWsRateLimiter>;
 
@@ -65,7 +71,13 @@ export function createVisitorWsRateLimiter(config: VisitorRateLimitConfig) {
             1,
             Math.ceil((entry.resetAt - now) / 1_000),
           );
-          return { allowed: false, retryAfter, window: w.name, limit, resetAt: entry.resetAt };
+          return {
+            allowed: false,
+            retryAfter,
+            window: w.name,
+            limit,
+            resetAt: entry.resetAt,
+          };
         }
       }
 

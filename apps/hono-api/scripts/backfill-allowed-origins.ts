@@ -30,7 +30,9 @@ async function main() {
   );
 
   if (wildcardsPending.length > 0) {
-    console.log("[backfill] Wildcard domains detected; explicit confirmation required:");
+    console.log(
+      "[backfill] Wildcard domains detected; explicit confirmation required:",
+    );
     for (const app of wildcardsPending) {
       console.log(`  - ${app.id}  domain="${app.domain}"`);
     }

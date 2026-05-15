@@ -17,8 +17,12 @@ export function injectShadowStyles(shadow: ShadowRoot, css: string): void {
 
   if (supportsAdopted) {
     const sheet = new SheetCtor!();
-    (sheet as CSSStyleSheet & { replaceSync: (css: string) => void }).replaceSync(css);
-    (shadow as ShadowRoot & { adoptedStyleSheets: CSSStyleSheet[] }).adoptedStyleSheets = [sheet];
+    (
+      sheet as CSSStyleSheet & { replaceSync: (css: string) => void }
+    ).replaceSync(css);
+    (
+      shadow as ShadowRoot & { adoptedStyleSheets: CSSStyleSheet[] }
+    ).adoptedStyleSheets = [sheet];
     return;
   }
 

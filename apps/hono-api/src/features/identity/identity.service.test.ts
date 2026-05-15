@@ -17,7 +17,12 @@ vi.mock("../../db/index.js", () => {
 });
 
 type MockFn = ReturnType<typeof vi.fn>;
-type Mocks = { insert: MockFn; values: MockFn; onConflict: MockFn; insertReturning: MockFn };
+type Mocks = {
+  insert: MockFn;
+  values: MockFn;
+  onConflict: MockFn;
+  insertReturning: MockFn;
+};
 
 function getMocks(): Mocks {
   return (db as unknown as { _mocks: Mocks })._mocks;
@@ -75,7 +80,9 @@ describe("upsertVisitorIdentity", () => {
       email: "test@example.com",
     });
 
-    const valuesCall = getMocks().values.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    const valuesCall = getMocks().values.mock.calls[0]?.[0] as
+      | Record<string, unknown>
+      | undefined;
     expect(valuesCall?.anonymousUserId).toBe("visitor-1");
     expect(valuesCall?.organizationId).toBe("org-1");
     expect(valuesCall?.email).toBe("test@example.com");
@@ -90,7 +97,9 @@ describe("upsertVisitorIdentity", () => {
       organizationId: "org-1",
     });
 
-    const valuesCall = getMocks().values.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+    const valuesCall = getMocks().values.mock.calls[0]?.[0] as
+      | Record<string, unknown>
+      | undefined;
     expect(valuesCall?.hmacVerified).toBe(false);
   });
 });

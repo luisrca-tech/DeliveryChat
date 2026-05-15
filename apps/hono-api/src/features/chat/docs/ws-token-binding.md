@@ -22,13 +22,13 @@ Widget WebSocket connections are authenticated using a short-lived HMAC-SHA256 s
 
 Each verification failure returns a distinct error code on the WebSocket before closing with code 1008:
 
-| Error code | Meaning |
-|---|---|
-| `INVALID_TOKEN` | Malformed token or HMAC signature mismatch |
-| `EXPIRED_TOKEN` | Token `exp` claim is in the past |
+| Error code        | Meaning                                                      |
+| ----------------- | ------------------------------------------------------------ |
+| `INVALID_TOKEN`   | Malformed token or HMAC signature mismatch                   |
+| `EXPIRED_TOKEN`   | Token `exp` claim is in the past                             |
 | `ORIGIN_MISMATCH` | `Origin` header does not match the origin bound in the token |
-| `APP_NOT_FOUND` | Application referenced by `appId` no longer exists |
-| `UNAUTHORIZED` | Session-based auth failure (admin/operator path) |
+| `APP_NOT_FOUND`   | Application referenced by `appId` no longer exists           |
+| `UNAUTHORIZED`    | Session-based auth failure (admin/operator path)             |
 
 ## Security properties
 

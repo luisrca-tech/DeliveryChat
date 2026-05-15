@@ -16,7 +16,7 @@ function useUnreadCounts(client: ChatClient): {
   setUnreadCounts: React.Dispatch<React.SetStateAction<Record<string, number>>>;
   clearUnread(conversationId: string): void;
   refreshUnread(conversationId: string): Promise<void>;
-}
+};
 ```
 
 - `clearUnread` — sets the count to 0, called when a conversation is opened.

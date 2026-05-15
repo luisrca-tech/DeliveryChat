@@ -24,7 +24,10 @@ type MessagesResponse = {
   offset: number;
 };
 
-function buildHeaders(appId: string, visitorId?: string): Record<string, string> {
+function buildHeaders(
+  appId: string,
+  visitorId?: string,
+): Record<string, string> {
   const headers: Record<string, string> = {
     "X-App-Id": appId,
     "Content-Type": "application/json",
@@ -51,7 +54,8 @@ export async function createConversation(
   if (!res.ok) {
     const err = await res.json().catch(() => null);
     throw new Error(
-      (err as { message?: string })?.message ?? `Failed to create conversation (${res.status})`,
+      (err as { message?: string })?.message ??
+        `Failed to create conversation (${res.status})`,
     );
   }
 

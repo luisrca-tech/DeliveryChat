@@ -33,10 +33,7 @@ export function ApplicationListTable({
 
   const copyAppId = async (id: string) => {
     try {
-      if (
-        typeof navigator !== "undefined" &&
-        navigator.clipboard?.writeText
-      ) {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(id);
       } else {
         const textArea = document.createElement("textarea");

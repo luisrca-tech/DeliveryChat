@@ -3,7 +3,9 @@ import { handleMessageNew } from "./handleMessageNew";
 import type { MessageNewPayload } from "@repo/types";
 import type { WebSocketHandlerContext } from "../types/chat.types";
 
-function makePayload(overrides: Partial<MessageNewPayload> = {}): MessageNewPayload {
+function makePayload(
+  overrides: Partial<MessageNewPayload> = {},
+): MessageNewPayload {
   return {
     id: "msg-1",
     conversationId: "conv-1",
@@ -17,7 +19,9 @@ function makePayload(overrides: Partial<MessageNewPayload> = {}): MessageNewPayl
   };
 }
 
-function createCtx(overrides: Partial<WebSocketHandlerContext> = {}): WebSocketHandlerContext {
+function createCtx(
+  overrides: Partial<WebSocketHandlerContext> = {},
+): WebSocketHandlerContext {
   return {
     activeConversationId: null,
     processedMsgIds: new Set(),
@@ -37,7 +41,10 @@ describe("handleMessageNew", () => {
   });
 
   it("fires invalidateQueries immediately for a visitor message in the active conversation", () => {
-    const payload = makePayload({ senderRole: "visitor", conversationId: "conv-1" });
+    const payload = makePayload({
+      senderRole: "visitor",
+      conversationId: "conv-1",
+    });
 
     handleMessageNew(payload, ctx);
 
@@ -45,7 +52,10 @@ describe("handleMessageNew", () => {
   });
 
   it("fires markAsRead as fire-and-forget for a visitor message in the active conversation", () => {
-    const payload = makePayload({ senderRole: "visitor", conversationId: "conv-1" });
+    const payload = makePayload({
+      senderRole: "visitor",
+      conversationId: "conv-1",
+    });
 
     handleMessageNew(payload, ctx);
 
@@ -54,10 +64,17 @@ describe("handleMessageNew", () => {
 
   it("does not chain invalidateQueries inside markAsRead.then()", async () => {
     let resolveMarkAsRead!: () => void;
-    const markAsRead = vi.fn().mockReturnValue(new Promise<void>((r) => { resolveMarkAsRead = r; }));
+    const markAsRead = vi.fn().mockReturnValue(
+      new Promise<void>((r) => {
+        resolveMarkAsRead = r;
+      }),
+    );
     ctx = createCtx({ activeConversationId: "conv-1", markAsRead });
 
-    const payload = makePayload({ senderRole: "visitor", conversationId: "conv-1" });
+    const payload = makePayload({
+      senderRole: "visitor",
+      conversationId: "conv-1",
+    });
 
     handleMessageNew(payload, ctx);
 
@@ -80,7 +97,10 @@ describe("handleMessageNew", () => {
   });
 
   it("does not call markAsRead for operator messages in the active conversation", () => {
-    const payload = makePayload({ senderRole: "operator", conversationId: "conv-1" });
+    const payload = makePayload({
+      senderRole: "operator",
+      conversationId: "conv-1",
+    });
 
     handleMessageNew(payload, ctx);
 
@@ -107,7 +127,11 @@ describe("handleMessageNew", () => {
 
     expect(ctx.setQueryData).toHaveBeenCalledTimes(1);
     expect(ctx.setQueryData).toHaveBeenCalledWith(
-      expect.arrayContaining(["conversations", "messages", payload.conversationId]),
+      expect.arrayContaining([
+        "conversations",
+        "messages",
+        payload.conversationId,
+      ]),
       expect.any(Function),
     );
   });

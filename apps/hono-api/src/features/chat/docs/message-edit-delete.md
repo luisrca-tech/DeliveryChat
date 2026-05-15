@@ -60,10 +60,15 @@ Both `editMessage()` and `deleteMessage()` enforce a 15-minute time window from 
 **Constant:** `EDIT_WINDOW_MINUTES = 15` (defined in `chat.service.ts`)
 
 **Enforcement logic:**
+
 ```typescript
 const elapsed = Date.now() - new Date(msg.createdAt).getTime();
 if (elapsed >= EDIT_WINDOW_MINUTES * 60 * 1000) {
-  throw new MessageEditWindowExpiredError(messageId, msg.createdAt, EDIT_WINDOW_MINUTES);
+  throw new MessageEditWindowExpiredError(
+    messageId,
+    msg.createdAt,
+    EDIT_WINDOW_MINUTES,
+  );
 }
 ```
 

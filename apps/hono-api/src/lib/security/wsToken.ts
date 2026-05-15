@@ -20,7 +20,14 @@ type VerifyOptions = {
 
 type VerifyResult =
   | { valid: true; payload: WsTokenPayload }
-  | { valid: false; error: "malformed_token" | "invalid_signature" | "token_expired" | "origin_mismatch" };
+  | {
+      valid: false;
+      error:
+        | "malformed_token"
+        | "invalid_signature"
+        | "token_expired"
+        | "origin_mismatch";
+    };
 
 export function signWsToken(
   data: { appId: string; origin: string; visitorId: string },
@@ -38,7 +45,9 @@ export function signWsToken(
     exp: now + ttl,
   };
 
-  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const encodedPayload = Buffer.from(JSON.stringify(payload)).toString(
+    "base64url",
+  );
   const signature = computeHmac(encodedPayload, secret);
 
   return `${encodedPayload}.${signature}`;
@@ -66,7 +75,10 @@ export function verifyWsToken(
   const sigBuffer = Buffer.from(providedSignature, "base64url");
   const expectedBuffer = Buffer.from(expectedSignature, "base64url");
 
-  if (sigBuffer.length !== expectedBuffer.length || !timingSafeEqual(sigBuffer, expectedBuffer)) {
+  if (
+    sigBuffer.length !== expectedBuffer.length ||
+    !timingSafeEqual(sigBuffer, expectedBuffer)
+  ) {
     return { valid: false, error: "invalid_signature" };
   }
 

@@ -6,7 +6,9 @@ import type { OptimisticMessage } from "../../lib/wsMessageReducer";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
-function makeMessage(overrides: Partial<OptimisticMessage> = {}): OptimisticMessage {
+function makeMessage(
+  overrides: Partial<OptimisticMessage> = {},
+): OptimisticMessage {
   return {
     id: "msg-1",
     conversationId: "conv-1",
@@ -39,26 +41,36 @@ describe("useMessageEdit", () => {
 
   it("starts with no active editing state", () => {
     const client = makeClient();
-    const { result } = renderHook(() => useMessageEdit(client, onReplace, onRemove));
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
     expect(result.current.editingState).toBeNull();
   });
 
   it("enters edit mode with the message content when handleStartEdit is called", () => {
     const client = makeClient();
     const msg = makeMessage();
-    const { result } = renderHook(() => useMessageEdit(client, onReplace, onRemove));
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
 
     act(() => {
       result.current.handleStartEdit(msg);
     });
 
-    expect(result.current.editingState).toMatchObject({ id: "msg-1", content: "Hello", saving: false });
+    expect(result.current.editingState).toMatchObject({
+      id: "msg-1",
+      content: "Hello",
+      saving: false,
+    });
   });
 
   it("clears editing state on handleCancelEdit", () => {
     const client = makeClient();
     const msg = makeMessage();
-    const { result } = renderHook(() => useMessageEdit(client, onReplace, onRemove));
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
 
     act(() => {
       result.current.handleStartEdit(msg);
@@ -73,10 +85,16 @@ describe("useMessageEdit", () => {
   it("calls onReplace and clears state on successful save", async () => {
     const updatedAt = new Date().toISOString();
     const client = makeClient({
-      editMessage: vi.fn().mockResolvedValue({ message: { content: "Updated", editedAt: updatedAt } }),
+      editMessage: vi
+        .fn()
+        .mockResolvedValue({
+          message: { content: "Updated", editedAt: updatedAt },
+        }),
     });
     const msg = makeMessage();
-    const { result } = renderHook(() => useMessageEdit(client, onReplace, onRemove));
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
 
     act(() => {
       result.current.handleStartEdit(msg);
@@ -96,7 +114,9 @@ describe("useMessageEdit", () => {
     const oldMessage = makeMessage({
       createdAt: new Date(Date.now() - EDIT_WINDOW_MS - 1).toISOString(),
     });
-    const { result } = renderHook(() => useMessageEdit(client, onReplace, onRemove));
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
 
     act(() => {
       result.current.handleStartEdit(oldMessage);
@@ -114,12 +134,18 @@ describe("useMessageEdit", () => {
   it("allows edit when message is just within the 15-minute window", async () => {
     const updatedAt = new Date().toISOString();
     const client = makeClient({
-      editMessage: vi.fn().mockResolvedValue({ message: { content: "New", editedAt: updatedAt } }),
+      editMessage: vi
+        .fn()
+        .mockResolvedValue({
+          message: { content: "New", editedAt: updatedAt },
+        }),
     });
     const recentMessage = makeMessage({
       createdAt: new Date(Date.now() - EDIT_WINDOW_MS + 5000).toISOString(),
     });
-    const { result } = renderHook(() => useMessageEdit(client, onReplace, onRemove));
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
 
     act(() => {
       result.current.handleStartEdit(recentMessage);
@@ -136,7 +162,9 @@ describe("useMessageEdit", () => {
   it("calls onRemove and clears state on successful delete", async () => {
     const client = makeClient();
     const msg = makeMessage();
-    const { result } = renderHook(() => useMessageEdit(client, onReplace, onRemove));
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
 
     await act(async () => {
       await result.current.handleDelete(msg);

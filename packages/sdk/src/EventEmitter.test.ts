@@ -112,7 +112,9 @@ describe("EventEmitter", () => {
   it("listener throwing does not prevent other listeners from being called", () => {
     const emitter = new EventEmitter<TestEventMap>();
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const throwingListener = () => { throw new Error("boom"); };
+    const throwingListener = () => {
+      throw new Error("boom");
+    };
     const normalListener = vi.fn();
 
     emitter.on("ready", throwingListener);

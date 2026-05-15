@@ -12,20 +12,21 @@ export function useMessageActions(sendEvent: SendEventFn) {
   const editMessage = useCallback(
     (conversationId: string, messageId: string, content: string) => {
       // Optimistic update
-      queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
-        conversationsQueryKeys.messages(conversationId, 50, 0),
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            messages: old.messages.map((msg) =>
-              msg.id === messageId
-                ? { ...msg, content, editedAt: new Date().toISOString() }
-                : msg,
-            ),
-          };
-        },
-      );
+      queryClient.setQueryData<{
+        messages: Message[];
+        limit: number;
+        offset: number;
+      }>(conversationsQueryKeys.messages(conversationId, 50, 0), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          messages: old.messages.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, content, editedAt: new Date().toISOString() }
+              : msg,
+          ),
+        };
+      });
 
       sendEvent({
         type: "message:edit",
@@ -38,20 +39,21 @@ export function useMessageActions(sendEvent: SendEventFn) {
   const deleteMessage = useCallback(
     (conversationId: string, messageId: string) => {
       // Optimistic update
-      queryClient.setQueryData<{ messages: Message[]; limit: number; offset: number }>(
-        conversationsQueryKeys.messages(conversationId, 50, 0),
-        (old) => {
-          if (!old) return old;
-          return {
-            ...old,
-            messages: old.messages.map((msg) =>
-              msg.id === messageId
-                ? { ...msg, isDeleted: true, content: "" }
-                : msg,
-            ),
-          };
-        },
-      );
+      queryClient.setQueryData<{
+        messages: Message[];
+        limit: number;
+        offset: number;
+      }>(conversationsQueryKeys.messages(conversationId, 50, 0), (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          messages: old.messages.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, isDeleted: true, content: "" }
+              : msg,
+          ),
+        };
+      });
 
       sendEvent({
         type: "message:delete",

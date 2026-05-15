@@ -4,15 +4,15 @@ The `MessagePipeline` module owns the complete message send-to-acknowledgement l
 
 ## Responsibilities
 
-| Concern | Before (Phase 2) | After (Phase 3) |
-|---|---|---|
-| Optimistic message insert | `chat-controller` (2 places) | `MessagePipeline.send()` |
-| Conversation creation on first message | `chat-controller` (2 places) | `MessagePipeline.send()` |
-| Pending promise tracking + timeout | `MessageRouter.trackPendingMessage()` | `MessagePipeline` (private) |
-| ACK → state update + promise resolve | `MessageRouter.handleMessageAck()` | `MessagePipeline.processAck()` |
-| `message:sent` event emission | `EventBridge` (prevMessageMap closure) | `MessagePipeline.processAck()` |
-| `message:received` event emission | `EventBridge` (pendingVisitorIds closure) | `MessagePipeline.processIncoming()` |
-| Pending rejection on error | `MessageRouter.rejectPendingMessage()` | `MessagePipeline.rejectPending()` |
+| Concern                                | Before (Phase 2)                          | After (Phase 3)                     |
+| -------------------------------------- | ----------------------------------------- | ----------------------------------- |
+| Optimistic message insert              | `chat-controller` (2 places)              | `MessagePipeline.send()`            |
+| Conversation creation on first message | `chat-controller` (2 places)              | `MessagePipeline.send()`            |
+| Pending promise tracking + timeout     | `MessageRouter.trackPendingMessage()`     | `MessagePipeline` (private)         |
+| ACK → state update + promise resolve   | `MessageRouter.handleMessageAck()`        | `MessagePipeline.processAck()`      |
+| `message:sent` event emission          | `EventBridge` (prevMessageMap closure)    | `MessagePipeline.processAck()`      |
+| `message:received` event emission      | `EventBridge` (pendingVisitorIds closure) | `MessagePipeline.processIncoming()` |
+| Pending rejection on error             | `MessageRouter.rejectPendingMessage()`    | `MessagePipeline.rejectPending()`   |
 
 ## API
 
@@ -24,6 +24,7 @@ The `MessagePipeline` module owns the complete message send-to-acknowledgement l
 ### `send(content, { appId, apiBaseUrl }): Promise<ChatMessage>`
 
 Full send lifecycle:
+
 1. Validates visitor state (initialized, not closed, not rate-limited)
 2. Creates optimistic message with `status: "pending"`
 3. Creates conversation via REST if none exists (+ `room:join` WS event)

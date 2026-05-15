@@ -46,9 +46,9 @@ Constructable Stylesheets are exempt from `style-src 'unsafe-inline'` because th
 
 ## Audit checklist (per build / per PR)
 
-| Check | How |
-|---|---|
-| No `<script>` injection into host document | `grep -nr "createElement(\"script\")" apps/widget/src/widget/` |
+| Check                                                    | How                                                                                                                           |
+| -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------- |
+| No `<script>` injection into host document               | `grep -nr "createElement(\"script\")" apps/widget/src/widget/`                                                                |
 | No `<style>` injection into host document or Shadow Root | `grep -nr "createElement(\"style\")" apps/widget/src/widget/` should match nothing outside the fallback in `inject-styles.ts` |
-| No `eval` / `new Function(` | `grep -nrE "(\beval\b|new Function\()" apps/widget/src/widget/` |
-| No inline event-handler attributes | already enforced — events bound via `addEventListener` |
+| No `eval` / `new Function(`                              | `grep -nrE "(\beval\b                                                                                                         | new Function\()" apps/widget/src/widget/` |
+| No inline event-handler attributes                       | already enforced — events bound via `addEventListener`                                                                        |

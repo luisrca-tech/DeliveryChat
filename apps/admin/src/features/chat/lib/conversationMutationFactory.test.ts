@@ -47,9 +47,9 @@ function createMockQueryClient() {
 
   return {
     cancelQueries: vi.fn().mockResolvedValue(undefined),
-    getQueriesData: vi.fn().mockReturnValue([
-      [["conversations"], makeListResponse()],
-    ]),
+    getQueriesData: vi
+      .fn()
+      .mockReturnValue([[["conversations"], makeListResponse()]]),
     setQueriesData: vi.fn().mockImplementation((_filters, updater) => {
       if (typeof updater === "function") {
         const current = cache.get("conversations");
@@ -94,23 +94,29 @@ describe("buildConversationMutationOptions", () => {
       const getCall = queryClient.getQueriesData.mock.calls[0]![0];
       expect(getCall.queryKey).toEqual(["conversations"]);
       expect(getCall.predicate).toBeTypeOf("function");
-      expect(getCall.predicate({ queryKey: ["conversations", "list", {}] })).toBe(true);
-      expect(getCall.predicate({ queryKey: ["conversations", "detail", "id"] })).toBe(false);
-      expect(getCall.predicate({ queryKey: ["conversations", "messages", "id", 50, 0] })).toBe(false);
+      expect(
+        getCall.predicate({ queryKey: ["conversations", "list", {}] }),
+      ).toBe(true);
+      expect(
+        getCall.predicate({ queryKey: ["conversations", "detail", "id"] }),
+      ).toBe(false);
+      expect(
+        getCall.predicate({
+          queryKey: ["conversations", "messages", "id", 50, 0],
+        }),
+      ).toBe(false);
       expect(context?.snapshot).toEqual([
         [["conversations"], makeListResponse()],
       ]);
     });
 
     it("applies the optimistic updater only to list queries via setQueriesData", async () => {
-      const updater = vi.fn(
-        (data: ConversationsListResponse, _id: string) => ({
-          ...data,
-          conversations: data.conversations.map((c) =>
-            c.id === _id ? { ...c, status: "active" as const } : c,
-          ),
-        }),
-      );
+      const updater = vi.fn((data: ConversationsListResponse, _id: string) => ({
+        ...data,
+        conversations: data.conversations.map((c) =>
+          c.id === _id ? { ...c, status: "active" as const } : c,
+        ),
+      }));
 
       const options = buildConversationMutationOptions(queryClient as never, {
         mutationFn: vi.fn(),
@@ -123,8 +129,12 @@ describe("buildConversationMutationOptions", () => {
       const setCall = queryClient.setQueriesData.mock.calls[0]!;
       expect(setCall[0].queryKey).toEqual(["conversations"]);
       expect(setCall[0].predicate).toBeTypeOf("function");
-      expect(setCall[0].predicate({ queryKey: ["conversations", "list", {}] })).toBe(true);
-      expect(setCall[0].predicate({ queryKey: ["conversations", "detail", "id"] })).toBe(false);
+      expect(
+        setCall[0].predicate({ queryKey: ["conversations", "list", {}] }),
+      ).toBe(true);
+      expect(
+        setCall[0].predicate({ queryKey: ["conversations", "detail", "id"] }),
+      ).toBe(false);
 
       const applyFn = setCall[1] as (
         old: ConversationsListResponse | undefined,

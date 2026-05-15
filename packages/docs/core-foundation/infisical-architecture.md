@@ -282,34 +282,34 @@ All these commands use `infisical run` internally, so `DATABASE_URL` is automati
 
 ### `/hono-api/` Folder
 
-| Secret | Description | Environments |
-| --- | --- | --- |
-| `DATABASE_URL` | PostgreSQL connection string (`postgresql://user:password@host:port/database`) | dev, staging, prod |
-| `BETTER_AUTH_SECRET` | Better Auth session encryption key (min 32 chars) | dev, staging, prod |
-| `BETTER_AUTH_URL` | Base API URL for Better Auth callbacks | dev, staging, prod |
-| `RESEND_API_KEY` | Resend API key for transactional emails | dev, staging, prod |
-| `RESEND_EMAIL_TO` | Destination for enterprise contact emails | dev, staging, prod |
-| `EMAIL_FROM` | Custom sender address (optional, falls back to default) | dev, staging, prod |
-| `STRIPE_SECRET_KEY` | Stripe secret key for billing | dev, staging, prod |
-| `SIGNING_STRIPE_SECRET_KEY` | Stripe webhook signing secret | dev, staging, prod |
-| `STRIPE_BASIC_PRICE_KEY` | Stripe price ID for Basic plan | dev, staging, prod |
-| `STRIPE_PREMIUM_PRICE_KEY` | Stripe price ID for Premium plan | dev, staging, prod |
-| `STRIPE_ENTERPRISE_PRODUCT_KEY` | Stripe product ID for Enterprise plan | dev, staging, prod |
-| `STRIPE_AUTOMATIC_TAX_ENABLED` | Enable Stripe automatic tax (`"true"`/`"false"`) | dev, staging, prod |
-| `ALLOWED_ORIGINS` | JSON array of allowed CORS origins | dev, staging, prod |
-| `PORT` | Server port (optional) | dev, staging, prod |
+| Secret                          | Description                                                                    | Environments       |
+| ------------------------------- | ------------------------------------------------------------------------------ | ------------------ |
+| `DATABASE_URL`                  | PostgreSQL connection string (`postgresql://user:password@host:port/database`) | dev, staging, prod |
+| `BETTER_AUTH_SECRET`            | Better Auth session encryption key (min 32 chars)                              | dev, staging, prod |
+| `BETTER_AUTH_URL`               | Base API URL for Better Auth callbacks                                         | dev, staging, prod |
+| `RESEND_API_KEY`                | Resend API key for transactional emails                                        | dev, staging, prod |
+| `RESEND_EMAIL_TO`               | Destination for enterprise contact emails                                      | dev, staging, prod |
+| `EMAIL_FROM`                    | Custom sender address (optional, falls back to default)                        | dev, staging, prod |
+| `STRIPE_SECRET_KEY`             | Stripe secret key for billing                                                  | dev, staging, prod |
+| `SIGNING_STRIPE_SECRET_KEY`     | Stripe webhook signing secret                                                  | dev, staging, prod |
+| `STRIPE_BASIC_PRICE_KEY`        | Stripe price ID for Basic plan                                                 | dev, staging, prod |
+| `STRIPE_PREMIUM_PRICE_KEY`      | Stripe price ID for Premium plan                                               | dev, staging, prod |
+| `STRIPE_ENTERPRISE_PRODUCT_KEY` | Stripe product ID for Enterprise plan                                          | dev, staging, prod |
+| `STRIPE_AUTOMATIC_TAX_ENABLED`  | Enable Stripe automatic tax (`"true"`/`"false"`)                               | dev, staging, prod |
+| `ALLOWED_ORIGINS`               | JSON array of allowed CORS origins                                             | dev, staging, prod |
+| `PORT`                          | Server port (optional)                                                         | dev, staging, prod |
 
 ### `/admin/` Folder
 
-| Secret | Description | Environments |
-| --- | --- | --- |
-| `VITE_API_URL` | Backend API URL | dev, staging, prod |
+| Secret                 | Description                            | Environments       |
+| ---------------------- | -------------------------------------- | ------------------ |
+| `VITE_API_URL`         | Backend API URL                        | dev, staging, prod |
 | `VITE_RESEND_EMAIL_TO` | Enterprise contact email (client-side) | dev, staging, prod |
 
 ### `/widget/` and `/web/` Folders
 
-| Secret | Description | Environments |
-| --- | --- | --- |
+| Secret         | Description     | Environments       |
+| -------------- | --------------- | ------------------ |
 | `VITE_API_URL` | Backend API URL | dev, staging, prod |
 
 ## Team Member Access Control

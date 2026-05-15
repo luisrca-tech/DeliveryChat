@@ -237,8 +237,14 @@ describe("InMemoryRoomManager", () => {
     });
 
     it("tracks multiple connections for the same organization", () => {
-      const conn1 = createMockConnection({ organizationId: "org-1", userId: "user-1" });
-      const conn2 = createMockConnection({ organizationId: "org-1", userId: "user-2" });
+      const conn1 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-1",
+      });
+      const conn2 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-2",
+      });
       manager.registerConnection(conn1);
       manager.registerConnection(conn2);
 
@@ -266,8 +272,14 @@ describe("InMemoryRoomManager", () => {
     });
 
     it("does not affect other connections in the same organization", () => {
-      const conn1 = createMockConnection({ organizationId: "org-1", userId: "user-1" });
-      const conn2 = createMockConnection({ organizationId: "org-1", userId: "user-2" });
+      const conn1 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-1",
+      });
+      const conn2 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-2",
+      });
       manager.registerConnection(conn1);
       manager.registerConnection(conn2);
 
@@ -279,18 +291,29 @@ describe("InMemoryRoomManager", () => {
     });
 
     it("handles unregistering a non-existent connection gracefully", () => {
-      expect(() => manager.unregisterConnection("conn-999", "org-1")).not.toThrow();
+      expect(() =>
+        manager.unregisterConnection("conn-999", "org-1"),
+      ).not.toThrow();
     });
   });
 
   describe("broadcastToOrganization", () => {
     it("sends event to all connections in the organization", () => {
-      const conn1 = createMockConnection({ organizationId: "org-1", userId: "user-1" });
-      const conn2 = createMockConnection({ organizationId: "org-1", userId: "user-2" });
+      const conn1 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-1",
+      });
+      const conn2 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-2",
+      });
       manager.registerConnection(conn1);
       manager.registerConnection(conn2);
 
-      const event = JSON.stringify({ type: "conversation:accepted", payload: { id: "conv-1" } });
+      const event = JSON.stringify({
+        type: "conversation:accepted",
+        payload: { id: "conv-1" },
+      });
       manager.broadcastToOrganization("org-1", event);
 
       expect(conn1.ws.send).toHaveBeenCalledWith(event);
@@ -298,12 +321,21 @@ describe("InMemoryRoomManager", () => {
     });
 
     it("excludes a specific connection when requested", () => {
-      const conn1 = createMockConnection({ organizationId: "org-1", userId: "user-1" });
-      const conn2 = createMockConnection({ organizationId: "org-1", userId: "user-2" });
+      const conn1 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-1",
+      });
+      const conn2 = createMockConnection({
+        organizationId: "org-1",
+        userId: "user-2",
+      });
       manager.registerConnection(conn1);
       manager.registerConnection(conn2);
 
-      const event = JSON.stringify({ type: "conversation:accepted", payload: { id: "conv-1" } });
+      const event = JSON.stringify({
+        type: "conversation:accepted",
+        payload: { id: "conv-1" },
+      });
       manager.broadcastToOrganization("org-1", event, conn1.id);
 
       expect(conn1.ws.send).not.toHaveBeenCalled();
@@ -316,7 +348,10 @@ describe("InMemoryRoomManager", () => {
       manager.registerConnection(conn1);
       manager.registerConnection(conn2);
 
-      const event = JSON.stringify({ type: "conversation:accepted", payload: { id: "conv-1" } });
+      const event = JSON.stringify({
+        type: "conversation:accepted",
+        payload: { id: "conv-1" },
+      });
       manager.broadcastToOrganization("org-1", event);
 
       expect(conn1.ws.send).toHaveBeenCalledWith(event);
@@ -325,21 +360,39 @@ describe("InMemoryRoomManager", () => {
 
     it("does nothing for an organization with no connections", () => {
       expect(() =>
-        manager.broadcastToOrganization("org-999", JSON.stringify({ type: "test" })),
+        manager.broadcastToOrganization(
+          "org-999",
+          JSON.stringify({ type: "test" }),
+        ),
       ).not.toThrow();
     });
   });
 
   describe("broadcastToStaff", () => {
     it("sends event only to admin and operator connections, not visitors", () => {
-      const admin = createMockConnection({ organizationId: "org-1", userId: "admin-1", role: "admin" });
-      const operator = createMockConnection({ organizationId: "org-1", userId: "op-1", role: "operator" });
-      const visitor = createMockConnection({ organizationId: "org-1", userId: "visitor-1", role: "visitor" });
+      const admin = createMockConnection({
+        organizationId: "org-1",
+        userId: "admin-1",
+        role: "admin",
+      });
+      const operator = createMockConnection({
+        organizationId: "org-1",
+        userId: "op-1",
+        role: "operator",
+      });
+      const visitor = createMockConnection({
+        organizationId: "org-1",
+        userId: "visitor-1",
+        role: "visitor",
+      });
       manager.registerConnection(admin);
       manager.registerConnection(operator);
       manager.registerConnection(visitor);
 
-      const event = JSON.stringify({ type: "message:new", payload: { id: "msg-1" } });
+      const event = JSON.stringify({
+        type: "message:new",
+        payload: { id: "msg-1" },
+      });
       manager.broadcastToStaff("org-1", event);
 
       expect(admin.ws.send).toHaveBeenCalledWith(event);
@@ -348,12 +401,23 @@ describe("InMemoryRoomManager", () => {
     });
 
     it("excludes a specific connection when requested", () => {
-      const admin = createMockConnection({ organizationId: "org-1", userId: "admin-1", role: "admin" });
-      const operator = createMockConnection({ organizationId: "org-1", userId: "op-1", role: "operator" });
+      const admin = createMockConnection({
+        organizationId: "org-1",
+        userId: "admin-1",
+        role: "admin",
+      });
+      const operator = createMockConnection({
+        organizationId: "org-1",
+        userId: "op-1",
+        role: "operator",
+      });
       manager.registerConnection(admin);
       manager.registerConnection(operator);
 
-      const event = JSON.stringify({ type: "message:new", payload: { id: "msg-1" } });
+      const event = JSON.stringify({
+        type: "message:new",
+        payload: { id: "msg-1" },
+      });
       manager.broadcastToStaff("org-1", event, admin.id);
 
       expect(admin.ws.send).not.toHaveBeenCalled();
@@ -367,10 +431,17 @@ describe("InMemoryRoomManager", () => {
     });
 
     it("does nothing when only visitors are connected", () => {
-      const visitor = createMockConnection({ organizationId: "org-1", userId: "visitor-1", role: "visitor" });
+      const visitor = createMockConnection({
+        organizationId: "org-1",
+        userId: "visitor-1",
+        role: "visitor",
+      });
       manager.registerConnection(visitor);
 
-      const event = JSON.stringify({ type: "message:new", payload: { id: "msg-1" } });
+      const event = JSON.stringify({
+        type: "message:new",
+        payload: { id: "msg-1" },
+      });
       manager.broadcastToStaff("org-1", event);
 
       expect(visitor.ws.send).not.toHaveBeenCalled();
@@ -447,7 +518,9 @@ describe("InMemoryRoomManager", () => {
     it("closes connections that exceed max lifetime", () => {
       vi.useFakeTimers();
       const maxLifetimeMs = 1000;
-      const mgr = new InMemoryRoomManager({ maxConnectionLifetimeMs: maxLifetimeMs });
+      const mgr = new InMemoryRoomManager({
+        maxConnectionLifetimeMs: maxLifetimeMs,
+      });
 
       const conn = createMockConnection({ userId: "user-1" });
       mgr.registerConnection(conn);
@@ -465,7 +538,9 @@ describe("InMemoryRoomManager", () => {
     it("does not close connections before max lifetime", () => {
       vi.useFakeTimers();
       const maxLifetimeMs = 5000;
-      const mgr = new InMemoryRoomManager({ maxConnectionLifetimeMs: maxLifetimeMs });
+      const mgr = new InMemoryRoomManager({
+        maxConnectionLifetimeMs: maxLifetimeMs,
+      });
 
       const conn = createMockConnection({ userId: "user-1" });
       mgr.registerConnection(conn);
@@ -481,7 +556,9 @@ describe("InMemoryRoomManager", () => {
     it("cleans up timer when connection is unregistered early", () => {
       vi.useFakeTimers();
       const maxLifetimeMs = 1000;
-      const mgr = new InMemoryRoomManager({ maxConnectionLifetimeMs: maxLifetimeMs });
+      const mgr = new InMemoryRoomManager({
+        maxConnectionLifetimeMs: maxLifetimeMs,
+      });
 
       const conn = createMockConnection({ userId: "user-1" });
       mgr.registerConnection(conn);

@@ -8,16 +8,16 @@ Listeners registered **before** `init()` are preserved — the emitter accepts s
 
 ## Events
 
-| Event | Payload | Fires when |
-|---|---|---|
-| `ready` | `void` | WebSocket connection reaches `connected` state |
-| `open` | `void` | Chat panel opens (via `open()`, `toggle()`, or user click) |
-| `close` | `void` | Chat panel closes (via `close()`, `toggle()`, or user click) |
-| `message:received` | `ChatMessage` | A non-visitor message with status `sent` appears |
-| `message:sent` | `ChatMessage` | A pending visitor message is acknowledged by the server (ID changes from client UUID to server UUID) |
-| `conversation:started` | `{ conversationId: string }` | `conversationId` transitions from `null` to a value |
-| `conversation:resolved` | `{ conversationId: string }` | `conversationStatus` transitions to `closed` |
-| `unread:changed` | `{ count: number }` | `unreadCount` state changes |
+| Event                   | Payload                      | Fires when                                                                                           |
+| ----------------------- | ---------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `ready`                 | `void`                       | WebSocket connection reaches `connected` state                                                       |
+| `open`                  | `void`                       | Chat panel opens (via `open()`, `toggle()`, or user click)                                           |
+| `close`                 | `void`                       | Chat panel closes (via `close()`, `toggle()`, or user click)                                         |
+| `message:received`      | `ChatMessage`                | A non-visitor message with status `sent` appears                                                     |
+| `message:sent`          | `ChatMessage`                | A pending visitor message is acknowledged by the server (ID changes from client UUID to server UUID) |
+| `conversation:started`  | `{ conversationId: string }` | `conversationId` transitions from `null` to a value                                                  |
+| `conversation:resolved` | `{ conversationId: string }` | `conversationStatus` transitions to `closed`                                                         |
+| `unread:changed`        | `{ count: number }`          | `unreadCount` state changes                                                                          |
 
 ## Architecture
 
@@ -44,9 +44,13 @@ When a visitor sends a message, it starts as `pending` with a client-generated U
 ```html
 <script>
   window.DeliveryChat = window.DeliveryChat || { queue: [] };
-  DeliveryChat.queue.push(["on", "ready", function() {
-    console.log("Widget connected!");
-  }]);
+  DeliveryChat.queue.push([
+    "on",
+    "ready",
+    function () {
+      console.log("Widget connected!");
+    },
+  ]);
   DeliveryChat.queue.push(["init", { appId: "app_xxx" }]);
 </script>
 <script async src="https://cdn.example.com/widget.iife.js"></script>

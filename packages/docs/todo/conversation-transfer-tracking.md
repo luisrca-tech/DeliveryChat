@@ -36,6 +36,7 @@ await db
 ```
 
 **What this fixes:**
+
 - `isParticipant()` already filters by `isNull(leftAt)` — no changes needed there.
 - The operator can no longer `room:join` via WebSocket after leaving.
 
@@ -70,18 +71,20 @@ export const conversationTransfers = createTable("conversation_transfers", {
     .notNull()
     .references(() => user.id),
   action: conversationTransferActionEnum("action").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
 });
 ```
 
 **Fields explained:**
 
-| Field | Description |
-|---|---|
-| `conversationId` | The conversation being transferred |
-| `userId` | The operator performing the action |
-| `action` | What happened: `accepted` (took ownership), `released` (gave up), `resolved` (closed) |
-| `createdAt` | When the action occurred |
+| Field            | Description                                                                           |
+| ---------------- | ------------------------------------------------------------------------------------- |
+| `conversationId` | The conversation being transferred                                                    |
+| `userId`         | The operator performing the action                                                    |
+| `action`         | What happened: `accepted` (took ownership), `released` (gave up), `resolved` (closed) |
+| `createdAt`      | When the action occurred                                                              |
 
 **Why no `fromUserId`/`toUserId`?**
 Each row logs a single actor's action. To find "who had it before", query the previous `accepted` row for the same conversation. This keeps the schema simple and avoids nullable fields.
@@ -125,6 +128,7 @@ await db.insert(conversationTransfers).values({
 **Migration:**
 
 After creating the schema file, run:
+
 ```bash
 bun run db:generate
 bun run db:migrate

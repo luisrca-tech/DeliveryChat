@@ -33,9 +33,7 @@ vi.mock("../chat.service.js", () => {
 
   class ConversationNotActiveError extends Error {
     constructor(conversationId: string, status: string) {
-      super(
-        `Conversation ${conversationId} is not active (status: ${status})`,
-      );
+      super(`Conversation ${conversationId} is not active (status: ${status})`);
       this.name = "ConversationNotActiveError";
     }
   }
@@ -58,7 +56,9 @@ vi.mock("../chat.service.js", () => {
     public readonly createdAt: string;
     public readonly windowMinutes: number;
     constructor(messageId: string, createdAt: string, windowMinutes: number) {
-      super(`Message ${messageId} can no longer be modified. The ${windowMinutes}-minute edit window expired at ${createdAt}.`);
+      super(
+        `Message ${messageId} can no longer be modified. The ${windowMinutes}-minute edit window expired at ${createdAt}.`,
+      );
       this.name = "MessageEditWindowExpiredError";
       this.createdAt = createdAt;
       this.windowMinutes = windowMinutes;
@@ -100,7 +100,9 @@ const mockEditMessage = editMessage as ReturnType<typeof vi.fn>;
 const mockDeleteMessage = deleteMessageService as ReturnType<typeof vi.fn>;
 const mockIsParticipant = isParticipant as ReturnType<typeof vi.fn>;
 const mockGetMessagesSince = getMessagesSince as ReturnType<typeof vi.fn>;
-const mockValidateSendAuthorization = validateSendAuthorization as ReturnType<typeof vi.fn>;
+const mockValidateSendAuthorization = validateSendAuthorization as ReturnType<
+  typeof vi.fn
+>;
 
 function firstWsSendPayload(sendMock: ReturnType<typeof vi.fn>): string {
   const arg = sendMock.mock.calls[0]?.[0];
@@ -248,7 +250,11 @@ describe("chat.handlers", () => {
   });
 
   describe("message:send", () => {
-    const convData = { status: "active", assignedTo: "user-1", organizationId: "org-1" };
+    const convData = {
+      status: "active",
+      assignedTo: "user-1",
+      organizationId: "org-1",
+    };
 
     it("persists message and broadcasts to room with assignedTo from validation", async () => {
       mockIsParticipant.mockResolvedValue(true);
@@ -298,16 +304,14 @@ describe("chat.handlers", () => {
         }),
       );
 
-      const senderCalls = (conn.ws.send as ReturnType<typeof vi.fn>).mock
-        .calls;
+      const senderCalls = (conn.ws.send as ReturnType<typeof vi.fn>).mock.calls;
       expect(senderCalls.length).toBeGreaterThanOrEqual(1);
       const ackEvent = JSON.parse(senderCalls[0]?.[0] as string);
       expect(ackEvent.type).toBe("message:ack");
       expect(ackEvent.payload.clientMessageId).toBe("client-msg-1");
       expect(ackEvent.payload.serverMessageId).toBe("msg-1");
 
-      const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock
-        .calls;
+      const conn2Calls = (conn2.ws.send as ReturnType<typeof vi.fn>).mock.calls;
       expect(conn2Calls.length).toBeGreaterThanOrEqual(1);
       const newMsgEvent = JSON.parse(conn2Calls[0]?.[0] as string);
       expect(newMsgEvent.type).toBe("message:new");
@@ -662,9 +666,7 @@ describe("chat.handlers", () => {
     });
 
     it("sends MESSAGE_NOT_FOUND error for non-existent message", async () => {
-      mockEditMessage.mockRejectedValue(
-        new MessageNotFoundError(msgId),
-      );
+      mockEditMessage.mockRejectedValue(new MessageNotFoundError(msgId));
 
       await handler(
         conn,
@@ -687,7 +689,11 @@ describe("chat.handlers", () => {
 
     it("sends EDIT_WINDOW_EXPIRED error when time window has passed", async () => {
       mockEditMessage.mockRejectedValue(
-        new MessageEditWindowExpiredError(msgId, "2026-01-01T00:00:00.000Z", 15),
+        new MessageEditWindowExpiredError(
+          msgId,
+          "2026-01-01T00:00:00.000Z",
+          15,
+        ),
       );
 
       await handler(
@@ -766,7 +772,9 @@ describe("chat.handlers", () => {
       const allEvents = [...conn1Calls, ...conn2Calls].map(([arg]) =>
         JSON.parse(arg as string),
       );
-      const deletedEvents = allEvents.filter((e) => e.type === "message:deleted");
+      const deletedEvents = allEvents.filter(
+        (e) => e.type === "message:deleted",
+      );
       expect(deletedEvents).toHaveLength(2);
       expect(deletedEvents[0].payload.messageId).toBe(msgId);
     });
@@ -795,9 +803,7 @@ describe("chat.handlers", () => {
     });
 
     it("sends MESSAGE_NOT_FOUND error for non-existent message", async () => {
-      mockDeleteMessage.mockRejectedValue(
-        new MessageNotFoundError(msgId),
-      );
+      mockDeleteMessage.mockRejectedValue(new MessageNotFoundError(msgId));
 
       await handler(
         conn,
@@ -819,7 +825,11 @@ describe("chat.handlers", () => {
 
     it("sends EDIT_WINDOW_EXPIRED error when time window has passed", async () => {
       mockDeleteMessage.mockRejectedValue(
-        new MessageEditWindowExpiredError(msgId, "2026-01-01T00:00:00.000Z", 15),
+        new MessageEditWindowExpiredError(
+          msgId,
+          "2026-01-01T00:00:00.000Z",
+          15,
+        ),
       );
 
       await handler(
@@ -844,7 +854,10 @@ describe("chat.handlers", () => {
   describe("message:send rate limiting", () => {
     const convId = "550e8400-e29b-41d4-a716-446655440000";
 
-    function sendMsg(h: ReturnType<typeof createEventHandler>, c: WSConnection) {
+    function sendMsg(
+      h: ReturnType<typeof createEventHandler>,
+      c: WSConnection,
+    ) {
       return h(
         c,
         JSON.stringify({
@@ -859,15 +872,33 @@ describe("chat.handlers", () => {
     }
 
     it("rejects visitor message when rate limit exceeded", async () => {
-      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
-      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
-      const visitorConn = createMockConnection({ role: "visitor" as const, userId: "visitor-1" });
+      const limiter = createVisitorWsRateLimiter({
+        perSecond: 1,
+        perMinute: 100,
+        perHour: 100,
+      });
+      const rateLimitedHandler = createEventHandler(roomManager, {
+        visitorRateLimiter: limiter,
+      });
+      const visitorConn = createMockConnection({
+        role: "visitor" as const,
+        userId: "visitor-1",
+      });
 
-      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
+      mockValidateSendAuthorization.mockResolvedValue({
+        status: "active",
+        assignedTo: null,
+        organizationId: "org-1",
+      });
       mockSendMessage.mockResolvedValue({
-        id: "msg-1", conversationId: convId, senderId: "visitor-1",
-        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+        id: "msg-1",
+        conversationId: convId,
+        senderId: "visitor-1",
+        content: "Hello!",
+        type: "text",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        deletedAt: null,
       });
 
       await sendMsg(rateLimitedHandler, visitorConn);
@@ -885,14 +916,29 @@ describe("chat.handlers", () => {
     });
 
     it("allows operator messages regardless of visitor rate limit state", async () => {
-      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
-      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
+      const limiter = createVisitorWsRateLimiter({
+        perSecond: 1,
+        perMinute: 100,
+        perHour: 100,
+      });
+      const rateLimitedHandler = createEventHandler(roomManager, {
+        visitorRateLimiter: limiter,
+      });
 
-      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
+      mockValidateSendAuthorization.mockResolvedValue({
+        status: "active",
+        assignedTo: null,
+        organizationId: "org-1",
+      });
       mockSendMessage.mockResolvedValue({
-        id: "msg-1", conversationId: convId, senderId: "user-1",
-        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+        id: "msg-1",
+        conversationId: convId,
+        senderId: "user-1",
+        content: "Hello!",
+        type: "text",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        deletedAt: null,
       });
 
       const operatorConn = createMockConnection({ role: "operator" as const });
@@ -905,14 +951,29 @@ describe("chat.handlers", () => {
     });
 
     it("allows admin messages regardless of visitor rate limit state", async () => {
-      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
-      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
+      const limiter = createVisitorWsRateLimiter({
+        perSecond: 1,
+        perMinute: 100,
+        perHour: 100,
+      });
+      const rateLimitedHandler = createEventHandler(roomManager, {
+        visitorRateLimiter: limiter,
+      });
 
-      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
+      mockValidateSendAuthorization.mockResolvedValue({
+        status: "active",
+        assignedTo: null,
+        organizationId: "org-1",
+      });
       mockSendMessage.mockResolvedValue({
-        id: "msg-1", conversationId: convId, senderId: "user-1",
-        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+        id: "msg-1",
+        conversationId: convId,
+        senderId: "user-1",
+        content: "Hello!",
+        type: "text",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        deletedAt: null,
       });
 
       const adminConn = createMockConnection({ role: "admin" as const });
@@ -924,15 +985,33 @@ describe("chat.handlers", () => {
     });
 
     it("does not persist rate-limited message to the database", async () => {
-      const limiter = createVisitorWsRateLimiter({ perSecond: 1, perMinute: 100, perHour: 100 });
-      const rateLimitedHandler = createEventHandler(roomManager, { visitorRateLimiter: limiter });
-      const visitorConn = createMockConnection({ role: "visitor" as const, userId: "visitor-1" });
+      const limiter = createVisitorWsRateLimiter({
+        perSecond: 1,
+        perMinute: 100,
+        perHour: 100,
+      });
+      const rateLimitedHandler = createEventHandler(roomManager, {
+        visitorRateLimiter: limiter,
+      });
+      const visitorConn = createMockConnection({
+        role: "visitor" as const,
+        userId: "visitor-1",
+      });
 
-      mockValidateSendAuthorization.mockResolvedValue({ status: "active", assignedTo: null, organizationId: "org-1" });
+      mockValidateSendAuthorization.mockResolvedValue({
+        status: "active",
+        assignedTo: null,
+        organizationId: "org-1",
+      });
       mockSendMessage.mockResolvedValue({
-        id: "msg-1", conversationId: convId, senderId: "visitor-1",
-        content: "Hello!", type: "text", createdAt: "2026-01-01T00:00:00Z",
-        updatedAt: "2026-01-01T00:00:00Z", deletedAt: null,
+        id: "msg-1",
+        conversationId: convId,
+        senderId: "visitor-1",
+        content: "Hello!",
+        type: "text",
+        createdAt: "2026-01-01T00:00:00Z",
+        updatedAt: "2026-01-01T00:00:00Z",
+        deletedAt: null,
       });
 
       await sendMsg(rateLimitedHandler, visitorConn);

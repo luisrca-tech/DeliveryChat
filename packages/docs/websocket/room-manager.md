@@ -51,7 +51,11 @@ interface IRoomManager {
   // Room-level operations (Level 1)
   join(conversationId: string, connection: WSConnection): void;
   leave(conversationId: string, connectionId: string): void;
-  broadcast(conversationId: string, event: string, excludeConnectionId?: string): void;
+  broadcast(
+    conversationId: string,
+    event: string,
+    excludeConnectionId?: string,
+  ): void;
   getConnections(conversationId: string): Map<string, WSConnection>;
 
   // User-level operations (Level 2)
@@ -60,7 +64,11 @@ interface IRoomManager {
   // Organization-level operations (Level 3)
   registerConnection(connection: WSConnection): void;
   unregisterConnection(connectionId: string, organizationId: string): void;
-  broadcastToOrganization(organizationId: string, event: string, excludeConnectionId?: string): void;
+  broadcastToOrganization(
+    organizationId: string,
+    event: string,
+    excludeConnectionId?: string,
+  ): void;
 }
 ```
 
@@ -134,12 +142,12 @@ The room manager uses plain `Map` data structures with no external persistence. 
 
 ### Trade-offs
 
-| Benefit | Limitation |
-|---|---|
-| Zero external dependencies | State lost on server restart |
-| Sub-millisecond operations | Not shared across server instances |
-| Automatic cleanup | Must scale to Redis for multi-instance deployment |
-| Simple debugging | No persistence for analytics |
+| Benefit                    | Limitation                                        |
+| -------------------------- | ------------------------------------------------- |
+| Zero external dependencies | State lost on server restart                      |
+| Sub-millisecond operations | Not shared across server instances                |
+| Automatic cleanup          | Must scale to Redis for multi-instance deployment |
+| Simple debugging           | No persistence for analytics                      |
 
 ### Future: Redis Migration
 
@@ -149,10 +157,10 @@ For horizontal scaling (multiple server instances), the room manager will migrat
 
 The room manager automatically cleans up state:
 
-| Event | Cleanup Action |
-|---|---|
-| Last connection leaves a room | Room entry deleted from `rooms` Map |
-| Connection disconnects | Removed from all rooms + org connections |
-| Last connection in an org disconnects | Org entry deleted from `orgConnections` |
+| Event                                 | Cleanup Action                           |
+| ------------------------------------- | ---------------------------------------- |
+| Last connection leaves a room         | Room entry deleted from `rooms` Map      |
+| Connection disconnects                | Removed from all rooms + org connections |
+| Last connection in an org disconnects | Org entry deleted from `orgConnections`  |
 
 This prevents memory leaks from abandoned rooms or disconnected clients.

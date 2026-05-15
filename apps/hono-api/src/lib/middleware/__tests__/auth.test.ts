@@ -52,7 +52,9 @@ const { auth } = await import("../../auth.js");
 const { db } = await import("../../../db/index.js");
 const { requireTenantAuth, getTenantAuth } = await import("../auth.js");
 
-const mockGetSession = auth.api.getSession as unknown as ReturnType<typeof vi.fn>;
+const mockGetSession = auth.api.getSession as unknown as ReturnType<
+  typeof vi.fn
+>;
 const { selectMock, limitMock } = (db as any)._mocks;
 
 function createApp() {
@@ -101,7 +103,7 @@ describe("requireTenantAuth", () => {
         id: expect.anything(),
         name: expect.anything(),
         status: expect.anything(),
-      })
+      }),
     );
 
     const firstSelectCall = selectMock.mock.calls[0][0];

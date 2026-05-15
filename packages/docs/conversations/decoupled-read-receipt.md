@@ -8,11 +8,11 @@ Previously, when a visitor message arrived in the active conversation, the list 
 
 ## Behavior
 
-| Scenario | List Refresh | Read Receipt |
-|---|---|---|
-| Visitor message in active conversation | Immediate | Fire-and-forget |
-| Visitor message in other conversation | Immediate | Not called |
-| Operator message (any conversation) | Immediate | Not called |
+| Scenario                               | List Refresh | Read Receipt    |
+| -------------------------------------- | ------------ | --------------- |
+| Visitor message in active conversation | Immediate    | Fire-and-forget |
+| Visitor message in other conversation  | Immediate    | Not called      |
+| Operator message (any conversation)    | Immediate    | Not called      |
 
 ## Key Files
 

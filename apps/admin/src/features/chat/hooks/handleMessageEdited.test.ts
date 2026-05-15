@@ -3,7 +3,9 @@ import { handleMessageEdited } from "./handleMessageEdited";
 import type { MessageEditedPayload } from "@repo/types";
 import type { WebSocketHandlerContext } from "../types/chat.types";
 
-function makePayload(overrides: Partial<MessageEditedPayload> = {}): MessageEditedPayload {
+function makePayload(
+  overrides: Partial<MessageEditedPayload> = {},
+): MessageEditedPayload {
   return {
     conversationId: "conv-1",
     messageId: "msg-1",
@@ -14,7 +16,9 @@ function makePayload(overrides: Partial<MessageEditedPayload> = {}): MessageEdit
   };
 }
 
-function createCtx(overrides: Partial<WebSocketHandlerContext> = {}): WebSocketHandlerContext {
+function createCtx(
+  overrides: Partial<WebSocketHandlerContext> = {},
+): WebSocketHandlerContext {
   return {
     activeConversationId: null,
     processedMsgIds: new Set(),
@@ -26,7 +30,9 @@ function createCtx(overrides: Partial<WebSocketHandlerContext> = {}): WebSocketH
   };
 }
 
-function makeMessagesCache(messages: Array<{ id: string; content: string; editedAt: string | null }>) {
+function makeMessagesCache(
+  messages: Array<{ id: string; content: string; editedAt: string | null }>,
+) {
   return { messages, limit: 50, offset: 0 };
 }
 
@@ -38,7 +44,8 @@ describe("handleMessageEdited", () => {
     handleMessageEdited(payload, ctx);
 
     expect(ctx.setQueryData).toHaveBeenCalledTimes(1);
-    const [key, updater] = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    const [key, updater] = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock
+      .calls[0]!;
     expect(key).toEqual(["conversations", "messages", "conv-1", 50, 0]);
 
     const old = makeMessagesCache([
@@ -46,15 +53,24 @@ describe("handleMessageEdited", () => {
       { id: "msg-2", content: "other", editedAt: null },
     ]);
     const result = updater(old);
-    expect(result.messages[0]).toEqual({ id: "msg-1", content: "edited content", editedAt: "2026-01-01T02:00:00Z" });
-    expect(result.messages[1]).toEqual({ id: "msg-2", content: "other", editedAt: null });
+    expect(result.messages[0]).toEqual({
+      id: "msg-1",
+      content: "edited content",
+      editedAt: "2026-01-01T02:00:00Z",
+    });
+    expect(result.messages[1]).toEqual({
+      id: "msg-2",
+      content: "other",
+      editedAt: null,
+    });
   });
 
   it("returns the cache unchanged when it is undefined", () => {
     const ctx = createCtx();
     handleMessageEdited(makePayload(), ctx);
 
-    const updater = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock.calls[0]![1];
+    const updater = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock
+      .calls[0]![1];
     expect(updater(undefined)).toBeUndefined();
   });
 
@@ -62,9 +78,16 @@ describe("handleMessageEdited", () => {
     const ctx = createCtx();
     handleMessageEdited(makePayload({ messageId: "nonexistent" }), ctx);
 
-    const updater = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock.calls[0]![1];
-    const old = makeMessagesCache([{ id: "msg-1", content: "original", editedAt: null }]);
+    const updater = (ctx.setQueryData as ReturnType<typeof vi.fn>).mock
+      .calls[0]![1];
+    const old = makeMessagesCache([
+      { id: "msg-1", content: "original", editedAt: null },
+    ]);
     const result = updater(old);
-    expect(result.messages[0]).toEqual({ id: "msg-1", content: "original", editedAt: null });
+    expect(result.messages[0]).toEqual({
+      id: "msg-1",
+      content: "original",
+      editedAt: null,
+    });
   });
 });

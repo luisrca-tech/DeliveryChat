@@ -85,10 +85,7 @@ function chainMiddlewares(
       if (i >= middlewares.length) return next();
       const mw = middlewares[i];
       if (!mw) return next();
-      return mw(
-        c,
-        (() => runChain(i + 1)) as Parameters<typeof mw>[1],
-      );
+      return mw(c, (() => runChain(i + 1)) as Parameters<typeof mw>[1]);
     };
     const result = await runChain(0);
     if (result instanceof Response) return result;
