@@ -162,6 +162,13 @@
       "when": 1778781772273,
       "tag": "0025_make_message_sender_id_nullable_for_system_messages",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1778862897421,
+      "tag": "0026_tearful_skrulls",
+      "breakpoints": true
     }
   ]
 }
