@@ -3,7 +3,6 @@ import { Link } from "@tanstack/react-router";
 import {
   Settings,
   MessageSquare,
-  LayoutDashboard,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -66,18 +65,6 @@ export function AppShell(props: { children: ReactNode }) {
           </Button>
         </div>
         <nav className="p-3 space-y-1 shrink-0">
-          <Link to="/" className="block">
-            <Button
-              variant="ghost"
-              className={`w-full ${isSidebarCollapsed ? "justify-center" : "justify-start"}`}
-              title="Dashboard"
-            >
-              <LayoutDashboard
-                className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
-              />
-              {!isSidebarCollapsed && "Dashboard"}
-            </Button>
-          </Link>
           <Link
             to="/conversations"
             search={{
