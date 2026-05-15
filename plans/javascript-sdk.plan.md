@@ -154,26 +154,33 @@ Full-stack vertical slice for visitor identity enrichment. **Database**: `visito
 
 ---
 
-## Phase 5: npm Publishing + SDK Documentation
+## Phase 5: npm Publishing + SDK Documentation — ✅ DONE
 
 **User stories**: 1, 2, 24, 25, 26, 27, 29
 
-### What to build
+### What was built
 
-Configure `packages/sdk/` for npm publishing as `@deliverychat/sdk`. Set up Vite lib-mode build producing ESM (`index.mjs`), CJS (`index.cjs`), and TypeScript declarations (`index.d.ts`). Configure `package.json` exports map for correct resolution in all bundlers. Verify tree-shaking: headless-only imports should not pull in widget UI code. Add bundle size tracking (CI check that the IIFE stays under a target size). Write comprehensive SDK documentation in `apps/docs` as a new `v1/sdk/` section: `quickstart.mdx` (zero-to-chat in 5 minutes, npm + CDN paths), `methods.mdx` (all methods with signatures and examples), `events.mdx` (all events with typed payloads and usage), `identity.mdx` (unsigned + HMAC flows, server-side examples for Node.js/Python/Ruby), `headless.mdx` (custom UI guide with reference implementation). Update existing `v1/chat-widget.mdx` to cross-link SDK docs for advanced usage.
+Configured `packages/sdk/` for npm publishing as `@deliverychat/sdk` with Vite lib-mode build. **Build**: ESM (`index.mjs`), CJS (`index.cjs`), and TypeScript declarations via `vite-plugin-dts`. Package exports map configured for all bundler resolution strategies. **Bundle size**: Check script (`scripts/CheckBundleSize.js`) validates IIFE stays under 75 kB threshold (currently ~52 kB). **Documentation**: Full `v1/sdk/` section in `apps/docs` with 5 pages: quickstart (npm + CDN paths), methods (all methods with signatures), events (all 8 events with typed payloads), identity (unsigned + HMAC flows with Node.js/Python/Ruby examples), headless (complete reference implementations in vanilla JS and React). Updated `chat-widget.mdx` with SDK cross-links. **Package rename**: `@repo/sdk` → `@deliverychat/sdk` with workspace dependency updates in `apps/widget/`.
 
 ### Acceptance criteria
 
-- [ ] `packages/sdk/package.json` has correct `name` (`@deliverychat/sdk`), `exports`, `main`, `module`, `types` fields
-- [ ] `bun run build --filter=sdk` produces ESM, CJS, and `.d.ts` output
-- [ ] Tree-shaking verified: headless-only import excludes widget UI code from bundle
-- [ ] IIFE build from `apps/widget/` still works and produces identical behavior
-- [ ] Bundle size CI check configured (IIFE target ≤ threshold)
-- [ ] `apps/docs/v1/sdk/quickstart.mdx` covers npm install + CDN script tag + basic init
-- [ ] `apps/docs/v1/sdk/methods.mdx` documents all public methods with signatures and examples
-- [ ] `apps/docs/v1/sdk/events.mdx` documents all events with typed payload examples
-- [ ] `apps/docs/v1/sdk/identity.mdx` covers unsigned and HMAC-signed flows with server-side examples
-- [ ] `apps/docs/v1/sdk/headless.mdx` includes a complete custom UI reference implementation
-- [ ] Existing `v1/chat-widget.mdx` cross-links to SDK docs
-- [ ] Feature doc in `packages/sdk/docs/publishing.md` covering build and distribution setup
-- [ ] Branch: `feature/sdk-publishing`
+- [x] `packages/sdk/package.json` has correct `name` (`@deliverychat/sdk`), `exports`, `main`, `module`, `types` fields
+- [x] `bun run build --filter=sdk` produces ESM, CJS, and `.d.ts` output
+- [x] Tree-shaking verified: headless-only import excludes widget UI code from bundle
+- [x] IIFE build from `apps/widget/` still works and produces identical behavior
+- [x] Bundle size CI check configured (IIFE target ≤ 75 kB)
+- [x] `apps/docs/v1/sdk/quickstart.mdx` covers npm install + CDN script tag + basic init
+- [x] `apps/docs/v1/sdk/methods.mdx` documents all public methods with signatures and examples
+- [x] `apps/docs/v1/sdk/events.mdx` documents all events with typed payload examples
+- [x] `apps/docs/v1/sdk/identity.mdx` covers unsigned and HMAC-signed flows with server-side examples
+- [x] `apps/docs/v1/sdk/headless.mdx` includes a complete custom UI reference implementation
+- [x] Existing `v1/chat-widget.mdx` cross-links to SDK docs
+- [x] Feature doc in `packages/sdk/docs/publishing.md` covering build and distribution setup
+- [x] Branch: `feature/sdk-publishing`
+
+### Potential risks
+
+- **Workspace resolution after rename**: The SDK was renamed from `@repo/sdk` to `@deliverychat/sdk`. Any code that still references `@repo/sdk` will fail. Only `apps/widget/` was updated; if other packages add SDK imports in the future, they must use `@deliverychat/sdk`.
+- **Declaration files are unbundled**: `vite-plugin-dts` generates individual `.d.ts` files rather than a single rolled-up declaration. This works correctly but increases the published package size slightly. `rollupTypes: true` requires `@microsoft/api-extractor` as an additional dependency.
+- **Dev-time type resolution**: In development, TypeScript resolves `@deliverychat/sdk` via the `exports` map which points to `dist/`. If `dist/` doesn't exist (fresh clone), type checking fails until `bun run build --filter=@deliverychat/sdk` is run. Consider adding a `prebuild` step or documenting this in onboarding.
+- **Bundle size threshold is generous**: The 75 kB limit provides ~45% headroom over the current 52 kB IIFE. As features are added, the threshold may need tightening to prevent bundle bloat from going unnoticed.
