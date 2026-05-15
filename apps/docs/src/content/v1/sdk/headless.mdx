@@ -101,43 +101,63 @@ Here is a minimal custom chat UI using headless mode:
 
 ## React Example
 
+Uses `useSyncExternalStore` to subscribe to the SDK as an external store — no `useEffect` needed for state sync.
+
 ```tsx
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore, useCallback } from "react";
 import { init, destroy, getSdkApi } from "@deliverychat/sdk";
 import type { ChatMessage } from "@deliverychat/sdk";
 
+function createChatStore(appId: string) {
+  init({ appId, headless: true });
+  const chat = getSdkApi();
+
+  let messages: ChatMessage[] = [];
+  const listeners = new Set<() => void>();
+  const notify = () => listeners.forEach((l) => l());
+
+  chat.on("message:received", (msg) => {
+    messages = [...messages, msg];
+    notify();
+  });
+
+  chat.on("message:sent", (msg) => {
+    messages = messages.map((m) => (m.id === msg.id ? msg : m));
+    notify();
+  });
+
+  return {
+    subscribe: (listener: () => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    getSnapshot: () => messages,
+    sendMessage: (text: string) => chat.sendMessage(text),
+    destroy: () => destroy(),
+  };
+}
+
 export function Chat({ appId }: { appId: string }) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
-  const chatRef = useRef(getSdkApi());
-
-  useEffect(() => {
-    init({ appId, headless: true });
-    const chat = chatRef.current;
-
-    chat.on("message:received", (msg) => {
-      setMessages((prev) => [...prev, msg]);
-    });
-
-    chat.on("message:sent", (msg) => {
-      setMessages((prev) =>
-        prev.map((m) => (m.id === msg.id ? msg : m))
-      );
-    });
-
-    return () => destroy();
-  }, [appId]);
-
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim()) return;
-
-    const text = input;
-    setInput("");
-
-    const msg = await chatRef.current.sendMessage(text);
-    setMessages((prev) => [...prev, msg]);
+  const storeRef = useRef<ReturnType<typeof createChatStore>>();
+  if (!storeRef.current) {
+    storeRef.current = createChatStore(appId);
   }
+  const store = storeRef.current;
+
+  const messages = useSyncExternalStore(store.subscribe, store.getSnapshot);
+
+  const handleSend = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!input.trim()) return;
+
+      const text = input;
+      setInput("");
+      await store.sendMessage(text);
+    },
+    [input, store],
+  );
 
   return (
     <div>
