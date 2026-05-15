@@ -17,6 +17,11 @@ import {
   removeAllConversationKeysForApp,
 } from "./conversation-persistence.js";
 import { TYPING_THROTTLE_MS } from "./constants/index.js";
+import {
+  trackPendingMessage,
+  resolvePendingMessage,
+  clearAllPending,
+} from "./PendingMessages.js";
 
 let appId: string | null = null;
 let initialized = false;
@@ -253,7 +258,88 @@ export function startNewChat(): void {
   lastTypingSent = 0;
 }
 
+export async function sendMessageAsync(content: string): Promise<ChatMessage> {
+  if (!initialized || !appId) {
+    throw new Error("[DeliveryChat] SDK not initialized. Call init() first.");
+  }
+  if (getState("conversationStatus") === "closed") {
+    throw new Error("[DeliveryChat] Conversation is closed.");
+  }
+  if (getState("rateLimited")) {
+    throw new Error("[DeliveryChat] Rate limited. Try again later.");
+  }
+
+  const visitorId = getState("visitorId");
+  if (!visitorId) {
+    throw new Error("[DeliveryChat] Visitor not initialized.");
+  }
+
+  const clientMessageId = crypto.randomUUID();
+
+  const optimistic: ChatMessage = {
+    id: clientMessageId,
+    content,
+    type: "text",
+    senderRole: "visitor",
+    senderId: visitorId,
+    status: "pending",
+    createdAt: new Date().toISOString(),
+  };
+  setState("messages", (prev: ChatMessage[]) => [...prev, optimistic]);
+
+  let conversationId = getState("conversationId");
+  if (!conversationId) {
+    try {
+      const result = await createConversation(
+        getApiBaseUrl(),
+        appId,
+        visitorId,
+      );
+      conversationId = result.conversation.id;
+      setState("conversationId", conversationId);
+      setState("conversationStatus", "pending");
+      saveConversationId(appId, conversationId);
+
+      sendWSMessage({
+        type: "room:join",
+        payload: { conversationId },
+      });
+    } catch (err) {
+      setState("messages", (prev: ChatMessage[]) =>
+        prev.map((m) =>
+          m.id === clientMessageId ? { ...m, status: "failed" as const } : m,
+        ),
+      );
+      throw new Error(
+        `[DeliveryChat] Failed to create conversation: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  const ackPromise = trackPendingMessage(clientMessageId);
+
+  sendWSMessage({
+    type: "message:send",
+    payload: { conversationId, content, clientMessageId },
+  });
+
+  lastTypingSent = 0;
+  saveLastClientMessageId(appId, clientMessageId);
+
+  return ackPromise;
+}
+
+export function connectEagerly(): void {
+  if (!initialized || !appId) return;
+  const visitorId = getState("visitorId");
+  if (!visitorId) return;
+  if (getState("connectionStatus") !== "disconnected") return;
+
+  connectWS({ apiBaseUrl: getApiBaseUrl(), appId, visitorId });
+}
+
 export function destroyChat(): void {
+  clearAllPending();
   disconnectWS();
 
   const currentAppId = appId;

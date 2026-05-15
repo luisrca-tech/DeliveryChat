@@ -2,6 +2,7 @@ import { EventEmitter } from "./EventEmitter.js";
 import { subscribe, getState } from "./state.js";
 import type { SdkEventMap } from "./SdkEventMap.js";
 import type { ChatMessage, ConversationStatus } from "./types/index.js";
+import { getSdkApi } from "./SdkApi.js";
 
 let cleanupFns: Array<() => void> = [];
 
@@ -10,6 +11,7 @@ export function connectEventBridge(emitter: EventEmitter<SdkEventMap>): void {
 
   cleanupFns.push(
     subscribe("isOpen", (isOpen: boolean) => {
+      if (getSdkApi().isHeadless()) return;
       emitter.emit(isOpen ? "open" : "close");
     }),
   );

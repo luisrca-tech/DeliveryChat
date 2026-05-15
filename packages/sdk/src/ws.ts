@@ -1,6 +1,7 @@
 import { setState, getState } from "./state.js";
 import type { ConnectionError, ChatMessage } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
+import { resolvePendingMessage, rejectPendingMessage } from "./PendingMessages.js";
 import { fetchWsToken } from "./api.js";
 import {
   PING_INTERVAL,
@@ -229,18 +230,25 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         createdAt: string;
       };
 
+      let ackedMsg: ChatMessage | undefined;
       setState("messages", (prev) =>
-        prev.map((msg) =>
-          msg.id === payload.clientMessageId
-            ? {
-                ...msg,
-                id: payload.serverMessageId,
-                status: "sent" as const,
-                createdAt: payload.createdAt,
-              }
-            : msg,
-        ),
+        prev.map((msg) => {
+          if (msg.id === payload.clientMessageId) {
+            ackedMsg = {
+              ...msg,
+              id: payload.serverMessageId,
+              status: "sent" as const,
+              createdAt: payload.createdAt,
+            };
+            return ackedMsg;
+          }
+          return msg;
+        }),
       );
+
+      if (ackedMsg) {
+        resolvePendingMessage(payload.clientMessageId, ackedMsg);
+      }
       break;
     }
 
@@ -355,12 +363,15 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         setState("rateLimited", true);
         setState("rateLimitRetryAfter", retryAfter);
 
+        const rateLimitError = new Error(`[DeliveryChat] Rate limited: ${payload.message}`);
         setState("messages", (prev) =>
-          prev.map((msg) =>
-            msg.status === "pending"
-              ? { ...msg, status: "failed" as const }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.status === "pending") {
+              rejectPendingMessage(msg.id, rateLimitError);
+              return { ...msg, status: "failed" as const };
+            }
+            return msg;
+          }),
         );
 
         if (rateLimitTimer) clearTimeout(rateLimitTimer);
@@ -377,12 +388,15 @@ function handleServerEvent(event: { type: string; payload?: unknown }): void {
         payload.code === "CONVERSATION_NOT_FOUND"
       ) {
         clearStaleConversationPersistence();
+        const convError = new Error(`[DeliveryChat] ${payload.code}: ${payload.message}`);
         setState("messages", (prev) =>
-          prev.map((msg) =>
-            msg.status === "pending"
-              ? { ...msg, status: "failed" as const }
-              : msg,
-          ),
+          prev.map((msg) => {
+            if (msg.status === "pending") {
+              rejectPendingMessage(msg.id, convError);
+              return { ...msg, status: "failed" as const };
+            }
+            return msg;
+          }),
         );
       }
       console.error(`[DeliveryChat WS] Error: ${payload.code} — ${payload.message}`);

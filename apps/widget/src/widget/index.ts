@@ -25,6 +25,8 @@ if (Array.isArray(queue)) {
         init(args[0] as InitOptions);
       } else if (method === "on" && typeof args[0] === "string" && typeof args[1] === "function") {
         sdkApi.on(args[0] as keyof import("@repo/sdk").SdkEventMap, args[1]);
+      } else if (method === "sendMessage" && typeof args[0] === "string") {
+        sdkApi.sendMessage(args[0]);
       }
     }
   }
@@ -40,6 +42,8 @@ const DeliveryChat: DeliveryChatAPI = {
   showWidget: () => sdkApi.showWidget(),
   on: (event, callback) => sdkApi.on(event, callback),
   off: (event, callback) => sdkApi.off(event, callback),
+  sendMessage: (text) => sdkApi.sendMessage(text),
+  getConversation: () => sdkApi.getConversation(),
   queue: [] as unknown[],
 };
 

@@ -4,6 +4,14 @@ import type { SdkEventMap } from "./SdkEventMap.js";
 import { connectEventBridge, disconnectEventBridge } from "./EventBridge.js";
 import { setState, subscribe, getState } from "./state.js";
 import type { ChatMessage } from "./types/index.js";
+import { getSdkApi } from "./SdkApi.js";
+
+let mockHeadless = false;
+vi.mock("./SdkApi.js", () => ({
+  getSdkApi: vi.fn(() => ({
+    isHeadless: () => mockHeadless,
+  })),
+}));
 
 vi.mock("./state.js", () => {
   const subscriptions = new Map<string, Set<(value: unknown) => void>>();
@@ -186,5 +194,47 @@ describe("EventBridge", () => {
     setState("isOpen", true);
 
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  describe("headless mode", () => {
+    beforeEach(() => {
+      mockHeadless = true;
+      setState("connectionStatus", "disconnected");
+    });
+
+    afterEach(() => {
+      mockHeadless = false;
+    });
+
+    it("suppresses 'open' event when headless", () => {
+      connectEventBridge(emitter);
+      const listener = vi.fn();
+      emitter.on("open", listener);
+
+      setState("isOpen", true);
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("suppresses 'close' event when headless", () => {
+      connectEventBridge(emitter);
+      const listener = vi.fn();
+      emitter.on("close", listener);
+
+      setState("isOpen", true);
+      setState("isOpen", false);
+
+      expect(listener).not.toHaveBeenCalled();
+    });
+
+    it("still fires non-UI events like 'ready' when headless", () => {
+      connectEventBridge(emitter);
+      const listener = vi.fn();
+      emitter.on("ready", listener);
+
+      setState("connectionStatus", "connected");
+
+      expect(listener).toHaveBeenCalledOnce();
+    });
   });
 });

@@ -4,6 +4,9 @@ import { getSdkApi, resetSdkApi } from "./SdkApi.js";
 vi.mock("./state.js", () => {
   let state: Record<string, unknown> = {
     isOpen: false,
+    conversationId: null,
+    conversationStatus: null,
+    messages: [],
   };
   return {
     getState: vi.fn((key: string) => state[key]),
@@ -16,10 +19,11 @@ vi.mock("./state.js", () => {
 
 vi.mock("./chat-controller.js", () => ({
   openChat: vi.fn(),
+  sendMessageAsync: vi.fn(),
 }));
 
 import { getState, setState } from "./state.js";
-import { openChat } from "./chat-controller.js";
+import { openChat, sendMessageAsync } from "./chat-controller.js";
 
 const mockedGetState = vi.mocked(getState);
 const mockedSetState = vi.mocked(setState);
@@ -154,6 +158,89 @@ describe("SdkApi", () => {
       api.emitter.emit("message:received", { id: "1", content: "hello", type: "text", senderRole: "operator", senderId: "op1", status: "sent", createdAt: "2024-01-01" });
 
       expect(listener).toHaveBeenCalledOnce();
+    });
+  });
+
+  describe("headless mode", () => {
+    it("open/close/toggle/hideWidget/showWidget are no-ops when headless", () => {
+      const api = getSdkApi();
+      api.markInitialized({ headless: true });
+
+      api.open();
+      api.close();
+      api.toggle();
+      api.hideWidget();
+      api.showWidget();
+
+      expect(setState).not.toHaveBeenCalled();
+      expect(openChat).not.toHaveBeenCalled();
+    });
+
+    it("sendMessage throws before init", async () => {
+      const api = getSdkApi();
+      await expect(api.sendMessage("hello")).rejects.toThrow("SDK not initialized");
+    });
+
+    it("sendMessage delegates to sendMessageAsync", async () => {
+      const api = getSdkApi();
+      api.markInitialized();
+
+      const mockMsg = {
+        id: "s1",
+        content: "hello",
+        type: "text" as const,
+        senderRole: "visitor" as const,
+        senderId: "v1",
+        status: "sent" as const,
+        createdAt: "2024-01-01",
+      };
+      vi.mocked(sendMessageAsync).mockResolvedValueOnce(mockMsg);
+
+      const result = await api.sendMessage("hello");
+      expect(sendMessageAsync).toHaveBeenCalledWith("hello");
+      expect(result).toBe(mockMsg);
+    });
+
+    it("getConversation returns null when no active conversation", () => {
+      const api = getSdkApi();
+      api.markInitialized();
+
+      mockedGetState.mockImplementation(((key: string) => {
+        if (key === "conversationId") return null;
+        if (key === "conversationStatus") return null;
+        if (key === "messages") return [];
+        return undefined;
+      }) as typeof getState);
+
+      expect(api.getConversation()).toBeNull();
+    });
+
+    it("getConversation returns snapshot when conversation exists", () => {
+      const api = getSdkApi();
+      api.markInitialized();
+
+      const messages = [
+        { id: "m1", content: "hi", type: "text" as const, senderRole: "visitor" as const, senderId: "v1", status: "sent" as const, createdAt: "2024-01-01" },
+      ];
+
+      mockedGetState.mockImplementation(((key: string) => {
+        if (key === "conversationId") return "conv-1";
+        if (key === "conversationStatus") return "active";
+        if (key === "messages") return messages;
+        return undefined;
+      }) as typeof getState);
+
+      const result = api.getConversation();
+      expect(result).toEqual({
+        id: "conv-1",
+        status: "active",
+        messages,
+      });
+    });
+
+    it("getConversation throws before init", () => {
+      const api = getSdkApi();
+      expect(() => api.getConversation()).toThrow("SDK not initialized");
     });
   });
 });

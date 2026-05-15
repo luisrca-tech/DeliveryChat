@@ -7,6 +7,7 @@ export type {
   WidgetSettings,
   ChatMessage,
   ConversationStatus,
+  ConversationSnapshot,
   TypingUser,
   ConnectionError,
   BubbleContext,

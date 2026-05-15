@@ -46,6 +46,7 @@ export type InitOptions = {
   autoOpenDelay?: number;
   colors?: Partial<WidgetSettings["colors"]>;
   launcherLogoUrl?: string | null;
+  headless?: boolean;
 };
 
 export type ChatMessage = {
@@ -84,6 +85,12 @@ import type { SdkEventMap } from "../SdkEventMap.js";
 
 type Listener<T> = (payload: T) => void;
 
+export type ConversationSnapshot = {
+  id: string;
+  status: string;
+  messages: ChatMessage[];
+};
+
 export type DeliveryChatAPI = {
   init: (opts: InitOptions) => void;
   destroy: () => void;
@@ -94,5 +101,7 @@ export type DeliveryChatAPI = {
   showWidget: () => void;
   on: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
   off: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
+  sendMessage: (text: string) => Promise<ChatMessage>;
+  getConversation: () => ConversationSnapshot | null;
   queue: unknown[];
 };

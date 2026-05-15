@@ -1,21 +1,31 @@
 import { EventEmitter } from "./EventEmitter.js";
 import { getState, setState } from "./state.js";
-import { openChat } from "./chat-controller.js";
+import { openChat, sendMessageAsync } from "./chat-controller.js";
 import type { SdkEventMap } from "./SdkEventMap.js";
+import type { ChatMessage, ConversationSnapshot } from "./types/index.js";
 
 type Listener<T> = (payload: T) => void;
+
+type InitMode = { headless?: boolean };
 
 class SdkApi {
   readonly emitter = new EventEmitter<SdkEventMap>();
   private initialized = false;
+  private headless = false;
 
-  markInitialized(): void {
+  markInitialized(mode?: InitMode): void {
     this.initialized = true;
+    this.headless = mode?.headless ?? false;
   }
 
   markDestroyed(): void {
     this.initialized = false;
+    this.headless = false;
     this.emitter.removeAllListeners();
+  }
+
+  isHeadless(): boolean {
+    return this.headless;
   }
 
   private requireInit(): void {
@@ -26,17 +36,20 @@ class SdkApi {
 
   open(): void {
     this.requireInit();
+    if (this.headless) return;
     setState("isOpen", true);
     openChat();
   }
 
   close(): void {
     this.requireInit();
+    if (this.headless) return;
     setState("isOpen", false);
   }
 
   toggle(): void {
     this.requireInit();
+    if (this.headless) return;
     const isOpen = getState("isOpen");
     if (isOpen) {
       this.close();
@@ -47,12 +60,28 @@ class SdkApi {
 
   hideWidget(): void {
     this.requireInit();
+    if (this.headless) return;
     setState("widgetVisible", false);
   }
 
   showWidget(): void {
     this.requireInit();
+    if (this.headless) return;
     setState("widgetVisible", true);
+  }
+
+  async sendMessage(text: string): Promise<ChatMessage> {
+    this.requireInit();
+    return sendMessageAsync(text);
+  }
+
+  getConversation(): ConversationSnapshot | null {
+    this.requireInit();
+    const id = getState("conversationId");
+    if (!id) return null;
+    const status = getState("conversationStatus");
+    const messages = getState("messages");
+    return { id, status: status ?? "pending", messages };
   }
 
   on<K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>): void {

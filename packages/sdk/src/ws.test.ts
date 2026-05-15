@@ -5,6 +5,11 @@ vi.mock("./conversation-persistence.js", () => ({
   clearStaleConversationPersistence: vi.fn(),
 }));
 
+vi.mock("./PendingMessages.js", () => ({
+  resolvePendingMessage: vi.fn(),
+  rejectPendingMessage: vi.fn(),
+}));
+
 vi.mock("./api.js", () => ({
   fetchWsToken: vi.fn().mockResolvedValue("mock-signed-token"),
 }));
@@ -31,6 +36,8 @@ class MockWS {
 }
 
 vi.stubGlobal("WebSocket", MockWS);
+
+import { resolvePendingMessage, rejectPendingMessage } from "./PendingMessages.js";
 
 const { connectWS, disconnectWS } = await import("./ws.js");
 
@@ -457,6 +464,73 @@ describe("WebSocket error classification", () => {
 
       await vi.advanceTimersByTimeAsync(5_000);
       expect(getState("rateLimited")).toBe(false);
+    });
+  });
+
+  describe("PendingMessages integration", () => {
+    it("calls resolvePendingMessage on message:ack", async () => {
+      await connect();
+      setState("messages", [
+        { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+      ]);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:ack",
+          payload: {
+            clientMessageId: "client-1",
+            serverMessageId: "server-1",
+            createdAt: "2026-01-01T00:00:00Z",
+          },
+        }),
+      });
+
+      expect(resolvePendingMessage).toHaveBeenCalledWith(
+        "client-1",
+        expect.objectContaining({
+          id: "server-1",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+        }),
+      );
+    });
+
+    it("calls rejectPendingMessage for pending messages on RATE_LIMITED error", async () => {
+      await connect();
+      setState("messages", [
+        { id: "client-x", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+      ]);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "error",
+          payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter: 3 },
+        }),
+      });
+
+      expect(rejectPendingMessage).toHaveBeenCalledWith(
+        "client-x",
+        expect.any(Error),
+      );
+    });
+
+    it("calls rejectPendingMessage for pending messages on CONVERSATION_NOT_ACTIVE error", async () => {
+      await connect();
+      setState("messages", [
+        { id: "client-y", content: "hello", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+      ]);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "error",
+          payload: { code: "CONVERSATION_NOT_ACTIVE", message: "Conversation is not active" },
+        }),
+      });
+
+      expect(rejectPendingMessage).toHaveBeenCalledWith(
+        "client-y",
+        expect.any(Error),
+      );
     });
   });
 });

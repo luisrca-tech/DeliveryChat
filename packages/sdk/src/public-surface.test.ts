@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { DeliveryChatAPI } from "./types/index.js";
+import type { DeliveryChatAPI, InitOptions, ChatMessage } from "./types/index.js";
 
 describe("window.DeliveryChat public surface", () => {
   it("DeliveryChatAPI type exposes the expected methods", () => {
@@ -13,6 +13,8 @@ describe("window.DeliveryChat public surface", () => {
       | "showWidget"
       | "on"
       | "off"
+      | "sendMessage"
+      | "getConversation"
       | "queue";
     type ActualKeys = keyof DeliveryChatAPI;
 
@@ -65,5 +67,26 @@ describe("window.DeliveryChat public surface", () => {
     type QueueType = DeliveryChatAPI["queue"];
     const isArray: QueueType extends unknown[] ? true : false = true;
     expect(isArray).toBe(true);
+  });
+
+  it("InitOptions accepts headless option", () => {
+    const opts: InitOptions = { appId: "test", headless: true };
+    expect(opts.headless).toBe(true);
+
+    const optsDefault: InitOptions = { appId: "test" };
+    expect(optsDefault.headless).toBeUndefined();
+  });
+
+  it("sendMessage returns Promise<ChatMessage>", () => {
+    type SendReturn = ReturnType<DeliveryChatAPI["sendMessage"]>;
+    const isPromise: SendReturn extends Promise<ChatMessage> ? true : false = true;
+    expect(isPromise).toBe(true);
+  });
+
+  it("getConversation returns conversation state or null", () => {
+    type GetReturn = ReturnType<DeliveryChatAPI["getConversation"]>;
+    type Expected = { id: string; status: string; messages: ChatMessage[] } | null;
+    const matchesShape: GetReturn extends Expected ? true : false = true;
+    expect(matchesShape).toBe(true);
   });
 });

@@ -31,6 +31,7 @@ import {
   notifyTypingStop,
   destroyChat,
   startNewChat,
+  connectEagerly,
 } from "./chat-controller.js";
 import type { ChatMessage } from "./types/index.js";
 import { defaultSettings, HOST_ID, MAX_MESSAGES } from "./constants/index.js";
@@ -507,6 +508,15 @@ export async function init(opts: InitOptions): Promise<void> {
 
   await initChatController({ appId: opts.appId });
 
+  const sdkApi = getSdkApi();
+  connectEventBridge(sdkApi.emitter);
+
+  if (opts.headless) {
+    sdkApi.markInitialized({ headless: true });
+    connectEagerly();
+    return;
+  }
+
   const host = createShadowHost();
   const shadow = createShadowRoot(host);
 
@@ -514,8 +524,6 @@ export async function init(opts: InitOptions): Promise<void> {
 
   render(shadow, settings);
 
-  const sdkApi = getSdkApi();
-  connectEventBridge(sdkApi.emitter);
   sdkApi.markInitialized();
 
   if (settings.behavior.autoOpen) {
