@@ -84,29 +84,37 @@ Added programmatic control methods to the SDK: `open()`, `close()`, `toggle()`, 
 
 ---
 
-## Phase 3: Headless Mode
+## Phase 3: Headless Mode ✅ DONE
 
 **User stories**: 13, 14, 15, 16
 
-### What to build
+### What was built
 
-Add `headless: true` option to `init()`. When enabled, the SDK skips all UI rendering (no Shadow DOM, no launcher, no chat window) but initializes the full connection infrastructure: anonymous visitor session, WebSocket connection with auto-reconnect, and conversation lifecycle management. Expose `sendMessage(text)` as a public method that sends a message programmatically — in headless mode it auto-creates a conversation on first message (matching widget behavior). Expose `getConversation()` that returns the current conversation state (id, status, messages) or `null` if no active conversation. Both methods also work in widget mode for parity. `sendMessage()` returns a promise that resolves with the server-acknowledged message or rejects on error (rate limit, connection failure). All events from Phase 2 fire in headless mode (except `open`/`close` which are widget-only). The SDK connects the WebSocket eagerly in headless mode (no lazy connection — there's no "open chat" trigger).
+Added `headless: true` option to `init()`. When enabled, the SDK skips all UI rendering (no Shadow DOM, no launcher, no chat window) but initializes the full connection infrastructure: anonymous visitor session, WebSocket connection with auto-reconnect, and conversation lifecycle management. Implemented `sendMessage(text)` as a public method returning a `Promise<ChatMessage>` that resolves on server ACK or rejects on error/timeout. Created `PendingMessages` module to track promise resolvers by `clientMessageId`, avoiding circular dependency between `chat-controller.ts` and `ws.ts`. Implemented `getConversation()` returning `{ id, status, messages }` or `null`. Added `connectEagerly()` for immediate WebSocket connection in headless mode. `SdkApi` singleton now accepts `{ headless: true }` via `markInitialized()` and gates UI methods as no-ops. `EventBridge` suppresses `open`/`close` events in headless mode while all other events fire normally. Updated IIFE entry point with `sendMessage` and `getConversation` on `window.DeliveryChat` including command queue support.
 
 ### Acceptance criteria
 
-- [ ] `init({ appId, headless: true })` initializes without rendering any DOM elements
-- [ ] WebSocket connects eagerly in headless mode (no user interaction needed)
-- [ ] `sendMessage(text)` sends a message and returns a promise resolving with the acknowledged message
-- [ ] First `sendMessage()` call auto-creates a conversation if none exists
-- [ ] `sendMessage()` rejects with clear error on rate limit or connection failure
-- [ ] `getConversation()` returns `{ id, status, messages }` or `null`
-- [ ] `message:received`, `message:sent`, `conversation:started`, `conversation:resolved`, `unread:changed`, `ready` events fire in headless mode
-- [ ] `open()`, `close()`, `toggle()`, `hideWidget()`, `showWidget()` are no-ops in headless mode (no error)
-- [ ] Auto-reconnect works identically to widget mode
-- [ ] Unit tests for headless init path (no DOM created)
-- [ ] Integration tests for headless message send/receive lifecycle
-- [ ] Feature doc in `packages/sdk/docs/headless.md` covering headless mode behavior
-- [ ] Branch: `feature/sdk-headless`
+- [x] `init({ appId, headless: true })` initializes without rendering any DOM elements
+- [x] WebSocket connects eagerly in headless mode (no user interaction needed)
+- [x] `sendMessage(text)` sends a message and returns a promise resolving with the acknowledged message
+- [x] First `sendMessage()` call auto-creates a conversation if none exists
+- [x] `sendMessage()` rejects with clear error on rate limit or connection failure
+- [x] `getConversation()` returns `{ id, status, messages }` or `null`
+- [x] `message:received`, `message:sent`, `conversation:started`, `conversation:resolved`, `unread:changed`, `ready` events fire in headless mode
+- [x] `open()`, `close()`, `toggle()`, `hideWidget()`, `showWidget()` are no-ops in headless mode (no error)
+- [x] Auto-reconnect works identically to widget mode
+- [x] Unit tests for headless init path (no DOM created)
+- [x] Integration tests for headless message send/receive lifecycle
+- [x] Feature doc in `packages/sdk/docs/headless.md` covering headless mode behavior
+- [x] Branch: `feature/sdk-headless`
+
+### Potential risks
+
+- **PendingMessages timeout race**: The 15-second timeout in `PendingMessages` is hardcoded. On slow networks or when the server is under load, legitimate messages could time out and reject the promise even though the server eventually processes them. The optimistic message would show as "pending" in state but the promise would already be rejected. There is no retry mechanism — the caller must resend manually.
+- **Eager WS connection without conversation**: In headless mode, `connectEagerly()` opens the WebSocket immediately on init, but if no conversation exists yet, the connection sits idle until `sendMessage()` creates one. This consumes a server-side connection slot that provides no value until the first message. High-volume headless deployments could exhaust connection limits.
+- **Circular dependency fragility**: The `PendingMessages` module exists solely to break the circular dependency between `chat-controller.ts` (which calls `trackPendingMessage`) and `ws.ts` (which calls `resolvePendingMessage`/`rejectPendingMessage`). If a future refactor moves any of these calls to the wrong module, the circular dependency resurfaces silently (no build error, just runtime `undefined` imports).
+- **EventBridge headless check is runtime, not compile-time**: The `isOpen` subscription in `EventBridge` calls `getSdkApi().isHeadless()` on every state change. If `SdkApi` is reset or destroyed while the bridge is still connected, the check could throw or return a stale value. The bridge cleanup depends on `disconnectEventBridge()` being called before `resetSdkApi()`.
+- **sendMessage in widget mode shares sendMessageAsync**: Both headless and widget modes now have access to `sendMessage()` via `SdkApi`, which calls `sendMessageAsync` internally. In widget mode, this creates a second code path for sending messages alongside the original `controllerSendMessage` (used by the input area). If both paths are triggered concurrently, the optimistic message list could have ordering issues since both create independent `clientMessageId` values.
 
 ---
 
