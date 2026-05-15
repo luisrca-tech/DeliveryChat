@@ -12,6 +12,8 @@ export type {
   ConnectionError,
   BubbleContext,
   DeliveryChatAPI,
+  IdentifyParams,
+  IdentityResult,
 } from "./types/index.js";
 
 export type { SdkEventMap } from "./SdkEventMap.js";

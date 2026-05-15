@@ -105,7 +105,7 @@ describe("widget init — headless mode", () => {
   it("marks SDK as initialized with headless flag", async () => {
     await init({ appId: "app-1", headless: true });
     const sdkApi = getSdkApi();
-    expect(sdkApi.markInitialized).toHaveBeenCalledWith({ headless: true });
+    expect(sdkApi.markInitialized).toHaveBeenCalledWith({ headless: true, appId: "app-1" });
   });
 
   it("creates Shadow DOM host in normal (non-headless) mode", async () => {

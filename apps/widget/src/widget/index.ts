@@ -27,6 +27,8 @@ if (Array.isArray(queue)) {
         sdkApi.on(args[0] as keyof import("@repo/sdk").SdkEventMap, args[1]);
       } else if (method === "sendMessage" && typeof args[0] === "string") {
         sdkApi.sendMessage(args[0]);
+      } else if (method === "identify" && typeof args[0] === "object" && args[0] !== null) {
+        sdkApi.identify(args[0] as import("@repo/sdk").IdentifyParams);
       }
     }
   }
@@ -43,6 +45,7 @@ const DeliveryChat: DeliveryChatAPI = {
   on: (event, callback) => sdkApi.on(event, callback),
   off: (event, callback) => sdkApi.off(event, callback),
   sendMessage: (text) => sdkApi.sendMessage(text),
+  identify: (params) => sdkApi.identify(params),
   getConversation: () => sdkApi.getConversation(),
   queue: [] as unknown[],
 };

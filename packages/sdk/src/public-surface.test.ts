@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { DeliveryChatAPI, InitOptions, ChatMessage } from "./types/index.js";
+import type { DeliveryChatAPI, InitOptions, ChatMessage, IdentifyParams, IdentityResult } from "./types/index.js";
 
 describe("window.DeliveryChat public surface", () => {
   it("DeliveryChatAPI type exposes the expected methods", () => {
@@ -14,6 +14,7 @@ describe("window.DeliveryChat public surface", () => {
       | "on"
       | "off"
       | "sendMessage"
+      | "identify"
       | "getConversation"
       | "queue";
     type ActualKeys = keyof DeliveryChatAPI;
@@ -81,6 +82,16 @@ describe("window.DeliveryChat public surface", () => {
     type SendReturn = ReturnType<DeliveryChatAPI["sendMessage"]>;
     const isPromise: SendReturn extends Promise<ChatMessage> ? true : false = true;
     expect(isPromise).toBe(true);
+  });
+
+  it("identify returns Promise<IdentityResult>", () => {
+    type IdentifyReturn = ReturnType<DeliveryChatAPI["identify"]>;
+    const isPromise: IdentifyReturn extends Promise<IdentityResult> ? true : false = true;
+    expect(isPromise).toBe(true);
+
+    type IdentifyArg = Parameters<DeliveryChatAPI["identify"]>[0];
+    const matchesParams: IdentifyArg extends IdentifyParams ? true : false = true;
+    expect(matchesParams).toBe(true);
   });
 
   it("getConversation returns conversation state or null", () => {

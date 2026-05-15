@@ -81,6 +81,25 @@ export type BubbleContext = {
   onDelete: (messageId: string) => void;
 };
 
+export type IdentifyParams = {
+  name?: string;
+  email?: string;
+  externalId?: string;
+  metadata?: Record<string, unknown>;
+  hmac?: string;
+};
+
+export type IdentityResult = {
+  id: string;
+  anonymousUserId: string;
+  organizationId: string;
+  externalId?: string | null;
+  email?: string | null;
+  name?: string | null;
+  metadata?: Record<string, unknown> | null;
+  hmacVerified: boolean;
+};
+
 import type { SdkEventMap } from "../SdkEventMap.js";
 
 type Listener<T> = (payload: T) => void;
@@ -102,6 +121,7 @@ export type DeliveryChatAPI = {
   on: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
   off: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
   sendMessage: (text: string) => Promise<ChatMessage>;
+  identify: (params: IdentifyParams) => Promise<IdentityResult>;
   getConversation: () => ConversationSnapshot | null;
   queue: unknown[];
 };

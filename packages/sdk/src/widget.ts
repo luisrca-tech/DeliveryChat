@@ -512,7 +512,7 @@ export async function init(opts: InitOptions): Promise<void> {
   connectEventBridge(sdkApi.emitter);
 
   if (opts.headless) {
-    sdkApi.markInitialized({ headless: true });
+    sdkApi.markInitialized({ headless: true, appId: opts.appId });
     connectEagerly();
     return;
   }
@@ -524,7 +524,7 @@ export async function init(opts: InitOptions): Promise<void> {
 
   render(shadow, settings);
 
-  sdkApi.markInitialized();
+  sdkApi.markInitialized({ appId: opts.appId });
 
   if (settings.behavior.autoOpen) {
     if (autoOpenTimeout !== null) {
