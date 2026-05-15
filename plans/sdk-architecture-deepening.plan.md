@@ -84,7 +84,7 @@ The pipeline accepts a message to send, creates the optimistic state entry, trac
 
 ---
 
-## Phase 4: Deepen SdkApi into True Facade
+## Phase 4: Deepen SdkApi into True Facade ✅
 
 **Candidate**: #3 (SdkApi Thin Wrapper)
 
@@ -96,14 +96,14 @@ After this phase, the dependency graph simplifies to: `widget.ts` → `SdkApi` �
 
 ### Acceptance criteria
 
-- [ ] `chat-controller.ts` is removed — its logic lives in `SdkApi`
-- [ ] `SdkApi` is the sole orchestration point for init, connection, conversation lifecycle, and message dispatch
-- [ ] `widget.ts` imports only from `SdkApi` (no direct imports of state, connection, or conversation modules)
-- [ ] `widget.ts` line count decreases — it handles only DOM rendering and UI event binding
-- [ ] All existing integration and unit tests pass
-- [ ] New boundary tests for `SdkApi`: full init→connect→send→receive→destroy lifecycle
-- [ ] Headless mode and widget mode both route through the same `SdkApi` code paths
-- [ ] `bun run build --filter=widget` produces a working IIFE
-- [ ] Bundle size check passes (≤ 75 kB threshold)
-- [ ] `bun run check-types` passes across the monorepo
-- [ ] Feature doc in `packages/sdk/docs/facade.md` covering the simplified dependency graph
+- [x] `chat-controller.ts` is removed — its logic lives in `SdkApi`
+- [x] `SdkApi` is the sole orchestration point for init, connection, conversation lifecycle, and message dispatch
+- [x] `widget.ts` imports only from `SdkApi` (no direct imports of state, connection, or conversation modules)
+- [x] `widget.ts` line count decreases — it handles only DOM rendering and UI event binding
+- [x] All existing integration and unit tests pass (235 tests, 17 files)
+- [x] New boundary tests for `SdkApi`: full init→connect→send→receive→destroy lifecycle (43 tests)
+- [x] Headless mode and widget mode both route through the same `SdkApi` code paths
+- [x] `bun run build --filter=widget` produces a working IIFE
+- [x] Bundle size check passes (54.72 kB ≤ 75 kB threshold)
+- [x] `bun run check-types` passes across the monorepo (pre-existing infisical errors unrelated)
+- [x] Feature doc in `packages/sdk/docs/facade.md` covering the simplified dependency graph

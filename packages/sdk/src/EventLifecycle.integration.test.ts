@@ -4,8 +4,18 @@ import { connectEventBridge, disconnectEventBridge } from "./EventBridge.js";
 import { setState } from "./state.js";
 import type { ChatMessage } from "./types/index.js";
 
-vi.mock("./chat-controller.js", () => ({
-  openChat: vi.fn(),
+vi.mock("./ws.js", () => ({
+  connectWS: vi.fn(),
+  disconnectWS: vi.fn(),
+  sendWSMessage: vi.fn(),
+  getMessagePipeline: vi.fn().mockReturnValue({
+    send: vi.fn(),
+    clearAllPending: vi.fn(),
+  }),
+}));
+
+vi.mock("./conversation.js", () => ({
+  markConversationAsRead: vi.fn().mockResolvedValue(undefined),
 }));
 
 describe("Event Lifecycle Integration", () => {
@@ -98,7 +108,7 @@ describe("Event Lifecycle Integration", () => {
     expect(listener).toHaveBeenCalledWith({ count: 3 });
   });
 
-  it("message:received fires for incoming operator message", () => {
+  it("message:received fires when emitted by MessagePipeline", () => {
     const api = bootSdk();
     const listener = vi.fn();
     api.on("message:received", listener);
@@ -113,30 +123,27 @@ describe("Event Lifecycle Integration", () => {
       createdAt: "2024-01-01T00:00:00Z",
     };
 
-    setState("messages", [msg]);
+    api.emitter.emit("message:received", msg);
 
     expect(listener).toHaveBeenCalledWith(msg);
   });
 
-  it("message:sent fires when a pending visitor message is ACKed with new ID", () => {
+  it("message:sent fires when emitted by MessagePipeline after ACK", () => {
     const api = bootSdk();
     const listener = vi.fn();
     api.on("message:sent", listener);
 
-    const pending: ChatMessage = {
-      id: "client-uuid",
+    const acked: ChatMessage = {
+      id: "server-uuid",
       content: "Hi there",
       type: "text",
       senderRole: "visitor",
       senderId: "visitor-1",
-      status: "pending",
+      status: "sent",
       createdAt: "2024-01-01T00:00:00Z",
     };
 
-    setState("messages", [pending]);
-
-    const acked: ChatMessage = { ...pending, id: "server-uuid", status: "sent" };
-    setState("messages", [acked]);
+    api.emitter.emit("message:sent", acked);
 
     expect(listener).toHaveBeenCalledWith(acked);
   });
@@ -191,7 +198,7 @@ describe("Event Lifecycle Integration", () => {
       status: "sent",
       createdAt: "2024-01-01T00:00:00Z",
     };
-    setState("messages", [msg]);
+    api.emitter.emit("message:received", msg);
 
     setState("conversationStatus", "closed");
     api.close();

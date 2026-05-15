@@ -21,18 +21,6 @@ import { getState, setState, subscribe } from "./state.js";
 import { fetchSettings } from "./api.js";
 import { getApiBaseUrl, setApiBaseUrl } from "./config.js";
 import { isValidLauncherImageUrl } from "./utils/logo-url.js";
-import {
-  initChatController,
-  openChat as controllerOpenChat,
-  sendMessage as controllerSendMessage,
-  editMessage as controllerEditMessage,
-  deleteMessage as controllerDeleteMessage,
-  notifyTypingStart,
-  notifyTypingStop,
-  destroyChat,
-  startNewChat,
-  connectEagerly,
-} from "./chat-controller.js";
 import type { ChatMessage } from "./types/index.js";
 import { defaultSettings, HOST_ID, MAX_MESSAGES } from "./constants/index.js";
 import { getSdkApi } from "./SdkApi.js";
@@ -164,7 +152,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
       setState("editingMessageId", messageId);
     },
     onDelete: (messageId) => {
-      controllerDeleteMessage(messageId);
+      getSdkApi().deleteMessage(messageId);
     },
   };
 
@@ -185,9 +173,9 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     settings,
     getState("messages"),
     {
-      onSend: (text) => controllerSendMessage(text),
-      onTypingStart: notifyTypingStart,
-      onTypingStop: notifyTypingStop,
+      onSend: (text) => { getSdkApi().sendMessage(text).catch(() => {}); },
+      onTypingStart: () => getSdkApi().notifyTypingStart(),
+      onTypingStop: () => getSdkApi().notifyTypingStop(),
       onClose: closeChat,
     },
     bubbleCtx,
@@ -210,7 +198,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     backdrop.hidden = !isOpen;
     launcher.setAttribute("aria-expanded", String(isOpen));
     if (isOpen) {
-      controllerOpenChat();
+      getSdkApi().openChat();
       focusTrapAbort?.abort();
       focusTrapAbort = new AbortController();
       focusTrap(chatWindow, focusTrapAbort.signal);
@@ -226,7 +214,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   newChatBtn.textContent = "Start new chat";
   newChatBtn.hidden = true;
   newChatBtn.addEventListener("click", () => {
-    startNewChat();
+    getSdkApi().startNewChat();
   });
   chatWindowEl.appendChild(newChatBtn);
 
@@ -396,7 +384,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
         listEl,
         editingId,
         msg.content,
-        (newContent) => controllerEditMessage(editingId, newContent),
+        (newContent) => getSdkApi().editMessage(editingId, newContent),
         () => setState("editingMessageId", null),
       );
     }
@@ -506,14 +494,13 @@ export async function init(opts: InitOptions): Promise<void> {
   setState("isOpen", false);
   setState("messages", []);
 
-  await initChatController({ appId: opts.appId });
-
   const sdkApi = getSdkApi();
+  await sdkApi.initChat({ appId: opts.appId });
   connectEventBridge(sdkApi.emitter);
 
   if (opts.headless) {
     sdkApi.markInitialized({ headless: true, appId: opts.appId });
-    connectEagerly();
+    sdkApi.connectEagerly();
     return;
   }
 
@@ -547,8 +534,9 @@ export async function init(opts: InitOptions): Promise<void> {
 
 export function destroy(): void {
   disconnectEventBridge();
-  getSdkApi().markDestroyed();
-  destroyChat();
+  const sdkApi = getSdkApi();
+  sdkApi.destroyChat();
+  sdkApi.markDestroyed();
   runCleanup();
   destroyHost();
 }
