@@ -8,6 +8,11 @@ vi.mock("./ws.js", () => ({
   connectWS: vi.fn(),
   disconnectWS: vi.fn(),
   sendWSMessage: vi.fn(),
+  getMessageRouter: vi.fn().mockReturnValue({
+    trackPendingMessage: vi.fn(),
+    clearAllPending: vi.fn(),
+    cleanup: vi.fn(),
+  }),
 }));
 
 vi.mock("./conversation.js", () => ({

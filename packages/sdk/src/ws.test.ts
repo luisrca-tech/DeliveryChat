@@ -5,11 +5,6 @@ vi.mock("./conversation-persistence.js", () => ({
   clearStaleConversationPersistence: vi.fn(),
 }));
 
-vi.mock("./PendingMessages.js", () => ({
-  resolvePendingMessage: vi.fn(),
-  rejectPendingMessage: vi.fn(),
-}));
-
 vi.mock("./api.js", () => ({
   fetchWsToken: vi.fn().mockResolvedValue("mock-signed-token"),
 }));
@@ -37,9 +32,7 @@ class MockWS {
 
 vi.stubGlobal("WebSocket", MockWS);
 
-import { resolvePendingMessage, rejectPendingMessage } from "./PendingMessages.js";
-
-const { connectWS, disconnectWS } = await import("./ws.js");
+const { connectWS, disconnectWS, getMessageRouter, resetWSModules } = await import("./ws.js");
 
 function latestWS(): MockWS {
   return wsInstances[wsInstances.length - 1]!;
@@ -62,7 +55,7 @@ describe("WebSocket error classification", () => {
   });
 
   afterEach(() => {
-    disconnectWS();
+    resetWSModules();
     vi.useRealTimers();
   });
 
@@ -468,11 +461,14 @@ describe("WebSocket error classification", () => {
   });
 
   describe("PendingMessages integration", () => {
-    it("calls resolvePendingMessage on message:ack", async () => {
+    it("resolves pending message via MessageRouter on message:ack", async () => {
       await connect();
       setState("messages", [
         { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
       ]);
+
+      const router = getMessageRouter()!;
+      const promise = router.trackPendingMessage("client-1");
 
       latestWS().onmessage?.({
         data: JSON.stringify({
@@ -485,21 +481,19 @@ describe("WebSocket error classification", () => {
         }),
       });
 
-      expect(resolvePendingMessage).toHaveBeenCalledWith(
-        "client-1",
-        expect.objectContaining({
-          id: "server-1",
-          status: "sent",
-          createdAt: "2026-01-01T00:00:00Z",
-        }),
-      );
+      const result = await promise;
+      expect(result.id).toBe("server-1");
+      expect(result.status).toBe("sent");
     });
 
-    it("calls rejectPendingMessage for pending messages on RATE_LIMITED error", async () => {
+    it("rejects pending message on RATE_LIMITED error", async () => {
       await connect();
       setState("messages", [
         { id: "client-x", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
       ]);
+
+      const router = getMessageRouter()!;
+      const promise = router.trackPendingMessage("client-x");
 
       latestWS().onmessage?.({
         data: JSON.stringify({
@@ -508,17 +502,17 @@ describe("WebSocket error classification", () => {
         }),
       });
 
-      expect(rejectPendingMessage).toHaveBeenCalledWith(
-        "client-x",
-        expect.any(Error),
-      );
+      await expect(promise).rejects.toThrow("Rate limited");
     });
 
-    it("calls rejectPendingMessage for pending messages on CONVERSATION_NOT_ACTIVE error", async () => {
+    it("rejects pending message on CONVERSATION_NOT_ACTIVE error", async () => {
       await connect();
       setState("messages", [
         { id: "client-y", content: "hello", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
       ]);
+
+      const router = getMessageRouter()!;
+      const promise = router.trackPendingMessage("client-y");
 
       latestWS().onmessage?.({
         data: JSON.stringify({
@@ -527,10 +521,7 @@ describe("WebSocket error classification", () => {
         }),
       });
 
-      expect(rejectPendingMessage).toHaveBeenCalledWith(
-        "client-y",
-        expect.any(Error),
-      );
+      await expect(promise).rejects.toThrow("CONVERSATION_NOT_ACTIVE");
     });
   });
 });

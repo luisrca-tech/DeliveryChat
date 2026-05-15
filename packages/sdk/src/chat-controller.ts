@@ -7,7 +7,7 @@ import {
   getUnreadCount,
   markConversationAsRead,
 } from "./conversation.js";
-import { connectWS, disconnectWS, sendWSMessage } from "./ws.js";
+import { connectWS, disconnectWS, sendWSMessage, getMessageRouter } from "./ws.js";
 import type { ChatMessage } from "./types/index.js";
 import {
   setActiveAppIdForPersistence,
@@ -17,11 +17,6 @@ import {
   removeAllConversationKeysForApp,
 } from "./conversation-persistence.js";
 import { TYPING_THROTTLE_MS } from "./constants/index.js";
-import {
-  trackPendingMessage,
-  resolvePendingMessage,
-  clearAllPending,
-} from "./PendingMessages.js";
 
 let appId: string | null = null;
 let initialized = false;
@@ -316,7 +311,11 @@ export async function sendMessageAsync(content: string): Promise<ChatMessage> {
     }
   }
 
-  const ackPromise = trackPendingMessage(clientMessageId);
+  const router = getMessageRouter();
+  if (!router) {
+    throw new Error("[DeliveryChat] WebSocket not initialized.");
+  }
+  const ackPromise = router.trackPendingMessage(clientMessageId);
 
   sendWSMessage({
     type: "message:send",
@@ -339,7 +338,7 @@ export function connectEagerly(): void {
 }
 
 export function destroyChat(): void {
-  clearAllPending();
+  getMessageRouter()?.clearAllPending();
   disconnectWS();
 
   const currentAppId = appId;
