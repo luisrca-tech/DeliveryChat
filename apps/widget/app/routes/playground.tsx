@@ -1,10 +1,11 @@
 import { useState } from "react";
+import type { DeliveryChatAPI } from "@deliverychat/sdk";
 import type { Route } from "./+types/playground";
 
 export function meta(_args: Route.MetaArgs) {
   return [
     { title: "Widget Playground" },
-    { name: "description", content: "Test the chat widget with custom appId and apiKey" },
+    { name: "description", content: "Test the chat widget with a custom appId" },
   ];
 }
 
@@ -20,16 +21,6 @@ function safeGetItem(key: string, fallback: string): string {
     return fallback;
   }
 }
-
-type DeliveryChatAPI = {
-  init: (opts: {
-    appId: string;
-    apiKey: string;
-    apiBaseUrl?: string;
-    position?: string;
-  }) => void;
-  destroy: () => void;
-};
 
 function getDeliveryChat(): DeliveryChatAPI | null {
   if (!isBrowser) return null;
@@ -60,17 +51,15 @@ function loadPlaygroundEmbedScript(): Promise<void> {
 
 export default function Playground() {
   const [appId, setAppId] = useState(() => safeGetItem("pg_appId", ""));
-  const [apiKey, setApiKey] = useState(() => safeGetItem("pg_apiKey", ""));
   const [apiBaseUrl, setApiBaseUrl] = useState(
     () => safeGetItem("pg_apiBaseUrl", API_BASE_FALLBACK),
   );
   const [isActive, setIsActive] = useState(false);
 
   const handleStart = async () => {
-    if (!appId.trim() || !apiKey.trim()) return;
+    if (!appId.trim()) return;
 
     localStorage.setItem("pg_appId", appId);
-    localStorage.setItem("pg_apiKey", apiKey);
     localStorage.setItem("pg_apiBaseUrl", apiBaseUrl);
 
     try {
@@ -85,7 +74,6 @@ export default function Playground() {
     setTimeout(() => {
       getDeliveryChat()?.init({
         appId: appId.trim(),
-        apiKey: apiKey.trim(),
         apiBaseUrl: apiBaseUrl.trim() || undefined,
         position: "bottom-right",
       });
@@ -101,10 +89,8 @@ export default function Playground() {
   const handleClear = () => {
     handleStop();
     setAppId("");
-    setApiKey("");
     setApiBaseUrl(API_BASE_FALLBACK);
     localStorage.removeItem("pg_appId");
-    localStorage.removeItem("pg_apiKey");
     localStorage.removeItem("pg_apiBaseUrl");
   };
 
@@ -157,25 +143,11 @@ export default function Playground() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              API Key
-            </label>
-            <input
-              type="text"
-              value={apiKey}
-              onChange={(e) => setApiKey(e.target.value)}
-              placeholder="dk_live_..."
-              disabled={isActive}
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-700 text-slate-900 dark:text-white text-sm font-mono focus:ring-2 focus:ring-sky-500 focus:border-transparent disabled:opacity-50"
-            />
-          </div>
-
           <div className="flex gap-2 pt-2">
             {!isActive ? (
               <button
                 onClick={handleStart}
-                disabled={!appId.trim() || !apiKey.trim()}
+                disabled={!appId.trim()}
                 className="flex-1 px-4 py-2.5 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Start Chat
@@ -212,9 +184,9 @@ export default function Playground() {
           </h2>
           <ol className="list-decimal list-inside space-y-2 text-slate-600 dark:text-slate-300 text-xs">
             <li>Log into the <strong>Admin dashboard</strong> (port 3000)</li>
-            <li>Go to <strong>Settings &rarr; API Keys</strong></li>
-            <li>Copy your <strong>Application ID</strong> (UUID) and a <strong>Live API Key</strong> (dk_live_...)</li>
-            <li>Paste them above and click Start Chat</li>
+            <li>Go to <strong>Settings &rarr; Applications</strong></li>
+            <li>Copy your <strong>Application ID</strong> (UUID)</li>
+            <li>Paste it above and click Start Chat</li>
             <li>Open the <strong>Admin Conversations page</strong> in another tab to accept messages</li>
           </ol>
         </div>

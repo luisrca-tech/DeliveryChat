@@ -38,6 +38,12 @@ export const organization = createTable(
     trialEndsAt: timestampStringNullable("trial_ends_at"),
     billingEmail: varchar("billing_email", { length: 255 }),
     cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+    identityVerificationEnabled: boolean("identity_verification_enabled")
+      .default(false)
+      .notNull(),
+    identityVerificationSecret: varchar("identity_verification_secret", {
+      length: 64,
+    }),
   },
   (table) => ({
     slugLookupIdx: index("organization_slug_idx").on(table.slug),

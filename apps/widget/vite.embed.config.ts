@@ -10,6 +10,11 @@ const publicDir = join(root, "public");
 export default defineConfig({
   envPrefix: "VITE_",
   plugins: [emitSriArtifact(outDir), copyWidgetToPublic(outDir, publicDir)],
+  resolve: {
+    alias: {
+      "@deliverychat/sdk": resolve(root, "../../packages/sdk/src/index.ts"),
+    },
+  },
   build: {
     lib: {
       entry: resolve(root, "src/widget/index.ts"),

@@ -27,6 +27,22 @@ export const config = [
     },
   },
   {
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@deliverychat/sdk/src/*"],
+              message:
+                "Import from '@deliverychat/sdk' barrel export only. Deep imports bypass the public API boundary.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     ignores: ["dist/**"],
   },
 ];

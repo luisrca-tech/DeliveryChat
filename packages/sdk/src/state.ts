@@ -22,6 +22,7 @@ type State = {
   unreadCount: number;
   rateLimited: boolean;
   rateLimitRetryAfter: number | null;
+  widgetVisible: boolean;
 };
 
 const listeners: Map<keyof State, Set<Listener<unknown>>> = new Map();
@@ -40,6 +41,7 @@ let state: State = {
   unreadCount: 0,
   rateLimited: false,
   rateLimitRetryAfter: null,
+  widgetVisible: true,
 };
 
 export function getState<K extends keyof State>(key: K): State[K] {

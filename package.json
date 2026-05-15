@@ -3,9 +3,12 @@
   "private": true,
   "dependencies": {
     "@hono/node-ws": "^1.3.0",
+    "@vitejs/plugin-react": "^6.0.2",
     "hono-rate-limiter": "^0.5.3",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react-dom": "^19.2.0",
+    "sonner": "^2.0.7",
+    "zod": "3"
   },
   "scripts": {
     "build": "turbo run build",
@@ -16,21 +19,25 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "check-types": "turbo run check-types",
     "stripe:listen": "stripe listen --forward-to localhost:8000/v1/webhooks/stripe",
-    "db:generate": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit generate",
-    "db:migrate": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit migrate",
-    "db:migrate:prod": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --env=prod --path=/hono-api -- drizzle-kit migrate",
+    "db:generate": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- bunx drizzle-kit generate",
+    "db:migrate": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- bunx drizzle-kit migrate",
+    "db:migrate:prod": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --env=prod --path=/hono-api -- bunx drizzle-kit migrate",
     "db:seed": "cd apps/hono-api && infisical run --path=/hono-api -- bun run src/db/seeds/index.ts",
-    "db:push": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit push",
-    "db:studio": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit studio",
-    "db:drop": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- drizzle-kit drop",
+    "db:push": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- bunx drizzle-kit push",
+    "db:studio": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- bunx drizzle-kit studio",
+    "db:drop": "cd apps/hono-api && TS_NODE_PROJECT=./tsconfig.drizzle.json infisical run --path=/hono-api -- bunx drizzle-kit drop",
     "sync:assets": "bun run scripts/sync-brand-assets.ts"
   },
   "devDependencies": {
+    "@infisical/cli": "^0.43.84",
     "@vitest/coverage-v8": "^4.1.6",
+    "baseline-browser-mapping": "^2.10.29",
     "jsdom": "^29.1.1",
     "prettier": "^3.6.2",
     "turbo": "^2.6.1",
     "typescript": "5.9.2",
+    "vite": "^8.0.13",
+    "vite-plugin-dts": "^5.0.0",
     "vitest": "^4.1.6"
   },
   "engines": {
@@ -40,5 +47,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
+  ],
+  "trustedDependencies": [
+    "@infisical/cli"
   ]
 }

@@ -1,0 +1,150 @@
+# Visitor Identity
+
+The `identify()` method lets you associate an anonymous chat visitor with known user data from your application — name, email, external ID, and custom metadata.
+
+## Basic Usage (Unsigned)
+
+By default, identity verification is disabled. You can call `identify()` directly from the browser:
+
+```typescript
+const chat = getSdkApi();
+
+await chat.identify({
+  name: "Jane Doe",
+  email: "jane@example.com",
+  externalId: "user_123",
+  metadata: {
+    plan: "premium",
+    signupDate: "2025-01-15",
+  },
+});
+```
+
+Multiple calls update the same identity record — they do not create duplicates.
+
+## HMAC Verification (Recommended for Production)
+
+To prevent visitors from impersonating other users, enable HMAC verification. When enabled, every `identify()` call must include an `hmac` signature generated server-side using your secret key.
+
+### How it works
+
+1. Your backend generates an HMAC-SHA256 signature using the visitor's anonymous user ID and your identity verification secret
+2. Your frontend passes the signature to `identify()`
+3. The server verifies the signature using timing-safe comparison
+
+### Server-side signature generation
+
+#### Node.js
+
+```javascript
+import { createHmac } from "node:crypto";
+
+function generateIdentityHmac(visitorId, secret) {
+  return createHmac("sha256", secret).update(visitorId).digest("hex");
+}
+
+// In your API route:
+app.get("/api/chat-identity", (req, res) => {
+  const hmac = generateIdentityHmac(req.query.visitorId, process.env.IDENTITY_SECRET);
+  res.json({ hmac });
+});
+```
+
+#### Python
+
+```python
+import hmac
+import hashlib
+
+def generate_identity_hmac(visitor_id: str, secret: str) -> str:
+    return hmac.new(
+        secret.encode(),
+        visitor_id.encode(),
+        hashlib.sha256
+    ).hexdigest()
+```
+
+#### Ruby
+
+```ruby
+require "openssl"
+
+def generate_identity_hmac(visitor_id, secret)
+  OpenSSL::HMAC.hexdigest("SHA256", secret, visitor_id)
+end
+```
+
+### Frontend integration
+
+```typescript
+const chat = getSdkApi();
+
+// 1. Get the visitor ID from the SDK state
+const conversation = chat.getConversation();
+// The visitor ID is available after init
+
+// 2. Fetch HMAC from your backend
+const res = await fetch(`/api/chat-identity?visitorId=${visitorId}`);
+const { hmac } = await res.json();
+
+// 3. Call identify with the HMAC
+await chat.identify({
+  name: "Jane Doe",
+  email: "jane@example.com",
+  externalId: "user_123",
+  hmac,
+});
+```
+
+<Callout type="warning" title="Never expose your secret">
+  The identity verification secret must stay on your server. Generate the HMAC server-side and pass only the signature to the frontend.
+</Callout>
+
+## Enabling HMAC Verification
+
+HMAC verification is configured per organization. When enabled, unsigned `identify()` calls are rejected with an error. When disabled (the default), the `hmac` parameter is ignored.
+
+<Callout type="info" title="Admin dashboard toggle coming soon">
+  The dashboard toggle for identity verification is planned for a future release. Contact support to enable it for your organization.
+</Callout>
+
+## Parameters
+
+| Param | Type | Required | Description |
+|-------|------|----------|-------------|
+| `name` | `string` | No | Visitor display name |
+| `email` | `string` | No | Visitor email address |
+| `externalId` | `string` | No | Your internal user ID — maps the anonymous visitor to your system |
+| `metadata` | `Record<string, unknown>` | No | Arbitrary key-value pairs (plan, company, tags, etc.) |
+| `hmac` | `string` | No | HMAC-SHA256 signature (required when verification is enabled) |
+
+## Response
+
+```typescript
+type IdentityResult = {
+  id: string;
+  anonymousUserId: string;
+  organizationId: string;
+  externalId?: string | null;
+  email?: string | null;
+  name?: string | null;
+  metadata?: Record<string, unknown> | null;
+  hmacVerified: boolean;
+};
+```
+
+## Error Handling
+
+```typescript
+try {
+  await chat.identify({ name: "Jane", hmac: invalidHmac });
+} catch (error) {
+  // HMAC verification failed, or network error
+  console.error("Identify failed:", error.message);
+}
+```
+
+Common errors:
+- **SDK not initialized** — `init()` was not called before `identify()`
+- **HMAC verification failed** — the signature does not match (verification is enabled)
+- **Network error** — the API request failed

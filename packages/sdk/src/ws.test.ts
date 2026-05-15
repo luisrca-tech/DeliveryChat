@@ -32,7 +32,7 @@ class MockWS {
 
 vi.stubGlobal("WebSocket", MockWS);
 
-const { connectWS, disconnectWS } = await import("./ws.js");
+const { connectWS, disconnectWS, getMessageRouter, getMessagePipeline, resetWSModules } = await import("./ws.js");
 
 function latestWS(): MockWS {
   return wsInstances[wsInstances.length - 1]!;
@@ -55,7 +55,7 @@ describe("WebSocket error classification", () => {
   });
 
   afterEach(() => {
-    disconnectWS();
+    resetWSModules();
     vi.useRealTimers();
   });
 
@@ -457,6 +457,43 @@ describe("WebSocket error classification", () => {
 
       await vi.advanceTimersByTimeAsync(5_000);
       expect(getState("rateLimited")).toBe(false);
+    });
+  });
+
+  describe("MessagePipeline wiring", () => {
+    it("creates a MessagePipeline accessible via getMessagePipeline()", async () => {
+      await connect();
+      expect(getMessagePipeline()).not.toBeNull();
+    });
+
+    it("routes message:ack through pipeline.processAck (updates state)", async () => {
+      await connect();
+      setState("messages", [
+        { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
+      ]);
+
+      latestWS().onmessage?.({
+        data: JSON.stringify({
+          type: "message:ack",
+          payload: {
+            clientMessageId: "client-1",
+            serverMessageId: "server-1",
+            createdAt: "2026-01-01T00:00:01Z",
+          },
+        }),
+      });
+
+      const msgs = getState("messages");
+      expect(msgs[0]!.id).toBe("server-1");
+      expect(msgs[0]!.status).toBe("sent");
+    });
+
+    it("resets pipeline on resetWSModules()", async () => {
+      await connect();
+      expect(getMessagePipeline()).not.toBeNull();
+
+      resetWSModules();
+      expect(getMessagePipeline()).toBeNull();
     });
   });
 });

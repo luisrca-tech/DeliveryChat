@@ -24,8 +24,10 @@ import {
   getMessagesQuerySchema,
   listConversationsQuerySchema,
 } from "./schemas/conversationSchemas.js";
+import { identifyRoute } from "../features/identity/identify.route.js";
 
 export const widgetRoute = new Hono()
+  .route("/", identifyRoute)
   .get("/settings/:appId", async (c) => {
     const appId = c.req.param("appId");
     if (!appId) {
