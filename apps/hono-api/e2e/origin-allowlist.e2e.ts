@@ -36,7 +36,7 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
     };
 
     // Step 1: Widget request with new origin should fail (not in allow-list yet)
-    const beforeAdd = await request.get("/v1/widget/settings", {
+    const beforeAdd = await request.get("/api/v1/widget/settings", {
       headers: widgetHeaders,
     });
     expect(beforeAdd.status()).toBe(403);
@@ -52,7 +52,7 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
       .where(eq(applications.id, testData.app.id));
 
     // Step 3: Widget request with allowed origin should succeed
-    const afterAdd = await request.get("/v1/widget/settings", {
+    const afterAdd = await request.get("/api/v1/widget/settings", {
       headers: widgetHeaders,
     });
     expect(afterAdd.status()).toBe(200);
@@ -64,7 +64,7 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
       .where(eq(applications.id, testData.app.id));
 
     // Step 5: Widget request should be rejected again
-    const afterRemove = await request.get("/v1/widget/settings", {
+    const afterRemove = await request.get("/api/v1/widget/settings", {
       headers: widgetHeaders,
     });
     expect(afterRemove.status()).toBe(403);
@@ -105,7 +105,7 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
   test("origin_not_allowed error is distinct from other 403s", async ({
     request,
   }) => {
-    const response = await request.get("/v1/widget/settings", {
+    const response = await request.get("/api/v1/widget/settings", {
       headers: {
         Authorization: `Bearer ${testData.apiKeyRaw}`,
         "X-App-Id": testData.app.id,

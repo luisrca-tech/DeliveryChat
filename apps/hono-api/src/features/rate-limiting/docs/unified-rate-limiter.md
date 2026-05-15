@@ -51,3 +51,7 @@ createRateLimiter(opts: {
 - `keyGenerator` returning `null` means "skip this request" — the factory generates a unique bypass key and sets `skip: true`.
 - `limits` accepts either a static config or an async resolver, so the tenant limiter can fetch from DB while the visitor limiter passes a constant.
 - The factory owns `MemoryStore` lifecycle — one set of stores per factory call, shared across all requests routed through that middleware instance.
+
+## Unified Rate Limit Middleware (Phase 3)
+
+`createUnifiedRateLimitMiddleware()` in `lib/middleware/unifiedRateLimit.ts` builds on this factory. It reads the unified auth context (`requireAuth()` output) and dispatches to either a tenant or visitor limiter instance. Applied at route level on conversation routes — see `unified-rate-limit-middleware.md` for details.

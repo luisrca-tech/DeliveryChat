@@ -11,7 +11,7 @@ import {
 import { ApplicationNotFoundError } from "@/features/applications/lib/applications.client";
 
 vi.mock("@/lib/urls", () => ({
-  getApiBaseUrl: () => "http://test/v1",
+  getApiBaseUrl: () => "http://test/api/v1",
 }));
 
 vi.mock("@/lib/subdomain", () => ({
@@ -46,7 +46,7 @@ describe("api-keys.client", () => {
       const result = await listApplications();
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        "http://test/v1/applications?limit=100&offset=0",
+        "http://test/api/v1/applications?limit=100&offset=0",
         expect.objectContaining({ headers: expect.any(Object) }),
       );
     });
@@ -79,7 +79,7 @@ describe("api-keys.client", () => {
       const result = await listApiKeys("app1");
       expect(result).toEqual(mockData);
       expect(fetch).toHaveBeenCalledWith(
-        "http://test/v1/applications/app1/api-keys",
+        "http://test/api/v1/applications/app1/api-keys",
         expect.any(Object),
       );
     });

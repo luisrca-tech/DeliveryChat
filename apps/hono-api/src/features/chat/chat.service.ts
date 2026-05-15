@@ -1,14 +1,16 @@
-import { eq, ne, and, sql, isNull, desc, inArray } from "drizzle-orm";
+import { eq, ne, and, or, sql, isNull, desc, inArray } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
+import { user } from "../../db/schema/users.js";
 import type {
   ConversationStatus,
   ParticipantRole,
 } from "@repo/types";
 import {
   broadcastOrganizationEvent,
+  broadcastRoomEvent,
   buildConversationNewEvent,
   buildConversationAcceptedEvent,
   buildConversationReleasedEvent,
@@ -82,6 +84,36 @@ export class NotAssignedToConversationError extends Error {
       `User ${userId} is not authorized to send messages in conversation ${conversationId}`,
     );
     this.name = "NotAssignedToConversationError";
+  }
+}
+
+export class ConversationAlreadyAssignedError extends Error {
+  constructor(conversationId: string) {
+    super(`Conversation ${conversationId} is already assigned or no longer pending`);
+    this.name = "ConversationAlreadyAssignedError";
+  }
+}
+
+export class ConversationNotAssignedError extends Error {
+  constructor(conversationId: string, userId: string) {
+    super(
+      `Conversation ${conversationId} is not assigned to user ${userId}`,
+    );
+    this.name = "ConversationNotAssignedError";
+  }
+}
+
+export class ConversationUpdateFailedError extends Error {
+  constructor(conversationId: string, operation: string) {
+    super(`Failed to ${operation} conversation ${conversationId}`);
+    this.name = "ConversationUpdateFailedError";
+  }
+}
+
+export class SystemMessageFailedError extends Error {
+  constructor(conversationId: string) {
+    super(`Failed to create system message for conversation ${conversationId}`);
+    this.name = "SystemMessageFailedError";
   }
 }
 
@@ -245,22 +277,27 @@ export async function sendMessage(
   });
 
   if (input.broadcastContext) {
+    const event = buildMessageNewEvent({
+      id: message.id,
+      conversationId: input.conversationId,
+      senderId: input.senderId,
+      senderName: input.broadcastContext.senderName,
+      senderRole: input.broadcastContext.senderRole,
+      content: message.content,
+      type: "text",
+      createdAt: message.createdAt,
+    });
+
     try {
-      broadcastOrganizationEvent(
-        organizationId,
-        buildMessageNewEvent({
-          id: message.id,
-          conversationId: input.conversationId,
-          senderId: input.senderId,
-          senderName: input.broadcastContext.senderName,
-          senderRole: input.broadcastContext.senderRole,
-          content: message.content,
-          type: "text",
-          createdAt: message.createdAt,
-        }),
-      );
+      broadcastOrganizationEvent(organizationId, event);
     } catch (err) {
-      console.error("[chat.service] sendMessage broadcast failed", err);
+      console.error("[chat.service] sendMessage org broadcast failed", err);
+    }
+
+    try {
+      broadcastRoomEvent(input.conversationId, event);
+    } catch (err) {
+      console.error("[chat.service] sendMessage room broadcast failed", err);
     }
   }
 
@@ -371,6 +408,65 @@ export async function getMessageHistory(input: GetMessageHistoryInput) {
     .offset(input.offset);
 }
 
+interface GetMessageHistoryForMemberInput {
+  conversationId: string;
+  organizationId: string;
+  limit: number;
+  offset: number;
+}
+
+export async function getMessageHistoryForMember(
+  input: GetMessageHistoryForMemberInput,
+) {
+  const [conv] = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.id, input.conversationId),
+        eq(conversations.organizationId, input.organizationId),
+      ),
+    )
+    .limit(1);
+
+  if (!conv) {
+    throw new ConversationNotFoundError(input.conversationId);
+  }
+
+  return db
+    .select({
+      id: messages.id,
+      conversationId: messages.conversationId,
+      senderId: messages.senderId,
+      senderName: user.name,
+      senderRole: conversationParticipants.role,
+      type: messages.type,
+      content: messages.content,
+      createdAt: messages.createdAt,
+    })
+    .from(messages)
+    .leftJoin(user, eq(messages.senderId, user.id))
+    .leftJoin(
+      conversationParticipants,
+      and(
+        eq(
+          conversationParticipants.conversationId,
+          messages.conversationId,
+        ),
+        eq(conversationParticipants.userId, messages.senderId),
+      ),
+    )
+    .where(
+      and(
+        eq(messages.conversationId, input.conversationId),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .orderBy(desc(messages.createdAt))
+    .limit(input.limit)
+    .offset(input.offset);
+}
+
 export async function addParticipant(input: AddParticipantInput) {
   const [participant] = await db
     .insert(conversationParticipants)
@@ -400,7 +496,7 @@ export async function getConversationWithParticipants(
     )
     .limit(1);
 
-  if (!conversation) return null;
+  if (!conversation) throw new ConversationNotFoundError(conversationId);
 
   const participants = await db
     .select()
@@ -429,7 +525,9 @@ export async function closeConversation(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) throw new ConversationUpdateFailedError(conversationId, "close");
+
+  return updated;
 }
 
 export async function isParticipant(
@@ -497,7 +595,6 @@ async function broadcastSystemMessage(
   content: string,
 ): Promise<void> {
   const msg = await createSystemMessage(conversationId, content);
-  if (!msg) return;
   broadcastOrganizationEvent(
     organizationId,
     buildMessageNewEvent({
@@ -536,7 +633,7 @@ export async function acceptConversation(
     )
     .returning();
 
-  if (!updated) return null;
+  if (!updated) throw new ConversationAlreadyAssignedError(conversationId);
 
   try {
     broadcastOrganizationEvent(
@@ -586,7 +683,7 @@ export async function leaveConversation(
     )
     .returning();
 
-  if (!updated) return null;
+  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
 
   try {
     broadcastOrganizationEvent(
@@ -601,7 +698,7 @@ export async function leaveConversation(
     await broadcastSystemMessage(
       conversationId,
       organizationId,
-      `${operatorName} left the conversation`,
+      `${operatorName} left the conversation you'll be able to chat with them again soon`,
     );
   } catch (err) {
     console.error("[chat.service] leaveConversation system message failed", err);
@@ -632,7 +729,7 @@ export async function resolveConversation(
     )
     .returning();
 
-  if (!updated) return null;
+  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
 
   try {
     broadcastOrganizationEvent(
@@ -680,7 +777,9 @@ export async function updateConversationSubject(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) throw new ConversationNotAssignedError(conversationId, operatorId);
+
+  return updated;
 }
 
 export async function createSystemMessage(
@@ -698,7 +797,9 @@ export async function createSystemMessage(
     })
     .returning();
 
-  return msg ?? null;
+  if (!msg) throw new SystemMessageFailedError(conversationId);
+
+  return msg;
 }
 
 export async function softDeleteConversation(
@@ -720,7 +821,9 @@ export async function softDeleteConversation(
     )
     .returning();
 
-  return updated ?? null;
+  if (!updated) throw new ConversationNotFoundError(conversationId);
+
+  return updated;
 }
 
 export async function getMessagesSince(
@@ -798,6 +901,88 @@ export async function listConversationsForVisitor(params: {
   return {
     conversations: result,
     total: countRow?.total ?? 0,
+  };
+}
+
+// ── List Conversations (Member) ──
+
+interface ListConversationsForMemberInput {
+  organizationId: string;
+  userId: string;
+  isAdmin: boolean;
+  limit: number;
+  offset: number;
+  status?: ConversationStatus[];
+  applicationId?: string;
+  assignedTo?: "me";
+}
+
+export async function listConversationsForMember(
+  params: ListConversationsForMemberInput,
+) {
+  const {
+    organizationId,
+    userId,
+    isAdmin,
+    limit,
+    offset,
+    status,
+    applicationId,
+    assignedTo,
+  } = params;
+
+  const conditions = [
+    eq(conversations.organizationId, organizationId),
+    isNull(conversations.deletedAt),
+  ];
+
+  if (status) conditions.push(inArray(conversations.status, status));
+  if (applicationId)
+    conditions.push(eq(conversations.applicationId, applicationId));
+  if (assignedTo === "me")
+    conditions.push(eq(conversations.assignedTo, userId));
+
+  if (!isAdmin) {
+    conditions.push(
+      or(
+        eq(conversations.status, "pending"),
+        eq(conversations.assignedTo, userId),
+      )!,
+    );
+  }
+
+  const whereClause = and(...conditions);
+
+  const result = await db
+    .select()
+    .from(conversations)
+    .where(whereClause)
+    .orderBy(desc(conversations.updatedAt))
+    .limit(limit)
+    .offset(offset);
+
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(conversations)
+    .where(whereClause);
+
+  const assignedIds = result
+    .filter((conv) => conv.assignedTo === userId)
+    .map((conv) => conv.id);
+
+  const unreadCounts =
+    assignedIds.length > 0
+      ? await getBulkUnreadCounts(assignedIds, userId)
+      : new Map<string, number>();
+
+  const conversationsWithUnread = result.map((conv) => ({
+    ...conv,
+    unreadCount: unreadCounts.get(conv.id) ?? 0,
+  }));
+
+  return {
+    conversations: conversationsWithUnread,
+    total: countRow?.count ?? 0,
   };
 }
 
