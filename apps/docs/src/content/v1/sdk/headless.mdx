@@ -1,0 +1,182 @@
+# Headless Mode
+
+Headless mode initializes the full SDK infrastructure — WebSocket, visitor session, conversation management — without rendering any UI. Use it to build a completely custom chat experience.
+
+## Getting Started
+
+```typescript
+import { init, getSdkApi } from "@deliverychat/sdk";
+
+init({ appId: "your-app-uuid", headless: true });
+
+const chat = getSdkApi();
+```
+
+In headless mode:
+- No Shadow DOM, launcher, or chat window is created
+- WebSocket connects immediately (no user interaction needed)
+- All messaging and identity methods work identically
+- `open()`, `close()`, `toggle()`, `hideWidget()`, `showWidget()` are silent no-ops
+- `open` and `close` events are suppressed; all other events fire normally
+
+## Reference Implementation
+
+Here is a minimal custom chat UI using headless mode:
+
+```html
+<div id="my-chat">
+  <div id="messages"></div>
+  <form id="chat-form">
+    <input type="text" id="chat-input" placeholder="Type a message..." />
+    <button type="submit">Send</button>
+  </form>
+</div>
+
+<script type="module">
+  import { init, getSdkApi } from "@deliverychat/sdk";
+
+  init({ appId: "your-app-uuid", headless: true });
+  const chat = getSdkApi();
+
+  const messagesEl = document.getElementById("messages");
+  const form = document.getElementById("chat-form");
+  const input = document.getElementById("chat-input");
+
+  // Render a message
+  function appendMessage(msg) {
+    const div = document.createElement("div");
+    div.className = `msg msg-${msg.senderRole}`;
+    div.textContent = msg.content;
+    div.dataset.id = msg.id;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  // Listen for incoming messages
+  chat.on("message:received", (msg) => {
+    appendMessage(msg);
+  });
+
+  // Track sent messages
+  chat.on("message:sent", (msg) => {
+    const pending = messagesEl.querySelector(`[data-id="${msg.id}"]`);
+    if (pending) pending.classList.remove("pending");
+  });
+
+  // Handle unread count
+  chat.on("unread:changed", ({ count }) => {
+    document.title = count > 0 ? `(${count}) Support` : "Support";
+  });
+
+  // Conversation resolved
+  chat.on("conversation:resolved", () => {
+    appendMessage({
+      id: "system",
+      content: "This conversation has been resolved.",
+      type: "system",
+      senderRole: "admin",
+      senderId: "",
+      status: "sent",
+      createdAt: new Date().toISOString(),
+    });
+  });
+
+  // Send message on form submit
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+
+    input.value = "";
+
+    try {
+      const msg = await chat.sendMessage(text);
+      appendMessage(msg);
+    } catch (err) {
+      console.error("Failed to send:", err.message);
+    }
+  });
+</script>
+```
+
+## React Example
+
+```tsx
+import { useEffect, useRef, useState } from "react";
+import { init, destroy, getSdkApi } from "@deliverychat/sdk";
+import type { ChatMessage } from "@deliverychat/sdk";
+
+export function Chat({ appId }: { appId: string }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const chatRef = useRef(getSdkApi());
+
+  useEffect(() => {
+    init({ appId, headless: true });
+    const chat = chatRef.current;
+
+    chat.on("message:received", (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    });
+
+    chat.on("message:sent", (msg) => {
+      setMessages((prev) =>
+        prev.map((m) => (m.id === msg.id ? msg : m))
+      );
+    });
+
+    return () => destroy();
+  }, [appId]);
+
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const text = input;
+    setInput("");
+
+    const msg = await chatRef.current.sendMessage(text);
+    setMessages((prev) => [...prev, msg]);
+  }
+
+  return (
+    <div>
+      <div>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`msg-${msg.senderRole}`}>
+            {msg.content}
+          </div>
+        ))}
+      </div>
+      <form onSubmit={handleSend}>
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Type a message..."
+        />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  );
+}
+```
+
+## What Works in Headless Mode
+
+| Feature | Available | Notes |
+|---------|-----------|-------|
+| `sendMessage()` | Yes | Creates conversation automatically on first call |
+| `getConversation()` | Yes | Returns current conversation state |
+| `identify()` | Yes | Works identically to widget mode |
+| `on()` / `off()` | Yes | All events except `open`/`close` |
+| Auto-reconnect | Yes | WebSocket reconnects on disconnect |
+| `open()` / `close()` / `toggle()` | No-op | Silent — no error thrown |
+| `hideWidget()` / `showWidget()` | No-op | Silent — no error thrown |
+
+## When to Use Headless Mode
+
+- **Custom chat UI** — You want full control over the look and feel
+- **Mobile apps** — Use the SDK in a WebView with native-rendered UI
+- **Chatbots** — Integrate with your own bot logic before routing to human operators
+- **Notifications** — Listen to events without showing a chat window
+- **Testing** — Automated tests that need to send/receive messages without DOM rendering

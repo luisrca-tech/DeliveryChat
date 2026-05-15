@@ -1,0 +1,142 @@
+# SDK Events
+
+The SDK emits typed events at key lifecycle moments. Subscribe with `on()` and unsubscribe with `off()`.
+
+```typescript
+const chat = getSdkApi();
+
+chat.on("message:received", (message) => {
+  console.log("New message:", message.content);
+});
+```
+
+## Event Reference
+
+### `ready`
+
+Fired when the SDK has finished initialization, fetched settings, and established a connection.
+
+```typescript
+chat.on("ready", () => {
+  console.log("SDK is ready");
+});
+```
+
+**Payload:** `void`
+
+### `open`
+
+Fired when the chat window opens. Not emitted in headless mode.
+
+```typescript
+chat.on("open", () => {
+  analytics.track("chat_opened");
+});
+```
+
+**Payload:** `void`
+
+### `close`
+
+Fired when the chat window closes. Not emitted in headless mode.
+
+```typescript
+chat.on("close", () => {
+  analytics.track("chat_closed");
+});
+```
+
+**Payload:** `void`
+
+### `message:received`
+
+Fired when a message is received from an operator or admin.
+
+```typescript
+chat.on("message:received", (message) => {
+  showNotification(`New message: ${message.content}`);
+});
+```
+
+**Payload:** `ChatMessage`
+
+```typescript
+{
+  id: string;
+  content: string;
+  type: "text" | "system";
+  senderRole: "visitor" | "operator" | "admin";
+  senderId: string;
+  status: "pending" | "sent" | "failed";
+  createdAt: string;
+}
+```
+
+### `message:sent`
+
+Fired when a visitor message is acknowledged by the server (transitions from `pending` to `sent`).
+
+```typescript
+chat.on("message:sent", (message) => {
+  console.log("Message delivered:", message.id);
+});
+```
+
+**Payload:** `ChatMessage`
+
+### `conversation:started`
+
+Fired when a new conversation is created (first message sent).
+
+```typescript
+chat.on("conversation:started", ({ conversationId }) => {
+  analytics.track("conversation_started", { conversationId });
+});
+```
+
+**Payload:** `{ conversationId: string }`
+
+### `conversation:resolved`
+
+Fired when the operator marks the conversation as solved.
+
+```typescript
+chat.on("conversation:resolved", ({ conversationId }) => {
+  showFeedbackSurvey(conversationId);
+});
+```
+
+**Payload:** `{ conversationId: string }`
+
+### `unread:changed`
+
+Fired when the unread message count changes.
+
+```typescript
+chat.on("unread:changed", ({ count }) => {
+  badge.textContent = count > 0 ? String(count) : "";
+  document.title = count > 0 ? `(${count}) My App` : "My App";
+});
+```
+
+**Payload:** `{ count: number }`
+
+## TypeScript Support
+
+All events are fully typed via `SdkEventMap`. Your IDE provides autocomplete for event names and callback signatures:
+
+```typescript
+import type { SdkEventMap } from "@deliverychat/sdk";
+
+// TypeScript knows the callback receives ChatMessage
+chat.on("message:received", (msg) => {
+  msg.content; // string ✓
+  msg.status;  // "pending" | "sent" | "failed" ✓
+});
+```
+
+## Lifecycle Notes
+
+- **Pre-init listeners:** `on()` works before `init()`. Listeners attach immediately to the internal emitter and fire once the SDK initializes.
+- **Headless mode:** `open` and `close` events are suppressed. All other events fire normally.
+- **Cleanup:** `destroy()` removes all listeners. You do not need to call `off()` before destroying.

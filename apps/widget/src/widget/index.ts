@@ -10,8 +10,8 @@
   }
 })();
 
-import { init, destroy, getSdkApi } from "@repo/sdk";
-import type { InitOptions, DeliveryChatAPI } from "@repo/sdk";
+import { init, destroy, getSdkApi } from "@deliverychat/sdk";
+import type { InitOptions, DeliveryChatAPI } from "@deliverychat/sdk";
 
 const sdkApi = getSdkApi();
 
@@ -24,11 +24,11 @@ if (Array.isArray(queue)) {
       if (method === "init") {
         init(args[0] as InitOptions);
       } else if (method === "on" && typeof args[0] === "string" && typeof args[1] === "function") {
-        sdkApi.on(args[0] as keyof import("@repo/sdk").SdkEventMap, args[1]);
+        sdkApi.on(args[0] as keyof import("@deliverychat/sdk").SdkEventMap, args[1]);
       } else if (method === "sendMessage" && typeof args[0] === "string") {
         sdkApi.sendMessage(args[0]);
       } else if (method === "identify" && typeof args[0] === "object" && args[0] !== null) {
-        sdkApi.identify(args[0] as import("@repo/sdk").IdentifyParams);
+        sdkApi.identify(args[0] as import("@deliverychat/sdk").IdentifyParams);
       }
     }
   }

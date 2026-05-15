@@ -1,0 +1,141 @@
+# SDK Quickstart
+
+The `@deliverychat/sdk` package gives you programmatic control over Delivery Chat — open/close the widget, listen to events, send messages from code, identify visitors, or build a completely custom chat UI with headless mode.
+
+## Installation
+
+### npm / yarn / bun
+
+```bash
+npm install @deliverychat/sdk
+```
+
+```bash
+bun add @deliverychat/sdk
+```
+
+Then import and initialize:
+
+```typescript
+import { init, getSdkApi } from "@deliverychat/sdk";
+
+init({ appId: "your-app-uuid" });
+
+const chat = getSdkApi();
+chat.on("ready", () => {
+  console.log("Widget is ready");
+});
+```
+
+### CDN (script tag)
+
+If you prefer a script tag, the SDK is bundled into the widget embed:
+
+```html
+<script src="https://api.deliverychat.online/widget.js"></script>
+<script>
+  DeliveryChat.init({ appId: "your-app-uuid" });
+
+  DeliveryChat.on("ready", function () {
+    console.log("Widget is ready");
+  });
+</script>
+```
+
+The CDN version exposes `window.DeliveryChat` with all SDK methods. Calls made before the script loads are queued automatically.
+
+## Basic Usage
+
+### Control the widget
+
+```typescript
+const chat = getSdkApi();
+
+chat.open();       // Open the chat window
+chat.close();      // Close it
+chat.toggle();     // Toggle open/close
+chat.hideWidget(); // Hide the launcher button
+chat.showWidget(); // Show it again
+```
+
+### Listen to events
+
+```typescript
+chat.on("message:received", (message) => {
+  console.log("New message:", message.content);
+});
+
+chat.on("unread:changed", ({ count }) => {
+  document.title = count > 0 ? `(${count}) My App` : "My App";
+});
+```
+
+### Send messages programmatically
+
+```typescript
+const message = await chat.sendMessage("Hello from code!");
+console.log("Sent:", message.id);
+```
+
+### Identify visitors
+
+```typescript
+await chat.identify({
+  name: "Jane Doe",
+  email: "jane@example.com",
+  externalId: "user_123",
+});
+```
+
+### Headless mode (custom UI)
+
+Skip the default widget UI entirely and build your own:
+
+```typescript
+init({ appId: "your-app-uuid", headless: true });
+
+const chat = getSdkApi();
+const msg = await chat.sendMessage("Hi there");
+
+chat.on("message:received", (message) => {
+  renderMyCustomUI(message);
+});
+```
+
+## Cleanup
+
+Remove the widget and release all resources:
+
+```typescript
+import { destroy } from "@deliverychat/sdk";
+
+destroy();
+```
+
+## Next Steps
+
+<QuickLinks
+  links={[
+    {
+      title: "Methods",
+      href: "/v1/sdk/methods",
+      description: "Full reference for all SDK methods"
+    },
+    {
+      title: "Events",
+      href: "/v1/sdk/events",
+      description: "All events with typed payloads"
+    },
+    {
+      title: "Visitor Identity",
+      href: "/v1/sdk/identity",
+      description: "Identify visitors and HMAC verification"
+    },
+    {
+      title: "Headless Mode",
+      href: "/v1/sdk/headless",
+      description: "Build a custom chat UI"
+    }
+  ]}
+  columns={2}
+/>
