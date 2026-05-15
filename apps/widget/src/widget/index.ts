@@ -10,15 +10,22 @@
   }
 })();
 
-import { init, destroy } from "@repo/sdk";
+import { init, destroy, getSdkApi } from "@repo/sdk";
 import type { InitOptions, DeliveryChatAPI } from "@repo/sdk";
+
+const sdkApi = getSdkApi();
 
 const w = window as unknown as { DeliveryChat?: { queue?: unknown[] } };
 const queue = w.DeliveryChat?.queue;
 if (Array.isArray(queue)) {
   for (const item of queue) {
-    if (Array.isArray(item) && item[0] === "init") {
-      init(item[1] as InitOptions);
+    if (Array.isArray(item)) {
+      const [method, ...args] = item;
+      if (method === "init") {
+        init(args[0] as InitOptions);
+      } else if (method === "on" && typeof args[0] === "string" && typeof args[1] === "function") {
+        sdkApi.on(args[0] as keyof import("@repo/sdk").SdkEventMap, args[1]);
+      }
     }
   }
 }
@@ -26,6 +33,13 @@ if (Array.isArray(queue)) {
 const DeliveryChat: DeliveryChatAPI = {
   init: (opts: InitOptions) => void init(opts),
   destroy,
+  open: () => sdkApi.open(),
+  close: () => sdkApi.close(),
+  toggle: () => sdkApi.toggle(),
+  hideWidget: () => sdkApi.hideWidget(),
+  showWidget: () => sdkApi.showWidget(),
+  on: (event, callback) => sdkApi.on(event, callback),
+  off: (event, callback) => sdkApi.off(event, callback),
   queue: [] as unknown[],
 };
 

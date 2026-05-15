@@ -1,4 +1,4 @@
-import type { InitOptions, WidgetSettings, DeliveryChatAPI } from "./types/index.js";
+import type { InitOptions, WidgetSettings } from "./types/index.js";
 import {
   createShadowHost,
   createShadowRoot,
@@ -34,6 +34,8 @@ import {
 } from "./chat-controller.js";
 import type { ChatMessage } from "./types/index.js";
 import { defaultSettings, HOST_ID, MAX_MESSAGES } from "./constants/index.js";
+import { getSdkApi } from "./SdkApi.js";
+import { connectEventBridge, disconnectEventBridge } from "./EventBridge.js";
 
 import styles from "./styles/main.css?inline";
 
@@ -430,6 +432,11 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   cleanupFns.push(unsubUnread);
 
+  const unsubWidgetVisible = subscribe("widgetVisible", (visible: boolean) => {
+    wrapper.style.display = visible ? "" : "none";
+  });
+  cleanupFns.push(unsubWidgetVisible);
+
   const handleKeydown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && isOpen) closeChat();
   };
@@ -507,6 +514,10 @@ export async function init(opts: InitOptions): Promise<void> {
 
   render(shadow, settings);
 
+  const sdkApi = getSdkApi();
+  connectEventBridge(sdkApi.emitter);
+  sdkApi.markInitialized();
+
   if (settings.behavior.autoOpen) {
     if (autoOpenTimeout !== null) {
       clearTimeout(autoOpenTimeout);
@@ -527,6 +538,8 @@ export async function init(opts: InitOptions): Promise<void> {
 }
 
 export function destroy(): void {
+  disconnectEventBridge();
+  getSdkApi().markDestroyed();
   destroyChat();
   runCleanup();
   destroyHost();

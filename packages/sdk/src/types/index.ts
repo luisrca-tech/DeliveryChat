@@ -80,8 +80,19 @@ export type BubbleContext = {
   onDelete: (messageId: string) => void;
 };
 
+import type { SdkEventMap } from "../SdkEventMap.js";
+
+type Listener<T> = (payload: T) => void;
+
 export type DeliveryChatAPI = {
   init: (opts: InitOptions) => void;
   destroy: () => void;
+  open: () => void;
+  close: () => void;
+  toggle: () => void;
+  hideWidget: () => void;
+  showWidget: () => void;
+  on: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
+  off: <K extends keyof SdkEventMap>(event: K, callback: Listener<SdkEventMap[K]>) => void;
   queue: unknown[];
 };

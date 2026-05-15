@@ -2,8 +2,18 @@ import { describe, it, expect } from "vitest";
 import type { DeliveryChatAPI } from "./types/index.js";
 
 describe("window.DeliveryChat public surface", () => {
-  it("DeliveryChatAPI type exposes only init, destroy, and queue", () => {
-    type AllowedKeys = "init" | "destroy" | "queue";
+  it("DeliveryChatAPI type exposes the expected methods", () => {
+    type AllowedKeys =
+      | "init"
+      | "destroy"
+      | "open"
+      | "close"
+      | "toggle"
+      | "hideWidget"
+      | "showWidget"
+      | "on"
+      | "off"
+      | "queue";
     type ActualKeys = keyof DeliveryChatAPI;
 
     type ExtraKeys = Exclude<ActualKeys, AllowedKeys>;
@@ -29,6 +39,26 @@ describe("window.DeliveryChat public surface", () => {
     const returnsVoid: Return extends void ? true : false = true;
     expect(noParams).toBe(true);
     expect(returnsVoid).toBe(true);
+  });
+
+  it("control methods take no arguments and return void", () => {
+    type OpenReturn = ReturnType<DeliveryChatAPI["open"]>;
+    type CloseReturn = ReturnType<DeliveryChatAPI["close"]>;
+    type ToggleReturn = ReturnType<DeliveryChatAPI["toggle"]>;
+    type HideReturn = ReturnType<DeliveryChatAPI["hideWidget"]>;
+    type ShowReturn = ReturnType<DeliveryChatAPI["showWidget"]>;
+
+    const openVoid: OpenReturn extends void ? true : false = true;
+    const closeVoid: CloseReturn extends void ? true : false = true;
+    const toggleVoid: ToggleReturn extends void ? true : false = true;
+    const hideVoid: HideReturn extends void ? true : false = true;
+    const showVoid: ShowReturn extends void ? true : false = true;
+
+    expect(openVoid).toBe(true);
+    expect(closeVoid).toBe(true);
+    expect(toggleVoid).toBe(true);
+    expect(hideVoid).toBe(true);
+    expect(showVoid).toBe(true);
   });
 
   it("queue is an array", () => {
