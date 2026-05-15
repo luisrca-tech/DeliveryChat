@@ -2,18 +2,15 @@ import { getState, setState } from "./state.js";
 import { getApiBaseUrl } from "./config.js";
 import { getOrCreateVisitorId } from "./visitor.js";
 import {
-  createConversation,
   getConversationMessages,
   getUnreadCount,
   markConversationAsRead,
 } from "./conversation.js";
-import { connectWS, disconnectWS, sendWSMessage, getMessageRouter } from "./ws.js";
+import { connectWS, disconnectWS, sendWSMessage, getMessagePipeline } from "./ws.js";
 import type { ChatMessage } from "./types/index.js";
 import {
   setActiveAppIdForPersistence,
   loadPersistedConversationId,
-  saveConversationId,
-  saveLastClientMessageId,
   removeAllConversationKeysForApp,
 } from "./conversation-persistence.js";
 import { TYPING_THROTTLE_MS } from "./constants/index.js";
@@ -117,63 +114,16 @@ export function closeChat(): void {
 
 export async function sendMessage(content: string): Promise<void> {
   if (!initialized || !appId) return;
-  if (getState("conversationStatus") === "closed") return;
-  if (getState("rateLimited")) return;
 
-  const visitorId = getState("visitorId");
-  if (!visitorId) return;
+  const pipeline = getMessagePipeline();
+  if (!pipeline) return;
 
-  const clientMessageId = crypto.randomUUID();
-
-  // Optimistic message
-  const optimistic: ChatMessage = {
-    id: clientMessageId,
-    content,
-    type: "text",
-    senderRole: "visitor",
-    senderId: visitorId,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-  };
-  setState("messages", (prev) => [...prev, optimistic]);
-
-  // Create conversation on first message
-  let conversationId = getState("conversationId");
-  if (!conversationId) {
-    try {
-      const result = await createConversation(
-        getApiBaseUrl(),
-        appId,
-        visitorId,
-      );
-      conversationId = result.conversation.id;
-      setState("conversationId", conversationId);
-      setState("conversationStatus", "pending");
-      saveConversationId(appId, conversationId);
-
-      sendWSMessage({
-        type: "room:join",
-        payload: { conversationId },
-      });
-    } catch (err) {
-      setState("messages", (prev) =>
-        prev.map((m) =>
-          m.id === clientMessageId ? { ...m, status: "failed" as const } : m,
-        ),
-      );
-      console.error("[DeliveryChat] Failed to create conversation:", err);
-      return;
-    }
+  try {
+    await pipeline.send(content, { appId, apiBaseUrl: getApiBaseUrl() });
+  } catch {
+    // Fire-and-forget — errors are reflected in message status
   }
-
-  sendWSMessage({
-    type: "message:send",
-    payload: { conversationId, content, clientMessageId },
-  });
-
   lastTypingSent = 0;
-
-  saveLastClientMessageId(appId, clientMessageId);
 }
 
 export function editMessage(messageId: string, newContent: string): void {
@@ -257,75 +207,15 @@ export async function sendMessageAsync(content: string): Promise<ChatMessage> {
   if (!initialized || !appId) {
     throw new Error("[DeliveryChat] SDK not initialized. Call init() first.");
   }
-  if (getState("conversationStatus") === "closed") {
-    throw new Error("[DeliveryChat] Conversation is closed.");
-  }
-  if (getState("rateLimited")) {
-    throw new Error("[DeliveryChat] Rate limited. Try again later.");
-  }
 
-  const visitorId = getState("visitorId");
-  if (!visitorId) {
-    throw new Error("[DeliveryChat] Visitor not initialized.");
-  }
-
-  const clientMessageId = crypto.randomUUID();
-
-  const optimistic: ChatMessage = {
-    id: clientMessageId,
-    content,
-    type: "text",
-    senderRole: "visitor",
-    senderId: visitorId,
-    status: "pending",
-    createdAt: new Date().toISOString(),
-  };
-  setState("messages", (prev: ChatMessage[]) => [...prev, optimistic]);
-
-  let conversationId = getState("conversationId");
-  if (!conversationId) {
-    try {
-      const result = await createConversation(
-        getApiBaseUrl(),
-        appId,
-        visitorId,
-      );
-      conversationId = result.conversation.id;
-      setState("conversationId", conversationId);
-      setState("conversationStatus", "pending");
-      saveConversationId(appId, conversationId);
-
-      sendWSMessage({
-        type: "room:join",
-        payload: { conversationId },
-      });
-    } catch (err) {
-      setState("messages", (prev: ChatMessage[]) =>
-        prev.map((m) =>
-          m.id === clientMessageId ? { ...m, status: "failed" as const } : m,
-        ),
-      );
-      throw new Error(
-        `[DeliveryChat] Failed to create conversation: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    }
-  }
-
-  const router = getMessageRouter();
-  if (!router) {
+  const pipeline = getMessagePipeline();
+  if (!pipeline) {
     throw new Error("[DeliveryChat] WebSocket not initialized.");
   }
-  const ackPromise = router.trackPendingMessage(clientMessageId);
 
-  sendWSMessage({
-    type: "message:send",
-    payload: { conversationId, content, clientMessageId },
-  });
-
+  const result = await pipeline.send(content, { appId, apiBaseUrl: getApiBaseUrl() });
   lastTypingSent = 0;
-  saveLastClientMessageId(appId, clientMessageId);
-
-  return ackPromise;
+  return result;
 }
 
 export function connectEagerly(): void {
@@ -338,7 +228,7 @@ export function connectEagerly(): void {
 }
 
 export function destroyChat(): void {
-  getMessageRouter()?.clearAllPending();
+  getMessagePipeline()?.clearAllPending();
   disconnectWS();
 
   const currentAppId = appId;

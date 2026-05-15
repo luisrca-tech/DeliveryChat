@@ -32,7 +32,7 @@ class MockWS {
 
 vi.stubGlobal("WebSocket", MockWS);
 
-const { connectWS, disconnectWS, getMessageRouter, resetWSModules } = await import("./ws.js");
+const { connectWS, disconnectWS, getMessageRouter, getMessagePipeline, resetWSModules } = await import("./ws.js");
 
 function latestWS(): MockWS {
   return wsInstances[wsInstances.length - 1]!;
@@ -460,15 +460,17 @@ describe("WebSocket error classification", () => {
     });
   });
 
-  describe("PendingMessages integration", () => {
-    it("resolves pending message via MessageRouter on message:ack", async () => {
+  describe("MessagePipeline wiring", () => {
+    it("creates a MessagePipeline accessible via getMessagePipeline()", async () => {
+      await connect();
+      expect(getMessagePipeline()).not.toBeNull();
+    });
+
+    it("routes message:ack through pipeline.processAck (updates state)", async () => {
       await connect();
       setState("messages", [
         { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
       ]);
-
-      const router = getMessageRouter()!;
-      const promise = router.trackPendingMessage("client-1");
 
       latestWS().onmessage?.({
         data: JSON.stringify({
@@ -476,52 +478,22 @@ describe("WebSocket error classification", () => {
           payload: {
             clientMessageId: "client-1",
             serverMessageId: "server-1",
-            createdAt: "2026-01-01T00:00:00Z",
+            createdAt: "2026-01-01T00:00:01Z",
           },
         }),
       });
 
-      const result = await promise;
-      expect(result.id).toBe("server-1");
-      expect(result.status).toBe("sent");
+      const msgs = getState("messages");
+      expect(msgs[0]!.id).toBe("server-1");
+      expect(msgs[0]!.status).toBe("sent");
     });
 
-    it("rejects pending message on RATE_LIMITED error", async () => {
+    it("resets pipeline on resetWSModules()", async () => {
       await connect();
-      setState("messages", [
-        { id: "client-x", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
-      ]);
+      expect(getMessagePipeline()).not.toBeNull();
 
-      const router = getMessageRouter()!;
-      const promise = router.trackPendingMessage("client-x");
-
-      latestWS().onmessage?.({
-        data: JSON.stringify({
-          type: "error",
-          payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter: 3 },
-        }),
-      });
-
-      await expect(promise).rejects.toThrow("Rate limited");
-    });
-
-    it("rejects pending message on CONVERSATION_NOT_ACTIVE error", async () => {
-      await connect();
-      setState("messages", [
-        { id: "client-y", content: "hello", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
-      ]);
-
-      const router = getMessageRouter()!;
-      const promise = router.trackPendingMessage("client-y");
-
-      latestWS().onmessage?.({
-        data: JSON.stringify({
-          type: "error",
-          payload: { code: "CONVERSATION_NOT_ACTIVE", message: "Conversation is not active" },
-        }),
-      });
-
-      await expect(promise).rejects.toThrow("CONVERSATION_NOT_ACTIVE");
+      resetWSModules();
+      expect(getMessagePipeline()).toBeNull();
     });
   });
 });

@@ -2,27 +2,23 @@ import { setState, getState } from "./state.js";
 import type { ChatMessage } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
 import { WS_TYPING_TIMEOUT_MS } from "./constants/index.js";
-
-const SEND_TIMEOUT_MS = 15_000;
-
-type Resolver = {
-  resolve: (msg: ChatMessage) => void;
-  reject: (err: Error) => void;
-};
+import type { MessagePipeline } from "./MessagePipeline.js";
 
 type MessageRouterOptions = {
   markServerError: (code: string) => void;
+  pipeline: MessagePipeline;
 };
 
 export class MessageRouter {
   private typingTimer: ReturnType<typeof setTimeout> | null = null;
   private rateLimitTimer: ReturnType<typeof setTimeout> | null = null;
-  private pending = new Map<string, Resolver>();
 
   private readonly markServerError: MessageRouterOptions["markServerError"];
+  private readonly pipeline: MessagePipeline;
 
   constructor(options: MessageRouterOptions) {
     this.markServerError = options.markServerError;
+    this.pipeline = options.pipeline;
   }
 
   handle(event: { type: string; payload?: unknown }): void {
@@ -63,36 +59,6 @@ export class MessageRouter {
       case "pong":
         break;
     }
-  }
-
-  trackPendingMessage(clientMessageId: string): Promise<ChatMessage> {
-    return new Promise((resolve, reject) => {
-      const timeoutId = setTimeout(() => {
-        this.pending.delete(clientMessageId);
-        reject(new Error("[DeliveryChat] Message send timed out"));
-      }, SEND_TIMEOUT_MS);
-
-      this.pending.set(clientMessageId, {
-        resolve: (msg) => {
-          clearTimeout(timeoutId);
-          this.pending.delete(clientMessageId);
-          resolve(msg);
-        },
-        reject: (err) => {
-          clearTimeout(timeoutId);
-          this.pending.delete(clientMessageId);
-          reject(err);
-        },
-      });
-    });
-  }
-
-  clearAllPending(): void {
-    const destroyError = new Error("[DeliveryChat] SDK destroyed");
-    for (const [, resolver] of this.pending) {
-      resolver.reject(destroyError);
-    }
-    this.pending.clear();
   }
 
   cleanup(): void {
@@ -141,8 +107,12 @@ export class MessageRouter {
       return [...prev, newMsg];
     });
 
-    if (!wasDuplicate && p.senderRole !== "visitor" && !getState("isOpen")) {
-      setState("unreadCount", (prev) => prev + 1);
+    if (!wasDuplicate) {
+      this.pipeline.processIncoming(newMsg);
+
+      if (p.senderRole !== "visitor" && !getState("isOpen")) {
+        setState("unreadCount", (prev) => prev + 1);
+      }
     }
 
     if (p.senderId === getState("typingUser")?.userId) {
@@ -157,25 +127,7 @@ export class MessageRouter {
       createdAt: string;
     };
 
-    let ackedMsg: ChatMessage | undefined;
-    setState("messages", (prev) =>
-      prev.map((msg) => {
-        if (msg.id === p.clientMessageId) {
-          ackedMsg = {
-            ...msg,
-            id: p.serverMessageId,
-            status: "sent" as const,
-            createdAt: p.createdAt,
-          };
-          return ackedMsg;
-        }
-        return msg;
-      }),
-    );
-
-    if (ackedMsg) {
-      this.resolvePendingMessage(p.clientMessageId, ackedMsg);
-    }
+    this.pipeline.processAck(p);
   }
 
   private handleMessageEdited(payload: unknown): void {
@@ -294,7 +246,7 @@ export class MessageRouter {
       setState("messages", (prev) =>
         prev.map((msg) => {
           if (msg.status === "pending") {
-            this.rejectPendingMessage(msg.id, rateLimitError);
+            this.pipeline.rejectPending(msg.id, rateLimitError);
             return { ...msg, status: "failed" as const };
           }
           return msg;
@@ -316,7 +268,7 @@ export class MessageRouter {
       setState("messages", (prev) =>
         prev.map((msg) => {
           if (msg.status === "pending") {
-            this.rejectPendingMessage(msg.id, convError);
+            this.pipeline.rejectPending(msg.id, convError);
             return { ...msg, status: "failed" as const };
           }
           return msg;
@@ -334,11 +286,4 @@ export class MessageRouter {
     }
   }
 
-  private resolvePendingMessage(clientMessageId: string, msg: ChatMessage): void {
-    this.pending.get(clientMessageId)?.resolve(msg);
-  }
-
-  private rejectPendingMessage(clientMessageId: string, err: Error): void {
-    this.pending.get(clientMessageId)?.reject(err);
-  }
 }

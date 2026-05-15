@@ -2,6 +2,9 @@ import { setState, getState } from "./state.js";
 import type { ConnectionError } from "./types/index.js";
 import { ConnectionEngine } from "./ConnectionEngine.js";
 import { MessageRouter } from "./MessageRouter.js";
+import { MessagePipeline } from "./MessagePipeline.js";
+import { EventEmitter } from "./EventEmitter.js";
+import type { SdkEventMap } from "./SdkEventMap.js";
 
 type WSConfig = {
   apiBaseUrl: string;
@@ -11,10 +14,20 @@ type WSConfig = {
 
 let engine: ConnectionEngine | null = null;
 let router: MessageRouter | null = null;
+let pipeline: MessagePipeline | null = null;
+let emitter: EventEmitter<SdkEventMap> | null = null;
 
-function getOrCreateModules(): { engine: ConnectionEngine; router: MessageRouter } {
-  if (!engine || !router) {
-    router = new MessageRouter({ markServerError: (code) => engine?.markServerError(code) });
+function getOrCreateModules(): { engine: ConnectionEngine; router: MessageRouter; pipeline: MessagePipeline } {
+  if (!engine || !router || !pipeline) {
+    emitter = emitter ?? new EventEmitter<SdkEventMap>();
+    pipeline = new MessagePipeline({
+      sendWS: (event) => engine?.send(event),
+      emitter,
+    });
+    router = new MessageRouter({
+      markServerError: (code) => engine?.markServerError(code),
+      pipeline,
+    });
     engine = new ConnectionEngine({
       onStateChange: (status, error) => {
         setState("connectionStatus", status);
@@ -33,7 +46,7 @@ function getOrCreateModules(): { engine: ConnectionEngine; router: MessageRouter
       onMessage: (event) => router!.handle(event),
     });
   }
-  return { engine, router };
+  return { engine, router, pipeline };
 }
 
 function rejoinRoomIfNeeded(): void {
@@ -73,12 +86,20 @@ export function getMessageRouter(): MessageRouter | null {
   return router;
 }
 
+export function getMessagePipeline(): MessagePipeline | null {
+  return pipeline;
+}
+
+export function getEmitter(): EventEmitter<SdkEventMap> | null {
+  return emitter;
+}
+
 export function resetWSModules(): void {
   if (engine) engine.disconnect();
-  if (router) {
-    router.clearAllPending();
-    router.cleanup();
-  }
+  if (pipeline) pipeline.clearAllPending();
+  if (router) router.cleanup();
   engine = null;
   router = null;
+  pipeline = null;
+  emitter = null;
 }

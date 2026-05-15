@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { MessageRouter } from "./MessageRouter.js";
 import { getState, setState } from "./state.js";
+import type { MessagePipeline } from "./MessagePipeline.js";
 
 vi.mock("./conversation-persistence.js", () => ({
   clearStaleConversationPersistence: vi.fn(),
@@ -8,9 +9,20 @@ vi.mock("./conversation-persistence.js", () => ({
 
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
 
+function createMockPipeline(): MessagePipeline & { processAck: ReturnType<typeof vi.fn>; processIncoming: ReturnType<typeof vi.fn>; rejectPending: ReturnType<typeof vi.fn>; clearAllPending: ReturnType<typeof vi.fn> } {
+  return {
+    processAck: vi.fn(),
+    processIncoming: vi.fn(),
+    rejectPending: vi.fn(),
+    clearAllPending: vi.fn(),
+    send: vi.fn(),
+  } as unknown as MessagePipeline & { processAck: ReturnType<typeof vi.fn>; processIncoming: ReturnType<typeof vi.fn>; rejectPending: ReturnType<typeof vi.fn>; clearAllPending: ReturnType<typeof vi.fn> };
+}
+
 describe("MessageRouter", () => {
   let router: MessageRouter;
   let mockMarkServerError: ReturnType<typeof vi.fn<(code: string) => void>>;
+  let mockPipeline: ReturnType<typeof createMockPipeline>;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -27,7 +39,8 @@ describe("MessageRouter", () => {
     setState("rateLimitRetryAfter", null);
 
     mockMarkServerError = vi.fn<(code: string) => void>();
-    router = new MessageRouter({ markServerError: mockMarkServerError });
+    mockPipeline = createMockPipeline();
+    router = new MessageRouter({ markServerError: mockMarkServerError, pipeline: mockPipeline });
   });
 
   describe("dispatch by event type", () => {
@@ -50,11 +63,7 @@ describe("MessageRouter", () => {
       expect(getState("messages")[0]!.id).toBe("msg-1");
     });
 
-    it("routes message:ack to update message id and status", () => {
-      setState("messages", [
-        { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
-      ]);
-
+    it("routes message:ack to pipeline.processAck", () => {
       router.handle({
         type: "message:ack",
         payload: {
@@ -64,9 +73,11 @@ describe("MessageRouter", () => {
         },
       });
 
-      const msgs = getState("messages");
-      expect(msgs[0]!.id).toBe("server-1");
-      expect(msgs[0]!.status).toBe("sent");
+      expect(mockPipeline.processAck).toHaveBeenCalledWith({
+        clientMessageId: "client-1",
+        serverMessageId: "server-1",
+        createdAt: "2026-01-01T00:00:01Z",
+      });
     });
 
     it("routes conversation:accepted to update status", () => {
@@ -201,14 +212,8 @@ describe("MessageRouter", () => {
     });
   });
 
-  describe("pending message resolution", () => {
-    it("resolves a tracked pending message on message:ack", async () => {
-      setState("messages", [
-        { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
-      ]);
-
-      const promise = router.trackPendingMessage("client-1");
-
+  describe("pipeline delegation", () => {
+    it("delegates message:ack to pipeline.processAck", () => {
       router.handle({
         type: "message:ack",
         payload: {
@@ -218,57 +223,80 @@ describe("MessageRouter", () => {
         },
       });
 
-      const result = await promise;
-      expect(result.id).toBe("server-1");
-      expect(result.status).toBe("sent");
+      expect(mockPipeline.processAck).toHaveBeenCalledOnce();
     });
 
-    it("rejects pending messages on RATE_LIMITED error", async () => {
+    it("calls pipeline.processIncoming for non-duplicate messages", () => {
+      setState("conversationId", "conv-1");
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "msg-1",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          senderRole: "operator",
+          content: "Hello",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
+      });
+
+      expect(mockPipeline.processIncoming).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "msg-1", content: "Hello" }),
+      );
+    });
+
+    it("does NOT call pipeline.processIncoming for duplicate messages", () => {
+      setState("conversationId", "conv-1");
+      setState("messages", [
+        { id: "msg-1", content: "Hello", type: "text", senderRole: "operator", senderId: "op-1", status: "sent", createdAt: "2026-01-01T00:00:00Z" },
+      ]);
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "msg-1",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          senderRole: "operator",
+          content: "Hello",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
+      });
+
+      expect(mockPipeline.processIncoming).not.toHaveBeenCalled();
+    });
+
+    it("rejects pending via pipeline on RATE_LIMITED error", () => {
       setState("messages", [
         { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
       ]);
-
-      const promise = router.trackPendingMessage("client-1");
 
       router.handle({
         type: "error",
         payload: { code: "RATE_LIMITED", message: "Rate limit exceeded", retryAfter: 3 },
       });
 
-      await expect(promise).rejects.toThrow("Rate limited");
+      expect(mockPipeline.rejectPending).toHaveBeenCalledWith(
+        "client-1",
+        expect.objectContaining({ message: expect.stringContaining("Rate limited") }),
+      );
     });
 
-    it("rejects pending messages on CONVERSATION_NOT_ACTIVE error", async () => {
+    it("rejects pending via pipeline on CONVERSATION_NOT_ACTIVE error", () => {
       setState("messages", [
         { id: "client-1", content: "hi", type: "text", senderRole: "visitor", senderId: "v1", status: "pending", createdAt: "2026-01-01T00:00:00Z" },
       ]);
-
-      const promise = router.trackPendingMessage("client-1");
 
       router.handle({
         type: "error",
         payload: { code: "CONVERSATION_NOT_ACTIVE", message: "Conversation is not active" },
       });
 
-      await expect(promise).rejects.toThrow("CONVERSATION_NOT_ACTIVE");
-    });
-
-    it("times out if no ACK arrives within the timeout window", async () => {
-      const promise = router.trackPendingMessage("client-1");
-
-      vi.advanceTimersByTime(15_000);
-
-      await expect(promise).rejects.toThrow("timed out");
-    });
-
-    it("clearAllPending rejects all tracked promises", async () => {
-      const p1 = router.trackPendingMessage("a");
-      const p2 = router.trackPendingMessage("b");
-
-      router.clearAllPending();
-
-      await expect(p1).rejects.toThrow("destroyed");
-      await expect(p2).rejects.toThrow("destroyed");
+      expect(mockPipeline.rejectPending).toHaveBeenCalledWith(
+        "client-1",
+        expect.objectContaining({ message: expect.stringContaining("CONVERSATION_NOT_ACTIVE") }),
+      );
     });
   });
 

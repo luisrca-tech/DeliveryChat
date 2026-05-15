@@ -3,7 +3,6 @@ import { EventEmitter } from "./EventEmitter.js";
 import type { SdkEventMap } from "./SdkEventMap.js";
 import { connectEventBridge, disconnectEventBridge } from "./EventBridge.js";
 import { setState, subscribe, getState } from "./state.js";
-import type { ChatMessage } from "./types/index.js";
 import { getSdkApi } from "./SdkApi.js";
 
 let mockHeadless = false;
@@ -130,59 +129,6 @@ describe("EventBridge", () => {
     setState("connectionStatus", "connected");
 
     expect(listener).toHaveBeenCalledOnce();
-  });
-
-  it("fires 'message:received' for incoming non-visitor messages", () => {
-    connectEventBridge(emitter);
-    const listener = vi.fn();
-    emitter.on("message:received", listener);
-
-    const msg: ChatMessage = {
-      id: "msg-1",
-      content: "hello",
-      type: "text",
-      senderRole: "operator",
-      senderId: "op-1",
-      status: "sent",
-      createdAt: "2024-01-01T00:00:00Z",
-    };
-
-    vi.mocked(getState).mockImplementation(((key: string) => {
-      if (key === "visitorId") return "visitor-1";
-      return null;
-    }) as typeof getState);
-
-    setState("messages", [msg]);
-
-    expect(listener).toHaveBeenCalledWith(msg);
-  });
-
-  it("fires 'message:sent' when a pending visitor message becomes sent", () => {
-    connectEventBridge(emitter);
-    const listener = vi.fn();
-    emitter.on("message:sent", listener);
-
-    const pending: ChatMessage = {
-      id: "client-1",
-      content: "hi",
-      type: "text",
-      senderRole: "visitor",
-      senderId: "visitor-1",
-      status: "pending",
-      createdAt: "2024-01-01T00:00:00Z",
-    };
-
-    vi.mocked(getState).mockImplementation(((key: string) => {
-      if (key === "visitorId") return "visitor-1";
-      return null;
-    }) as typeof getState);
-
-    setState("messages", [pending]);
-
-    const sent: ChatMessage = { ...pending, id: "server-1", status: "sent" };
-    setState("messages", [sent]);
-
-    expect(listener).toHaveBeenCalledWith(sent);
   });
 
   it("disconnectEventBridge stops all event firing", () => {

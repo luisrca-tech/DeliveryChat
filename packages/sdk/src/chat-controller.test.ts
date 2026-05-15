@@ -9,10 +9,16 @@ vi.mock("./ws.js", () => ({
   disconnectWS: vi.fn(),
   sendWSMessage: vi.fn(),
   getMessageRouter: vi.fn().mockReturnValue({
-    trackPendingMessage: vi.fn(),
-    clearAllPending: vi.fn(),
     cleanup: vi.fn(),
   }),
+  getMessagePipeline: vi.fn().mockReturnValue({
+    send: vi.fn(),
+    processAck: vi.fn(),
+    processIncoming: vi.fn(),
+    rejectPending: vi.fn(),
+    clearAllPending: vi.fn(),
+  }),
+  getEmitter: vi.fn().mockReturnValue(null),
 }));
 
 vi.mock("./conversation.js", () => ({
