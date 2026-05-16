@@ -40,7 +40,7 @@ The server automatically creates an anonymous user on the first request. Subsequ
 ## Create a Conversation
 
 ```
-POST /v1/api/conversations
+POST /api/v1/conversations
 ```
 
 Creates a new conversation. The visitor is automatically added as the first participant. Operators see the conversation appear in their queue in real-time.
@@ -54,7 +54,7 @@ Creates a new conversation. The visitor is automatically added as the first part
 ### cURL Example
 
 ```bash
-curl -X POST https://api.deliverychat.online/v1/api/conversations \
+curl -X POST https://api.deliverychat.online/api/v1/conversations \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
@@ -97,7 +97,7 @@ curl -X POST https://api.deliverychat.online/v1/api/conversations \
 ## List Conversations
 
 ```
-GET /v1/api/conversations
+GET /api/v1/conversations
 ```
 
 Returns conversations where the visitor is an active participant, ordered by most recently updated.
@@ -112,7 +112,7 @@ Returns conversations where the visitor is an active participant, ordered by mos
 ### cURL Example
 
 ```bash
-curl "https://api.deliverychat.online/v1/api/conversations?limit=10&offset=0" \
+curl "https://api.deliverychat.online/api/v1/conversations?limit=10&offset=0" \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
@@ -143,7 +143,7 @@ curl "https://api.deliverychat.online/v1/api/conversations?limit=10&offset=0" \
 ## Get a Conversation
 
 ```
-GET /v1/api/conversations/:id
+GET /api/v1/conversations/:id
 ```
 
 Returns a single conversation with its participant list. Returns 404 if the conversation doesn't exist or the visitor is not a participant.
@@ -151,7 +151,7 @@ Returns a single conversation with its participant list. Returns 404 if the conv
 ### cURL Example
 
 ```bash
-curl https://api.deliverychat.online/v1/api/conversations/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
+curl https://api.deliverychat.online/api/v1/conversations/a1b2c3d4-e5f6-7890-abcd-ef1234567890 \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
@@ -188,7 +188,7 @@ curl https://api.deliverychat.online/v1/api/conversations/a1b2c3d4-e5f6-7890-abc
 ## Mark as Read
 
 ```
-POST /v1/api/conversations/:id/read
+POST /api/v1/conversations/:id/read
 ```
 
 Marks the conversation as read up to a specific message. Updates the visitor's `lastReadMessageId`.
@@ -202,7 +202,7 @@ Marks the conversation as read up to a specific message. Updates the visitor's `
 ### cURL Example
 
 ```bash
-curl -X POST https://api.deliverychat.online/v1/api/conversations/conv-uuid/read \
+curl -X POST https://api.deliverychat.online/api/v1/conversations/conv-uuid/read \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
@@ -223,7 +223,7 @@ curl -X POST https://api.deliverychat.online/v1/api/conversations/conv-uuid/read
 ## Get Unread Count
 
 ```
-GET /v1/api/conversations/:id/unread
+GET /api/v1/conversations/:id/unread
 ```
 
 Returns the number of staff-sent messages since the visitor's last read position.
@@ -231,7 +231,7 @@ Returns the number of staff-sent messages since the visitor's last read position
 ### cURL Example
 
 ```bash
-curl https://api.deliverychat.online/v1/api/conversations/conv-uuid/unread \
+curl https://api.deliverychat.online/api/v1/conversations/conv-uuid/unread \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000"

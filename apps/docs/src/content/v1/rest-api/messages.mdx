@@ -5,7 +5,7 @@ Messages belong to conversations. Visitors send messages via the REST API; opera
 ## Send a Message
 
 ```
-POST /v1/api/conversations/:id/messages
+POST /api/v1/conversations/:id/messages
 ```
 
 Sends a message to a conversation. The conversation must be in `pending` or `active` status. The message is persisted and broadcast via WebSocket so operators see it immediately.
@@ -19,7 +19,7 @@ Sends a message to a conversation. The conversation must be in `pending` or `act
 ### cURL Example
 
 ```bash
-curl -X POST https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages \
+curl -X POST https://api.deliverychat.online/api/v1/conversations/conv-uuid/messages \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
@@ -54,7 +54,7 @@ curl -X POST https://api.deliverychat.online/v1/api/conversations/conv-uuid/mess
 ## Get Message History
 
 ```
-GET /v1/api/conversations/:id/messages
+GET /api/v1/conversations/:id/messages
 ```
 
 Returns paginated messages for a conversation. Soft-deleted messages are excluded.
@@ -69,7 +69,7 @@ Returns paginated messages for a conversation. Soft-deleted messages are exclude
 ### cURL Example
 
 ```bash
-curl "https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages?limit=50&offset=0" \
+curl "https://api.deliverychat.online/api/v1/conversations/conv-uuid/messages?limit=50&offset=0" \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
@@ -114,7 +114,7 @@ curl "https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages?li
 ## Edit a Message
 
 ```
-PATCH /v1/api/conversations/:id/messages/:messageId
+PATCH /api/v1/conversations/:id/messages/:messageId
 ```
 
 Edits a message you sent. Subject to two constraints:
@@ -131,7 +131,7 @@ Edits a message you sent. Subject to two constraints:
 ### cURL Example
 
 ```bash
-curl -X PATCH https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages/msg-uuid \
+curl -X PATCH https://api.deliverychat.online/api/v1/conversations/conv-uuid/messages/msg-uuid \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
@@ -168,7 +168,7 @@ curl -X PATCH https://api.deliverychat.online/v1/api/conversations/conv-uuid/mes
 ## Delete a Message
 
 ```
-DELETE /v1/api/conversations/:id/messages/:messageId
+DELETE /api/v1/conversations/:id/messages/:messageId
 ```
 
 Soft-deletes a message. Same constraints as edit: sender ownership and 15-minute window.
@@ -176,7 +176,7 @@ Soft-deletes a message. Same constraints as edit: sender ownership and 15-minute
 ### cURL Example
 
 ```bash
-curl -X DELETE https://api.deliverychat.online/v1/api/conversations/conv-uuid/messages/msg-uuid \
+curl -X DELETE https://api.deliverychat.online/api/v1/conversations/conv-uuid/messages/msg-uuid \
   -H "Authorization: Bearer dk_live_your_api_key" \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
