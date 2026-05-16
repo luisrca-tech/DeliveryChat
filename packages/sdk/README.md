@@ -28,7 +28,7 @@ Drop the script tag into your HTML and initialize with your app ID:
   window.DeliveryChat = window.DeliveryChat || { queue: [] };
   DeliveryChat.queue.push(["init", { appId: "YOUR_APP_ID" }]);
 </script>
-<script async src="https://widget.yourdomain.com/widget.js"></script>
+<script async src="https://api.deliverychat.online/widget.js"></script>
 ```
 
 The widget loads asynchronously — any calls made before the script finishes loading are queued and replayed automatically. You can safely register event listeners or call methods before the script is ready:
@@ -47,7 +47,7 @@ The widget loads asynchronously — any calls made before the script finishes lo
 
   DeliveryChat.queue.push(["init", { appId: "YOUR_APP_ID" }]);
 </script>
-<script async src="https://widget.yourdomain.com/widget.js"></script>
+<script async src="https://api.deliverychat.online/widget.js"></script>
 ```
 
 ## npm Module Quickstart
@@ -56,7 +56,11 @@ The widget loads asynchronously — any calls made before the script finishes lo
 import { init, destroy, getSdkApi } from "@deliverychat/sdk";
 
 // Initialize the widget
-init({ appId: "YOUR_APP_ID" });
+// apiBaseUrl is required when using the npm package — origin only, never append /api/v1
+init({
+  appId: "YOUR_APP_ID",
+  apiBaseUrl: "https://api.deliverychat.online",
+});
 
 const sdk = getSdkApi();
 
@@ -99,7 +103,7 @@ The command queue pattern lets you interact with the SDK before the script has l
 
   // 3. Load the script — queued commands replay in order
 </script>
-<script async src="https://widget.yourdomain.com/widget.js"></script>
+<script async src="https://api.deliverychat.online/widget.js"></script>
 ```
 
 Supported queue commands: `init`, `on`, `sendMessage`, `identify`.
@@ -221,7 +225,7 @@ await DeliveryChat.identify({
 ```typescript
 {
   appId: string;
-  apiBaseUrl?: string;
+  apiBaseUrl?: string; // Required for npm; origin-only (e.g. "https://api.deliverychat.online"), never append /api/v1
   position?: "bottom-left" | "bottom-right";
   autoOpen?: boolean;
   autoOpenDelay?: number;

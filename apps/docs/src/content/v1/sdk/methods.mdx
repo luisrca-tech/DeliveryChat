@@ -21,7 +21,7 @@ init({
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
 | `appId` | `string` | Yes | — | Your application UUID |
-| `apiBaseUrl` | `string` | No | Auto-detected | Override the API base URL |
+| `apiBaseUrl` | `string` | Conditional | Auto-detected | API origin (e.g. `https://api.deliverychat.online`). **Required** when using the npm package on an external origin; auto-detected for CDN embed. Must be origin-only — never append `/api/v1`. |
 | `position` | `"bottom-left" \| "bottom-right"` | No | `"bottom-right"` | Launcher position |
 | `autoOpen` | `boolean` | No | `false` | Open chat on load |
 | `autoOpenDelay` | `number` | No | `5000` | Delay in ms before auto-open |
