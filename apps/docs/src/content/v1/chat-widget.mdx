@@ -14,21 +14,28 @@ Copy this prompt into your AI coding assistant (Cursor, Copilot, Claude, etc.) t
 
 ## Quick Start
 
-Add the script tag and call `DeliveryChat.init()` with your application ID:
+Add this snippet before `</body>` (or in `<head>`). The queue-stub pattern ensures calls are safe to make immediately — no race conditions:
 
 ```html
-<script src="https://api.deliverychat.online/widget.js"></script>
 <script>
-  DeliveryChat.init({
-    appId: "your-app-uuid",
-    position: "bottom-right",
-  });
+  (function(w,d,s,o){
+    w.DeliveryChat=w.DeliveryChat||function(){(w.DeliveryChat.queue=w.DeliveryChat.queue||[]).push(arguments)};
+    var js=d.createElement(s);js.async=1;js.src='https://api.deliverychat.online/widget.js';
+    d.head.appendChild(js);
+  })(window,document,'script');
+
+  DeliveryChat('init', { appId: 'YOUR_APP_ID' });
 </script>
 ```
 
-<Callout type="tip" title="Get your app ID">
-  Create an application in your dashboard to get the <code>appId</code>. See <a href="/v1/applications">Applications</a> for details.
-</Callout>
+Replace `YOUR_APP_ID` with your application UUID from the [dashboard](/v1/applications).
+
+### How the queue-stub works
+
+The snippet creates a lightweight `DeliveryChat` function that queues all calls. When the real script loads, it replays the queue in order. This means:
+- You can call `DeliveryChat('init', ...)` immediately — no race condition.
+- Event listeners registered via `DeliveryChat('on', ...)` before load are preserved.
+- The script loads asynchronously and never blocks page rendering.
 
 ## Init Options
 
@@ -41,35 +48,64 @@ Add the script tag and call `DeliveryChat.init()` with your application ID:
 | `autoOpenDelay` | `number` | No | Delay in ms before auto-open. Default: `5000` |
 | `colors` | `object` | No | Override specific colors (e.g. `{ primary: "#6366f1" }`) |
 
+<Callout type="info" title="apiBaseUrl is optional for CDN">
+  When using the CDN embed, <code>apiBaseUrl</code> is auto-detected from the script <code>src</code> attribute. Only pass it if you self-host the widget bundle on a different domain than the API. If provided, it must be origin-only — never append <code>/api/v1</code>.
+</Callout>
+
 ### Example with all options
 
 ```javascript
-DeliveryChat.init({
-  appId: "app_abc123",
-  position: "bottom-left",
+DeliveryChat('init', {
+  appId: 'app_abc123',
+  position: 'bottom-left',
   autoOpen: true,
   autoOpenDelay: 3000,
   colors: {
-    primary: "#6366f1",
-    background: "#ffffff",
-    text: "#0f172a",
+    primary: '#6366f1',
+    background: '#ffffff',
+    text: '#0f172a',
   },
 });
 ```
 
-## Async Loading
+## Controlling the Widget
 
-You can load the script asynchronously. The widget uses a queue pattern—calls to `DeliveryChat.init()` before the script finishes loading are queued and processed when ready:
+After the script loads, `DeliveryChat` becomes an object with direct methods:
 
-```html
-<script async src="https://api.deliverychat.online/widget.js"></script>
-<script>
-  // Safe to call immediately—will run when script loads
-  DeliveryChat.init({
-    appId: "your-app-uuid",
-  });
-</script>
+```javascript
+DeliveryChat.open();       // Open the chat window
+DeliveryChat.close();      // Close it
+DeliveryChat.toggle();     // Toggle open/close
+DeliveryChat.hideWidget(); // Hide the launcher button
+DeliveryChat.showWidget(); // Show it again
+DeliveryChat.sendMessage('Hello!');
+DeliveryChat.destroy();    // Remove widget and clean up
 ```
+
+### Queue commands (before script loads)
+
+Before the script finishes loading, use the function-call syntax:
+
+```javascript
+DeliveryChat('init', { appId: 'YOUR_APP_ID' });
+DeliveryChat('on', 'ready', function() { console.log('Widget ready'); });
+DeliveryChat('sendMessage', 'Hello!');
+DeliveryChat('identify', { name: 'Jane', email: 'jane@example.com' });
+```
+
+## Events
+
+```javascript
+DeliveryChat.on('message:received', function(message) {
+  console.log('New message:', message.content);
+});
+
+DeliveryChat.on('unread:changed', function(data) {
+  document.title = data.count > 0 ? '(' + data.count + ') My App' : 'My App';
+});
+```
+
+Available events: `ready`, `open`, `close`, `message:received`, `message:sent`, `conversation:started`, `conversation:resolved`, `unread:changed`.
 
 ## Destroying the Widget
 
@@ -83,10 +119,10 @@ This cleans up event listeners, removes the DOM, and resets state. You can call 
 
 ## Settings from the API
 
-The widget fetches configuration from the API (URL set via `VITE_API_BASE_URL` at build time):
+The widget fetches configuration from the API on initialization:
 
 ```
-GET {baseUrl}/v1/widget/settings/:appId
+GET {apiBaseUrl}/api/v1/widget/settings/:appId
 ```
 
 This endpoint is **public** (no auth). It returns JSON:
@@ -94,7 +130,7 @@ This endpoint is **public** (no auth). It returns JSON:
 ```json
 {
   "settings": {
-    "colors": { "primary": "#0ea5e9", "background": "#ffffff", ... },
+    "colors": { "primary": "#0ea5e9", "background": "#ffffff" },
     "font": { "family": "system-ui", "size": "14px" },
     "position": { "corner": "bottom-right", "offset": "16px" },
     "header": { "title": "Chat with us", "subtitle": "...", "showLogo": true, "logoUrl": "..." },
@@ -117,11 +153,11 @@ Configure colors, fonts, header, launcher, and behavior in your application sett
 Override any setting at init time. Useful for A/B tests or per-page behavior:
 
 ```javascript
-DeliveryChat.init({
-  appId: "app_abc123",
-  position: "bottom-left",
+DeliveryChat('init', {
+  appId: 'app_abc123',
+  position: 'bottom-left',
   autoOpen: true,
-  colors: { primary: "#ff0000" },
+  colors: { primary: '#ff0000' },
 });
 ```
 
@@ -147,10 +183,6 @@ The widget authenticates using **domain-based origin validation**. When you crea
 - **Vanilla JS** — No React, Vue, or other framework required. Works on any website.
 - **CDN-ready** — The bundle is self-contained (~12KB gzipped) and can be served from any CDN.
 
-## Advanced: JavaScript SDK
-
-For programmatic control, event listeners, visitor identity, headless mode (custom UI), or npm-based integration, see the [JavaScript SDK documentation](/v1/sdk).
-
 ## Next Steps
 
 <QuickLinks
@@ -158,7 +190,7 @@ For programmatic control, event listeners, visitor identity, headless mode (cust
     {
       title: "JavaScript SDK",
       href: "/v1/sdk",
-      description: "Programmatic control, events, identity, and headless mode"
+      description: "npm-based integration with programmatic control, events, and lifecycle management"
     },
     {
       title: "Applications",
@@ -168,7 +200,7 @@ For programmatic control, event listeners, visitor identity, headless mode (cust
     {
       title: "API Keys",
       href: "/v1/api-keys",
-      description: "For SDK or REST API integration"
+      description: "For server-side SDK or REST API integration"
     },
     {
       title: "Architecture Overview",
