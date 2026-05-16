@@ -12,6 +12,7 @@ import { FAQ } from "./components/FAQ";
 import { ComingSoon } from "./components/ComingSoon";
 import { ComparisonTable } from "./components/ComparisonTable";
 import { CodeTabs } from "./components/CodeTabs";
+import { SdkCopyPrompt, EmbedCopyPrompt } from "./components/CopyPrompt";
 
 export function useMDXComponents(
   components: MDXComponents = {},
@@ -32,6 +33,8 @@ export function useMDXComponents(
     ComingSoon,
     ComparisonTable,
     CodeTabs,
+    SdkCopyPrompt,
+    EmbedCopyPrompt,
     ...components,
   };
 }
