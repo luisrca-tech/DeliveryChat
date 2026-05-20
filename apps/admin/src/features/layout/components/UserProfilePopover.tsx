@@ -9,6 +9,7 @@ import {
 } from "@repo/ui/components/ui/popover";
 import { useAuthSession } from "@/features/auth/hooks/useAuthSession";
 import { authClient } from "@/lib/authClient";
+import { clearBearerToken } from "@/lib/bearerToken";
 
 interface UserProfilePopoverProps {
   isSidebarCollapsed: boolean;
@@ -26,6 +27,7 @@ export function UserProfilePopover({
 
   async function handleLogout() {
     await authClient.signOut();
+    clearBearerToken();
     navigate({ to: "/login" });
   }
 
@@ -38,7 +40,7 @@ export function UserProfilePopover({
           title={displayName}
         >
           <User className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"} />
-          {!isSidebarCollapsed && displayName}
+          {!isSidebarCollapsed && "Profile"}
         </Button>
       </PopoverTrigger>
       <PopoverContent side="right" className="w-64 p-4">
