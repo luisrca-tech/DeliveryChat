@@ -107,8 +107,8 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
         />
 
         {isPending && (
-          <div className="p-4 border-t border-border bg-yellow-50 flex items-center justify-between gap-3">
-            <p className="text-sm text-yellow-800">
+          <div className="p-4 border-t border-amber-500/50 bg-amber-500/10 flex items-center justify-between gap-3">
+            <p className="text-sm text-foreground">
               This conversation is waiting for support.
             </p>
             <Button

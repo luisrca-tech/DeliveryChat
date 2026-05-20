@@ -85,8 +85,8 @@ export function KeyRevealDialog({
               <Copy className="h-4 w-4" />
             </Button>
           </div>
-          <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/50 bg-amber-500/10 p-3 text-sm text-foreground">
+            <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-amber-600 dark:text-amber-500" />
             <p>
               This is the only time you&apos;ll see the full key. Store it
               securely. If you lose it, you&apos;ll need to regenerate a new
