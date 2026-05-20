@@ -10,6 +10,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { BillingAlert } from "@/features/billing/components/BillingAlert";
 import { ChatWidgetTest } from "@/features/applications/components/ChatWidgetTest";
 import { useApplicationsQuery } from "@/features/applications/hooks/useApplicationsQuery";
+import { UserProfilePopover } from "./UserProfilePopover";
 
 export function AppShell(props: { children: ReactNode }) {
   const { children } = props;
@@ -86,7 +87,7 @@ export function AppShell(props: { children: ReactNode }) {
             </Button>
           </Link>
         </nav>
-        <div className="mt-auto shrink-0 p-3 border-t border-border/60">
+        <div className="mt-auto shrink-0 p-3 border-t border-border/60 space-y-1">
           <Link to="/settings" className="block">
             <Button
               variant="ghost"
@@ -99,6 +100,7 @@ export function AppShell(props: { children: ReactNode }) {
               {!isSidebarCollapsed && "Settings"}
             </Button>
           </Link>
+          <UserProfilePopover isSidebarCollapsed={isSidebarCollapsed} />
         </div>
       </aside>
       <main className="flex-1 min-w-0">
