@@ -3,9 +3,11 @@ import { Link } from "@tanstack/react-router";
 import {
   Settings,
   MessageSquare,
+  BookOpen,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
+import { getDocumentationUrl } from "@/lib/urls";
 import { Button } from "@repo/ui/components/ui/button";
 import { BillingAlert } from "@/features/billing/components/BillingAlert";
 import { ChatWidgetTest } from "@/features/applications/components/ChatWidgetTest";
@@ -84,6 +86,23 @@ export function AppShell(props: { children: ReactNode }) {
                 className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
               />
               {!isSidebarCollapsed && "Conversations"}
+            </Button>
+          </Link>
+          <Link
+            to={getDocumentationUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block"
+          >
+            <Button
+              variant="ghost"
+              className={`w-full ${isSidebarCollapsed ? "justify-center" : "justify-start"}`}
+              title="Documentation"
+            >
+              <BookOpen
+                className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
+              />
+              {!isSidebarCollapsed && "Documentation"}
             </Button>
           </Link>
         </nav>
