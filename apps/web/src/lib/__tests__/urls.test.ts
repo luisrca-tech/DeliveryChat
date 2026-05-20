@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getAdminUrl } from "../urls";
+import { getAdminUrl, getDocumentationUrl } from "../urls";
 
 const ORIGINAL_LOCATION = window.location;
 
@@ -107,5 +107,17 @@ describe("getAdminUrl", () => {
         /PUBLIC_ADMIN_URL is required/i,
       );
     });
+  });
+});
+
+describe("getDocumentationUrl", () => {
+  afterEach(() => {
+    restoreLocation();
+  });
+
+  it("returns localhost docs when hostname is localhost", () => {
+    setProdHostname("localhost");
+
+    expect(getDocumentationUrl()).toBe("http://localhost:3003");
   });
 });

@@ -80,3 +80,18 @@ export function getApiUrl(): string {
 
   return normalizeUrl(publicApiUrl);
 }
+
+const DOCS_URL_LOCAL = "http://localhost:3003";
+const DOCS_URL_PRODUCTION = "https://docs.deliverychat.online/";
+
+export function getDocumentationUrl(): string {
+  if (import.meta.env.DEV) {
+    return DOCS_URL_LOCAL;
+  }
+
+  if (typeof window !== "undefined" && isDevelopment()) {
+    return DOCS_URL_LOCAL;
+  }
+
+  return DOCS_URL_PRODUCTION;
+}

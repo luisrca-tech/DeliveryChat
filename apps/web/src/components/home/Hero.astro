@@ -1,11 +1,12 @@
 ---
 import { Button } from "@repo/ui/components/ui/button";
-import { ArrowRight, MessageCircle, Sparkles } from "lucide-react";
+import { ArrowRight, BookOpen, Sparkles } from "lucide-react";
 import { ChatDemoIsland } from "../../features/chat-demo/components/ChatDemoIsland";
 import { env } from "../../env";
-import { getApiUrl } from "../../lib/urls";
+import { getApiUrl, getDocumentationUrl } from "../../lib/urls";
 
 const apiUrl = getApiUrl();
+const documentationUrl = getDocumentationUrl();
 const apiKey = env.DEMO_CHAT_API_KEY;
 const appId = env.DEMO_CHAT_APP_ID;
 ---
@@ -70,15 +71,21 @@ const appId = env.DEMO_CHAT_APP_ID;
             <ArrowRight className="ml-2 h-5 w-5" client:load />
           </Button>
         </a>
-        <Button
-          size="lg"
-          variant="outline"
-          className="text-base px-8 h-12"
-          client:load
+        <a
+          href={documentationUrl}
+          target="_blank"
+          rel="noopener noreferrer"
         >
-          View Demo
-          <MessageCircle className="ml-2 h-5 w-5" client:load />
-        </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="text-base px-8 h-12"
+            client:load
+          >
+            Documentation
+            <BookOpen className="ml-2 h-5 w-5" client:load />
+          </Button>
+        </a>
       </div>
 
       <div
