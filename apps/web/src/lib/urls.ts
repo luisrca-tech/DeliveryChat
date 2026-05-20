@@ -30,6 +30,19 @@ function applyTenantToTemplate(template: string, tenant: string): string {
   return normalized;
 }
 
+const RESERVED_ADMIN_HOST_PREFIXES = ["api.", "api-dev.", "www."] as const;
+
+function assertAdminHostNotReserved(host: string): void {
+  const reserved = RESERVED_ADMIN_HOST_PREFIXES.find((prefix) =>
+    host.toLowerCase().startsWith(prefix),
+  );
+  if (reserved) {
+    throw new Error(
+      `PUBLIC_ADMIN_URL points at a reserved subdomain ("${reserved.slice(0, -1)}"). It must resolve to the admin app, not the API.`,
+    );
+  }
+}
+
 export function getAdminUrl(tenant: string): string {
   const safeTenant = tenant.toLowerCase().trim();
   const adminUrl = import.meta.env.PUBLIC_ADMIN_URL as string | undefined;
@@ -49,9 +62,12 @@ export function getAdminUrl(tenant: string): string {
 
   const templated = applyTenantToTemplate(adminUrl, safeTenant);
   if (templated !== normalizeUrl(adminUrl)) {
+    const resolved = new URL(templated);
+    assertAdminHostNotReserved(resolved.host);
     return templated;
   }
   const base = new URL(normalizeUrl(adminUrl));
+  assertAdminHostNotReserved(base.host);
   return `${base.protocol}//${safeTenant}.${base.host}`;
 }
 
