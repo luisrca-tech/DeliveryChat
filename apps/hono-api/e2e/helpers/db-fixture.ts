@@ -11,11 +11,13 @@ import { db } from "../../src/db/index";
 import { organization } from "../../src/db/schema/organization";
 import { user } from "../../src/db/schema/users";
 import { member } from "../../src/db/schema/member";
+import { session } from "../../src/db/schema/session";
 import { applications } from "../../src/db/schema/applications";
 import { apiKeys } from "../../src/db/schema/apiKeys";
 import { conversations } from "../../src/db/schema/conversations";
 import { messages } from "../../src/db/schema/messages";
 import { conversationParticipants } from "../../src/db/schema/conversationParticipants";
+import { aiUsageLog } from "../../src/db/schema/aiUsageLog";
 import { createHash } from "node:crypto";
 
 const E2E_PREFIX = "e2e_test_";
@@ -33,7 +35,13 @@ function hashApiKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
 }
 
-export async function provisionTestData(): Promise<E2ETestData> {
+export async function provisionTestData(
+  opts?: {
+    plan?: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
+    planStatus?: "active" | "trialing" | "past_due" | "canceled" | "unpaid" | "incomplete" | "paused" | null;
+    orgStatus?: "ACTIVE" | "PENDING_VERIFICATION" | "EXPIRED" | "DELETED";
+  },
+): Promise<E2ETestData> {
   const testId = randomUUID().slice(0, 8);
   const orgSlug = `${E2E_PREFIX}${testId}`;
 
@@ -44,6 +52,9 @@ export async function provisionTestData(): Promise<E2ETestData> {
       id: randomUUID(),
       slug: orgSlug,
       name: `E2E Test Org ${testId}`,
+      plan: opts?.plan ?? "FREE",
+      planStatus: opts?.planStatus ?? null,
+      status: opts?.orgStatus ?? "ACTIVE",
     })
     .returning();
 
@@ -195,27 +206,64 @@ export async function addParticipantInDB(
   });
 }
 
+/**
+ * Creates a Better Auth session directly in the DB for E2E testing.
+ * Returns the session token to use in Authorization or Cookie headers.
+ */
+export async function createSessionInDB(userId: string): Promise<string> {
+  const token = randomUUID();
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+
+  await db.insert(session).values({
+    id: randomUUID(),
+    userId,
+    token,
+    expiresAt,
+    ipAddress: "127.0.0.1",
+    userAgent: "E2E-Test",
+  });
+
+  return token;
+}
+
+/**
+ * Adds a message to a conversation directly in the DB.
+ */
+export async function addMessageInDB(opts: {
+  conversationId: string;
+  senderId: string;
+  content: string;
+}): Promise<string> {
+  const [msg] = await db
+    .insert(messages)
+    .values({
+      conversationId: opts.conversationId,
+      senderId: opts.senderId,
+      content: opts.content,
+    })
+    .returning();
+  return msg.id;
+}
+
 export async function cleanupTestData(data: E2ETestData) {
+  const userIds = [
+    data.operatorUser.id,
+    data.adminUser.id,
+    data.visitorUser.id,
+  ];
+
   // Delete in reverse dependency order
   await db
+    .delete(aiUsageLog)
+    .where(eq(aiUsageLog.tenantId, data.org.id));
+
+  await db
     .delete(conversationParticipants)
-    .where(
-      inArray(conversationParticipants.userId, [
-        data.operatorUser.id,
-        data.adminUser.id,
-        data.visitorUser.id,
-      ]),
-    );
+    .where(inArray(conversationParticipants.userId, userIds));
 
   await db
     .delete(messages)
-    .where(
-      inArray(messages.senderId, [
-        data.operatorUser.id,
-        data.adminUser.id,
-        data.visitorUser.id,
-      ]),
-    );
+    .where(inArray(messages.senderId, userIds));
 
   await db
     .delete(conversations)
@@ -226,18 +274,14 @@ export async function cleanupTestData(data: E2ETestData) {
   await db.delete(member).where(eq(member.organizationId, data.org.id));
 
   await db
+    .delete(session)
+    .where(inArray(session.userId, userIds));
+
+  await db
     .delete(applications)
     .where(eq(applications.organizationId, data.org.id));
 
-  await db
-    .delete(user)
-    .where(
-      inArray(user.id, [
-        data.operatorUser.id,
-        data.adminUser.id,
-        data.visitorUser.id,
-      ]),
-    );
+  await db.delete(user).where(inArray(user.id, userIds));
 
   await db.delete(organization).where(eq(organization.id, data.org.id));
 }

@@ -70,3 +70,28 @@ Every call that reaches the provider logs one `aiUsageLog` row. Only `success`, 
 | BASIC | No | 0 |
 | PREMIUM | Yes | 3,000 |
 | ENTERPRISE | Yes | 3,000 (overridable via `tenantRateLimits.aiMonthlyCapOverride`) |
+
+## E2E Tests
+
+E2E tests live in `apps/hono-api/e2e/ai.e2e.ts` and run against a live server with `AI_MODEL=mock://test`.
+
+### Running
+
+```bash
+# Start server with mock provider
+AI_MODEL=mock://test infisical run --path=/hono-api -- bun run dev --filter=hono-api
+
+# In another terminal
+infisical run --path=/hono-api -- npx playwright test e2e/ai.e2e.ts
+```
+
+### Coverage
+
+- Generate Reply happy path (conversation with messages)
+- Generate Reply with empty conversation history
+- Improve Message happy path
+- Improve Message at 4,000-char boundary (accepted) and 4,001-char (rejected)
+- Empty/invalid draft rejection
+- Plan gating: FREE plan → 403 `ai_feature_not_available`
+- Billing gating: canceled subscription → 403
+- Usage endpoint: admin access, operator blocked, filter/pagination support
