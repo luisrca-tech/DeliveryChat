@@ -32,6 +32,14 @@ export const env = createEnv({
       .optional()
       .transform((v) => v === "true"),
     WS_TOKEN_SECRET: z.string().min(32),
+    GROQ_API_KEY: z.string().min(1),
+    AI_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
+    AI_CONTEXT_MESSAGE_LIMIT: z
+      .string()
+      .optional()
+      .default("10")
+      .transform((v) => Number.parseInt(v, 10))
+      .pipe(z.number().int().positive()),
   },
   client: {
     // Add client-side env vars here if needed
@@ -54,6 +62,9 @@ export const env = createEnv({
     STRIPE_ENTERPRISE_PRODUCT_KEY: process.env.STRIPE_ENTERPRISE_PRODUCT_KEY,
     STRIPE_AUTOMATIC_TAX_ENABLED: process.env.STRIPE_AUTOMATIC_TAX_ENABLED,
     WS_TOKEN_SECRET: process.env.WS_TOKEN_SECRET,
+    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    AI_MODEL: process.env.AI_MODEL,
+    AI_CONTEXT_MESSAGE_LIMIT: process.env.AI_CONTEXT_MESSAGE_LIMIT,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
   emptyStringAsUndefined: true,

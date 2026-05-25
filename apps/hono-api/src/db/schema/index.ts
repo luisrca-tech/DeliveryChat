@@ -22,3 +22,8 @@ export * from "./enums/messageTypeEnum";
 export * from "./enums/participantRoleEnum";
 export * from "./visitorIdentities";
 export * from "./relations";
+
+// AI assistant
+export * from "./aiUsageLog";
+export * from "./enums/aiActionEnum";
+export * from "./enums/aiUsageStatusEnum";
