@@ -24,9 +24,34 @@ Operators can click the "Generate Reply" button (sparkles icon) in the chat inpu
 - Rate limits: 10 requests per minute, 250 per day (per tenant)
 - Monthly cap: 3,000 requests per month (PREMIUM/ENTERPRISE default)
 
-### Improve Message (Planned — Phase 2)
+### Improve Message
 
-Operators will be able to rewrite their draft message using AI for better tone and clarity.
+Operators can rewrite their draft message using AI for better tone and clarity.
+
+**How it works:**
+
+1. The operator writes a draft message in the input field
+2. They click the "Improve Message" button (wand icon)
+3. The AI rewrites the draft while preserving intent and language
+4. The improved version appears with Accept / Reject controls
+5. Accept keeps the improved text; Reject restores the original draft
+
+**Constraints:**
+
+- Same plan/rate/cap limits as Generate Reply
+- Button is enabled only when the input field has content
+- Both AI buttons are mutually disabled while either action is in-flight
+
+### AI Usage Audit
+
+Admins and super admins can view AI usage logs at Settings > AI Usage.
+
+**Features:**
+
+- Paginated table of all AI requests with timestamps, operator, action, status, model, tokens, and latency
+- Filters by action type, status, operator, and date range
+- Summary cards showing total requests, success rate, and average latency
+- No message content is stored or displayed — metadata only
 
 ## Plan Availability
 
@@ -60,6 +85,6 @@ Transient errors (timeouts, provider issues) are automatically retried once on t
 
 - **Provider**: Groq API via Vercel AI SDK
 - **Model**: Configurable via `AI_MODEL` environment variable (default: `llama-3.3-70b-versatile`)
-- **Backend route**: `POST /api/v1/ai/generate-reply`
+- **Backend routes**: `POST /api/v1/ai/generate-reply`, `POST /api/v1/ai/improve-message`, `GET /api/v1/ai/usage`
 - **Admin feature module**: `apps/admin/src/features/ai/`
 - **Backend feature module**: `apps/hono-api/src/features/ai/`

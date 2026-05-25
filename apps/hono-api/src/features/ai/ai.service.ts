@@ -1,7 +1,8 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { messages } from "../../db/schema/messages.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
+import { user } from "../../db/schema/users.js";
 import { env } from "../../env.js";
 import { createAIProvider } from "./ai.provider.js";
 import { buildContext, buildSystemPrompt, buildImprovePrompt } from "./ai.context.js";
@@ -393,4 +394,107 @@ export async function improveMessage(
   }
 
   throw lastError;
+}
+
+type GetAiUsageLogsInput = {
+  tenantId: string;
+  limit: number;
+  offset: number;
+  action?: string;
+  status?: string;
+  userId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+type AiUsageLogEntry = {
+  id: string;
+  tenantId: string;
+  userId: string;
+  operatorName: string | null;
+  action: string;
+  conversationId: string | null;
+  model: string;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  latencyMs: number | null;
+  finishReason: string | null;
+  status: string;
+  createdAt: string;
+};
+
+type GetAiUsageLogsResult = {
+  logs: AiUsageLogEntry[];
+  total: number;
+};
+
+export async function getAiUsageLogs(
+  input: GetAiUsageLogsInput,
+): Promise<GetAiUsageLogsResult> {
+  const conditions = [eq(aiUsageLog.tenantId, input.tenantId)];
+
+  if (input.action) {
+    conditions.push(
+      eq(aiUsageLog.action, input.action as "generate" | "improve"),
+    );
+  }
+  if (input.status) {
+    conditions.push(
+      eq(
+        aiUsageLog.status,
+        input.status as
+          | "success"
+          | "provider_error"
+          | "timeout"
+          | "empty"
+          | "content_filtered"
+          | "aborted",
+      ),
+    );
+  }
+  if (input.userId) {
+    conditions.push(eq(aiUsageLog.userId, input.userId));
+  }
+  if (input.dateFrom) {
+    conditions.push(gte(aiUsageLog.createdAt, input.dateFrom));
+  }
+  if (input.dateTo) {
+    conditions.push(lte(aiUsageLog.createdAt, input.dateTo));
+  }
+
+  const whereClause = and(...conditions);
+
+  const [logs, countResult] = await Promise.all([
+    db
+      .select({
+        id: aiUsageLog.id,
+        tenantId: aiUsageLog.tenantId,
+        userId: aiUsageLog.userId,
+        operatorName: user.name,
+        action: aiUsageLog.action,
+        conversationId: aiUsageLog.conversationId,
+        model: aiUsageLog.model,
+        inputTokens: aiUsageLog.inputTokens,
+        outputTokens: aiUsageLog.outputTokens,
+        latencyMs: aiUsageLog.latencyMs,
+        finishReason: aiUsageLog.finishReason,
+        status: aiUsageLog.status,
+        createdAt: aiUsageLog.createdAt,
+      })
+      .from(aiUsageLog)
+      .leftJoin(user, eq(aiUsageLog.userId, user.id))
+      .where(whereClause)
+      .orderBy(desc(aiUsageLog.createdAt))
+      .limit(input.limit)
+      .offset(input.offset),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(aiUsageLog)
+      .where(whereClause),
+  ]);
+
+  return {
+    logs,
+    total: countResult[0]?.count ?? 0,
+  };
 }

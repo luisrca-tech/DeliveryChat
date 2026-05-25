@@ -23,6 +23,7 @@ import { Route as SystemSettingsMembersRouteImport } from './routes/_system/sett
 import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
 import { Route as SystemSettingsApplicationsRouteImport } from './routes/_system/settings/applications'
 import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/settings/api-keys'
+import { Route as SystemSettingsAiUsageRouteImport } from './routes/_system/settings/ai-usage'
 import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
 import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
 
@@ -96,6 +97,11 @@ const SystemSettingsApiKeysRoute = SystemSettingsApiKeysRouteImport.update({
   path: '/settings/api-keys',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemSettingsAiUsageRoute = SystemSettingsAiUsageRouteImport.update({
+  id: '/settings/ai-usage',
+  path: '/settings/ai-usage',
+  getParentRoute: () => SystemRoute,
+} as any)
 const SystemOnboardingPlansRoute = SystemOnboardingPlansRouteImport.update({
   id: '/onboarding/plans',
   path: '/onboarding/plans',
@@ -108,30 +114,32 @@ const SystemBillingSuccessRoute = SystemBillingSuccessRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
+  '/': typeof SystemIndexRoute
   '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/conversations': typeof SystemConversationsRoute
-  '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
-  '/settings': typeof SystemSettingsIndexRoute
+  '/settings/': typeof SystemSettingsIndexRoute
 }
 export interface FileRoutesByTo {
+  '/': typeof SystemIndexRoute
   '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/conversations': typeof SystemConversationsRoute
-  '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/_system/': typeof SystemIndexRoute
   '/_system/billing/success': typeof SystemBillingSuccessRoute
   '/_system/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/_system/settings/ai-usage': typeof SystemSettingsAiUsageRoute
   '/_system/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/_system/settings/applications': typeof SystemSettingsApplicationsRoute
   '/_system/settings/billing': typeof SystemSettingsBillingRoute
@@ -161,30 +170,32 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/'
     | '/accept-invitation'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/conversations'
-    | '/'
     | '/billing/success'
     | '/onboarding/plans'
+    | '/settings/ai-usage'
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
     | '/settings/members'
     | '/settings/rate-limits'
-    | '/settings'
+    | '/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/'
     | '/accept-invitation'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/conversations'
-    | '/'
     | '/billing/success'
     | '/onboarding/plans'
+    | '/settings/ai-usage'
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/_system/'
     | '/_system/billing/success'
     | '/_system/onboarding/plans'
+    | '/_system/settings/ai-usage'
     | '/_system/settings/api-keys'
     | '/_system/settings/applications'
     | '/_system/settings/billing'
@@ -221,14 +233,14 @@ declare module '@tanstack/react-router' {
     '/_system': {
       id: '/_system'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof SystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_public': {
       id: '/_public'
       path: ''
-      fullPath: ''
+      fullPath: '/'
       preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -277,7 +289,7 @@ declare module '@tanstack/react-router' {
     '/_system/settings/': {
       id: '/_system/settings/'
       path: '/settings'
-      fullPath: '/settings'
+      fullPath: '/settings/'
       preLoaderRoute: typeof SystemSettingsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
@@ -314,6 +326,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/api-keys'
       fullPath: '/settings/api-keys'
       preLoaderRoute: typeof SystemSettingsApiKeysRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/_system/settings/ai-usage': {
+      id: '/_system/settings/ai-usage'
+      path: '/settings/ai-usage'
+      fullPath: '/settings/ai-usage'
+      preLoaderRoute: typeof SystemSettingsAiUsageRouteImport
       parentRoute: typeof SystemRoute
     }
     '/_system/onboarding/plans': {
@@ -355,6 +374,7 @@ interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
   SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
   SystemOnboardingPlansRoute: typeof SystemOnboardingPlansRoute
+  SystemSettingsAiUsageRoute: typeof SystemSettingsAiUsageRoute
   SystemSettingsApiKeysRoute: typeof SystemSettingsApiKeysRoute
   SystemSettingsApplicationsRoute: typeof SystemSettingsApplicationsRoute
   SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute
@@ -368,6 +388,7 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
   SystemBillingSuccessRoute: SystemBillingSuccessRoute,
   SystemOnboardingPlansRoute: SystemOnboardingPlansRoute,
+  SystemSettingsAiUsageRoute: SystemSettingsAiUsageRoute,
   SystemSettingsApiKeysRoute: SystemSettingsApiKeysRoute,
   SystemSettingsApplicationsRoute: SystemSettingsApplicationsRoute,
   SystemSettingsBillingRoute: SystemSettingsBillingRoute,
@@ -386,11 +407,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}

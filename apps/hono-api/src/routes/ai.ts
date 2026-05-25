@@ -7,17 +7,52 @@ import {
   requireAiFeature,
   createAiRateLimitMiddleware,
 } from "../features/ai/ai.middleware.js";
-import { generateReplyBodySchema, improveMessageBodySchema } from "../features/ai/ai.schemas.js";
-import { generateReply, improveMessage } from "../features/ai/ai.service.js";
+import {
+  generateReplyBodySchema,
+  improveMessageBodySchema,
+  listAiUsageQuerySchema,
+} from "../features/ai/ai.schemas.js";
+import { generateReply, improveMessage, getAiUsageLogs } from "../features/ai/ai.service.js";
 import { mapAiErrorToResponse } from "../features/ai/ai.errorMapper.js";
 import { jsonError, HTTP_STATUS } from "../lib/http.js";
 
 export const aiRoute = new Hono()
   .use("*", requireTenantAuth())
-  .use("*", requireRole("operator"))
   .use("*", checkBillingStatus())
-  .use("*", requireAiFeature())
-  .use("*", createAiRateLimitMiddleware())
+  .get(
+    "/usage",
+    requireRole("admin"),
+    zValidator("query", listAiUsageQuerySchema),
+    async (c) => {
+      const auth = getTenantAuth(c);
+      const { limit, offset, action, status, userId, dateFrom, dateTo } =
+        c.req.valid("query");
+
+      const result = await getAiUsageLogs({
+        tenantId: auth.organization.id,
+        limit,
+        offset,
+        action,
+        status,
+        userId,
+        dateFrom,
+        dateTo,
+      });
+
+      return c.json({
+        logs: result.logs,
+        total: result.total,
+        limit,
+        offset,
+      });
+    },
+  )
+  .use("/generate-reply", requireRole("operator"))
+  .use("/improve-message", requireRole("operator"))
+  .use("/generate-reply", requireAiFeature())
+  .use("/improve-message", requireAiFeature())
+  .use("/generate-reply", createAiRateLimitMiddleware())
+  .use("/improve-message", createAiRateLimitMiddleware())
   .post(
     "/generate-reply",
     zValidator("json", generateReplyBodySchema),

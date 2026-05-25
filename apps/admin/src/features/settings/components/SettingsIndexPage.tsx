@@ -6,12 +6,16 @@ import {
   AppWindow,
   Gauge,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus";
+import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
 import { SettingsLinkCard } from "./SettingsLinkCard";
 
 export function SettingsIndexPage() {
   const { data } = useBillingStatusQuery();
+
+  const { isAvailable: isAiAvailable } = useAiAvailability();
 
   const role = data?.role;
   const isAdmin = role === "admin" || role === "super_admin";
@@ -67,6 +71,14 @@ export function SettingsIndexPage() {
             title="Members"
             description="View and manage organization members and roles."
             icon={<Users className="h-5 w-5" />}
+          />
+        )}
+        {isAdmin && isAiAvailable && (
+          <SettingsLinkCard
+            to="/settings/ai-usage"
+            title="AI Usage"
+            description="View AI assistant usage and audit logs."
+            icon={<BarChart3 className="h-5 w-5" />}
           />
         )}
       </div>
