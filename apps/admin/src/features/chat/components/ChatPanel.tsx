@@ -149,6 +149,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
                     ? "This conversation is assigned to another agent"
                     : "Type a message..."
             }
+            conversationId={conversationId}
           />
         )}
 
