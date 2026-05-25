@@ -16,3 +16,7 @@ export type AiErrorResponse = {
 export type GenerateReplyResponse = {
   text: string;
 };
+
+export type ImproveMessageResponse = {
+  text: string;
+};

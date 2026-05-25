@@ -1,24 +1,27 @@
-# AI Assistant — Backend (Phase 1A)
+# AI Assistant — Backend
 
 ## Overview
 
-The AI assistant feature enables operators on PREMIUM and ENTERPRISE plans to generate reply suggestions using an LLM (Groq/Llama). The backend provides a single endpoint that receives a conversation ID, builds context from recent messages, calls the AI provider, and returns a suggested reply.
+The AI assistant feature enables operators on PREMIUM and ENTERPRISE plans to use an LLM (Groq/Llama) for two actions: **Generate Reply** (draft a new reply from conversation context) and **Improve Message** (rewrite an operator's existing draft for clarity and professionalism).
 
-## Route
+## Routes
 
-`POST /v1/ai/generate-reply`
+### `POST /v1/ai/generate-reply`
 
-### Request
+Generates a new reply suggestion based on conversation history.
 
-```json
-{ "conversationId": "uuid" }
-```
+- Request: `{ "conversationId": "uuid" }`
+- Response: `{ "text": "Suggested reply content" }`
+- Context: Last N messages (configurable via `AI_CONTEXT_MESSAGE_LIMIT`, default 10)
 
-### Response
+### `POST /v1/ai/improve-message`
 
-```json
-{ "text": "Suggested reply content" }
-```
+Rewrites an operator's draft message for better clarity, tone, and professionalism.
+
+- Request: `{ "conversationId": "uuid", "draft": "operator's text (1-4000 chars)" }`
+- Response: `{ "text": "Improved message content" }`
+- Context: Last 3 messages (fixed) + operator's draft
+- The system prompt instructs the model to rewrite (not reply), preserving the original intent and language
 
 ### Middleware Chain
 

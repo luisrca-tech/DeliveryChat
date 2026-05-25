@@ -53,10 +53,12 @@ vi.mock("../ai.middleware.js", async (importOriginal) => {
 
 vi.mock("../ai.service.js", () => ({
   generateReply: vi.fn(),
+  improveMessage: vi.fn(),
 }));
 
-const { generateReply } = await import("../ai.service.js");
+const { generateReply, improveMessage } = await import("../ai.service.js");
 const mockGenerateReply = generateReply as ReturnType<typeof vi.fn>;
+const mockImproveMessage = improveMessage as ReturnType<typeof vi.fn>;
 
 const { aiRoute } = await import("../../../routes/ai.js");
 
@@ -170,6 +172,137 @@ describe("POST /ai/generate-reply", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+    });
+
+    expect(res.status).toBe(500);
+  });
+});
+
+describe("POST /ai/improve-message", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockAuthContext = createMemberAuth();
+  });
+
+  it("returns 200 with improved text on success", async () => {
+    mockImproveMessage.mockResolvedValue({ text: "Improved message here." });
+
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+        draft: "i think we can help",
+      }),
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.text).toBe("Improved message here.");
+  });
+
+  it("returns 400 for missing draft", async () => {
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for empty draft", async () => {
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+        draft: "",
+      }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for draft exceeding 4000 characters", async () => {
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+        draft: "x".repeat(4001),
+      }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 400 for invalid conversation ID format", async () => {
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "not-a-uuid",
+        draft: "some draft",
+      }),
+    });
+
+    expect(res.status).toBe(400);
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    mockAuthContext = null;
+
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+        draft: "some draft",
+      }),
+    });
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 422 for AI empty response error", async () => {
+    const { AIEmptyResponseError } = await import("../ai.errors.js");
+    mockImproveMessage.mockRejectedValue(new AIEmptyResponseError("empty"));
+
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+        draft: "some draft",
+      }),
+    });
+
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toBe("ai_empty_response");
+  });
+
+  it("returns 500 for unexpected errors", async () => {
+    mockImproveMessage.mockRejectedValue(new Error("unexpected"));
+
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/improve-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+        draft: "some draft",
+      }),
     });
 
     expect(res.status).toBe(500);

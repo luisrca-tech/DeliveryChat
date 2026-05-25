@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   buildContext,
   buildSystemPrompt,
+  buildImprovePrompt,
   type ConversationMessage,
 } from "../ai.context.js";
 
@@ -111,5 +112,24 @@ describe("buildSystemPrompt", () => {
   it("instructs to reply as a support agent", () => {
     const result = buildSystemPrompt("Acme Corp");
     expect(result).toMatch(/support|customer|agent/i);
+  });
+});
+
+describe("buildImprovePrompt", () => {
+  it("includes the tenant name", () => {
+    const result = buildImprovePrompt("Acme Corp");
+    expect(result).toContain("Acme Corp");
+  });
+
+  it("instructs to rewrite not reply", () => {
+    const result = buildImprovePrompt("Acme Corp");
+    expect(result).toMatch(/rewrite/i);
+    expect(result).toMatch(/do not.*(write a new reply|reply)/i);
+  });
+
+  it("instructs to preserve intent and language", () => {
+    const result = buildImprovePrompt("Acme Corp");
+    expect(result).toMatch(/preserve/i);
+    expect(result).toMatch(/language/i);
   });
 });

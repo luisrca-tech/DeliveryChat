@@ -62,7 +62,7 @@ function mockInsertChain() {
   return chain;
 }
 
-const { generateReply } = await import("../ai.service.js");
+const { generateReply, improveMessage } = await import("../ai.service.js");
 
 describe("generateReply", () => {
   const baseInput = {
@@ -269,5 +269,155 @@ describe("generateReply", () => {
     const valuesCall = (insertChain.values as ReturnType<typeof vi.fn>).mock
       .calls[0]![0];
     expect(valuesCall.status).toBe("empty");
+  });
+});
+
+describe("improveMessage", () => {
+  const baseImproveInput = {
+    conversationId: "conv-1",
+    draft: "i think we can fix that for you maybe",
+    operatorId: "op-1",
+    tenantId: "tenant-1",
+    tenantName: "Acme Corp",
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns improved text on success", async () => {
+    mockSelect.mockReturnValue(
+      chainMock([
+        {
+          senderId: "visitor-1",
+          content: "My order is broken",
+          createdAt: "2026-05-25T11:55:00Z",
+        },
+      ]),
+    );
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "We can certainly fix that for you!",
+        usage: { promptTokens: 60, completionTokens: 15 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const result = await improveMessage(baseImproveInput);
+
+    expect(result.text).toBe("We can certainly fix that for you!");
+    expect(mockProvider.generateText).toHaveBeenCalledOnce();
+  });
+
+  it("includes operator draft in the context messages", async () => {
+    mockSelect.mockReturnValue(chainMock([]));
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Improved draft",
+        usage: { promptTokens: 40, completionTokens: 10 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    await improveMessage(baseImproveInput);
+
+    const callArgs = mockProvider.generateText.mock.calls[0]![0];
+    const lastMessage = callArgs.messages[callArgs.messages.length - 1];
+    expect(lastMessage.content).toContain("[Operator draft to improve]");
+    expect(lastMessage.content).toContain(baseImproveInput.draft);
+  });
+
+  it("uses the improve system prompt (rewrite, not reply)", async () => {
+    mockSelect.mockReturnValue(chainMock([]));
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Improved draft",
+        usage: { promptTokens: 40, completionTokens: 10 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    await improveMessage(baseImproveInput);
+
+    const callArgs = mockProvider.generateText.mock.calls[0]![0];
+    expect(callArgs.systemPrompt).toMatch(/rewrite/i);
+    expect(callArgs.systemPrompt).not.toMatch(
+      /draft a helpful.*reply to the customer/i,
+    );
+  });
+
+  it("logs usage with action 'improve'", async () => {
+    mockSelect.mockReturnValue(chainMock([]));
+    const insertChain = mockInsertChain();
+    mockInsert.mockReturnValue(insertChain);
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Improved text",
+        usage: { promptTokens: 40, completionTokens: 10 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    await improveMessage(baseImproveInput);
+
+    expect(mockInsert).toHaveBeenCalled();
+    const valuesCall = (insertChain.values as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
+    expect(valuesCall.action).toBe("improve");
+    expect(valuesCall.status).toBe("success");
+  });
+
+  it("fetches only 3 messages for context (not the full limit)", async () => {
+    mockSelect.mockReturnValue(chainMock([]));
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Improved",
+        usage: { promptTokens: 40, completionTokens: 10 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    await improveMessage(baseImproveInput);
+
+    const selectChain = mockSelect.mock.results[0]!.value;
+    const limitCall = selectChain.limit as ReturnType<typeof vi.fn>;
+    expect(limitCall).toHaveBeenCalledWith(3);
+  });
+
+  it("retries once on transient provider error", async () => {
+    mockSelect.mockReturnValue(chainMock([]));
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const { AIProviderError } = await import("../ai.errors.js");
+    const mockProvider = {
+      generateText: vi
+        .fn()
+        .mockRejectedValueOnce(new AIProviderError("transient failure"))
+        .mockResolvedValueOnce({
+          text: "Recovered improvement",
+          usage: { promptTokens: 40, completionTokens: 10 },
+          finishReason: "stop",
+        }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const result = await improveMessage(baseImproveInput);
+
+    expect(result.text).toBe("Recovered improvement");
+    expect(mockProvider.generateText).toHaveBeenCalledTimes(2);
   });
 });

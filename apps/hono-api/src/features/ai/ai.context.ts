@@ -39,3 +39,15 @@ export function buildSystemPrompt(tenantName: string): string {
     "Reply with only the message text — no greetings prefix or signature unless the conversation context calls for it.",
   ].join(" ");
 }
+
+export function buildImprovePrompt(tenantName: string): string {
+  return [
+    `You are a writing assistant for a customer support agent at ${tenantName}.`,
+    "The operator has written a draft reply and wants you to improve it.",
+    "Rewrite the draft to be clearer, more professional, and more empathetic.",
+    "Do NOT write a new reply — rewrite the operator's existing draft.",
+    "Preserve the original intent, key information, and language of the draft.",
+    "Match the language used by the operator in the draft.",
+    "Return only the improved message text — no explanations, no alternatives.",
+  ].join(" ");
+}

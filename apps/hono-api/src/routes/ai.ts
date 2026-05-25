@@ -7,8 +7,8 @@ import {
   requireAiFeature,
   createAiRateLimitMiddleware,
 } from "../features/ai/ai.middleware.js";
-import { generateReplyBodySchema } from "../features/ai/ai.schemas.js";
-import { generateReply } from "../features/ai/ai.service.js";
+import { generateReplyBodySchema, improveMessageBodySchema } from "../features/ai/ai.schemas.js";
+import { generateReply, improveMessage } from "../features/ai/ai.service.js";
 import { mapAiErrorToResponse } from "../features/ai/ai.errorMapper.js";
 import { jsonError, HTTP_STATUS } from "../lib/http.js";
 
@@ -43,6 +43,36 @@ export const aiRoute = new Hono()
           HTTP_STATUS.INTERNAL_SERVER_ERROR,
           "internal_server_error",
           "An unexpected error occurred while generating a reply.",
+        );
+      }
+    },
+  )
+  .post(
+    "/improve-message",
+    zValidator("json", improveMessageBodySchema),
+    async (c) => {
+      const auth = getTenantAuth(c);
+      const { conversationId, draft } = c.req.valid("json");
+
+      try {
+        const result = await improveMessage({
+          conversationId,
+          draft,
+          operatorId: auth.user.id,
+          tenantId: auth.organization.id,
+          tenantName: auth.organization.name,
+        });
+
+        return c.json({ text: result.text });
+      } catch (error) {
+        const mapped = mapAiErrorToResponse(c, error);
+        if (mapped) return mapped;
+
+        return jsonError(
+          c,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          "internal_server_error",
+          "An unexpected error occurred while improving the message.",
         );
       }
     },
