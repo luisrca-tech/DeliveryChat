@@ -8,6 +8,7 @@ import { createAIProvider } from "./ai.provider.js";
 import { buildContext, buildSystemPrompt, buildImprovePrompt } from "./ai.context.js";
 import {
   AIProviderError,
+  AIProviderRateLimitError,
   AITimeoutError,
   AIEmptyResponseError,
   AIContentFilteredError,
@@ -77,6 +78,7 @@ async function logUsage(params: {
 }
 
 function isRetryable(error: unknown): boolean {
+  if (error instanceof AIProviderRateLimitError) return false;
   if (error instanceof AIProviderError) return true;
   return false;
 }

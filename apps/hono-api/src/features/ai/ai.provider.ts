@@ -1,6 +1,6 @@
 import { generateText } from "ai";
 import { createGroq } from "@ai-sdk/groq";
-import { AITimeoutError, AIProviderError } from "./ai.errors.js";
+import { AITimeoutError, AIProviderError, AIProviderRateLimitError } from "./ai.errors.js";
 
 export type AIProviderMessage = {
   role: "user" | "assistant" | "system";
@@ -25,18 +25,16 @@ export interface AIProvider {
 }
 
 export class GroqProvider implements AIProvider {
-  private readonly apiKey: string;
+  private readonly client: ReturnType<typeof createGroq>;
 
   constructor(apiKey: string) {
-    this.apiKey = apiKey;
+    this.client = createGroq({ apiKey });
   }
 
   async generateText(request: AIProviderRequest): Promise<AIProviderResponse> {
-    const groq = createGroq({ apiKey: this.apiKey });
-
     try {
       const result = await generateText({
-        model: groq(request.model),
+        model: this.client(request.model),
         system: request.systemPrompt,
         messages: request.messages,
         abortSignal: request.abortSignal,
@@ -61,6 +59,13 @@ export class GroqProvider implements AIProvider {
       ) {
         throw new AITimeoutError("AI provider timed out", { cause: error });
       }
+      const statusCode = (error as { statusCode?: number }).statusCode ??
+        (error as { status?: number }).status;
+      if (statusCode === 429) {
+        throw new AIProviderRateLimitError("AI provider rate limit exceeded", {
+          cause: error,
+        });
+      }
       throw new AIProviderError("AI provider request failed", {
         cause: error,
       });
@@ -74,6 +79,10 @@ export class MockProvider implements AIProvider {
 
     if (prompt.includes("__TIMEOUT__")) {
       throw new AITimeoutError("AI provider timed out: mock timeout");
+    }
+
+    if (prompt.includes("__RATE_LIMIT__")) {
+      throw new AIProviderRateLimitError("AI provider rate limit exceeded: mock rate limit");
     }
 
     if (prompt.includes("__PROVIDER_ERROR__")) {

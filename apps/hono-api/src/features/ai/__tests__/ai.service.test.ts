@@ -160,6 +160,30 @@ describe("generateReply", () => {
     expect(mockProvider.generateText).toHaveBeenCalledTimes(2);
   });
 
+  it("does not retry on AIProviderRateLimitError", async () => {
+    mockSelect.mockReturnValue(
+      chainMock([
+        {
+          senderId: "visitor-1",
+          content: "Help",
+          createdAt: "2026-05-25T11:55:00Z",
+        },
+      ]),
+    );
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const { AIProviderRateLimitError } = await import("../ai.errors.js");
+    const mockProvider = {
+      generateText: vi
+        .fn()
+        .mockRejectedValue(new AIProviderRateLimitError("rate limited by provider")),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    await expect(generateReply(baseInput)).rejects.toThrow("rate limited by provider");
+    expect(mockProvider.generateText).toHaveBeenCalledTimes(1);
+  });
+
   it("retries once on timeout then throws with status 'timeout'", async () => {
     mockSelect.mockReturnValue(
       chainMock([

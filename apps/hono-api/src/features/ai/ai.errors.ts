@@ -33,6 +33,7 @@ export class AIContentFilteredError extends Error {
   }
 }
 
+// Mapper fallback — primary enforcement is in the rate-limit middleware
 export class AIQuotaExceededError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);

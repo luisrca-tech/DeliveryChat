@@ -1,8 +1,13 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   MockProvider,
   type AIProviderRequest,
 } from "../ai.provider.js";
+import {
+  AIProviderRateLimitError,
+  AIProviderError,
+  AITimeoutError,
+} from "../ai.errors.js";
 
 describe("MockProvider", () => {
   const defaultRequest: AIProviderRequest = {
@@ -79,5 +84,29 @@ describe("MockProvider", () => {
     await expect(provider.generateText(request)).rejects.toThrow(
       "provider error",
     );
+  });
+
+  it("simulates rate limit when system prompt contains __RATE_LIMIT__", async () => {
+    const provider = new MockProvider();
+    const request: AIProviderRequest = {
+      ...defaultRequest,
+      systemPrompt: "__RATE_LIMIT__",
+    };
+
+    await expect(provider.generateText(request)).rejects.toThrow(
+      AIProviderRateLimitError,
+    );
+  });
+});
+
+describe("isRetryable (via AIProviderRateLimitError)", () => {
+  it("AIProviderRateLimitError is not an instance of AIProviderError", () => {
+    const error = new AIProviderRateLimitError("rate limited");
+    expect(error).not.toBeInstanceOf(AIProviderError);
+  });
+
+  it("AITimeoutError is an instance of AIProviderError (retryable)", () => {
+    const error = new AITimeoutError("timed out");
+    expect(error).toBeInstanceOf(AIProviderError);
   });
 });
