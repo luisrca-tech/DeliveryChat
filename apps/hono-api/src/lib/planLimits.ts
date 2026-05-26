@@ -46,3 +46,19 @@ export function getMemberLimitByPlan(plan: string): number {
 export function getRateLimitsByPlan(plan: string): RateLimitConfig {
   return RATE_LIMITS[plan as keyof typeof RATE_LIMITS] ?? RATE_LIMITS.FREE;
 }
+
+export const AI_LIMITS = {
+  FREE: { aiAssistantEnabled: false, aiMonthlyCap: 0 },
+  BASIC: { aiAssistantEnabled: false, aiMonthlyCap: 0 },
+  PREMIUM: { aiAssistantEnabled: true, aiMonthlyCap: 3000 },
+  ENTERPRISE: { aiAssistantEnabled: true, aiMonthlyCap: 3000 },
+} as const;
+
+export type AiLimitConfig = {
+  aiAssistantEnabled: boolean;
+  aiMonthlyCap: number;
+};
+
+export function getAiLimitsByPlan(plan: string): AiLimitConfig {
+  return AI_LIMITS[plan as keyof typeof AI_LIMITS] ?? AI_LIMITS.FREE;
+}

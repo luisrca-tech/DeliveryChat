@@ -12,6 +12,7 @@ export const tenantRateLimits = createTable("tenant_rate_limits", {
   alertThresholdPercent: integer("alert_threshold_percent")
     .notNull()
     .default(80),
+  aiMonthlyCapOverride: integer("ai_monthly_cap_override"),
   isCustom: boolean("is_custom").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

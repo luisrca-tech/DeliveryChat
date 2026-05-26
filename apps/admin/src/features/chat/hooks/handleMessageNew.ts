@@ -51,7 +51,7 @@ export function handleMessageNew(
     msg.senderRole === "visitor" &&
     msg.conversationId === activeConversationId
   ) {
-    markAsRead(msg.conversationId).catch(console.error);
+    markAsRead(msg.conversationId, msg.id).catch(console.error);
   }
 
   return { clearTypingForSender: true };

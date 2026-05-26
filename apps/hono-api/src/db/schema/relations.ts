@@ -6,6 +6,7 @@ import { organization } from "./organization";
 import { applications } from "./applications";
 import { user } from "./users";
 import { visitorIdentities } from "./visitorIdentities";
+import { aiUsageLog } from "./aiUsageLog";
 
 export const conversationsRelations = relations(
   conversations,
@@ -65,3 +66,18 @@ export const visitorIdentitiesRelations = relations(
     }),
   }),
 );
+
+export const aiUsageLogRelations = relations(aiUsageLog, ({ one }) => ({
+  organization: one(organization, {
+    fields: [aiUsageLog.tenantId],
+    references: [organization.id],
+  }),
+  user: one(user, {
+    fields: [aiUsageLog.userId],
+    references: [user.id],
+  }),
+  conversation: one(conversations, {
+    fields: [aiUsageLog.conversationId],
+    references: [conversations.id],
+  }),
+}));
