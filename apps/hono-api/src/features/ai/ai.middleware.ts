@@ -80,6 +80,10 @@ const AI_RATE_LIMIT_WINDOWS: RateLimitWindow[] = [
 
 const rateLimitStore = new Map<string, { count: number; resetAt: number }[]>();
 
+export function _testGetRateLimitStore() {
+  return rateLimitStore;
+}
+
 export function createAiRateLimitMiddleware(): MiddlewareHandler {
   return async (c, next) => {
     const auth = getTenantAuth(c);
@@ -97,6 +101,7 @@ export function createAiRateLimitMiddleware(): MiddlewareHandler {
     }
 
     const windows = rateLimitStore.get(tenantId)!;
+    let allExpired = true;
 
     for (let i = 0; i < windows.length; i++) {
       const win = windows[i]!;
@@ -105,6 +110,8 @@ export function createAiRateLimitMiddleware(): MiddlewareHandler {
       if (now >= win.resetAt) {
         win.count = 0;
         win.resetAt = now + cfg.windowMs;
+      } else {
+        allExpired = false;
       }
 
       if (win.count >= cfg.maxRequests) {
@@ -119,8 +126,19 @@ export function createAiRateLimitMiddleware(): MiddlewareHandler {
       }
     }
 
-    for (const window of windows) {
-      window.count++;
+    if (allExpired) {
+      rateLimitStore.delete(tenantId);
+      rateLimitStore.set(
+        tenantId,
+        AI_RATE_LIMIT_WINDOWS.map((w) => ({
+          count: 1,
+          resetAt: now + w.windowMs,
+        })),
+      );
+    } else {
+      for (const window of windows) {
+        window.count++;
+      }
     }
 
     await next();

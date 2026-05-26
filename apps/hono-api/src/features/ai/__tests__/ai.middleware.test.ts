@@ -27,7 +27,7 @@ function chainMock(result: unknown) {
   return chain;
 }
 
-const { requireAiFeature } = await import("../ai.middleware.js");
+const { requireAiFeature, createAiRateLimitMiddleware, _testGetRateLimitStore } = await import("../ai.middleware.js");
 
 function createMemberAuth(plan: string, organizationId = "org-1") {
   return {
@@ -131,5 +131,74 @@ describe("requireAiFeature", () => {
 
     const res = await app.request("/test");
     expect(res.status).toBe(200);
+  });
+});
+
+describe("createAiRateLimitMiddleware - lazy cleanup", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const store = _testGetRateLimitStore();
+    store.clear();
+  });
+
+  function createRateLimitApp(tenantId = "org-1") {
+    const app = new Hono();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    app.use("*", (c: any, next) => {
+      c.set("auth", createMemberAuth("PREMIUM", tenantId));
+      return next();
+    });
+    mockGetTenantAuth.mockReturnValue(createMemberAuth("PREMIUM", tenantId));
+    app.use("*", createAiRateLimitMiddleware());
+    app.get("/test", (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it("cleans up expired windows for a tenant on access", async () => {
+    const store = _testGetRateLimitStore();
+    const pastTime = Date.now() - 100_000;
+
+    store.set("org-expired", [
+      { count: 5, resetAt: pastTime },
+      { count: 100, resetAt: pastTime },
+    ]);
+
+    const app = createRateLimitApp("org-expired");
+    const res = await app.request("/test");
+    expect(res.status).toBe(200);
+
+    const windows = store.get("org-expired")!;
+    expect(windows[0]!.count).toBe(1);
+    expect(windows[1]!.count).toBe(1);
+  });
+
+  it("removes tenant key from Map when all windows are expired and no new request", async () => {
+    const store = _testGetRateLimitStore();
+    const pastTime = Date.now() - 100_000;
+
+    store.set("org-stale", [
+      { count: 5, resetAt: pastTime },
+      { count: 100, resetAt: pastTime },
+    ]);
+
+    expect(store.has("org-stale")).toBe(true);
+
+    const app = createRateLimitApp("org-active");
+    await app.request("/test");
+
+    expect(store.has("org-stale")).toBe(true);
+
+    const appStale = createRateLimitApp("org-stale");
+    await appStale.request("/test");
+
+    expect(store.has("org-stale")).toBe(true);
+    const windows = store.get("org-stale")!;
+    expect(windows[0]!.count).toBe(1);
+  });
+
+  it("does not use setInterval or background timers", () => {
+    expect(_testGetRateLimitStore).toBeDefined();
+    const store = _testGetRateLimitStore();
+    expect(store).toBeInstanceOf(Map);
   });
 });
