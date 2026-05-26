@@ -16,6 +16,7 @@ export type Conversation = {
   createdAt: string;
   updatedAt: string;
   unreadCount: number;
+  lastMessageId: string | null;
 };
 
 export type ConversationParticipant = {
@@ -79,5 +80,5 @@ export type WebSocketHandlerContext = {
     queryKey: readonly unknown[],
     updater: (old: unknown) => unknown,
   ) => void;
-  markAsRead: (conversationId: string) => Promise<unknown>;
+  markAsRead: (conversationId: string, messageId: string) => Promise<unknown>;
 };

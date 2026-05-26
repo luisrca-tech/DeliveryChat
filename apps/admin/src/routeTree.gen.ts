@@ -23,6 +23,7 @@ import { Route as SystemSettingsMembersRouteImport } from './routes/_system/sett
 import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
 import { Route as SystemSettingsApplicationsRouteImport } from './routes/_system/settings/applications'
 import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/settings/api-keys'
+import { Route as SystemSettingsAiUsageRouteImport } from './routes/_system/settings/ai-usage'
 import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
 import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
 
@@ -96,6 +97,11 @@ const SystemSettingsApiKeysRoute = SystemSettingsApiKeysRouteImport.update({
   path: '/settings/api-keys',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemSettingsAiUsageRoute = SystemSettingsAiUsageRouteImport.update({
+  id: '/settings/ai-usage',
+  path: '/settings/ai-usage',
+  getParentRoute: () => SystemRoute,
+} as any)
 const SystemOnboardingPlansRoute = SystemOnboardingPlansRouteImport.update({
   id: '/onboarding/plans',
   path: '/onboarding/plans',
@@ -116,6 +122,7 @@ export interface FileRoutesByFullPath {
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
   '/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/settings/applications': typeof SystemSettingsApplicationsRoute
   '/settings/billing': typeof SystemSettingsBillingRoute
@@ -151,6 +159,7 @@ export interface FileRoutesById {
   '/_system/': typeof SystemIndexRoute
   '/_system/billing/success': typeof SystemBillingSuccessRoute
   '/_system/onboarding/plans': typeof SystemOnboardingPlansRoute
+  '/_system/settings/ai-usage': typeof SystemSettingsAiUsageRoute
   '/_system/settings/api-keys': typeof SystemSettingsApiKeysRoute
   '/_system/settings/applications': typeof SystemSettingsApplicationsRoute
   '/_system/settings/billing': typeof SystemSettingsBillingRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/'
     | '/billing/success'
     | '/onboarding/plans'
+    | '/settings/ai-usage'
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
@@ -185,6 +195,7 @@ export interface FileRouteTypes {
     | '/'
     | '/billing/success'
     | '/onboarding/plans'
+    | '/settings/ai-usage'
     | '/settings/api-keys'
     | '/settings/applications'
     | '/settings/billing'
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/_system/'
     | '/_system/billing/success'
     | '/_system/onboarding/plans'
+    | '/_system/settings/ai-usage'
     | '/_system/settings/api-keys'
     | '/_system/settings/applications'
     | '/_system/settings/billing'
@@ -316,6 +328,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemSettingsApiKeysRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/_system/settings/ai-usage': {
+      id: '/_system/settings/ai-usage'
+      path: '/settings/ai-usage'
+      fullPath: '/settings/ai-usage'
+      preLoaderRoute: typeof SystemSettingsAiUsageRouteImport
+      parentRoute: typeof SystemRoute
+    }
     '/_system/onboarding/plans': {
       id: '/_system/onboarding/plans'
       path: '/onboarding/plans'
@@ -355,6 +374,7 @@ interface SystemRouteChildren {
   SystemIndexRoute: typeof SystemIndexRoute
   SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
   SystemOnboardingPlansRoute: typeof SystemOnboardingPlansRoute
+  SystemSettingsAiUsageRoute: typeof SystemSettingsAiUsageRoute
   SystemSettingsApiKeysRoute: typeof SystemSettingsApiKeysRoute
   SystemSettingsApplicationsRoute: typeof SystemSettingsApplicationsRoute
   SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute
@@ -368,6 +388,7 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemIndexRoute: SystemIndexRoute,
   SystemBillingSuccessRoute: SystemBillingSuccessRoute,
   SystemOnboardingPlansRoute: SystemOnboardingPlansRoute,
+  SystemSettingsAiUsageRoute: SystemSettingsAiUsageRoute,
   SystemSettingsApiKeysRoute: SystemSettingsApiKeysRoute,
   SystemSettingsApplicationsRoute: SystemSettingsApplicationsRoute,
   SystemSettingsBillingRoute: SystemSettingsBillingRoute,

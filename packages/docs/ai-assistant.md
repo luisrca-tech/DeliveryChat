@@ -1,0 +1,90 @@
+# AI Assistant
+
+## Overview
+
+The AI Assistant helps operators respond to customer conversations faster by generating contextual reply suggestions. It uses a large language model (LLM) to analyze recent conversation history and produce a draft reply that matches the conversation's language and tone.
+
+## Features
+
+### Generate Reply
+
+Operators can click the "Generate Reply" button (sparkles icon) in the chat input area to get an AI-generated reply suggestion.
+
+**How it works:**
+
+1. The AI reads the last N messages in the conversation (default: 10)
+2. It generates a professional, helpful reply matching the customer's language
+3. The suggestion appears in the input field with an "AI suggestion" indicator
+4. The operator can edit, send, or discard the suggestion
+
+**Constraints:**
+
+- Available only on PREMIUM and ENTERPRISE plans
+- Button is enabled only when the input field is empty
+- Rate limits: 10 requests per minute, 250 per day (per tenant)
+- Monthly cap: 3,000 requests per month (PREMIUM/ENTERPRISE default)
+
+### Improve Message
+
+Operators can rewrite their draft message using AI for better tone and clarity.
+
+**How it works:**
+
+1. The operator writes a draft message in the input field
+2. They click the "Improve Message" button (wand icon)
+3. The AI rewrites the draft while preserving intent and language
+4. The improved version appears with Accept / Reject controls
+5. Accept keeps the improved text; Reject restores the original draft
+
+**Constraints:**
+
+- Same plan/rate/cap limits as Generate Reply
+- Button is enabled only when the input field has content
+- Both AI buttons are mutually disabled while either action is in-flight
+
+### AI Usage Audit
+
+Admins and super admins can view AI usage logs at Settings > AI Usage.
+
+**Features:**
+
+- Paginated table of all AI requests with timestamps, operator, action, status, model, tokens, and latency
+- Filters by action type, status, operator, and date range
+- Summary cards showing total requests, success rate, and average latency
+- No message content is stored or displayed — metadata only
+
+## Plan Availability
+
+| Feature        | FREE | BASIC | PREMIUM | ENTERPRISE |
+|---------------|------|-------|---------|------------|
+| Generate Reply | No   | No    | Yes     | Yes        |
+| Improve Message| No   | No    | Yes     | Yes        |
+| Monthly Cap    | —    | —     | 3,000   | Custom     |
+
+ENTERPRISE tenants can have custom monthly caps configured via tenant rate limit overrides.
+
+## Privacy & Data
+
+- No customer messages or AI-generated responses are stored beyond the conversation itself
+- The `aiUsageLog` table records metadata only: timestamps, token counts, latency, status
+- All AI processing happens through Groq's API with the configured model
+
+## Error States
+
+The system provides user-friendly error messages for all failure modes:
+
+- **Timeouts**: "AI took too long to respond. Please try again."
+- **Rate limits**: "Too many AI requests. Please wait X seconds."
+- **Monthly cap**: "Your organization has reached the monthly AI usage limit."
+- **Content filtered**: "Sorry, AI couldn't generate a suitable response."
+- **Provider unavailable**: "AI service is currently unavailable."
+
+Transient errors (timeouts, provider issues) are automatically retried once on the backend before surfacing to the operator.
+
+## Technical Details
+
+- **Provider**: Groq API via Vercel AI SDK
+- **Model**: Configurable via `AI_MODEL` environment variable (default: `llama-3.3-70b-versatile`)
+- **Backend routes**: `POST /api/v1/ai/generate-reply`, `POST /api/v1/ai/improve-message`, `GET /api/v1/ai/usage`
+- **Admin feature module**: `apps/admin/src/features/ai/`
+- **Backend feature module**: `apps/hono-api/src/features/ai/`
