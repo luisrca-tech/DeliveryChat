@@ -33,6 +33,13 @@ export class AIContentFilteredError extends Error {
   }
 }
 
+export class AIConversationNotFoundError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "AIConversationNotFoundError";
+  }
+}
+
 // Mapper fallback — primary enforcement is in the rate-limit middleware
 export class AIQuotaExceededError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {

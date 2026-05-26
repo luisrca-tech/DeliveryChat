@@ -7,6 +7,7 @@ import {
   AITimeoutError,
   AIEmptyResponseError,
   AIContentFilteredError,
+  AIConversationNotFoundError,
   AIQuotaExceededError,
 } from "../ai.errors.js";
 
@@ -35,6 +36,8 @@ function createError(type: string): Error {
       return new AIEmptyResponseError("empty");
     case "content_filtered":
       return new AIContentFilteredError("filtered");
+    case "conversation_not_found":
+      return new AIConversationNotFoundError("not found");
     case "quota_exceeded":
       return new AIQuotaExceededError("quota");
     case "provider":
@@ -95,6 +98,16 @@ describe("mapAiErrorToResponse", () => {
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe("ai_monthly_cap_exceeded");
+  });
+
+  it("maps AIConversationNotFoundError to 404 Not Found", async () => {
+    const { app } = createTestContext();
+    const res = await app.request("/test", {
+      headers: { "x-test-error": "conversation_not_found" },
+    });
+    expect(res.status).toBe(404);
+    const body = await res.json();
+    expect(body.error).toBe("conversation_not_found");
   });
 
   it("maps AIProviderError to 502 Bad Gateway", async () => {

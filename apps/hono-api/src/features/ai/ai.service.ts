@@ -1,6 +1,7 @@
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { messages } from "../../db/schema/messages.js";
+import { conversations } from "../../db/schema/conversations.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import { user } from "../../db/schema/users.js";
 import { env } from "../../env.js";
@@ -12,6 +13,7 @@ import {
   AITimeoutError,
   AIEmptyResponseError,
   AIContentFilteredError,
+  AIConversationNotFoundError,
 } from "./ai.errors.js";
 
 type GenerateReplyInput = {
@@ -87,9 +89,31 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+async function verifyConversationOwnership(
+  conversationId: string,
+  tenantId: string,
+): Promise<void> {
+  const result = await db
+    .select({ id: conversations.id })
+    .from(conversations)
+    .where(
+      and(
+        eq(conversations.id, conversationId),
+        eq(conversations.organizationId, tenantId),
+      ),
+    )
+    .limit(1);
+
+  if (result.length === 0) {
+    throw new AIConversationNotFoundError("Conversation not found");
+  }
+}
+
 export async function generateReply(
   input: GenerateReplyInput,
 ): Promise<GenerateReplyResult> {
+  await verifyConversationOwnership(input.conversationId, input.tenantId);
+
   const model = env.AI_MODEL;
   const provider = createAIProvider(model, env.GROQ_API_KEY);
   const limit = env.AI_CONTEXT_MESSAGE_LIMIT;
@@ -228,6 +252,8 @@ const IMPROVE_CONTEXT_LIMIT = 3;
 export async function improveMessage(
   input: ImproveMessageInput,
 ): Promise<ImproveMessageResult> {
+  await verifyConversationOwnership(input.conversationId, input.tenantId);
+
   const model = env.AI_MODEL;
   const provider = createAIProvider(model, env.GROQ_API_KEY);
 

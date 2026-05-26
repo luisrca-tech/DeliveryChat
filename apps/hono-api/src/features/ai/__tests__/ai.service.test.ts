@@ -64,6 +64,8 @@ function mockInsertChain() {
 
 const { generateReply, improveMessage } = await import("../ai.service.js");
 
+const OWNERSHIP_OK = [{ id: "conv-1" }];
+
 describe("generateReply", () => {
   const baseInput = {
     conversationId: "conv-1",
@@ -73,7 +75,7 @@ describe("generateReply", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it("returns generated text on success", async () => {
@@ -331,6 +333,30 @@ describe("generateReply", () => {
       .calls[0]![0];
     expect(valuesCall.status).toBe("empty");
   });
+
+  it("throws AIConversationNotFoundError when conversation belongs to another tenant", async () => {
+    // First call (ownership check) returns empty = not found
+    // Second call (messages) should never be reached
+    mockSelect
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock([]));
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Should not reach this",
+        usage: { promptTokens: 30, completionTokens: 10 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const { AIConversationNotFoundError } = await import("../ai.errors.js");
+    await expect(generateReply(baseInput)).rejects.toThrow(
+      AIConversationNotFoundError,
+    );
+    expect(mockProvider.generateText).not.toHaveBeenCalled();
+  });
 });
 
 describe("improveMessage", () => {
@@ -343,19 +369,21 @@ describe("improveMessage", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   it("returns improved text on success", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "My order is broken",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
+      .mockReturnValue(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "My order is broken",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      );
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -374,7 +402,9 @@ describe("improveMessage", () => {
   });
 
   it("includes operator draft in the context messages", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
+      .mockReturnValue(chainMock([]));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -395,7 +425,9 @@ describe("improveMessage", () => {
   });
 
   it("uses the improve system prompt (rewrite, not reply)", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
+      .mockReturnValue(chainMock([]));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -417,7 +449,9 @@ describe("improveMessage", () => {
   });
 
   it("logs usage with action 'improve'", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
+      .mockReturnValue(chainMock([]));
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
 
@@ -440,7 +474,9 @@ describe("improveMessage", () => {
   });
 
   it("fetches only 3 messages for context (not the full limit)", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
+      .mockReturnValue(chainMock([]));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -454,13 +490,15 @@ describe("improveMessage", () => {
 
     await improveMessage(baseImproveInput);
 
-    const selectChain = mockSelect.mock.results[0]!.value;
+    const selectChain = mockSelect.mock.results[1]!.value;
     const limitCall = selectChain.limit as ReturnType<typeof vi.fn>;
     expect(limitCall).toHaveBeenCalledWith(3);
   });
 
   it("retries once on transient provider error", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
+      .mockReturnValue(chainMock([]));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const { AIProviderError } = await import("../ai.errors.js");
@@ -480,5 +518,25 @@ describe("improveMessage", () => {
 
     expect(result.text).toBe("Recovered improvement");
     expect(mockProvider.generateText).toHaveBeenCalledTimes(2);
+  });
+
+  it("throws AIConversationNotFoundError when conversation belongs to another tenant", async () => {
+    mockSelect.mockReturnValue(chainMock([]));
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Should not reach this",
+        usage: { promptTokens: 30, completionTokens: 10 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const { AIConversationNotFoundError } = await import("../ai.errors.js");
+    await expect(improveMessage(baseImproveInput)).rejects.toThrow(
+      AIConversationNotFoundError,
+    );
+    expect(mockProvider.generateText).not.toHaveBeenCalled();
   });
 });

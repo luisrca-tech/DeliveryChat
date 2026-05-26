@@ -6,10 +6,14 @@ import {
   AITimeoutError,
   AIEmptyResponseError,
   AIContentFilteredError,
+  AIConversationNotFoundError,
   AIQuotaExceededError,
 } from "./ai.errors.js";
 
 export function mapAiErrorToResponse(c: Context, error: unknown): Response | null {
+  if (error instanceof AIConversationNotFoundError) {
+    return jsonError(c, HTTP_STATUS.NOT_FOUND, "conversation_not_found", "Conversation not found.");
+  }
   if (error instanceof AITimeoutError) {
     return jsonError(c, HTTP_STATUS.GATEWAY_TIMEOUT, "ai_timeout", "AI provider timed out. Please try again.");
   }
