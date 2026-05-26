@@ -160,7 +160,37 @@ describe("generateReply", () => {
     expect(mockProvider.generateText).toHaveBeenCalledTimes(2);
   });
 
-  it("does not retry on non-transient errors (timeout)", async () => {
+  it("retries once on timeout then throws with status 'timeout'", async () => {
+    mockSelect.mockReturnValue(
+      chainMock([
+        {
+          senderId: "visitor-1",
+          content: "Help",
+          createdAt: "2026-05-25T11:55:00Z",
+        },
+      ]),
+    );
+
+    const insertChain = mockInsertChain();
+    mockInsert.mockReturnValue(insertChain);
+
+    const { AITimeoutError } = await import("../ai.errors.js");
+    const mockProvider = {
+      generateText: vi
+        .fn()
+        .mockRejectedValue(new AITimeoutError("timed out")),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    await expect(generateReply(baseInput)).rejects.toThrow("timed out");
+    expect(mockProvider.generateText).toHaveBeenCalledTimes(2);
+
+    const valuesCall = (insertChain.values as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
+    expect(valuesCall.status).toBe("timeout");
+  });
+
+  it("recovers on second attempt after timeout", async () => {
     mockSelect.mockReturnValue(
       chainMock([
         {
@@ -176,12 +206,19 @@ describe("generateReply", () => {
     const mockProvider = {
       generateText: vi
         .fn()
-        .mockRejectedValue(new AITimeoutError("timed out")),
+        .mockRejectedValueOnce(new AITimeoutError("timed out"))
+        .mockResolvedValueOnce({
+          text: "Recovered after timeout",
+          usage: { promptTokens: 30, completionTokens: 10 },
+          finishReason: "stop",
+        }),
     };
     mockCreateAIProvider.mockReturnValue(mockProvider);
 
-    await expect(generateReply(baseInput)).rejects.toThrow("timed out");
-    expect(mockProvider.generateText).toHaveBeenCalledTimes(1);
+    const result = await generateReply(baseInput);
+
+    expect(result.text).toBe("Recovered after timeout");
+    expect(mockProvider.generateText).toHaveBeenCalledTimes(2);
   });
 
   it("throws AIEmptyResponseError for empty text with stop finish reason", async () => {

@@ -184,22 +184,6 @@ export async function generateReply(
         throw error;
       }
 
-      if (error instanceof AITimeoutError) {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "generate",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: "timeout",
-        });
-        throw error;
-      }
-
       if (error instanceof Error && error.name === "AbortError") {
         await logUsage({
           tenantId: input.tenantId,
@@ -227,7 +211,7 @@ export async function generateReply(
           outputTokens: null,
           latencyMs: Date.now() - startTime,
           finishReason: null,
-          status: "provider_error",
+          status: error instanceof AITimeoutError ? "timeout" : "provider_error",
         });
         throw error;
       }
@@ -343,22 +327,6 @@ export async function improveMessage(
         throw error;
       }
 
-      if (error instanceof AITimeoutError) {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "improve",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: "timeout",
-        });
-        throw error;
-      }
-
       if (error instanceof Error && error.name === "AbortError") {
         await logUsage({
           tenantId: input.tenantId,
@@ -386,7 +354,7 @@ export async function improveMessage(
           outputTokens: null,
           latencyMs: Date.now() - startTime,
           finishReason: null,
-          status: "provider_error",
+          status: error instanceof AITimeoutError ? "timeout" : "provider_error",
         });
         throw error;
       }

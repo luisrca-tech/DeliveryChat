@@ -12,7 +12,7 @@ export class AIProviderRateLimitError extends Error {
   }
 }
 
-export class AITimeoutError extends Error {
+export class AITimeoutError extends AIProviderError {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = "AITimeoutError";
