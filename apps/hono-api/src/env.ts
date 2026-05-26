@@ -32,7 +32,7 @@ export const env = createEnv({
       .optional()
       .transform((v) => v === "true"),
     WS_TOKEN_SECRET: z.string().min(32),
-    GROQ_API_KEY: z.string().min(1),
+    GROQ_API_KEY: z.string().min(1).optional(),
     AI_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
     AI_CONTEXT_MESSAGE_LIMIT: z
       .string()

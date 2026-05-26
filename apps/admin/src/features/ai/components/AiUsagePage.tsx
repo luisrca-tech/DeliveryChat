@@ -260,10 +260,11 @@ function UsageSummaryCards({
   logs: { status: string; latencyMs: number | null }[];
 }) {
   const successCount = logs.filter((l) => l.status === "success").length;
+  const logsWithLatency = logs.filter((l) => l.latencyMs != null);
   const avgLatency =
-    logs.length > 0
+    logsWithLatency.length > 0
       ? Math.round(
-          logs.reduce((sum, l) => sum + (l.latencyMs ?? 0), 0) / logs.length,
+          logsWithLatency.reduce((sum, l) => sum + l.latencyMs!, 0) / logsWithLatency.length,
         )
       : 0;
 

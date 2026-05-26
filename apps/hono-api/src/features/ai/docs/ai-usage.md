@@ -6,7 +6,7 @@
 
 ## Route Details
 
-- **Path:** `GET /v1/ai/usage`
+- **Path:** `GET /api/v1/ai/usage`
 - **Auth:** `requireTenantAuth()` + `requireRole("admin")`
 - **Billing:** `checkBillingStatus()` applied
 

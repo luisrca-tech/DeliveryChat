@@ -6,7 +6,7 @@ The AI assistant feature enables operators on PREMIUM and ENTERPRISE plans to us
 
 ## Routes
 
-### `POST /v1/ai/generate-reply`
+### `POST /api/v1/ai/generate-reply`
 
 Generates a new reply suggestion based on conversation history.
 
@@ -14,7 +14,7 @@ Generates a new reply suggestion based on conversation history.
 - Response: `{ "text": "Suggested reply content" }`
 - Context: Last N messages (configurable via `AI_CONTEXT_MESSAGE_LIMIT`, default 10)
 
-### `POST /v1/ai/improve-message`
+### `POST /api/v1/ai/improve-message`
 
 Rewrites an operator's draft message for better clarity, tone, and professionalism.
 
@@ -56,7 +56,7 @@ Messages are formatted as `[Customer/Operator, Xmin ago] content`. Last N messag
 
 ## Retry Policy
 
-One retry with ~1s backoff on transient `AIProviderError`. Never retries: timeout, content filter, empty response, abort, quota errors.
+One retry with ~1s backoff on transient `AIProviderError` (including `AITimeoutError`, which extends `AIProviderError`). Never retries: provider rate limit, content filter, empty response, abort, quota errors.
 
 ## Usage Logging
 

@@ -1,7 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { requireTenantAuth, getTenantAuth } from "../lib/middleware/auth.js";
-import { requireRole } from "../lib/middleware/auth.js";
+import { requireTenantAuth, getTenantAuth, requireRole } from "../lib/middleware/auth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
 import {
   requireAiFeature,

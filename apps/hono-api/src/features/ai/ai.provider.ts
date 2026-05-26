@@ -115,10 +115,15 @@ export class MockProvider implements AIProvider {
 
 export function createAIProvider(
   model: string,
-  apiKey: string,
+  apiKey: string | undefined,
 ): AIProvider {
   if (model.startsWith("mock://")) {
     return new MockProvider();
+  }
+  if (!apiKey) {
+    throw new AIProviderError(
+      "GROQ_API_KEY is not configured. Set it in your environment to use AI features.",
+    );
   }
   return new GroqProvider(apiKey);
 }

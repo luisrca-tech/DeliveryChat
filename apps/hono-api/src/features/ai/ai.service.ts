@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lte, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversations } from "../../db/schema/conversations.js";
@@ -125,7 +125,12 @@ export async function generateReply(
       createdAt: messages.createdAt,
     })
     .from(messages)
-    .where(eq(messages.conversationId, input.conversationId))
+    .where(
+      and(
+        eq(messages.conversationId, input.conversationId),
+        isNull(messages.deletedAt),
+      ),
+    )
     .orderBy(desc(messages.createdAt))
     .limit(limit);
 
@@ -264,7 +269,12 @@ export async function improveMessage(
       createdAt: messages.createdAt,
     })
     .from(messages)
-    .where(eq(messages.conversationId, input.conversationId))
+    .where(
+      and(
+        eq(messages.conversationId, input.conversationId),
+        isNull(messages.deletedAt),
+      ),
+    )
     .orderBy(desc(messages.createdAt))
     .limit(IMPROVE_CONTEXT_LIMIT);
 
@@ -455,7 +465,10 @@ export async function getAiUsageLogs(
     conditions.push(gte(aiUsageLog.createdAt, input.dateFrom));
   }
   if (input.dateTo) {
-    conditions.push(lte(aiUsageLog.createdAt, input.dateTo));
+    const endOfDay = input.dateTo.includes("T")
+      ? input.dateTo
+      : `${input.dateTo}T23:59:59.999Z`;
+    conditions.push(lte(aiUsageLog.createdAt, endOfDay));
   }
 
   const whereClause = and(...conditions);

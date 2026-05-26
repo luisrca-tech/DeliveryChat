@@ -62,13 +62,20 @@ export function MessageInput({
       cancelGenerate();
       cancelImprove();
     };
-  }, [conversationId]);
+  }, [conversationId, cancelGenerate, cancelImprove]);
 
   useEffect(() => {
     if (isImproving) {
       setImproveState("generating");
     }
   }, [isImproving]);
+
+  useEffect(() => {
+    if (!isImproving && improveState === "generating") {
+      setImproveState("idle");
+      setOriginalDraft("");
+    }
+  }, [isImproving, improveState]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
