@@ -164,6 +164,22 @@ describe("POST /ai/generate-reply", () => {
     expect(body.error).toBe("ai_provider_unavailable");
   });
 
+  it("returns 422 with ai_content_filtered for AIContentFilteredError", async () => {
+    const { AIContentFilteredError } = await import("../ai.errors.js");
+    mockGenerateReply.mockRejectedValue(new AIContentFilteredError("filtered"));
+
+    const app = new Hono().route("/ai", aiRoute);
+    const res = await app.request("/ai/generate-reply", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+    });
+
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toBe("ai_content_filtered");
+  });
+
   it("returns 500 for unexpected errors", async () => {
     mockGenerateReply.mockRejectedValue(new Error("unexpected"));
 

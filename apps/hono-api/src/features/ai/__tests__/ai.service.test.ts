@@ -357,6 +357,73 @@ describe("generateReply", () => {
     );
     expect(mockProvider.generateText).not.toHaveBeenCalled();
   });
+
+  it("throws AbortError and logs status 'aborted' when signal is aborted", async () => {
+    mockSelect.mockReturnValue(
+      chainMock([
+        {
+          senderId: "visitor-1",
+          content: "Help",
+          createdAt: "2026-05-25T11:55:00Z",
+        },
+      ]),
+    );
+
+    const insertChain = mockInsertChain();
+    mockInsert.mockReturnValue(insertChain);
+
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+
+    const mockProvider = {
+      generateText: vi.fn().mockRejectedValue(abortError),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const controller = new AbortController();
+    await expect(
+      generateReply({ ...baseInput, abortSignal: controller.signal }),
+    ).rejects.toThrow("aborted");
+
+    const valuesCall = (insertChain.values as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
+    expect(valuesCall.status).toBe("aborted");
+  });
+
+  it("does not count aborted request against monthly cap (no 'success' status logged)", async () => {
+    mockSelect.mockReturnValue(
+      chainMock([
+        {
+          senderId: "visitor-1",
+          content: "Help",
+          createdAt: "2026-05-25T11:55:00Z",
+        },
+      ]),
+    );
+
+    const insertChain = mockInsertChain();
+    mockInsert.mockReturnValue(insertChain);
+
+    const abortError = new Error("aborted");
+    abortError.name = "AbortError";
+
+    const mockProvider = {
+      generateText: vi.fn().mockRejectedValue(abortError),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const controller = new AbortController();
+    try {
+      await generateReply({ ...baseInput, abortSignal: controller.signal });
+    } catch {
+      // expected
+    }
+
+    const valuesCall = (insertChain.values as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
+    expect(valuesCall.status).not.toBe("success");
+    expect(valuesCall.status).toBe("aborted");
+  });
 });
 
 describe("improveMessage", () => {

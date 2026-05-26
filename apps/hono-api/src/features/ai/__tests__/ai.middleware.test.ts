@@ -139,6 +139,8 @@ describe("createAiRateLimitMiddleware - lazy cleanup", () => {
     vi.clearAllMocks();
     const store = _testGetRateLimitStore();
     store.clear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockGetTenantAuth.mockImplementation((c: any) => c.get("auth"));
   });
 
   function createRateLimitApp(tenantId = "org-1") {
@@ -148,7 +150,6 @@ describe("createAiRateLimitMiddleware - lazy cleanup", () => {
       c.set("auth", createMemberAuth("PREMIUM", tenantId));
       return next();
     });
-    mockGetTenantAuth.mockReturnValue(createMemberAuth("PREMIUM", tenantId));
     app.use("*", createAiRateLimitMiddleware());
     app.get("/test", (c) => c.json({ ok: true }));
     return app;
@@ -200,5 +201,78 @@ describe("createAiRateLimitMiddleware - lazy cleanup", () => {
     expect(_testGetRateLimitStore).toBeDefined();
     const store = _testGetRateLimitStore();
     expect(store).toBeInstanceOf(Map);
+  });
+});
+
+describe("createAiRateLimitMiddleware - enforcement and tenant isolation", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    const store = _testGetRateLimitStore();
+    store.clear();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockGetTenantAuth.mockImplementation((c: any) => c.get("auth"));
+  });
+
+  function createRateLimitApp(tenantId = "org-1") {
+    const app = new Hono();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    app.use("*", (c: any, next) => {
+      c.set("auth", createMemberAuth("PREMIUM", tenantId));
+      return next();
+    });
+    app.use("*", createAiRateLimitMiddleware());
+    app.get("/test", (c) => c.json({ ok: true }));
+    return app;
+  }
+
+  it("allows 10 requests within the per-minute window", async () => {
+    const app = createRateLimitApp("org-burst");
+
+    for (let i = 0; i < 10; i++) {
+      const res = await app.request("/test");
+      expect(res.status).toBe(200);
+    }
+  });
+
+  it("returns 429 on the 11th request from the same tenant", async () => {
+    const app = createRateLimitApp("org-limited");
+
+    for (let i = 0; i < 10; i++) {
+      await app.request("/test");
+    }
+
+    const res = await app.request("/test");
+    expect(res.status).toBe(429);
+    const body = await res.json();
+    expect(body.error).toBe("ai_rate_limit_exceeded");
+  });
+
+  it("includes Retry-After header on 429 response", async () => {
+    const app = createRateLimitApp("org-retry");
+
+    for (let i = 0; i < 10; i++) {
+      await app.request("/test");
+    }
+
+    const res = await app.request("/test");
+    expect(res.status).toBe(429);
+    expect(res.headers.get("Retry-After")).toBeDefined();
+    const retryAfter = Number(res.headers.get("Retry-After"));
+    expect(retryAfter).toBeGreaterThan(0);
+  });
+
+  it("does not affect a different tenant (tenant isolation)", async () => {
+    const appA = createRateLimitApp("org-A");
+    const appB = createRateLimitApp("org-B");
+
+    for (let i = 0; i < 10; i++) {
+      await appA.request("/test");
+    }
+
+    const resA = await appA.request("/test");
+    expect(resA.status).toBe(429);
+
+    const resB = await appB.request("/test");
+    expect(resB.status).toBe(200);
   });
 });
