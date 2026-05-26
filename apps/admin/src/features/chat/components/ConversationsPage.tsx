@@ -67,13 +67,27 @@ export function ConversationsPage() {
         },
       );
 
-      markConversationAsRead(id)
-        .then(() =>
-          queryClient.invalidateQueries({
-            queryKey: conversationsQueryKeys.all(),
-          }),
-        )
-        .catch(console.error);
+      const allData = queryClient.getQueriesData<ConversationsListResponse>({
+        queryKey: conversationsQueryKeys.all(),
+      });
+      let lastMsgId: string | null = null;
+      for (const [, data] of allData) {
+        const conv = data?.conversations?.find((c) => c.id === id);
+        if (conv?.lastMessageId) {
+          lastMsgId = conv.lastMessageId;
+          break;
+        }
+      }
+
+      if (lastMsgId) {
+        markConversationAsRead(id, lastMsgId)
+          .then(() =>
+            queryClient.invalidateQueries({
+              queryKey: conversationsQueryKeys.all(),
+            }),
+          )
+          .catch(console.error);
+      }
     },
     [navigate, queryClient, resolvedFilter, appId],
   );

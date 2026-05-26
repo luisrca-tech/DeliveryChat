@@ -62,7 +62,7 @@ export function MessageInput({
       cancelGenerate();
       cancelImprove();
     };
-  }, [cancelGenerate, cancelImprove, conversationId]);
+  }, [conversationId]);
 
   useEffect(() => {
     if (isImproving) {
@@ -140,7 +140,7 @@ export function MessageInput({
           </span>
           <button
             onClick={handleClearAiSuggestion}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
           >
             Clear
           </button>
@@ -153,14 +153,14 @@ export function MessageInput({
           </span>
           <button
             onClick={handleAcceptImprovement}
-            className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-0.5"
+            className="text-xs text-emerald-600 hover:text-emerald-700 transition-colors flex items-center gap-0.5 cursor-pointer"
           >
             <Check className="h-3 w-3" />
             Accept
           </button>
           <button
             onClick={handleRejectImprovement}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-0.5 cursor-pointer"
           >
             <X className="h-3 w-3" />
             Reject

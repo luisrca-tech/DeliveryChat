@@ -59,7 +59,7 @@ describe("handleMessageNew", () => {
 
     handleMessageNew(payload, ctx);
 
-    expect(ctx.markAsRead).toHaveBeenCalledWith("conv-1");
+    expect(ctx.markAsRead).toHaveBeenCalledWith("conv-1", "msg-1");
   });
 
   it("does not chain invalidateQueries inside markAsRead.then()", async () => {

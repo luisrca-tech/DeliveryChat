@@ -139,10 +139,12 @@ export async function deleteConversation(id: string): Promise<void> {
 
 export async function markConversationAsRead(
   id: string,
+  messageId: string,
 ): Promise<{ success: boolean }> {
   const res = await fetch(`${base()}/conversations/${id}/read`, {
     method: "POST",
-    headers: getTenantHeaders(),
+    headers: getTenantHeaders({ json: true }),
+    body: JSON.stringify({ messageId }),
   });
   if (!res.ok) throw await handleError(res);
   return parseJson<{ success: boolean }>(res);

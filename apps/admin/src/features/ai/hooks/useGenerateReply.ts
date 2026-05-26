@@ -34,11 +34,14 @@ export function useGenerateReply({ onSuccess }: UseGenerateReplyOptions) {
     },
   });
 
+  const mutationRef = useRef(mutation);
+  mutationRef.current = mutation;
+
   const cancel = useCallback(() => {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
-    mutation.reset();
-  }, [mutation]);
+    mutationRef.current.reset();
+  }, []);
 
   return {
     generate: mutation.mutate,

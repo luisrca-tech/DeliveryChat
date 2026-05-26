@@ -989,9 +989,16 @@ export async function listConversationsForMember(
       ? await getBulkUnreadCounts(assignedIds, userId)
       : new Map<string, number>();
 
+  const allIds = result.map((conv) => conv.id);
+  const lastMessageIds =
+    allIds.length > 0
+      ? await getBulkLastMessageIds(allIds)
+      : new Map<string, string>();
+
   const conversationsWithUnread = result.map((conv) => ({
     ...conv,
     unreadCount: unreadCounts.get(conv.id) ?? 0,
+    lastMessageId: lastMessageIds.get(conv.id) ?? null,
   }));
 
   return {
@@ -1136,6 +1143,32 @@ export async function getBulkUnreadCounts(
   const result = new Map<string, number>();
   for (const row of rows) {
     result.set(row.conversationId, row.count);
+  }
+  return result;
+}
+
+async function getBulkLastMessageIds(
+  conversationIds: string[],
+): Promise<Map<string, string>> {
+  if (conversationIds.length === 0) return new Map();
+
+  const rows = await db
+    .selectDistinctOn([messages.conversationId], {
+      conversationId: messages.conversationId,
+      id: messages.id,
+    })
+    .from(messages)
+    .where(
+      and(
+        inArray(messages.conversationId, conversationIds),
+        isNull(messages.deletedAt),
+      ),
+    )
+    .orderBy(messages.conversationId, desc(messages.createdAt));
+
+  const result = new Map<string, string>();
+  for (const row of rows) {
+    result.set(row.conversationId, row.id);
   }
   return result;
 }

@@ -114,12 +114,12 @@ const SystemBillingSuccessRoute = SystemBillingSuccessRouteImport.update({
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof SystemIndexRoute
   '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/conversations': typeof SystemConversationsRoute
+  '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
   '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
@@ -128,15 +128,15 @@ export interface FileRoutesByFullPath {
   '/settings/billing': typeof SystemSettingsBillingRoute
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
-  '/settings/': typeof SystemSettingsIndexRoute
+  '/settings': typeof SystemSettingsIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof SystemIndexRoute
   '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
   '/conversations': typeof SystemConversationsRoute
+  '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
   '/onboarding/plans': typeof SystemOnboardingPlansRoute
   '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
@@ -170,12 +170,12 @@ export interface FileRoutesById {
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/accept-invitation'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/conversations'
+    | '/'
     | '/billing/success'
     | '/onboarding/plans'
     | '/settings/ai-usage'
@@ -184,15 +184,15 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/members'
     | '/settings/rate-limits'
-    | '/settings/'
+    | '/settings'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/'
     | '/accept-invitation'
     | '/forgot-password'
     | '/login'
     | '/reset-password'
     | '/conversations'
+    | '/'
     | '/billing/success'
     | '/onboarding/plans'
     | '/settings/ai-usage'
@@ -233,14 +233,14 @@ declare module '@tanstack/react-router' {
     '/_system': {
       id: '/_system'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof SystemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_public': {
       id: '/_public'
       path: ''
-      fullPath: '/'
+      fullPath: ''
       preLoaderRoute: typeof PublicRouteImport
       parentRoute: typeof rootRouteImport
     }
@@ -289,7 +289,7 @@ declare module '@tanstack/react-router' {
     '/_system/settings/': {
       id: '/_system/settings/'
       path: '/settings'
-      fullPath: '/settings/'
+      fullPath: '/settings'
       preLoaderRoute: typeof SystemSettingsIndexRouteImport
       parentRoute: typeof SystemRoute
     }
@@ -407,3 +407,11 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { createStart } from '@tanstack/react-start'
+declare module '@tanstack/react-start' {
+  interface Register {
+    router: Awaited<ReturnType<typeof getRouter>>
+  }
+}
