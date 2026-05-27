@@ -4,7 +4,7 @@ import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
 import { user } from "../../db/schema/users.js";
-import type { ConversationStatus, ParticipantRole } from "@repo/types";
+import type { ConversationStatus, ContentFormat, ParticipantRole } from "@repo/types";
 import {
   broadcastOrganizationEvent,
   broadcastRoomEvent,
@@ -14,6 +14,7 @@ import {
   buildConversationResolvedEvent,
   buildMessageNewEvent,
 } from "./broadcasting.service.js";
+import { serializeLexicalToHtml } from "./lexicalSerializer.js";
 
 // ── Custom Errors ──
 
@@ -130,6 +131,7 @@ interface SendMessageInput {
   conversationId: string;
   senderId: string;
   content: string;
+  contentFormat?: ContentFormat;
   broadcastContext?: {
     senderName: string;
     senderRole: ParticipantRole;
@@ -141,6 +143,7 @@ interface EditMessageInput {
   conversationId: string;
   senderId: string;
   content: string;
+  contentFormat?: ContentFormat;
 }
 
 interface DeleteMessageInput {
@@ -250,6 +253,8 @@ export async function sendMessage(
     organizationId = conversationData.organizationId;
   }
 
+  const contentFormat = input.contentFormat ?? "plain";
+
   const message = await db.transaction(async (tx) => {
     const [msg] = await tx
       .insert(messages)
@@ -258,6 +263,7 @@ export async function sendMessage(
         conversationId: input.conversationId,
         senderId: input.senderId,
         content: input.content,
+        contentFormat,
       })
       .returning();
 
@@ -272,6 +278,7 @@ export async function sendMessage(
   });
 
   if (input.broadcastContext) {
+    const contentHtml = serializeLexicalToHtml(message.content, contentFormat);
     const event = buildMessageNewEvent({
       id: message.id,
       conversationId: input.conversationId,
@@ -279,6 +286,8 @@ export async function sendMessage(
       senderName: input.broadcastContext.senderName,
       senderRole: input.broadcastContext.senderRole,
       content: message.content,
+      contentFormat,
+      contentHtml,
       type: "text",
       createdAt: message.createdAt,
     });
@@ -329,13 +338,18 @@ export async function editMessage(input: EditMessageInput) {
     );
   }
 
+  const updateValues: Record<string, unknown> = {
+    content: input.content,
+    editedAt: sql`now()`,
+    updatedAt: sql`now()`,
+  };
+  if (input.contentFormat) {
+    updateValues.contentFormat = input.contentFormat;
+  }
+
   const [updated] = await db
     .update(messages)
-    .set({
-      content: input.content,
-      editedAt: sql`now()`,
-      updatedAt: sql`now()`,
-    })
+    .set(updateValues)
     .where(eq(messages.id, input.messageId))
     .returning();
 
@@ -437,6 +451,7 @@ export async function getMessageHistoryForMember(
       senderRole: conversationParticipants.role,
       type: messages.type,
       content: messages.content,
+      contentFormat: messages.contentFormat,
       createdAt: messages.createdAt,
     })
     .from(messages)
@@ -597,6 +612,8 @@ async function broadcastSystemMessage(
       senderName: "",
       senderRole: "operator",
       content: msg.content,
+      contentFormat: "plain",
+      contentHtml: null,
       type: "system",
       createdAt: msg.createdAt,
     }),

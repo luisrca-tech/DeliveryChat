@@ -15,7 +15,7 @@ import {
   MessageEditWindowExpiredError,
   type ConversationData,
 } from "./chat.service.js";
-import type { MessageNewPayload, WSServerEvent } from "@repo/types";
+import type { ContentFormat, MessageNewPayload, WSServerEvent } from "@repo/types";
 import {
   buildMessageNewEvent,
   buildMessageEditedEvent,
@@ -23,6 +23,7 @@ import {
   buildTypingStartEvent,
   buildTypingStopEvent,
 } from "./broadcasting.service.js";
+import { serializeLexicalToHtml } from "./lexicalSerializer.js";
 import type { RateLimitCheckResult } from "../../lib/middleware/visitorRateLimit.js";
 
 type VisitorRateLimiter = {
@@ -153,16 +154,21 @@ async function handleRoomJoin(
         payload: {
           conversationId: payload.conversationId,
           messages: missedMessages.map(
-            (msg): MessageNewPayload => ({
-              id: msg.id,
-              conversationId: msg.conversationId,
-              senderId: msg.senderId,
-              senderName: "",
-              senderRole: conn.role,
-              content: msg.content,
-              type: msg.type as "text" | "system",
-              createdAt: msg.createdAt,
-            }),
+            (msg): MessageNewPayload => {
+              const format = (msg.contentFormat ?? "plain") as ContentFormat;
+              return {
+                id: msg.id,
+                conversationId: msg.conversationId,
+                senderId: msg.senderId,
+                senderName: "",
+                senderRole: conn.role,
+                content: msg.content,
+                contentFormat: format,
+                contentHtml: serializeLexicalToHtml(msg.content, format),
+                type: msg.type as "text" | "system",
+                createdAt: msg.createdAt,
+              };
+            },
           ),
         },
       });
@@ -180,7 +186,7 @@ function handleRoomLeave(
 
 async function handleMessageSend(
   conn: WSConnection,
-  payload: { conversationId: string; content: string; clientMessageId: string },
+  payload: { conversationId: string; content: string; contentFormat?: string; clientMessageId: string },
   roomManager: IRoomManager,
 ) {
   let conversationData: ConversationData;
@@ -209,6 +215,7 @@ async function handleMessageSend(
         conversationId: payload.conversationId,
         senderId: conn.userId,
         content: payload.content,
+        contentFormat: (payload.contentFormat ?? "plain") as ContentFormat,
       },
       conversationData,
     );
@@ -244,6 +251,7 @@ async function handleMessageSend(
     },
   });
 
+  const msgContentFormat = (message.contentFormat ?? "plain") as ContentFormat;
   const broadcastEvent = buildMessageNewEvent({
     id: message.id,
     conversationId: message.conversationId,
@@ -251,6 +259,8 @@ async function handleMessageSend(
     senderName: "",
     senderRole: conn.role,
     content: message.content,
+    contentFormat: msgContentFormat,
+    contentHtml: serializeLexicalToHtml(message.content, msgContentFormat),
     type: message.type as "text" | "system",
     createdAt: message.createdAt,
     assignedTo: conversationData.assignedTo,
@@ -265,7 +275,7 @@ async function handleMessageSend(
 
 async function handleMessageEdit(
   conn: WSConnection,
-  payload: { conversationId: string; messageId: string; content: string },
+  payload: { conversationId: string; messageId: string; content: string; contentFormat?: string },
   roomManager: IRoomManager,
 ) {
   try {
@@ -274,12 +284,16 @@ async function handleMessageEdit(
       conversationId: payload.conversationId,
       senderId: conn.userId,
       content: payload.content,
+      contentFormat: (payload.contentFormat ?? "plain") as ContentFormat,
     });
 
+    const editedFormat = (updated.contentFormat ?? "plain") as ContentFormat;
     const broadcastEvent = buildMessageEditedEvent({
       conversationId: payload.conversationId,
       messageId: updated.id,
       content: updated.content,
+      contentFormat: editedFormat,
+      contentHtml: serializeLexicalToHtml(updated.content, editedFormat),
       editedAt: updated.editedAt!,
       senderId: conn.userId,
     });

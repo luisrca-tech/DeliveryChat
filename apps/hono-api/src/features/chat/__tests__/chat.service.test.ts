@@ -9,6 +9,10 @@ vi.mock("../../../db/index.js", () => ({
   },
 }));
 
+vi.mock("../lexicalSerializer.js", () => ({
+  serializeLexicalToHtml: vi.fn(() => null),
+}));
+
 vi.mock("../broadcasting.service.js", () => ({
   broadcastOrganizationEvent: vi.fn(),
   broadcastRoomEvent: vi.fn(),

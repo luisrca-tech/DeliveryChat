@@ -13,6 +13,8 @@ import {
   getMessageHistoryForMember,
 } from "../../features/chat/chat.service.js";
 import { mapServiceErrorToResponse } from "../../features/chat/error-mapper.js";
+import { serializeLexicalToHtml } from "../../features/chat/lexicalSerializer.js";
+import type { ContentFormat } from "@repo/types";
 import {
   requireAuth,
   getUnifiedAuth,
@@ -147,7 +149,14 @@ export const queriesRoute = new Hono()
             limit,
             offset,
           });
-          return c.json({ messages: msgs, limit, offset });
+          const messagesWithHtml = msgs.map((msg) => ({
+            ...msg,
+            contentHtml: serializeLexicalToHtml(
+              msg.content,
+              (msg.contentFormat ?? "plain") as ContentFormat,
+            ),
+          }));
+          return c.json({ messages: messagesWithHtml, limit, offset });
         }
 
         const { organization } = auth;
@@ -158,7 +167,14 @@ export const queriesRoute = new Hono()
           limit,
           offset,
         });
-        return c.json({ messages: result, limit, offset });
+        const messagesWithHtml = result.map((msg) => ({
+          ...msg,
+          contentHtml: serializeLexicalToHtml(
+            msg.content,
+            (msg.contentFormat ?? "plain") as ContentFormat,
+          ),
+        }));
+        return c.json({ messages: messagesWithHtml, limit, offset });
       } catch (error) {
         const mapped = mapServiceErrorToResponse(c, error);
         if (mapped) return mapped;

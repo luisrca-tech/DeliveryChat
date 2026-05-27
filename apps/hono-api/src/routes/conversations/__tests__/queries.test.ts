@@ -41,6 +41,10 @@ vi.mock("../../../features/chat/error-mapper.js", () => ({
     mockMapServiceError(...args),
 }));
 
+vi.mock("../../../features/chat/lexicalSerializer.js", () => ({
+  serializeLexicalToHtml: vi.fn(() => null),
+}));
+
 vi.mock("../../../db/index.js", () => ({
   db: { select: vi.fn() },
 }));

@@ -14,6 +14,10 @@ vi.mock("../../../db/schema/conversations.js", () => ({
   conversations: { id: "id", assignedTo: "assignedTo" },
 }));
 
+vi.mock("../lexicalSerializer.js", () => ({
+  serializeLexicalToHtml: vi.fn(() => null),
+}));
+
 vi.mock("../chat.service.js", () => {
   class NotAssignedToConversationError extends Error {
     constructor(conversationId: string, userId: string) {
@@ -347,7 +351,7 @@ describe("chat.handlers", () => {
       );
 
       expect(mockSendMessage).toHaveBeenCalledWith(
-        { conversationId: convId, senderId: "user-1", content: "Hello!" },
+        { conversationId: convId, senderId: "user-1", content: "Hello!", contentFormat: "plain" },
         convData,
       );
     });
