@@ -78,10 +78,17 @@ function wrapWithFormats(text: string, format: number): string {
   return result;
 }
 
-function serializeNode(node: LexicalNode): string {
+function serializeTextNode(node: LexicalNode, insideCodeBlock: boolean): string {
+  const escaped = escapeHtml(node.text ?? "");
+  if (insideCodeBlock) return escaped;
+  const format = typeof node.format === "number" ? node.format : 0;
+  return format ? wrapWithFormats(escaped, format) : escaped;
+}
+
+function serializeNode(node: LexicalNode, insideCodeBlock = false): string {
   switch (node.type) {
     case "root":
-      return (node.children ?? []).map(serializeNode).join("");
+      return (node.children ?? []).map((c) => serializeNode(c)).join("");
 
     case "paragraph":
       return `<p>${serializeChildren(node)}</p>`;
@@ -104,15 +111,13 @@ function serializeNode(node: LexicalNode): string {
 
     case "code": {
       const lang = node.language ? ` class="language-${escapeHtml(node.language)}"` : "";
-      return `<pre${lang}><code>${serializeChildren(node)}</code></pre>`;
+      const inner = (node.children ?? []).map((c) => serializeNode(c, true)).join("");
+      return `<pre${lang}><code>${inner}</code></pre>`;
     }
 
     case "code-highlight":
-    case "text": {
-      const escaped = escapeHtml(node.text ?? "");
-      const format = typeof node.format === "number" ? node.format : 0;
-      return format ? wrapWithFormats(escaped, format) : escaped;
-    }
+    case "text":
+      return serializeTextNode(node, insideCodeBlock);
 
     case "linebreak":
       return "<br>";
@@ -131,7 +136,7 @@ function serializeNode(node: LexicalNode): string {
 }
 
 function serializeChildren(node: LexicalNode): string {
-  return (node.children ?? []).map(serializeNode).join("");
+  return (node.children ?? []).map((c) => serializeNode(c)).join("");
 }
 
 export function serializeLexicalToHtml(
