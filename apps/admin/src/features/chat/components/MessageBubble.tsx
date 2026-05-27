@@ -10,7 +10,7 @@ import {
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Message } from "../types/chat.types";
-import { InlineEditLexical } from "./lexical/InlineEditLexical";
+import { LexicalEditor } from "@repo/lexical-utils/react";
 import { serializeLexicalJsonToHtml } from "@repo/lexical-utils";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
@@ -135,7 +135,8 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
     if (isEditing) {
       if (isLexical) {
         return (
-          <InlineEditLexical
+          <LexicalEditor
+            mode="inline"
             initialJson={message.content}
             onSave={(json) => handleSaveEdit(json, "lexical")}
             onCancel={handleCancelEdit}

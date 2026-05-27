@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { MessageThreadPanel } from "../ChatDemoComponents";
 import type { OptimisticMessage } from "../../lib/wsMessageReducer";
-import type { EditorHandle } from "../lexical";
+import type { EditorHandle } from "@repo/lexical-utils/react";
 
 function renderMessages(messages: OptimisticMessage[]) {
   const noop = vi.fn();

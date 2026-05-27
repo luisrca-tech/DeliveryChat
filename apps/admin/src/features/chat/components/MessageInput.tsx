@@ -4,7 +4,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { useGenerateReply } from "@/features/ai/hooks/useGenerateReply";
 import { useImproveMessage } from "@/features/ai/hooks/useImproveMessage";
 import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
-import { LexicalEditor, type EditorHandle } from "./lexical";
+import { LexicalEditor, type EditorHandle } from "@repo/lexical-utils/react";
 import type { ContentFormat } from "@repo/types";
 
 type Props = {

@@ -23,7 +23,7 @@ import { useWebSocketDispatch } from "../hooks/useWebSocketDispatch";
 import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
 import { useConversationList } from "../hooks/useConversationList";
 import { useMessageHistory } from "../hooks/useMessageHistory";
-import type { EditorHandle } from "./lexical";
+import type { EditorHandle } from "@repo/lexical-utils/react";
 import {
   ConversationListPanel,
   MessageThreadPanel,

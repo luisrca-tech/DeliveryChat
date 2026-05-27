@@ -14,6 +14,11 @@ export { ListKeyboardPlugin } from "./ListKeyboardPlugin";
 export { ExternalSendPlugin, type EditorHandle } from "./ExternalSendPlugin";
 
 export {
+  LexicalEditor,
+  type LexicalEditorProps,
+} from "./LexicalEditor";
+
+export {
   ToolbarPlugin,
   type ToolbarSection,
   FormatButtonGroup,

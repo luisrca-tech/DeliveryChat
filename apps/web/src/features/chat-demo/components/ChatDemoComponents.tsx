@@ -25,7 +25,7 @@ import { cn } from "@repo/ui/lib/utils";
 import type { ContentFormat } from "@repo/types";
 import type { Conversation } from "../chat-client";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
-import { ChatLexicalEditor, type EditorHandle } from "./lexical";
+import { LexicalEditor, type EditorHandle } from "@repo/lexical-utils/react";
 
 type WsStatus = "connecting" | "connected" | "disconnected";
 
@@ -454,12 +454,13 @@ export function MessageThreadPanel({
             <p className="text-[10px] text-destructive px-1">{sendError}</p>
           )}
           <div className="flex gap-1.5 items-end">
-            <ChatLexicalEditor
+            <LexicalEditor
               onSend={handleSend}
               onTypingStart={onTypingStart}
               onTypingStop={onTypingStop}
               disabled={sending}
               editorHandleRef={editorHandleRef}
+              contentClassName="text-xs"
             />
             <Button
               type="button"
