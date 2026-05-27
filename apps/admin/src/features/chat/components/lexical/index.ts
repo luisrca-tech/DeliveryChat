@@ -1,5 +1,4 @@
 export { LexicalEditor } from "./LexicalEditor";
-export type { EditorHandle } from "./LexicalEditor";
+export type { EditorHandle } from "@repo/lexical-utils/react";
 export type { AiToolbarProps } from "./ToolbarPlugin";
-export { editorTheme } from "./theme";
-export { AI_MARKDOWN_TRANSFORMERS } from "./aiMarkdownTransformers";
+export { editorTheme, AI_MARKDOWN_TRANSFORMERS } from "@repo/lexical-utils/react";

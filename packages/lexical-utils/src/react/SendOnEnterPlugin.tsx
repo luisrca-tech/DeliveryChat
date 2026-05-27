@@ -1,30 +1,43 @@
 import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $getRoot } from "lexical";
-import { isPlainTextLexicalJson } from "@repo/lexical-utils";
+import {
+  COMMAND_PRIORITY_HIGH,
+  KEY_ENTER_COMMAND,
+  $getRoot,
+} from "lexical";
+import { isPlainTextLexicalJson } from "../index";
+import { isSelectionInListItem } from "./listUtils";
 import type { ContentFormat } from "@repo/types";
-
-export type EditorHandle = {
-  triggerSend: () => void;
-  isEmpty: () => boolean;
-};
 
 type Props = {
   onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
-  handleRef: React.MutableRefObject<EditorHandle | null>;
 };
 
-export function SendButtonPlugin({ onSend, handleRef }: Props) {
+export function SendOnEnterPlugin({ onSend }: Props) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
-    handleRef.current = {
-      triggerSend: () => {
+    return editor.registerCommand(
+      KEY_ENTER_COMMAND,
+      (event: KeyboardEvent | null) => {
+        if (!event) return false;
+
+        if (event.ctrlKey || event.altKey || event.metaKey || event.shiftKey) {
+          return false;
+        }
+
+        if (isSelectionInListItem(editor)) {
+          return false;
+        }
+
+        event.preventDefault();
+
         const editorState = editor.getEditorState();
         let isEmpty = true;
         editorState.read(() => {
           const root = $getRoot();
-          isEmpty = root.getTextContent().trim().length === 0;
+          const text = root.getTextContent().trim();
+          isEmpty = text.length === 0;
         });
 
         if (!isEmpty) {
@@ -36,14 +49,12 @@ export function SendButtonPlugin({ onSend, handleRef }: Props) {
             onSend(json, false, "lexical");
           }
         }
+
+        return true;
       },
-      isEmpty: () => {
-        return editor.getEditorState().read(() => {
-          return $getRoot().getTextContent().trim().length === 0;
-        });
-      },
-    };
-  }, [editor, onSend, handleRef]);
+      COMMAND_PRIORITY_HIGH,
+    );
+  }, [editor, onSend]);
 
   return null;
 }

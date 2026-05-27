@@ -4,7 +4,7 @@ import {
   type LexicalEditor,
 } from "lexical";
 import { $getNearestNodeOfType } from "@lexical/utils";
-import { $isListItemNode, ListItemNode } from "@lexical/list";
+import { ListItemNode } from "@lexical/list";
 
 export function $getActiveListItem(): ListItemNode | null {
   const selection = $getSelection();

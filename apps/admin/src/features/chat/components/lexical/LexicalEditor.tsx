@@ -11,21 +11,17 @@ import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { LinkNode, AutoLinkNode } from "@lexical/link";
-import { EXTERNAL_LINK_ATTRIBUTES } from "./linkInsert";
-import { editorTheme } from "./theme";
+import {
+  EXTERNAL_LINK_ATTRIBUTES,
+  editorTheme,
+  SendOnEnterPlugin,
+  ListKeyboardPlugin,
+  ClearEditorPlugin,
+  ExternalSendPlugin,
+  type EditorHandle,
+} from "@repo/lexical-utils/react";
 import { ToolbarPlugin, type AiToolbarProps } from "./ToolbarPlugin";
-import { SendOnEnterPlugin } from "./SendOnEnterPlugin";
-import { ListKeyboardPlugin } from "./ListKeyboardPlugin";
-import { ClearEditorPlugin } from "./ClearEditorPlugin";
-import { ExternalSendPlugin } from "./ExternalSendPlugin";
 import type { ContentFormat } from "@repo/types";
-
-export type EditorHandle = {
-  triggerSend: () => void;
-  insertAiMarkdown: (markdown: string) => void;
-  exportMarkdown: () => string;
-  isEmpty: () => boolean;
-};
 
 type Props = {
   onSend: (content: string, contentFormat: ContentFormat) => void;

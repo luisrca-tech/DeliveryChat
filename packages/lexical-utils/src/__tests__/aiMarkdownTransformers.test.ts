@@ -6,7 +6,7 @@ import {
   $convertFromMarkdownString,
   $convertToMarkdownString,
 } from "@lexical/markdown";
-import { AI_MARKDOWN_TRANSFORMERS } from "./aiMarkdownTransformers";
+import { AI_MARKDOWN_TRANSFORMERS } from "../react/aiMarkdownTransformers";
 
 function roundTrip(markdown: string): string {
   const editor = createEditor({

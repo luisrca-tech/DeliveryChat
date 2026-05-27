@@ -31,7 +31,11 @@ function $handleListEnter(): boolean {
   return true;
 }
 
-export function ListKeyboardPlugin() {
+type Props = {
+  interceptPlainEnter?: boolean;
+};
+
+export function ListKeyboardPlugin({ interceptPlainEnter = true }: Props) {
   const [editor] = useLexicalComposerContext();
 
   useEffect(() => {
@@ -64,7 +68,7 @@ export function ListKeyboardPlugin() {
           return true;
         }
 
-        if (inList) {
+        if (interceptPlainEnter && inList) {
           event.preventDefault();
           const handled = $handleListEnter();
           if (handled) editor.focus();
@@ -75,7 +79,7 @@ export function ListKeyboardPlugin() {
       },
       COMMAND_PRIORITY_CRITICAL,
     );
-  }, [editor]);
+  }, [editor, interceptPlainEnter]);
 
   return null;
 }

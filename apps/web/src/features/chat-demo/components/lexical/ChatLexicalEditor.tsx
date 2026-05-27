@@ -11,13 +11,16 @@ import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { LinkNode, AutoLinkNode } from "@lexical/link";
-import { EXTERNAL_LINK_ATTRIBUTES } from "./linkInsert";
-import { editorTheme } from "./theme";
+import {
+  EXTERNAL_LINK_ATTRIBUTES,
+  editorTheme,
+  SendOnEnterPlugin,
+  ListKeyboardPlugin,
+  ClearEditorPlugin,
+  ExternalSendPlugin,
+  type EditorHandle,
+} from "@repo/lexical-utils/react";
 import { ToolbarPlugin } from "./ToolbarPlugin";
-import { SendOnEnterPlugin } from "./SendOnEnterPlugin";
-import { SendButtonPlugin, type EditorHandle } from "./SendButtonPlugin";
-import { ListKeyboardPlugin } from "./ListKeyboardPlugin";
-import { ClearEditorPlugin } from "./ClearEditorPlugin";
 import type { ContentFormat } from "@repo/types";
 
 type Props = {
@@ -105,7 +108,7 @@ export function ChatLexicalEditor({
       <SendOnEnterPlugin onSend={handleSend} />
       <ListKeyboardPlugin />
       <ClearEditorPlugin clearRef={clearEditorRef} />
-      <SendButtonPlugin onSend={handleSend} handleRef={editorHandleRef} />
+      <ExternalSendPlugin onSend={handleSend} editorHandleRef={editorHandleRef} />
     </LexicalComposer>
   );
 }

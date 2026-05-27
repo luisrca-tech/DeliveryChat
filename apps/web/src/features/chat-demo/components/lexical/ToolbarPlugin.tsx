@@ -57,9 +57,9 @@ import {
 import {
   captureSelection,
   insertLinkAtSelection,
+  $getActiveListItem,
   type SavedSelectionPoints,
-} from "./linkInsert";
-import { $getActiveListItem } from "./listUtils";
+} from "@repo/lexical-utils/react";
 
 type BlockType = "paragraph" | "h1" | "h2" | "h3" | "ul" | "ol" | "code";
 

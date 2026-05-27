@@ -11,7 +11,11 @@ import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { LinkNode, AutoLinkNode } from "@lexical/link";
-import { EXTERNAL_LINK_ATTRIBUTES } from "./linkInsert";
+import {
+  EXTERNAL_LINK_ATTRIBUTES,
+  editorTheme,
+  ListKeyboardPlugin,
+} from "@repo/lexical-utils/react";
 import {
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
@@ -19,8 +23,6 @@ import {
 } from "lexical";
 import { Check, X } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
-import { editorTheme } from "./theme";
-import { ListKeyboardPlugin } from "./ListKeyboardPlugin";
 
 const EDITOR_NODES = [
   HeadingNode,

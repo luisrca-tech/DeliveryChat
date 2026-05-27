@@ -65,9 +65,9 @@ import {
 import {
   captureSelection,
   insertLinkAtSelection,
+  $getActiveListItem,
   type SavedSelectionPoints,
-} from "./linkInsert";
-import { $getActiveListItem } from "./listUtils";
+} from "@repo/lexical-utils/react";
 
 export type AiToolbarProps = {
   onGenerate: () => void;

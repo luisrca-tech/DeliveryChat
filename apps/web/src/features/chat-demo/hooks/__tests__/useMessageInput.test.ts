@@ -3,7 +3,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useMessageInput } from "../useMessageInput";
 import type { OptimisticMessage } from "../../lib/wsMessageReducer";
 
-vi.mock("../../components/lexical", () => ({
+vi.mock("@repo/lexical-utils", () => ({
   serializeLexicalJsonToHtml: (json: string) => `<p>html:${json}</p>`,
 }));
 

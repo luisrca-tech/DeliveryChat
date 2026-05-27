@@ -6,9 +6,15 @@ import {
   $convertToMarkdownString,
 } from "@lexical/markdown";
 import { AI_MARKDOWN_TRANSFORMERS } from "./aiMarkdownTransformers";
-import { isPlainTextLexicalJson } from "@repo/lexical-utils";
-import type { EditorHandle } from "./LexicalEditor";
+import { isPlainTextLexicalJson } from "../index";
 import type { ContentFormat } from "@repo/types";
+
+export type EditorHandle = {
+  triggerSend: () => void;
+  insertAiMarkdown: (markdown: string) => void;
+  exportMarkdown: () => string;
+  isEmpty: () => boolean;
+};
 
 type Props = {
   onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
