@@ -52,6 +52,8 @@ export type InitOptions = {
 export type ChatMessage = {
   id: string;
   content: string;
+  contentFormat?: "plain" | "lexical";
+  contentHtml?: string | null;
   type: "text" | "system";
   senderRole: "visitor" | "operator" | "admin";
   senderId: string;

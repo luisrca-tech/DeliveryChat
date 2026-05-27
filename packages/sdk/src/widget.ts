@@ -353,7 +353,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
           msg.content !== prev.content ||
           msg.editedAt !== prev.editedAt
         ) {
-          updateMessageContent(listEl, msg.id, msg.content, msg.editedAt);
+          updateMessageContent(listEl, msg.id, msg.content, msg.editedAt, msg.contentFormat, msg.contentHtml);
         }
       }
       renderedMessages.set(msg.id, msg);
@@ -386,7 +386,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
         const msgId = row?.getAttribute("data-id") ?? null;
         if (msgId && msgId !== editingId) {
           const msg = getState("messages").find((m) => m.id === msgId);
-          exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt);
+          exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt, msg?.contentFormat, msg?.contentHtml);
         }
       });
 
@@ -397,7 +397,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
           const msgId = row?.getAttribute("data-id") ?? null;
           if (msgId) {
             const msg = getState("messages").find((m) => m.id === msgId);
-            exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt);
+            exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt, msg?.contentFormat, msg?.contentHtml);
           }
         });
         return;
