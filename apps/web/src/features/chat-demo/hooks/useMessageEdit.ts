@@ -1,10 +1,25 @@
 import { useState, useCallback } from "react";
+import type { ContentFormat } from "@repo/types";
 import type { ChatClient } from "../chat-client";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
+import { resolveContentFormat } from "../lib/isLexicalMessage";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 
-type EditingState = { id: string; content: string; saving: boolean } | null;
+export type EditingState = {
+  id: string;
+  content: string;
+  contentFormat: ContentFormat;
+  saving: boolean;
+} | null;
+
+export type ReplaceMessageFn = (
+  id: string,
+  content: string,
+  editedAt: string,
+  contentFormat?: ContentFormat,
+  contentHtml?: string | null,
+) => void;
 
 function withinEditWindow(createdAt: string): boolean {
   return Date.now() - new Date(createdAt).getTime() < EDIT_WINDOW_MS;
@@ -12,13 +27,18 @@ function withinEditWindow(createdAt: string): boolean {
 
 export function useMessageEdit(
   client: ChatClient,
-  onReplace: (id: string, content: string, editedAt: string) => void,
+  onReplace: ReplaceMessageFn,
   onRemove: (id: string) => void,
 ) {
   const [editingState, setEditingState] = useState<EditingState>(null);
 
   const handleStartEdit = useCallback((msg: OptimisticMessage) => {
-    setEditingState({ id: msg.id, content: msg.content, saving: false });
+    setEditingState({
+      id: msg.id,
+      content: msg.content,
+      contentFormat: resolveContentFormat(msg),
+      saving: false,
+    });
   }, []);
 
   const handleCancelEdit = useCallback(() => {
@@ -30,8 +50,16 @@ export function useMessageEdit(
   }, []);
 
   const handleSaveEdit = useCallback(
-    async (msg: OptimisticMessage) => {
-      const content = editingState?.content.trim() ?? "";
+    async (
+      msg: OptimisticMessage,
+      contentOverride?: string,
+      contentFormatOverride?: ContentFormat,
+    ) => {
+      const contentFormat =
+        contentFormatOverride ??
+        editingState?.contentFormat ??
+        resolveContentFormat(msg);
+      const content = (contentOverride ?? editingState?.content ?? "").trim();
 
       if (!content || !withinEditWindow(msg.createdAt)) {
         setEditingState(null);
@@ -49,11 +77,14 @@ export function useMessageEdit(
           msg.conversationId,
           msg.id,
           content,
+          contentFormat,
         );
         onReplace(
           msg.id,
           updated.content,
           updated.editedAt ?? new Date().toISOString(),
+          updated.contentFormat,
+          updated.contentHtml,
         );
         setEditingState(null);
       } catch {

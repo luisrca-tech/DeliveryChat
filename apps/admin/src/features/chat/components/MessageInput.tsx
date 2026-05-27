@@ -1,13 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles, Loader2, Wand2, Check, X } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Send, Check, X } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
-import { Input } from "@repo/ui/components/ui/input";
 import { useGenerateReply } from "@/features/ai/hooks/useGenerateReply";
 import { useImproveMessage } from "@/features/ai/hooks/useImproveMessage";
 import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
+import { LexicalEditor, type EditorHandle } from "@repo/lexical-utils/react";
+import type { ContentFormat } from "@repo/types";
 
 type Props = {
-  onSend: (content: string) => void;
+  onSend: (content: string, contentFormat: "plain" | "lexical") => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   disabled: boolean;
@@ -17,8 +18,6 @@ type Props = {
 
 type ImproveState = "idle" | "generating" | "review";
 
-const TYPING_THROTTLE_MS = 2_000;
-
 export function MessageInput({
   onSend,
   onTypingStart,
@@ -27,19 +26,17 @@ export function MessageInput({
   placeholder,
   conversationId,
 }: Props) {
-  const [value, setValue] = useState("");
   const [isAiSuggestion, setIsAiSuggestion] = useState(false);
   const [improveState, setImproveState] = useState<ImproveState>("idle");
-  const [originalDraft, setOriginalDraft] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const lastTypingSentRef = useRef(0);
+  const [editorHasContent, setEditorHasContent] = useState(false);
+  const editorHandleRef = useRef<EditorHandle | null>(null);
+  const improveSnapshotRef = useRef<string>("");
 
   const { isAvailable: aiAvailable } = useAiAvailability();
 
   const handleGenerateSuccess = useCallback((text: string) => {
-    setValue(text);
+    editorHandleRef.current?.insertAiMarkdown(text);
     setIsAiSuggestion(true);
-    inputRef.current?.focus();
   }, []);
 
   const { generate, cancel: cancelGenerate, isGenerating } = useGenerateReply({
@@ -47,7 +44,7 @@ export function MessageInput({
   });
 
   const handleImproveSuccess = useCallback((text: string) => {
-    setValue(text);
+    editorHandleRef.current?.insertAiMarkdown(text);
     setImproveState("review");
   }, []);
 
@@ -73,70 +70,83 @@ export function MessageInput({
   useEffect(() => {
     if (!isImproving && improveState === "generating") {
       setImproveState("idle");
-      setOriginalDraft("");
     }
   }, [isImproving, improveState]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setValue(newValue);
-    if (isAiSuggestion) setIsAiSuggestion(false);
-
-    if (newValue.length === 0) {
-      onTypingStop();
-      lastTypingSentRef.current = 0;
-      return;
-    }
-
-    const now = Date.now();
-    if (now - lastTypingSentRef.current >= TYPING_THROTTLE_MS) {
-      lastTypingSentRef.current = now;
-      onTypingStart();
-    }
-  };
-
-  const handleSend = () => {
-    const trimmed = value.trim();
-    if (!trimmed || disabled) return;
-    onSend(trimmed);
-    setValue("");
-    setIsAiSuggestion(false);
-    setImproveState("idle");
-    setOriginalDraft("");
-    lastTypingSentRef.current = 0;
-    inputRef.current?.focus();
-  };
+  const handleSend = useCallback(
+    (content: string, contentFormat: ContentFormat) => {
+      if (disabled) return;
+      onSend(content, contentFormat);
+      setIsAiSuggestion(false);
+      setImproveState("idle");
+      improveSnapshotRef.current = "";
+    },
+    [onSend, disabled],
+  );
 
   const handleClearAiSuggestion = () => {
-    setValue("");
     setIsAiSuggestion(false);
-    inputRef.current?.focus();
-  };
-
-  const handleImproveClick = () => {
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setOriginalDraft(value);
-    setIsAiSuggestion(false);
-    improve({ conversationId, draft: trimmed });
   };
 
   const handleAcceptImprovement = () => {
     setImproveState("idle");
-    setOriginalDraft("");
-    inputRef.current?.focus();
+    improveSnapshotRef.current = "";
   };
 
   const handleRejectImprovement = () => {
-    setValue(originalDraft);
+    const snapshot = improveSnapshotRef.current;
+    if (snapshot) {
+      editorHandleRef.current?.insertAiMarkdown(snapshot);
+    }
     setImproveState("idle");
-    setOriginalDraft("");
-    inputRef.current?.focus();
+    improveSnapshotRef.current = "";
   };
 
-  const canGenerate = aiAvailable && !value.trim() && !aiInFlight && !disabled && improveState === "idle";
-  const canImprove = aiAvailable && !!value.trim() && !aiInFlight && !disabled && improveState === "idle";
-  const isLocked = improveState === "generating" || improveState === "review";
+  const handleEditorChange = useCallback(() => {
+    const hasContent = !(editorHandleRef.current?.isEmpty() ?? true);
+    setEditorHasContent(hasContent);
+  }, []);
+
+  const handleGenerate = useCallback(() => {
+    generate(conversationId);
+  }, [generate, conversationId]);
+
+  const handleImprove = useCallback(() => {
+    const draft = editorHandleRef.current?.exportMarkdown() ?? "";
+    if (!draft.trim()) return;
+    improveSnapshotRef.current = draft;
+    improve({ conversationId, draft });
+  }, [improve, conversationId]);
+
+  const canGenerate =
+    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && !editorHasContent;
+  const canImprove =
+    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && editorHasContent;
+
+  const aiToolbarProps = useMemo(
+    () =>
+      aiAvailable
+        ? {
+            onGenerate: handleGenerate,
+            onCancelGenerate: cancelGenerate,
+            isGenerating,
+            canGenerate,
+            onImprove: handleImprove,
+            isImproving,
+            canImprove,
+          }
+        : undefined,
+    [
+      aiAvailable,
+      handleGenerate,
+      cancelGenerate,
+      isGenerating,
+      canGenerate,
+      handleImprove,
+      isImproving,
+      canImprove,
+    ],
+  );
 
   return (
     <div className="p-3 border-t border-border bg-card/50 shrink-0">
@@ -174,61 +184,12 @@ export function MessageInput({
           </button>
         </div>
       )}
-      <div className="flex gap-2">
-        {aiAvailable && (
-          <>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() =>
-                isGenerating ? cancelGenerate() : generate(conversationId)
-              }
-              disabled={!isGenerating && !canGenerate}
-              title={
-                isGenerating
-                  ? "Cancel generation"
-                  : canGenerate
-                    ? "Generate AI reply"
-                    : "Clear the input to generate an AI reply"
-              }
-              className={isGenerating ? "animate-pulse" : ""}
-            >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={handleImproveClick}
-              disabled={!canImprove}
-              title={
-                canImprove
-                  ? "Improve message with AI"
-                  : "Type a message first to improve it"
-              }
-              className={isImproving ? "animate-pulse" : ""}
-            >
-              {isImproving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4" />
-              )}
-            </Button>
-          </>
-        )}
-        <Input
-          ref={inputRef}
-          value={value}
-          onChange={handleChange}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSend();
-            }
-          }}
+      <div className="flex gap-2 items-end">
+        <LexicalEditor
+          onSend={handleSend}
+          onTypingStart={onTypingStart}
+          onTypingStop={onTypingStop}
+          disabled={disabled || aiInFlight}
           placeholder={
             isGenerating
               ? "Generating AI reply..."
@@ -236,22 +197,14 @@ export function MessageInput({
                 ? "Improving message..."
                 : placeholder
           }
-          disabled={disabled || isLocked || isGenerating}
-          readOnly={improveState === "review"}
-          className={`flex-1 ${
-            isAiSuggestion
-              ? "border-violet-500/50 bg-violet-500/5"
-              : improveState === "review"
-                ? "border-amber-500/50 bg-amber-500/5"
-                : improveState === "generating"
-                  ? "border-amber-500/30 bg-amber-500/5"
-                  : ""
-          }`}
+          editorHandleRef={editorHandleRef}
+          ai={aiToolbarProps}
+          onChange={handleEditorChange}
         />
         <Button
           size="icon"
-          onClick={handleSend}
-          disabled={disabled || !value.trim() || aiInFlight || improveState === "review"}
+          onClick={() => editorHandleRef.current?.triggerSend()}
+          disabled={disabled || aiInFlight}
         >
           <Send className="h-4 w-4" />
         </Button>

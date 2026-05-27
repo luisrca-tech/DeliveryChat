@@ -16,7 +16,7 @@ import { UserProfilePopover } from "./UserProfilePopover";
 
 export function AppShell(props: { children: ReactNode }) {
   const { children } = props;
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const { data: appsData } = useApplicationsQuery();
   const firstAppId = appsData?.applications?.[0]?.id;
 

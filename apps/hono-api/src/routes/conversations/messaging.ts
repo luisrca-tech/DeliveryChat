@@ -19,6 +19,8 @@ import {
   buildMessageEditedEvent,
   buildMessageDeletedEvent,
 } from "../../features/chat/broadcasting.service.js";
+import { serializeLexicalToHtml } from "../../features/chat/lexicalSerializer.js";
+import type { ContentFormat } from "@repo/types";
 import {
   requireAuth,
   getUnifiedAuth,
@@ -92,7 +94,7 @@ export const messagingRoute = new Hono()
       try {
         const auth = getUnifiedAuth(c);
         const conversationId = c.req.param("id");
-        const { content } = c.req.valid("json");
+        const { content, contentFormat } = c.req.valid("json");
 
         if (auth.type === "visitor") {
           const participantCheck = await isParticipant(
@@ -112,6 +114,7 @@ export const messagingRoute = new Hono()
             conversationId,
             senderId: auth.visitorUserId,
             content,
+            contentFormat,
             broadcastContext: {
               senderName: "Visitor",
               senderRole: "visitor",
@@ -149,6 +152,7 @@ export const messagingRoute = new Hono()
           conversationId,
           senderId: authUser.id,
           content,
+          contentFormat,
           broadcastContext: { senderName: authUser.name, senderRole },
         });
 
@@ -170,7 +174,7 @@ export const messagingRoute = new Hono()
         const auth = getUnifiedAuth(c);
         const conversationId = c.req.param("id");
         const messageId = c.req.param("messageId");
-        const { content } = c.req.valid("json");
+        const { content, contentFormat } = c.req.valid("json");
         const senderId =
           auth.type === "visitor" ? auth.visitorUserId : auth.user.id;
 
@@ -194,14 +198,18 @@ export const messagingRoute = new Hono()
           conversationId,
           senderId,
           content,
+          contentFormat,
         });
 
+        const resolvedFormat = message.contentFormat as ContentFormat;
         broadcastRoomEvent(
           conversationId,
           buildMessageEditedEvent({
             conversationId,
             messageId,
             content,
+            contentFormat: resolvedFormat,
+            contentHtml: serializeLexicalToHtml(content, resolvedFormat),
             editedAt: message.editedAt!,
             senderId,
           }),

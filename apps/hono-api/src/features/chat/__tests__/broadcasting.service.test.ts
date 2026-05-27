@@ -66,6 +66,8 @@ describe("Event factory functions", () => {
       senderName: "Alice",
       senderRole: "visitor" as const,
       content: "Hello!",
+      contentFormat: "plain" as const,
+      contentHtml: null,
       type: "text" as const,
       createdAt: "2026-01-01T00:00:00Z",
     };
@@ -100,6 +102,8 @@ describe("Event factory functions", () => {
       conversationId: "conv-1",
       messageId: "msg-1",
       content: "Updated content",
+      contentFormat: "plain" as const,
+      contentHtml: null,
       editedAt: "2026-01-01T00:01:00Z",
       senderId: "user-1",
     };

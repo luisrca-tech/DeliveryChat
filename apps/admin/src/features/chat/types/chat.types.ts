@@ -2,6 +2,7 @@ import type {
   ConversationStatus,
   ParticipantRole,
   MessageType,
+  ContentFormat,
 } from "@repo/types";
 
 export type Conversation = {
@@ -41,6 +42,8 @@ export type Message = {
   senderRole: "visitor" | "operator" | "admin" | null;
   type: MessageType;
   content: string;
+  contentFormat: ContentFormat;
+  contentHtml: string | null;
   createdAt: string;
   editedAt?: string | null;
   isDeleted?: boolean;

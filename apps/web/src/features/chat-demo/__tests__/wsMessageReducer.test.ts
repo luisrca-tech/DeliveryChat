@@ -704,3 +704,114 @@ describe("wsMessageReducer / system messages", () => {
     expect(next.messages[0]!.type).toBe("text");
   });
 });
+
+// ---- contentFormat & contentHtml passthrough ----
+
+describe("wsMessageReducer / contentFormat & contentHtml passthrough", () => {
+  it("message:new passes through contentFormat and contentHtml fields", () => {
+    const state = makeState({ messages: [] });
+
+    const { state: next } = wsMessageReducer(
+      state,
+      {
+        type: "message:new",
+        payload: {
+          id: "msg-rich",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          content: '{"root":{"children":[]}}',
+          contentFormat: "lexical",
+          contentHtml: "<p><strong>Hello</strong></p>",
+          createdAt: "2024-01-01T01:00:00Z",
+        },
+      },
+      "conv-1",
+    );
+
+    expect(next.messages[0]!.contentFormat).toBe("lexical");
+    expect(next.messages[0]!.contentHtml).toBe(
+      "<p><strong>Hello</strong></p>",
+    );
+  });
+
+  it("message:new defaults contentFormat to undefined when not provided", () => {
+    const state = makeState({ messages: [] });
+
+    const { state: next } = wsMessageReducer(
+      state,
+      {
+        type: "message:new",
+        payload: {
+          id: "msg-plain",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          content: "Just text",
+          createdAt: "2024-01-01T01:00:00Z",
+        },
+      },
+      "conv-1",
+    );
+
+    expect(next.messages[0]!.contentFormat).toBeUndefined();
+    expect(next.messages[0]!.contentHtml).toBeUndefined();
+  });
+
+  it("message:edited passes through contentFormat and contentHtml", () => {
+    const msg = makeMessage({
+      id: "msg-1",
+      contentFormat: "plain",
+      contentHtml: undefined,
+    });
+    const state = makeState({ messages: [msg] });
+
+    const { state: next } = wsMessageReducer(
+      state,
+      {
+        type: "message:edited",
+        payload: {
+          messageId: "msg-1",
+          conversationId: "conv-1",
+          content: '{"root":{"children":[]}}',
+          contentFormat: "lexical",
+          contentHtml: "<p>Edited rich</p>",
+          editedAt: "2024-01-01T02:00:00Z",
+        },
+      },
+      "conv-1",
+    );
+
+    expect(next.messages[0]!.contentFormat).toBe("lexical");
+    expect(next.messages[0]!.contentHtml).toBe("<p>Edited rich</p>");
+  });
+
+  it("messages:sync preserves contentFormat and contentHtml from synced messages", () => {
+    const state = makeState({ messages: [] });
+
+    const { state: next } = wsMessageReducer(
+      state,
+      {
+        type: "messages:sync",
+        payload: {
+          conversationId: "conv-1",
+          messages: [
+            {
+              id: "msg-sync-1",
+              conversationId: "conv-1",
+              senderId: "op-1",
+              content: '{"root":{}}',
+              contentFormat: "lexical",
+              contentHtml: "<p>Synced</p>",
+              createdAt: "2024-01-01T01:00:00Z",
+              editedAt: null,
+              type: "text",
+            },
+          ],
+        },
+      },
+      "conv-1",
+    );
+
+    expect(next.messages[0]!.contentFormat).toBe("lexical");
+    expect(next.messages[0]!.contentHtml).toBe("<p>Synced</p>");
+  });
+});

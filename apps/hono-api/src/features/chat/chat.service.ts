@@ -4,7 +4,7 @@ import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
 import { user } from "../../db/schema/users.js";
-import type { ConversationStatus, ParticipantRole } from "@repo/types";
+import type { ConversationStatus, ContentFormat, ParticipantRole } from "@repo/types";
 import {
   broadcastOrganizationEvent,
   broadcastRoomEvent,
@@ -14,6 +14,8 @@ import {
   buildConversationResolvedEvent,
   buildMessageNewEvent,
 } from "./broadcasting.service.js";
+import { serializeLexicalToPlainText } from "@repo/lexical-utils";
+import { serializeLexicalToHtml } from "./lexicalSerializer.js";
 
 // ── Custom Errors ──
 
@@ -130,6 +132,7 @@ interface SendMessageInput {
   conversationId: string;
   senderId: string;
   content: string;
+  contentFormat?: ContentFormat;
   broadcastContext?: {
     senderName: string;
     senderRole: ParticipantRole;
@@ -141,6 +144,7 @@ interface EditMessageInput {
   conversationId: string;
   senderId: string;
   content: string;
+  contentFormat?: ContentFormat;
 }
 
 interface DeleteMessageInput {
@@ -159,6 +163,19 @@ interface AddParticipantInput {
   conversationId: string;
   userId: string;
   role: ParticipantRole;
+}
+
+// ── Message Enrichment ──
+
+export function enrichMessage<
+  T extends { content: string; contentFormat?: ContentFormat | null },
+>(message: T): T & { contentHtml: string | null; contentPlainText: string } {
+  const format: ContentFormat = (message.contentFormat ?? "plain") as ContentFormat;
+  return {
+    ...message,
+    contentHtml: serializeLexicalToHtml(message.content, format),
+    contentPlainText: serializeLexicalToPlainText(message.content, format),
+  };
 }
 
 // ── Service Functions ──
@@ -250,6 +267,8 @@ export async function sendMessage(
     organizationId = conversationData.organizationId;
   }
 
+  const contentFormat = input.contentFormat ?? "plain";
+
   const message = await db.transaction(async (tx) => {
     const [msg] = await tx
       .insert(messages)
@@ -258,6 +277,7 @@ export async function sendMessage(
         conversationId: input.conversationId,
         senderId: input.senderId,
         content: input.content,
+        contentFormat,
       })
       .returning();
 
@@ -271,16 +291,20 @@ export async function sendMessage(
     return msg;
   });
 
+  const enriched = enrichMessage(message);
+
   if (input.broadcastContext) {
     const event = buildMessageNewEvent({
-      id: message.id,
+      id: enriched.id,
       conversationId: input.conversationId,
       senderId: input.senderId,
       senderName: input.broadcastContext.senderName,
       senderRole: input.broadcastContext.senderRole,
-      content: message.content,
+      content: enriched.content,
+      contentFormat,
+      contentHtml: enriched.contentHtml,
       type: "text",
-      createdAt: message.createdAt,
+      createdAt: enriched.createdAt,
     });
 
     try {
@@ -296,7 +320,7 @@ export async function sendMessage(
     }
   }
 
-  return message;
+  return enriched;
 }
 
 export async function editMessage(input: EditMessageInput) {
@@ -329,19 +353,24 @@ export async function editMessage(input: EditMessageInput) {
     );
   }
 
+  const updateValues: Record<string, unknown> = {
+    content: input.content,
+    editedAt: sql`now()`,
+    updatedAt: sql`now()`,
+  };
+  if (input.contentFormat) {
+    updateValues.contentFormat = input.contentFormat;
+  }
+
   const [updated] = await db
     .update(messages)
-    .set({
-      content: input.content,
-      editedAt: sql`now()`,
-      updatedAt: sql`now()`,
-    })
+    .set(updateValues)
     .where(eq(messages.id, input.messageId))
     .returning();
 
   if (!updated) throw new Error("Failed to update message");
 
-  return updated;
+  return enrichMessage(updated);
 }
 
 export async function deleteMessage(input: DeleteMessageInput) {
@@ -389,7 +418,7 @@ export async function deleteMessage(input: DeleteMessageInput) {
 }
 
 export async function getMessageHistory(input: GetMessageHistoryInput) {
-  return db
+  const rows = await db
     .select()
     .from(messages)
     .where(
@@ -401,6 +430,8 @@ export async function getMessageHistory(input: GetMessageHistoryInput) {
     .orderBy(desc(messages.createdAt))
     .limit(input.limit)
     .offset(input.offset);
+
+  return rows.map(enrichMessage);
 }
 
 interface GetMessageHistoryForMemberInput {
@@ -428,7 +459,7 @@ export async function getMessageHistoryForMember(
     throw new ConversationNotFoundError(input.conversationId);
   }
 
-  return db
+  const rows = await db
     .select({
       id: messages.id,
       conversationId: messages.conversationId,
@@ -437,6 +468,7 @@ export async function getMessageHistoryForMember(
       senderRole: conversationParticipants.role,
       type: messages.type,
       content: messages.content,
+      contentFormat: messages.contentFormat,
       createdAt: messages.createdAt,
     })
     .from(messages)
@@ -457,6 +489,8 @@ export async function getMessageHistoryForMember(
     .orderBy(desc(messages.createdAt))
     .limit(input.limit)
     .offset(input.offset);
+
+  return rows.map(enrichMessage);
 }
 
 export async function addParticipant(input: AddParticipantInput) {
@@ -597,6 +631,8 @@ async function broadcastSystemMessage(
       senderName: "",
       senderRole: "operator",
       content: msg.content,
+      contentFormat: "plain",
+      contentHtml: null,
       type: "system",
       createdAt: msg.createdAt,
     }),
@@ -853,7 +889,7 @@ export async function getMessagesSince(
 
   if (!lastMsg) return [];
 
-  return db
+  const rows = await db
     .select()
     .from(messages)
     .where(
@@ -865,6 +901,8 @@ export async function getMessagesSince(
     )
     .orderBy(messages.createdAt)
     .limit(limit);
+
+  return rows.map(enrichMessage);
 }
 
 // ── List Conversations for Visitor ──

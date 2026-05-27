@@ -10,6 +10,8 @@ function makePayload(
     conversationId: "conv-1",
     messageId: "msg-1",
     content: "edited content",
+    contentFormat: "plain",
+    contentHtml: null,
     editedAt: "2026-01-01T02:00:00Z",
     senderId: "user-1",
     ...overrides,
@@ -56,6 +58,8 @@ describe("handleMessageEdited", () => {
     expect(result.messages[0]).toEqual({
       id: "msg-1",
       content: "edited content",
+      contentFormat: "plain",
+      contentHtml: null,
       editedAt: "2026-01-01T02:00:00Z",
     });
     expect(result.messages[1]).toEqual({

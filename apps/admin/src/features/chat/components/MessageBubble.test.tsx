@@ -21,6 +21,8 @@ function makeMessage(overrides: Partial<Message> = {}): Message {
     senderRole: "visitor",
     type: "text",
     content: "hello",
+    contentFormat: "plain",
+    contentHtml: null,
     createdAt: new Date().toISOString(),
     ...overrides,
   };

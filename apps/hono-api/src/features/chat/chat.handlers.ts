@@ -15,7 +15,7 @@ import {
   MessageEditWindowExpiredError,
   type ConversationData,
 } from "./chat.service.js";
-import type { MessageNewPayload, WSServerEvent } from "@repo/types";
+import type { ContentFormat, MessageNewPayload, WSServerEvent } from "@repo/types";
 import {
   buildMessageNewEvent,
   buildMessageEditedEvent,
@@ -160,6 +160,8 @@ async function handleRoomJoin(
               senderName: "",
               senderRole: conn.role,
               content: msg.content,
+              contentFormat: (msg.contentFormat ?? "plain") as ContentFormat,
+              contentHtml: msg.contentHtml,
               type: msg.type as "text" | "system",
               createdAt: msg.createdAt,
             }),
@@ -180,7 +182,7 @@ function handleRoomLeave(
 
 async function handleMessageSend(
   conn: WSConnection,
-  payload: { conversationId: string; content: string; clientMessageId: string },
+  payload: { conversationId: string; content: string; contentFormat?: string; clientMessageId: string },
   roomManager: IRoomManager,
 ) {
   let conversationData: ConversationData;
@@ -209,6 +211,7 @@ async function handleMessageSend(
         conversationId: payload.conversationId,
         senderId: conn.userId,
         content: payload.content,
+        contentFormat: (payload.contentFormat ?? "plain") as ContentFormat,
       },
       conversationData,
     );
@@ -251,6 +254,8 @@ async function handleMessageSend(
     senderName: "",
     senderRole: conn.role,
     content: message.content,
+    contentFormat: (message.contentFormat ?? "plain") as ContentFormat,
+    contentHtml: message.contentHtml,
     type: message.type as "text" | "system",
     createdAt: message.createdAt,
     assignedTo: conversationData.assignedTo,
@@ -265,7 +270,7 @@ async function handleMessageSend(
 
 async function handleMessageEdit(
   conn: WSConnection,
-  payload: { conversationId: string; messageId: string; content: string },
+  payload: { conversationId: string; messageId: string; content: string; contentFormat?: string },
   roomManager: IRoomManager,
 ) {
   try {
@@ -274,12 +279,15 @@ async function handleMessageEdit(
       conversationId: payload.conversationId,
       senderId: conn.userId,
       content: payload.content,
+      contentFormat: payload.contentFormat as ContentFormat | undefined,
     });
 
     const broadcastEvent = buildMessageEditedEvent({
       conversationId: payload.conversationId,
       messageId: updated.id,
       content: updated.content,
+      contentFormat: (updated.contentFormat ?? "plain") as ContentFormat,
+      contentHtml: updated.contentHtml,
       editedAt: updated.editedAt!,
       senderId: conn.userId,
     });
