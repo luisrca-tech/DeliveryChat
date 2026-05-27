@@ -12,3 +12,17 @@ export { SendOnEnterPlugin } from "./SendOnEnterPlugin";
 export { ClearEditorPlugin } from "./ClearEditorPlugin";
 export { ListKeyboardPlugin } from "./ListKeyboardPlugin";
 export { ExternalSendPlugin, type EditorHandle } from "./ExternalSendPlugin";
+
+export {
+  ToolbarPlugin,
+  type ToolbarSection,
+  FormatButtonGroup,
+  HeadingDropdown,
+  ListButtonGroup,
+  InsertLinkButton,
+  CodeBlockButton,
+  AiToolbarSection,
+  type AiToolbarProps,
+  useToolbarState,
+  type BlockType,
+} from "./toolbar";

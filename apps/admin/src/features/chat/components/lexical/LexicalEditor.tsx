@@ -20,7 +20,7 @@ import {
   ExternalSendPlugin,
   type EditorHandle,
 } from "@repo/lexical-utils/react";
-import { ToolbarPlugin, type AiToolbarProps } from "./ToolbarPlugin";
+import { ToolbarPlugin, type AiToolbarProps } from "@repo/lexical-utils/react";
 import type { ContentFormat } from "@repo/types";
 
 type Props = {

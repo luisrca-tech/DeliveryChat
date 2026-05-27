@@ -22,8 +22,11 @@
     "@lexical/markdown": "^0.44.0",
     "@lexical/react": "^0.44.0",
     "@lexical/rich-text": "^0.44.0",
+    "@lexical/selection": "^0.44.0",
     "@lexical/utils": "^0.44.0",
+    "@repo/ui": "*",
     "lexical": "^0.44.0",
+    "lucide-react": ">=0.400.0",
     "react": "^19.0.0"
   },
   "devDependencies": {
@@ -33,11 +36,19 @@
     "@lexical/markdown": "^0.44.0",
     "@lexical/react": "^0.44.0",
     "@lexical/rich-text": "^0.44.0",
+    "@lexical/selection": "^0.44.0",
     "@lexical/utils": "^0.44.0",
     "@repo/typescript-config": "*",
+    "@repo/ui": "*",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/react": "^16.2.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/react": "^19.2.0",
+    "jsdom": "^28.1.0",
     "lexical": "^0.44.0",
+    "lucide-react": "^0.544.0",
     "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "typescript": "^5.9.2",
     "vitest": "^4.1.6"
   }

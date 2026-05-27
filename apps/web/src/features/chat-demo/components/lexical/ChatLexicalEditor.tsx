@@ -20,7 +20,7 @@ import {
   ExternalSendPlugin,
   type EditorHandle,
 } from "@repo/lexical-utils/react";
-import { ToolbarPlugin } from "./ToolbarPlugin";
+import { ToolbarPlugin } from "@repo/lexical-utils/react";
 import type { ContentFormat } from "@repo/types";
 
 type Props = {
