@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import type { RefObject } from "react";
 import type { ContentFormat } from "@repo/types";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
-import { serializeLexicalJsonToHtml } from "../components/lexical";
+import { serializeLexicalJsonToHtml } from "@repo/lexical-utils";
 
 export function useMessageInput(
   wsRef: RefObject<WebSocket | null>,

@@ -1,3 +1,5 @@
+import type { ContentFormat } from "@repo/types";
+
 interface LexicalNode {
   type: string;
   children?: LexicalNode[];
@@ -38,6 +40,13 @@ function wrapWithFormats(text: string, format: number): string {
   return result;
 }
 
+function serializeTextNode(node: LexicalNode, insideCodeBlock: boolean): string {
+  const escaped = escapeHtml(node.text ?? "");
+  if (insideCodeBlock) return escaped;
+  const format = typeof node.format === "number" ? node.format : 0;
+  return format ? wrapWithFormats(escaped, format) : escaped;
+}
+
 function serializeNode(node: LexicalNode, insideCodeBlock = false): string {
   switch (node.type) {
     case "root":
@@ -69,12 +78,8 @@ function serializeNode(node: LexicalNode, insideCodeBlock = false): string {
     }
 
     case "code-highlight":
-    case "text": {
-      const escaped = escapeHtml(node.text ?? "");
-      if (insideCodeBlock) return escaped;
-      const format = typeof node.format === "number" ? node.format : 0;
-      return format ? wrapWithFormats(escaped, format) : escaped;
-    }
+    case "text":
+      return serializeTextNode(node, insideCodeBlock);
 
     case "linebreak":
       return "<br>";
@@ -106,7 +111,9 @@ export function serializeLexicalJsonToHtml(json: string): string | null {
   }
 }
 
-export function isPlainTextLexicalJson(json: string): { plain: true; text: string } | { plain: false } {
+export function isPlainTextLexicalJson(
+  json: string,
+): { plain: true; text: string } | { plain: false } {
   try {
     const parsed = JSON.parse(json);
     if (!parsed?.root?.children) return { plain: false };
@@ -119,9 +126,7 @@ export function isPlainTextLexicalJson(json: string): { plain: true; text: strin
 
       const paragraphChildren = child.children ?? [];
       for (const node of paragraphChildren) {
-        if (node.type === "linebreak") {
-          continue;
-        }
+        if (node.type === "linebreak") continue;
         if (node.type !== "text") return { plain: false };
         const format = typeof node.format === "number" ? node.format : 0;
         if (format !== 0) return { plain: false };
@@ -134,5 +139,68 @@ export function isPlainTextLexicalJson(json: string): { plain: true; text: strin
     return { plain: true, text: textParts.join("").trim() };
   } catch {
     return { plain: false };
+  }
+}
+
+// ── Plain text extraction ──
+
+const FALLBACK_MAX_LENGTH = 500;
+
+function extractText(node: LexicalNode): string {
+  switch (node.type) {
+    case "text":
+    case "code-highlight":
+      return node.text ?? "";
+
+    case "linebreak":
+      return "\n";
+
+    case "root":
+      return (node.children ?? []).map(extractText).join("");
+
+    case "paragraph":
+    case "heading":
+    case "quote":
+    case "code":
+      return extractChildren(node);
+
+    case "list":
+      return (node.children ?? []).map(extractText).join("\n");
+
+    case "listitem":
+      return extractChildren(node);
+
+    default:
+      return extractChildren(node);
+  }
+}
+
+function extractChildren(node: LexicalNode): string {
+  return (node.children ?? []).map(extractText).join("");
+}
+
+function truncate(text: string, max: number): string {
+  if (text.length <= max) return text;
+  return text.slice(0, max) + "...";
+}
+
+export function serializeLexicalToPlainText(
+  content: string,
+  contentFormat: ContentFormat,
+): string {
+  if (contentFormat === "plain") return content;
+  if (!content) return "";
+
+  try {
+    const parsed = JSON.parse(content);
+
+    if (!parsed?.root) {
+      return truncate(content, FALLBACK_MAX_LENGTH);
+    }
+
+    const blocks = (parsed.root.children ?? []) as LexicalNode[];
+    return blocks.map(extractText).join("\n");
+  } catch {
+    return truncate(content, FALLBACK_MAX_LENGTH);
   }
 }

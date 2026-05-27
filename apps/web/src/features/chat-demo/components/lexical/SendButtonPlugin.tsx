@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import { $getRoot } from "lexical";
-import { isPlainTextLexicalJson } from "./serializeLexicalJson";
+import { isPlainTextLexicalJson } from "@repo/lexical-utils";
 import type { ContentFormat } from "@repo/types";
 
 export type EditorHandle = {

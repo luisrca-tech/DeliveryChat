@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
+    "@repo/lexical-utils": "*",
     "@repo/types": "*",
     "@repo/typescript-config": "*",
     "@repo/ui": "*",

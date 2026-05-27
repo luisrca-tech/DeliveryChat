@@ -67,6 +67,7 @@
       },
       "devDependencies": {
         "@repo/eslint-config": "*",
+        "@repo/lexical-utils": "*",
         "@repo/types": "*",
         "@repo/typescript-config": "*",
         "@repo/ui": "*",
@@ -122,6 +123,7 @@
         "@hono/zod-validator": "^0.7.5",
         "@react-email/render": "^2.0.4",
         "@repo/emails": "*",
+        "@repo/lexical-utils": "*",
         "@repo/types": "*",
         "@repo/ui": "*",
         "@t3-oss/env-core": "^0.13.8",
@@ -171,6 +173,7 @@
       },
       "devDependencies": {
         "@repo/eslint-config": "*",
+        "@repo/lexical-utils": "*",
         "@repo/types": "*",
         "@repo/typescript-config": "*",
         "@repo/ui": "*",
@@ -274,6 +277,18 @@
         "@repo/typescript-config": "*",
         "@types/node": "^22.15.3",
         "typescript": "^5.9.2",
+      },
+    },
+    "packages/lexical-utils": {
+      "name": "@repo/lexical-utils",
+      "version": "0.0.0",
+      "dependencies": {
+        "@repo/types": "*",
+      },
+      "devDependencies": {
+        "@repo/typescript-config": "*",
+        "typescript": "^5.9.2",
+        "vitest": "^4.1.6",
       },
     },
     "packages/sdk": {
@@ -1176,6 +1191,8 @@
     "@repo/eslint-config": ["@repo/eslint-config@workspace:packages/eslint-config"],
 
     "@repo/infisical": ["@repo/infisical@workspace:packages/infisical"],
+
+    "@repo/lexical-utils": ["@repo/lexical-utils@workspace:packages/lexical-utils"],
 
     "@repo/types": ["@repo/types@workspace:packages/types"],
 

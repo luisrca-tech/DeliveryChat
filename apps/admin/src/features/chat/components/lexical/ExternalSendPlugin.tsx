@@ -6,7 +6,7 @@ import {
   $convertToMarkdownString,
 } from "@lexical/markdown";
 import { AI_MARKDOWN_TRANSFORMERS } from "./aiMarkdownTransformers";
-import { isPlainTextLexicalJson } from "./serializeLexicalJson";
+import { isPlainTextLexicalJson } from "@repo/lexical-utils";
 import type { EditorHandle } from "./LexicalEditor";
 import type { ContentFormat } from "@repo/types";
 

@@ -1,14 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { serializeLexicalToPlainText } from "../ai.plaintext.js";
+import { serializeLexicalToPlainText } from "../index";
 
 describe("serializeLexicalToPlainText", () => {
   it("passes through plain content as-is", () => {
-    const result = serializeLexicalToPlainText("Hello world", "plain");
-    expect(result).toBe("Hello world");
+    expect(serializeLexicalToPlainText("Hello world", "plain")).toBe(
+      "Hello world",
+    );
   });
 
-  it("extracts text from valid Lexical JSON with a single paragraph", () => {
-    const lexicalJson = JSON.stringify({
+  it("extracts text from a single paragraph", () => {
+    const json = JSON.stringify({
       root: {
         children: [
           {
@@ -20,12 +21,13 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    const result = serializeLexicalToPlainText(lexicalJson, "lexical");
-    expect(result).toBe("Hello from Lexical");
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
+      "Hello from Lexical",
+    );
   });
 
   it("extracts text from multiple paragraphs separated by newlines", () => {
-    const lexicalJson = JSON.stringify({
+    const json = JSON.stringify({
       root: {
         children: [
           {
@@ -41,12 +43,13 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    const result = serializeLexicalToPlainText(lexicalJson, "lexical");
-    expect(result).toBe("First paragraph\nSecond paragraph");
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
+      "First paragraph\nSecond paragraph",
+    );
   });
 
-  it("strips formatting (bold, italic, etc.) and returns raw text", () => {
-    const lexicalJson = JSON.stringify({
+  it("strips formatting and returns raw text", () => {
+    const json = JSON.stringify({
       root: {
         children: [
           {
@@ -62,12 +65,13 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    const result = serializeLexicalToPlainText(lexicalJson, "lexical");
-    expect(result).toBe("Normal bold text");
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
+      "Normal bold text",
+    );
   });
 
   it("extracts text from headings", () => {
-    const lexicalJson = JSON.stringify({
+    const json = JSON.stringify({
       root: {
         children: [
           {
@@ -84,12 +88,13 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    const result = serializeLexicalToPlainText(lexicalJson, "lexical");
-    expect(result).toBe("My Heading\nBody text");
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
+      "My Heading\nBody text",
+    );
   });
 
   it("extracts text from list items", () => {
-    const lexicalJson = JSON.stringify({
+    const json = JSON.stringify({
       root: {
         children: [
           {
@@ -111,12 +116,13 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    const result = serializeLexicalToPlainText(lexicalJson, "lexical");
-    expect(result).toBe("Item one\nItem two");
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
+      "Item one\nItem two",
+    );
   });
 
   it("handles linebreak nodes", () => {
-    const lexicalJson = JSON.stringify({
+    const json = JSON.stringify({
       root: {
         children: [
           {
@@ -132,42 +138,13 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    const result = serializeLexicalToPlainText(lexicalJson, "lexical");
-    expect(result).toBe("Line one\nLine two");
-  });
-
-  it("returns truncated fallback for malformed JSON", () => {
-    const result = serializeLexicalToPlainText("not valid json {{{", "lexical");
-    expect(result).toBe("not valid json {{{");
-  });
-
-  it("returns truncated fallback for JSON without root node", () => {
-    const result = serializeLexicalToPlainText(
-      JSON.stringify({ something: "else" }),
-      "lexical",
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
+      "Line one\nLine two",
     );
-    expect(result).toBe('{"something":"else"}');
-  });
-
-  it("truncates long fallback content to 500 characters", () => {
-    const longText = "a".repeat(600);
-    const result = serializeLexicalToPlainText(longText, "lexical");
-    expect(result.length).toBe(503);
-    expect(result).toMatch(/\.\.\.$/);
-  });
-
-  it("handles empty content string for lexical format", () => {
-    const result = serializeLexicalToPlainText("", "lexical");
-    expect(result).toBe("");
-  });
-
-  it("handles empty content string for plain format", () => {
-    const result = serializeLexicalToPlainText("", "plain");
-    expect(result).toBe("");
   });
 
   it("extracts text from link nodes", () => {
-    const lexicalJson = JSON.stringify({
+    const json = JSON.stringify({
       root: {
         children: [
           {
@@ -186,7 +163,38 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    const result = serializeLexicalToPlainText(lexicalJson, "lexical");
-    expect(result).toBe("Visit our site");
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
+      "Visit our site",
+    );
+  });
+
+  it("returns truncated fallback for malformed JSON", () => {
+    expect(serializeLexicalToPlainText("not valid json {{{", "lexical")).toBe(
+      "not valid json {{{",
+    );
+  });
+
+  it("returns truncated fallback for JSON without root", () => {
+    expect(
+      serializeLexicalToPlainText(
+        JSON.stringify({ something: "else" }),
+        "lexical",
+      ),
+    ).toBe('{"something":"else"}');
+  });
+
+  it("truncates long fallback content to 500 characters", () => {
+    const longText = "a".repeat(600);
+    const result = serializeLexicalToPlainText(longText, "lexical");
+    expect(result.length).toBe(503);
+    expect(result).toMatch(/\.\.\.$/);
+  });
+
+  it("handles empty content for lexical format", () => {
+    expect(serializeLexicalToPlainText("", "lexical")).toBe("");
+  });
+
+  it("handles empty content for plain format", () => {
+    expect(serializeLexicalToPlainText("", "plain")).toBe("");
   });
 });

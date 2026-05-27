@@ -1,6 +1,6 @@
 import type { ContentFormat } from "@repo/types";
+import { serializeLexicalToPlainText } from "@repo/lexical-utils";
 import type { AIProviderMessage } from "./ai.provider.js";
-import { serializeLexicalToPlainText } from "./ai.plaintext.js";
 
 export type ConversationMessage = {
   senderId: string | null;

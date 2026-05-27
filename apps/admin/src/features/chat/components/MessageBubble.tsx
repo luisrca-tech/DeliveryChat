@@ -11,7 +11,7 @@ import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Message } from "../types/chat.types";
 import { InlineEditLexical } from "./lexical/InlineEditLexical";
-import { serializeLexicalJsonToHtml } from "./lexical/serializeLexicalJson";
+import { serializeLexicalJsonToHtml } from "@repo/lexical-utils";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const DELETE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;

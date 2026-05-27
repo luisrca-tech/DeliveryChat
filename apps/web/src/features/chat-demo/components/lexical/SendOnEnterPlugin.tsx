@@ -5,7 +5,7 @@ import {
   KEY_ENTER_COMMAND,
   $getRoot,
 } from "lexical";
-import { isPlainTextLexicalJson } from "./serializeLexicalJson";
+import { isPlainTextLexicalJson } from "@repo/lexical-utils";
 import { isSelectionInListItem } from "./listUtils";
 import type { ContentFormat } from "@repo/types";
 
