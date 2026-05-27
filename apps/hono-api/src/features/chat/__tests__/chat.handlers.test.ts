@@ -14,10 +14,6 @@ vi.mock("../../../db/schema/conversations.js", () => ({
   conversations: { id: "id", assignedTo: "assignedTo" },
 }));
 
-vi.mock("../lexicalSerializer.js", () => ({
-  serializeLexicalToHtml: vi.fn(() => null),
-}));
-
 vi.mock("../chat.service.js", () => {
   class NotAssignedToConversationError extends Error {
     constructor(conversationId: string, userId: string) {

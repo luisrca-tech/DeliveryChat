@@ -13,8 +13,6 @@ import {
   getMessageHistoryForMember,
 } from "../../features/chat/chat.service.js";
 import { mapServiceErrorToResponse } from "../../features/chat/error-mapper.js";
-import { serializeLexicalToHtml } from "../../features/chat/lexicalSerializer.js";
-import type { ContentFormat } from "@repo/types";
 import {
   requireAuth,
   getUnifiedAuth,
@@ -144,37 +142,23 @@ export const queriesRoute = new Hono()
             );
           }
 
-          const msgs = await getMessageHistory({
+          const messages = await getMessageHistory({
             conversationId,
             limit,
             offset,
           });
-          const messagesWithHtml = msgs.map((msg) => ({
-            ...msg,
-            contentHtml: serializeLexicalToHtml(
-              msg.content,
-              (msg.contentFormat ?? "plain") as ContentFormat,
-            ),
-          }));
-          return c.json({ messages: messagesWithHtml, limit, offset });
+          return c.json({ messages, limit, offset });
         }
 
         const { organization } = auth;
 
-        const result = await getMessageHistoryForMember({
+        const messages = await getMessageHistoryForMember({
           conversationId,
           organizationId: organization.id,
           limit,
           offset,
         });
-        const messagesWithHtml = result.map((msg) => ({
-          ...msg,
-          contentHtml: serializeLexicalToHtml(
-            msg.content,
-            (msg.contentFormat ?? "plain") as ContentFormat,
-          ),
-        }));
-        return c.json({ messages: messagesWithHtml, limit, offset });
+        return c.json({ messages, limit, offset });
       } catch (error) {
         const mapped = mapServiceErrorToResponse(c, error);
         if (mapped) return mapped;

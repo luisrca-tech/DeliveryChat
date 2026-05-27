@@ -23,7 +23,6 @@ import {
   buildTypingStartEvent,
   buildTypingStopEvent,
 } from "./broadcasting.service.js";
-import { serializeLexicalToHtml } from "./lexicalSerializer.js";
 import type { RateLimitCheckResult } from "../../lib/middleware/visitorRateLimit.js";
 
 type VisitorRateLimiter = {
@@ -154,21 +153,18 @@ async function handleRoomJoin(
         payload: {
           conversationId: payload.conversationId,
           messages: missedMessages.map(
-            (msg): MessageNewPayload => {
-              const format = (msg.contentFormat ?? "plain") as ContentFormat;
-              return {
-                id: msg.id,
-                conversationId: msg.conversationId,
-                senderId: msg.senderId,
-                senderName: "",
-                senderRole: conn.role,
-                content: msg.content,
-                contentFormat: format,
-                contentHtml: serializeLexicalToHtml(msg.content, format),
-                type: msg.type as "text" | "system",
-                createdAt: msg.createdAt,
-              };
-            },
+            (msg): MessageNewPayload => ({
+              id: msg.id,
+              conversationId: msg.conversationId,
+              senderId: msg.senderId,
+              senderName: "",
+              senderRole: conn.role,
+              content: msg.content,
+              contentFormat: (msg.contentFormat ?? "plain") as ContentFormat,
+              contentHtml: msg.contentHtml,
+              type: msg.type as "text" | "system",
+              createdAt: msg.createdAt,
+            }),
           ),
         },
       });
@@ -251,7 +247,6 @@ async function handleMessageSend(
     },
   });
 
-  const msgContentFormat = (message.contentFormat ?? "plain") as ContentFormat;
   const broadcastEvent = buildMessageNewEvent({
     id: message.id,
     conversationId: message.conversationId,
@@ -259,8 +254,8 @@ async function handleMessageSend(
     senderName: "",
     senderRole: conn.role,
     content: message.content,
-    contentFormat: msgContentFormat,
-    contentHtml: serializeLexicalToHtml(message.content, msgContentFormat),
+    contentFormat: (message.contentFormat ?? "plain") as ContentFormat,
+    contentHtml: message.contentHtml,
     type: message.type as "text" | "system",
     createdAt: message.createdAt,
     assignedTo: conversationData.assignedTo,
@@ -287,13 +282,12 @@ async function handleMessageEdit(
       contentFormat: (payload.contentFormat ?? "plain") as ContentFormat,
     });
 
-    const editedFormat = (updated.contentFormat ?? "plain") as ContentFormat;
     const broadcastEvent = buildMessageEditedEvent({
       conversationId: payload.conversationId,
       messageId: updated.id,
       content: updated.content,
-      contentFormat: editedFormat,
-      contentHtml: serializeLexicalToHtml(updated.content, editedFormat),
+      contentFormat: (updated.contentFormat ?? "plain") as ContentFormat,
+      contentHtml: updated.contentHtml,
       editedAt: updated.editedAt!,
       senderId: conn.userId,
     });

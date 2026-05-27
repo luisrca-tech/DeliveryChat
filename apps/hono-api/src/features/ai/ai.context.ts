@@ -1,11 +1,9 @@
-import type { ContentFormat } from "@repo/types";
-import { serializeLexicalToPlainText } from "@repo/lexical-utils";
 import type { AIProviderMessage } from "./ai.provider.js";
 
 export type ConversationMessage = {
   senderId: string | null;
   content: string;
-  contentFormat: ContentFormat;
+  contentPlainText: string;
   createdAt: string;
 };
 
@@ -23,7 +21,7 @@ export function buildContext(
     const isOperator = msg.senderId === operatorId;
     const roleLabel = isOperator ? "Operator" : "Customer";
     const timeLabel = formatRelativeTime(msg.createdAt);
-    const plainText = serializeLexicalToPlainText(msg.content, msg.contentFormat);
+    const plainText = msg.contentPlainText;
     const content = `[${roleLabel}, ${timeLabel}] ${plainText}`;
 
     return {

@@ -7,6 +7,7 @@ import { user } from "../../db/schema/users.js";
 import { env } from "../../env.js";
 import { createAIProvider } from "./ai.provider.js";
 import { buildContext, buildSystemPrompt, buildImprovePrompt } from "./ai.context.js";
+import { enrichMessage } from "../chat/chat.service.js";
 import { sanitizeAiMarkdown } from "./ai.sanitize.js";
 import {
   AIProviderError,
@@ -119,7 +120,7 @@ export async function generateReply(
   const provider = createAIProvider(model, env.GROQ_API_KEY);
   const limit = env.AI_CONTEXT_MESSAGE_LIMIT;
 
-  const conversationMessages = await db
+  const rawMessages = await db
     .select({
       senderId: messages.senderId,
       content: messages.content,
@@ -136,7 +137,7 @@ export async function generateReply(
     .orderBy(desc(messages.createdAt))
     .limit(limit);
 
-  const orderedMessages = conversationMessages.reverse();
+  const orderedMessages = rawMessages.reverse().map(enrichMessage);
   const contextMessages = buildContext(orderedMessages, input.operatorId);
   const systemPrompt = buildSystemPrompt(input.tenantName);
 
@@ -264,7 +265,7 @@ export async function improveMessage(
   const model = env.AI_MODEL;
   const provider = createAIProvider(model, env.GROQ_API_KEY);
 
-  const conversationMessages = await db
+  const rawMessages = await db
     .select({
       senderId: messages.senderId,
       content: messages.content,
@@ -281,7 +282,7 @@ export async function improveMessage(
     .orderBy(desc(messages.createdAt))
     .limit(IMPROVE_CONTEXT_LIMIT);
 
-  const orderedMessages = conversationMessages.reverse();
+  const orderedMessages = rawMessages.reverse().map(enrichMessage);
   const contextMessages = buildContext(orderedMessages, input.operatorId);
 
   contextMessages.push({

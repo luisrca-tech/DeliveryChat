@@ -23,7 +23,7 @@ describe("buildContext", () => {
       {
         senderId: "visitor-1",
         content: "I need help with my order",
-        contentFormat: "plain",
+        contentPlainText: "I need help with my order",
         createdAt: "2026-05-25T11:55:00Z",
       },
     ];
@@ -40,7 +40,7 @@ describe("buildContext", () => {
       {
         senderId: "operator-1",
         content: "Let me check that for you",
-        contentFormat: "plain",
+        contentPlainText: "Let me check that for you",
         createdAt: "2026-05-25T11:58:00Z",
       },
     ];
@@ -59,7 +59,7 @@ describe("buildContext", () => {
       {
         senderId: "visitor-1",
         content: "Hello",
-        contentFormat: "plain",
+        contentPlainText: "Hello",
         createdAt: "2026-05-25T12:00:00Z",
       },
     ];
@@ -73,19 +73,19 @@ describe("buildContext", () => {
       {
         senderId: "visitor-1",
         content: "Help me",
-        contentFormat: "plain",
+        contentPlainText: "Help me",
         createdAt: "2026-05-25T11:50:00Z",
       },
       {
         senderId: "operator-1",
         content: "Sure",
-        contentFormat: "plain",
+        contentPlainText: "Sure",
         createdAt: "2026-05-25T11:51:00Z",
       },
       {
         senderId: "visitor-1",
         content: "Thanks",
-        contentFormat: "plain",
+        contentPlainText: "Thanks",
         createdAt: "2026-05-25T11:52:00Z",
       },
     ];
@@ -103,7 +103,7 @@ describe("buildContext", () => {
     expect(result).toEqual([]);
   });
 
-  it("serializes lexical messages to plain text in context", () => {
+  it("uses pre-computed contentPlainText for lexical messages", () => {
     const lexicalJson = JSON.stringify({
       root: {
         children: [
@@ -123,7 +123,7 @@ describe("buildContext", () => {
       {
         senderId: "operator-1",
         content: lexicalJson,
-        contentFormat: "lexical",
+        contentPlainText: "Hello world",
         createdAt: "2026-05-25T11:58:00Z",
       },
     ];
@@ -150,13 +150,13 @@ describe("buildContext", () => {
       {
         senderId: "visitor-1",
         content: lexicalJson,
-        contentFormat: "lexical",
+        contentPlainText: "Customer question",
         createdAt: "2026-05-25T11:55:00Z",
       },
       {
         senderId: "operator-1",
         content: "Plain reply",
-        contentFormat: "plain",
+        contentPlainText: "Plain reply",
         createdAt: "2026-05-25T11:56:00Z",
       },
     ];

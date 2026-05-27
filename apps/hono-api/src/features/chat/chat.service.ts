@@ -14,6 +14,7 @@ import {
   buildConversationResolvedEvent,
   buildMessageNewEvent,
 } from "./broadcasting.service.js";
+import { serializeLexicalToPlainText } from "@repo/lexical-utils";
 import { serializeLexicalToHtml } from "./lexicalSerializer.js";
 
 // ── Custom Errors ──
@@ -164,6 +165,19 @@ interface AddParticipantInput {
   role: ParticipantRole;
 }
 
+// ── Message Enrichment ──
+
+export function enrichMessage<
+  T extends { content: string; contentFormat?: ContentFormat | null },
+>(message: T): T & { contentHtml: string | null; contentPlainText: string } {
+  const format: ContentFormat = (message.contentFormat ?? "plain") as ContentFormat;
+  return {
+    ...message,
+    contentHtml: serializeLexicalToHtml(message.content, format),
+    contentPlainText: serializeLexicalToPlainText(message.content, format),
+  };
+}
+
 // ── Service Functions ──
 
 export async function createConversation(input: CreateConversationInput) {
@@ -277,19 +291,20 @@ export async function sendMessage(
     return msg;
   });
 
+  const enriched = enrichMessage(message);
+
   if (input.broadcastContext) {
-    const contentHtml = serializeLexicalToHtml(message.content, contentFormat);
     const event = buildMessageNewEvent({
-      id: message.id,
+      id: enriched.id,
       conversationId: input.conversationId,
       senderId: input.senderId,
       senderName: input.broadcastContext.senderName,
       senderRole: input.broadcastContext.senderRole,
-      content: message.content,
+      content: enriched.content,
       contentFormat,
-      contentHtml,
+      contentHtml: enriched.contentHtml,
       type: "text",
-      createdAt: message.createdAt,
+      createdAt: enriched.createdAt,
     });
 
     try {
@@ -305,7 +320,7 @@ export async function sendMessage(
     }
   }
 
-  return message;
+  return enriched;
 }
 
 export async function editMessage(input: EditMessageInput) {
@@ -355,7 +370,7 @@ export async function editMessage(input: EditMessageInput) {
 
   if (!updated) throw new Error("Failed to update message");
 
-  return updated;
+  return enrichMessage(updated);
 }
 
 export async function deleteMessage(input: DeleteMessageInput) {
@@ -403,7 +418,7 @@ export async function deleteMessage(input: DeleteMessageInput) {
 }
 
 export async function getMessageHistory(input: GetMessageHistoryInput) {
-  return db
+  const rows = await db
     .select()
     .from(messages)
     .where(
@@ -415,6 +430,8 @@ export async function getMessageHistory(input: GetMessageHistoryInput) {
     .orderBy(desc(messages.createdAt))
     .limit(input.limit)
     .offset(input.offset);
+
+  return rows.map(enrichMessage);
 }
 
 interface GetMessageHistoryForMemberInput {
@@ -442,7 +459,7 @@ export async function getMessageHistoryForMember(
     throw new ConversationNotFoundError(input.conversationId);
   }
 
-  return db
+  const rows = await db
     .select({
       id: messages.id,
       conversationId: messages.conversationId,
@@ -472,6 +489,8 @@ export async function getMessageHistoryForMember(
     .orderBy(desc(messages.createdAt))
     .limit(input.limit)
     .offset(input.offset);
+
+  return rows.map(enrichMessage);
 }
 
 export async function addParticipant(input: AddParticipantInput) {
@@ -870,7 +889,7 @@ export async function getMessagesSince(
 
   if (!lastMsg) return [];
 
-  return db
+  const rows = await db
     .select()
     .from(messages)
     .where(
@@ -882,6 +901,8 @@ export async function getMessagesSince(
     )
     .orderBy(messages.createdAt)
     .limit(limit);
+
+  return rows.map(enrichMessage);
 }
 
 // ── List Conversations for Visitor ──
