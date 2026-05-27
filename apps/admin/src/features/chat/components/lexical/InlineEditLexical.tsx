@@ -11,6 +11,7 @@ import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { LinkNode, AutoLinkNode } from "@lexical/link";
+import { EXTERNAL_LINK_ATTRIBUTES } from "./linkInsert";
 import {
   KEY_ENTER_COMMAND,
   KEY_ESCAPE_COMMAND,
@@ -19,6 +20,7 @@ import {
 import { Check, X } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { editorTheme } from "./theme";
+import { ListKeyboardPlugin } from "./ListKeyboardPlugin";
 
 const EDITOR_NODES = [
   HeadingNode,
@@ -145,7 +147,8 @@ export function InlineEditLexical({ initialJson, onSave, onCancel }: Props) {
       </div>
       <HistoryPlugin />
       <ListPlugin />
-      <LinkPlugin />
+      <LinkPlugin attributes={EXTERNAL_LINK_ATTRIBUTES} />
+      <ListKeyboardPlugin interceptPlainEnter={false} />
       <KeyboardPlugin onSave={handleSave} onCancel={onCancel} />
       <AutoFocusPlugin />
       <EditorRefPlugin editorRef={editorRef} />

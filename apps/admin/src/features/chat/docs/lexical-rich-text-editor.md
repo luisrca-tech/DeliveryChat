@@ -45,7 +45,7 @@ type Message = {
 
 All Lexical editor styles and rich text rendering styles are defined in `packages/ui/src/styles.css` under `@layer components`. Two sets of classes:
 - `.lexical-*` classes for the editor's live editing view.
-- `.rich-text-content` scoped styles for rendered HTML in message bubbles.
+- `.rich-text-content` scoped styles for rendered HTML in message bubbles. Modifiers `--self` / `--other` tune inline `code`, `pre`, and links for primary vs muted bubble backgrounds (aligned with widget SDK styles).
 
 ## Business Rules
 

@@ -4,6 +4,7 @@ import { conversationsQueryKeys } from "./useConversationsQuery";
 import type { AckedIdRegistrar } from "./useWebSocket";
 import type { ContentFormat, WSServerEvent } from "@repo/types";
 import type { Message } from "../types/chat.types";
+import { serializeLexicalJsonToHtml } from "../components/lexical/serializeLexicalJson";
 
 const ACK_TIMEOUT = 10_000;
 
@@ -88,7 +89,7 @@ export function useSendMessage(
         type: "text",
         content,
         contentFormat,
-        contentHtml: null,
+        contentHtml: contentFormat === "lexical" ? serializeLexicalJsonToHtml(content) : null,
         createdAt: new Date().toISOString(),
       };
 

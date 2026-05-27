@@ -5,9 +5,12 @@ import {
   KEY_ENTER_COMMAND,
   $getRoot,
 } from "lexical";
+import { isPlainTextLexicalJson } from "./serializeLexicalJson";
+import { isSelectionInListItem } from "./listUtils";
+import type { ContentFormat } from "@repo/types";
 
 type Props = {
-  onSend: (json: string, isEmpty: boolean) => void;
+  onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
 };
 
 export function SendOnEnterPlugin({ onSend }: Props) {
@@ -23,6 +26,10 @@ export function SendOnEnterPlugin({ onSend }: Props) {
           return false;
         }
 
+        if (isSelectionInListItem(editor)) {
+          return false;
+        }
+
         event.preventDefault();
 
         const editorState = editor.getEditorState();
@@ -35,7 +42,12 @@ export function SendOnEnterPlugin({ onSend }: Props) {
 
         if (!isEmpty) {
           const json = JSON.stringify(editorState.toJSON());
-          onSend(json, isEmpty);
+          const result = isPlainTextLexicalJson(json);
+          if (result.plain) {
+            onSend(result.text, false, "plain");
+          } else {
+            onSend(json, false, "lexical");
+          }
         }
 
         return true;

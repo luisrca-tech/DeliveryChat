@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
   $getSelection,
@@ -7,6 +7,7 @@ import {
   COMMAND_PRIORITY_CRITICAL,
   SELECTION_CHANGE_COMMAND,
   type TextFormatType,
+  type LexicalEditor,
 } from "lexical";
 import {
   $isHeadingNode,
@@ -43,6 +44,9 @@ import {
   ListOrdered,
   Link,
   Unlink,
+  Sparkles,
+  Wand2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -51,10 +55,138 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@repo/ui/components/ui/dropdown-menu";
+import { Input } from "@repo/ui/components/ui/input";
+import { Label } from "@repo/ui/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/ui/popover";
+import {
+  captureSelection,
+  insertLinkAtSelection,
+  type SavedSelectionPoints,
+} from "./linkInsert";
+import { $getActiveListItem } from "./listUtils";
+
+export type AiToolbarProps = {
+  onGenerate: () => void;
+  onCancelGenerate: () => void;
+  isGenerating: boolean;
+  canGenerate: boolean;
+  onImprove: () => void;
+  isImproving: boolean;
+  canImprove: boolean;
+};
 
 type BlockType = "paragraph" | "h1" | "h2" | "h3" | "ul" | "ol" | "code";
 
-export function ToolbarPlugin() {
+type Props = {
+  ai?: AiToolbarProps;
+};
+
+type InsertLinkButtonProps = {
+  editor: LexicalEditor;
+  isLink: boolean;
+  btnClass: string;
+  activeClass: string;
+};
+
+function InsertLinkButton({
+  editor,
+  isLink,
+  btnClass,
+  activeClass,
+}: InsertLinkButtonProps) {
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const savedSelectionRef = useRef<SavedSelectionPoints | null>(null);
+
+  const handleOpenChange = (next: boolean) => {
+    setOpen(next);
+    if (!next) {
+      setUrl("");
+      savedSelectionRef.current = null;
+    }
+  };
+
+  const captureEditorSelection = () => {
+    savedSelectionRef.current = captureSelection(editor);
+  };
+
+  const applyLink = (event: FormEvent) => {
+    event.preventDefault();
+    const trimmed = url.trim();
+    if (!trimmed) return;
+    insertLinkAtSelection(editor, trimmed, savedSelectionRef.current);
+    handleOpenChange(false);
+  };
+
+  if (isLink) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className={`${btnClass} ${activeClass}`}
+        onClick={() => editor.dispatchCommand(TOGGLE_LINK_COMMAND, null)}
+        title="Remove link"
+      >
+        <Unlink className="h-3.5 w-3.5" />
+      </Button>
+    );
+  }
+
+  return (
+    <Popover open={open} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className={btnClass}
+          title="Insert link"
+          onMouseDown={(event) => {
+            event.preventDefault();
+            captureEditorSelection();
+          }}
+        >
+          <Link className="h-3.5 w-3.5" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" side="top" className="w-72 p-3">
+        <form onSubmit={applyLink} className="flex flex-col gap-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="lexical-link-url">URL</Label>
+            <Input
+              id="lexical-link-url"
+              type="url"
+              placeholder="https://example.com"
+              value={url}
+              onChange={(event) => setUrl(event.target.value)}
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenChange(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={!url.trim()}>
+              Apply
+            </Button>
+          </div>
+        </form>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+export function ToolbarPlugin({ ai }: Props) {
   const [editor] = useLexicalComposerContext();
   const [isBold, setIsBold] = useState(false);
   const [isItalic, setIsItalic] = useState(false);
@@ -138,9 +270,17 @@ export function ToolbarPlugin() {
     });
   };
 
+  const focusListItem = () => {
+    editor.update(() => {
+      $getActiveListItem()?.selectStart();
+    });
+    editor.focus();
+  };
+
   const formatBulletList = () => {
     if (blockType !== "ul") {
       editor.dispatchCommand(INSERT_UNORDERED_LIST_COMMAND, undefined);
+      focusListItem();
     } else {
       editor.update(() => {
         const selection = $getSelection();
@@ -154,6 +294,7 @@ export function ToolbarPlugin() {
   const formatNumberedList = () => {
     if (blockType !== "ol") {
       editor.dispatchCommand(INSERT_ORDERED_LIST_COMMAND, undefined);
+      focusListItem();
     } else {
       editor.update(() => {
         const selection = $getSelection();
@@ -175,17 +316,6 @@ export function ToolbarPlugin() {
         $setBlocksType(selection, () => codeNode);
       }
     });
-  };
-
-  const toggleLink = () => {
-    if (isLink) {
-      editor.dispatchCommand(TOGGLE_LINK_COMMAND, null);
-    } else {
-      const url = prompt("Enter URL:");
-      if (url) {
-        editor.dispatchCommand(TOGGLE_LINK_COMMAND, url);
-      }
-    }
   };
 
   const btnClass = "h-7 w-7 p-0 shrink-0";
@@ -236,20 +366,12 @@ export function ToolbarPlugin() {
 
       <div className="w-px h-5 bg-border mx-0.5" />
 
-      <Button
-        type="button"
-        variant="ghost"
-        size="icon"
-        className={`${btnClass} ${isLink ? activeClass : ""}`}
-        onClick={toggleLink}
-        title={isLink ? "Remove link" : "Insert link"}
-      >
-        {isLink ? (
-          <Unlink className="h-3.5 w-3.5" />
-        ) : (
-          <Link className="h-3.5 w-3.5" />
-        )}
-      </Button>
+      <InsertLinkButton
+        editor={editor}
+        isLink={isLink}
+        btnClass={btnClass}
+        activeClass={activeClass}
+      />
       <Button
         type="button"
         variant="ghost"
@@ -338,6 +460,55 @@ export function ToolbarPlugin() {
       >
         <ListOrdered className="h-3.5 w-3.5" />
       </Button>
+
+      {ai && (
+        <>
+          <div className="w-px h-5 bg-border mx-1" />
+
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={`${btnClass} text-violet-500 hover:text-violet-600 hover:bg-violet-500/10 ${ai.isGenerating ? "animate-pulse" : ""}`}
+            onClick={() =>
+              ai.isGenerating ? ai.onCancelGenerate() : ai.onGenerate()
+            }
+            disabled={!ai.isGenerating && !ai.canGenerate}
+            title={
+              ai.isGenerating
+                ? "Cancel generation"
+                : ai.canGenerate
+                  ? "Generate AI reply"
+                  : "Clear the input to generate an AI reply"
+            }
+          >
+            {ai.isGenerating ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Sparkles className="h-3.5 w-3.5" />
+            )}
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className={`${btnClass} text-violet-500 hover:text-violet-600 hover:bg-violet-500/10 ${ai.isImproving ? "animate-pulse" : ""}`}
+            onClick={ai.onImprove}
+            disabled={!ai.canImprove}
+            title={
+              ai.canImprove
+                ? "Improve message with AI"
+                : "Type a message first to improve it"
+            }
+          >
+            {ai.isImproving ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Wand2 className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        </>
+      )}
     </div>
   );
 }

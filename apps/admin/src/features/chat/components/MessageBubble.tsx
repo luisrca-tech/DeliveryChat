@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Message } from "../types/chat.types";
 import { InlineEditLexical } from "./lexical/InlineEditLexical";
+import { serializeLexicalJsonToHtml } from "./lexical/serializeLexicalJson";
 
 const EDIT_WINDOW_MS = 15 * 60 * 1000;
 const DELETE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
@@ -172,22 +173,25 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
       );
     }
 
-    if (isLexical && message.contentHtml) {
-      return (
-        <>
-          <div
-            className="rich-text-content"
-            dangerouslySetInnerHTML={{ __html: message.contentHtml }}
-          />
-          {message.editedAt && (
-            <span
-              className={`text-[10px] ml-1.5 italic ${isSelf ? "opacity-70" : "text-muted-foreground"}`}
-            >
-              (edited)
-            </span>
-          )}
-        </>
-      );
+    if (isLexical) {
+      const html = message.contentHtml ?? serializeLexicalJsonToHtml(message.content);
+      if (html) {
+        return (
+          <>
+            <div
+              className={`rich-text-content ${isSelf ? "rich-text-content--self" : "rich-text-content--other"}`}
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+            {message.editedAt && (
+              <span
+                className={`text-[10px] ml-1.5 italic ${isSelf ? "opacity-70" : "text-muted-foreground"}`}
+              >
+                (edited)
+              </span>
+            )}
+          </>
+        );
+      }
     }
 
     return (

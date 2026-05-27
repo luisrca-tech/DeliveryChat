@@ -6,10 +6,12 @@ import {
   $convertToMarkdownString,
 } from "@lexical/markdown";
 import { AI_MARKDOWN_TRANSFORMERS } from "./aiMarkdownTransformers";
+import { isPlainTextLexicalJson } from "./serializeLexicalJson";
 import type { EditorHandle } from "./LexicalEditor";
+import type { ContentFormat } from "@repo/types";
 
 type Props = {
-  onSend: (json: string, isEmpty: boolean) => void;
+  onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
   editorHandleRef: React.MutableRefObject<EditorHandle | null>;
 };
 
@@ -25,8 +27,19 @@ export function ExternalSendPlugin({ onSend, editorHandleRef }: Props) {
           const root = $getRoot();
           empty = root.getTextContent().trim().length === 0;
         });
+
+        if (empty) {
+          onSend("", true, "plain");
+          return;
+        }
+
         const json = JSON.stringify(editorState.toJSON());
-        onSend(json, empty);
+        const result = isPlainTextLexicalJson(json);
+        if (result.plain) {
+          onSend(result.text, false, "plain");
+        } else {
+          onSend(json, false, "lexical");
+        }
       },
 
       insertAiMarkdown: (markdown: string) => {

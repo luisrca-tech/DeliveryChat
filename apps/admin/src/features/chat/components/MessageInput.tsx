@@ -5,6 +5,7 @@ import { useGenerateReply } from "@/features/ai/hooks/useGenerateReply";
 import { useImproveMessage } from "@/features/ai/hooks/useImproveMessage";
 import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
 import { LexicalEditor, type EditorHandle } from "./lexical";
+import type { ContentFormat } from "@repo/types";
 
 type Props = {
   onSend: (content: string, contentFormat: "plain" | "lexical") => void;
@@ -73,9 +74,9 @@ export function MessageInput({
   }, [isImproving, improveState]);
 
   const handleSend = useCallback(
-    (json: string) => {
+    (content: string, contentFormat: ContentFormat) => {
       if (disabled) return;
-      onSend(json, "lexical");
+      onSend(content, contentFormat);
       setIsAiSuggestion(false);
       setImproveState("idle");
       improveSnapshotRef.current = "";

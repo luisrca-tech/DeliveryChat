@@ -11,11 +11,14 @@ import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { LinkNode, AutoLinkNode } from "@lexical/link";
+import { EXTERNAL_LINK_ATTRIBUTES } from "./linkInsert";
 import { editorTheme } from "./theme";
 import { ToolbarPlugin, type AiToolbarProps } from "./ToolbarPlugin";
 import { SendOnEnterPlugin } from "./SendOnEnterPlugin";
+import { ListKeyboardPlugin } from "./ListKeyboardPlugin";
 import { ClearEditorPlugin } from "./ClearEditorPlugin";
 import { ExternalSendPlugin } from "./ExternalSendPlugin";
+import type { ContentFormat } from "@repo/types";
 
 export type EditorHandle = {
   triggerSend: () => void;
@@ -25,7 +28,7 @@ export type EditorHandle = {
 };
 
 type Props = {
-  onSend: (json: string) => void;
+  onSend: (content: string, contentFormat: ContentFormat) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   disabled: boolean;
@@ -63,9 +66,9 @@ export function LexicalEditor({
   const TYPING_THROTTLE_MS = 2_000;
 
   const handleSend = useCallback(
-    (json: string, isEmpty: boolean) => {
+    (content: string, isEmpty: boolean, contentFormat: ContentFormat) => {
       if (isEmpty || disabled) return;
-      onSend(json);
+      onSend(content, contentFormat);
       clearEditorRef.current?.();
       lastTypingSentRef.current = 0;
     },
@@ -112,9 +115,10 @@ export function LexicalEditor({
       </div>
       <HistoryPlugin />
       <ListPlugin />
-      <LinkPlugin />
+      <LinkPlugin attributes={EXTERNAL_LINK_ATTRIBUTES} />
       {onChange && <OnChangePlugin onChange={() => onChange()} ignoreSelectionChange />}
       <SendOnEnterPlugin onSend={handleSend} />
+      <ListKeyboardPlugin />
       <ClearEditorPlugin clearRef={clearEditorRef} />
       {editorHandleRef && (
         <ExternalSendPlugin
