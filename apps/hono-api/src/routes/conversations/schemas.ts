@@ -38,6 +38,7 @@ export const createConversationBodySchema = z.object({
 });
 
 const contentFormatSchema = z.enum(["plain", "lexical"]).optional().default("plain");
+const contentFormatOptionalSchema = z.enum(["plain", "lexical"]).optional();
 
 export const sendMessageBodySchema = z.object({
   content: z.string().trim().min(1).max(5000),
@@ -46,7 +47,7 @@ export const sendMessageBodySchema = z.object({
 
 export const editMessageBodySchema = z.object({
   content: z.string().trim().min(1).max(5000),
-  contentFormat: contentFormatSchema,
+  contentFormat: contentFormatOptionalSchema,
 });
 
 export const markAsReadBodySchema = z.object({

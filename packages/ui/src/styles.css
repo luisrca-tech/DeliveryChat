@@ -245,6 +245,10 @@
   .lexical-li {
     margin: 0.125rem 0;
   }
+  .lexical-nested-li {
+    margin: 0.125rem 0;
+    list-style-type: none;
+  }
   .lexical-link {
     color: var(--color-primary);
     text-decoration: underline;

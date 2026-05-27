@@ -3,7 +3,7 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { $getRoot, $createParagraphNode } from "lexical";
 
 type Props = {
-  clearRef: React.MutableRefObject<(() => void) | null>;
+  clearRef: import("react").MutableRefObject<(() => void) | null>;
 };
 
 export function ClearEditorPlugin({ clearRef }: Props) {

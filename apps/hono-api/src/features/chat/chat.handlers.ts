@@ -279,7 +279,7 @@ async function handleMessageEdit(
       conversationId: payload.conversationId,
       senderId: conn.userId,
       content: payload.content,
-      contentFormat: (payload.contentFormat ?? "plain") as ContentFormat,
+      contentFormat: payload.contentFormat as ContentFormat | undefined,
     });
 
     const broadcastEvent = buildMessageEditedEvent({

@@ -45,7 +45,7 @@ type ComposeProps = {
   onTypingStop: () => void;
   disabled?: boolean;
   placeholder?: string;
-  editorHandleRef?: React.MutableRefObject<EditorHandle | null>;
+  editorHandleRef?: import("react").MutableRefObject<EditorHandle | null>;
   showToolbar?: boolean;
   ai?: AiToolbarProps;
   onChange?: () => void;
@@ -286,7 +286,7 @@ function AutoFocusPlugin() {
 function EditorRefPlugin({
   editorRef,
 }: {
-  editorRef: React.MutableRefObject<{ getJson: () => string } | null>;
+  editorRef: import("react").MutableRefObject<{ getJson: () => string } | null>;
 }) {
   const [editor] = useLexicalComposerContext();
 

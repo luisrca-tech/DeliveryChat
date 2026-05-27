@@ -12,6 +12,7 @@ export const roomLeaveSchema = z.object({
 });
 
 const contentFormatSchema = z.enum(["plain", "lexical"]).optional().default("plain");
+const contentFormatOptionalSchema = z.enum(["plain", "lexical"]).optional();
 
 export const messageSendSchema = z.object({
   conversationId: z.string().uuid(),
@@ -24,7 +25,7 @@ export const messageEditSchema = z.object({
   conversationId: z.string().uuid(),
   messageId: z.string().uuid(),
   content: z.string().trim().min(1).max(MAX_MESSAGE_LENGTH),
-  contentFormat: contentFormatSchema,
+  contentFormat: contentFormatOptionalSchema,
 });
 
 export const messageDeleteSchema = z.object({

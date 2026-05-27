@@ -18,7 +18,7 @@ export type EditorHandle = {
 
 type Props = {
   onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
-  editorHandleRef: React.MutableRefObject<EditorHandle | null>;
+  editorHandleRef: import("react").MutableRefObject<EditorHandle | null>;
 };
 
 export function ExternalSendPlugin({ onSend, editorHandleRef }: Props) {

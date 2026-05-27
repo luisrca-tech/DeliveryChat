@@ -26,7 +26,7 @@ function getEditorConfig() {
 }
 
 type Harness = {
-  handle: React.MutableRefObject<EditorHandle | null>;
+  handle: import("react").MutableRefObject<EditorHandle | null>;
 };
 
 function TestHarness({

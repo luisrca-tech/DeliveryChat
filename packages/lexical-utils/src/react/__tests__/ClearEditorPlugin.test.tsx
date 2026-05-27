@@ -23,7 +23,7 @@ function getEditorConfig() {
 }
 
 type Harness = {
-  clearRef: React.MutableRefObject<(() => void) | null>;
+  clearRef: import("react").MutableRefObject<(() => void) | null>;
   editor: LexicalEditor;
 };
 

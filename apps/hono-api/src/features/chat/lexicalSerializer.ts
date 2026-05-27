@@ -26,6 +26,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
     "li",
     "a",
     "span",
+    "blockquote",
   ],
   allowedAttributes: {
     a: ["href", "target", "rel"],
