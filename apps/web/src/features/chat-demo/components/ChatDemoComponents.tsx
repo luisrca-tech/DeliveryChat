@@ -25,15 +25,12 @@ import { cn } from "@repo/ui/lib/utils";
 import type { ContentFormat } from "@repo/types";
 import type { Conversation } from "../chat-client";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
+import type { EditingState } from "../hooks/useMessageEdit";
+import { isLexicalMessage } from "../lib/isLexicalMessage";
 import { LexicalEditor, type EditorHandle } from "@repo/lexical-utils/react";
+import { serializeLexicalJsonToHtml } from "@repo/lexical-utils";
 
 type WsStatus = "connecting" | "connected" | "disconnected";
-
-interface EditingState {
-  id: string;
-  content: string;
-  saving: boolean;
-}
 
 interface NewFormState {
   visible: boolean;
@@ -228,7 +225,11 @@ export interface MessageThreadPanelProps {
   handleStartEdit: (msg: OptimisticMessage) => void;
   handleCancelEdit: () => void;
   setEditingContent: (content: string) => void;
-  handleSaveEdit: (msg: OptimisticMessage) => Promise<void>;
+  handleSaveEdit: (
+    msg: OptimisticMessage,
+    content?: string,
+    contentFormat?: ContentFormat,
+  ) => Promise<void>;
   onRequestDelete: (msg: OptimisticMessage) => void;
   handleEditKeyDown: (
     e: React.KeyboardEvent<HTMLInputElement>,
@@ -318,6 +319,7 @@ export function MessageThreadPanel({
                 !msg.pending &&
                 Date.now() - new Date(msg.createdAt).getTime() < 15 * 60 * 1000;
               const isEditing = editingState?.id === msg.id;
+              const isLexical = isLexicalMessage(msg);
 
               return (
                 <div
@@ -328,34 +330,47 @@ export function MessageThreadPanel({
                   )}
                 >
                   {isEditing ? (
-                    <div className="flex items-center gap-1 max-w-[80%]">
-                      <Input
-                        autoFocus
-                        value={editingState.content}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        onKeyDown={(e) => handleEditKeyDown(e, msg)}
-                        className="h-7 text-xs"
-                        disabled={editingState.saving}
-                      />
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 flex-shrink-0"
-                        onClick={() => void handleSaveEdit(msg)}
-                        disabled={editingState.saving}
-                      >
-                        <Check className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 flex-shrink-0"
-                        onClick={handleCancelEdit}
-                        disabled={editingState.saving}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
+                    isLexical ? (
+                      <div className="max-w-[80%]">
+                        <LexicalEditor
+                          mode="inline"
+                          initialJson={msg.content}
+                          onSave={(json) =>
+                            void handleSaveEdit(msg, json, "lexical")
+                          }
+                          onCancel={handleCancelEdit}
+                        />
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 max-w-[80%]">
+                        <Input
+                          autoFocus
+                          value={editingState.content}
+                          onChange={(e) => setEditingContent(e.target.value)}
+                          onKeyDown={(e) => handleEditKeyDown(e, msg)}
+                          className="h-7 text-xs"
+                          disabled={editingState.saving}
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 flex-shrink-0"
+                          onClick={() => void handleSaveEdit(msg)}
+                          disabled={editingState.saving}
+                        >
+                          <Check className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 flex-shrink-0"
+                          onClick={handleCancelEdit}
+                          disabled={editingState.saving}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    )
                   ) : (
                     <div className="flex w-fit max-w-[72%] shrink-0 items-end gap-1 min-w-0">
                       {canModify && (
@@ -406,18 +421,26 @@ export function MessageThreadPanel({
                           msg.pending && "opacity-60",
                         )}
                       >
-                        {msg.contentFormat === "lexical" && msg.contentHtml ? (
-                          <div
-                            className={cn(
-                              "rich-text-content",
-                              isVisitor
-                                ? "rich-text-content--self"
-                                : "rich-text-content--other",
-                            )}
-                            dangerouslySetInnerHTML={{
-                              __html: msg.contentHtml,
-                            }}
-                          />
+                        {isLexical ? (
+                          (() => {
+                            const html =
+                              msg.contentHtml ??
+                              serializeLexicalJsonToHtml(msg.content);
+                            if (html) {
+                              return (
+                                <div
+                                  className={cn(
+                                    "rich-text-content",
+                                    isVisitor
+                                      ? "rich-text-content--self"
+                                      : "rich-text-content--other",
+                                  )}
+                                  dangerouslySetInnerHTML={{ __html: html }}
+                                />
+                              );
+                            }
+                            return msg.content;
+                          })()
                         ) : (
                           msg.content
                         )}

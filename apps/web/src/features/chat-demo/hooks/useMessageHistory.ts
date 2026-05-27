@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { ChatClient } from "../chat-client";
+import type { ContentFormat } from "@repo/types";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
 
 export interface UseMessageHistoryOptions {
@@ -58,9 +59,25 @@ export function useMessageHistory({
   }, []);
 
   const replaceMessage = useCallback(
-    (id: string, content: string, editedAt: string) => {
+    (
+      id: string,
+      content: string,
+      editedAt: string,
+      contentFormat?: ContentFormat,
+      contentHtml?: string | null,
+    ) => {
       setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, content, editedAt } : m)),
+        prev.map((m) =>
+          m.id === id
+            ? {
+                ...m,
+                content,
+                editedAt,
+                ...(contentFormat !== undefined && { contentFormat }),
+                ...(contentHtml !== undefined && { contentHtml }),
+              }
+            : m,
+        ),
       );
     },
     [],
