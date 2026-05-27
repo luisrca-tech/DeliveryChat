@@ -79,6 +79,8 @@ export class MessageRouter {
       senderId: string | null;
       senderRole: "visitor" | "operator" | "admin";
       content: string;
+      contentFormat?: "plain" | "lexical";
+      contentHtml?: string | null;
       type?: string;
       createdAt: string;
       editedAt?: string | null;
@@ -90,6 +92,8 @@ export class MessageRouter {
     const newMsg: ChatMessage = {
       id: p.id,
       content: p.content,
+      contentFormat: p.contentFormat ?? "plain",
+      contentHtml: p.contentHtml ?? null,
       type: msgType,
       senderRole: p.senderRole,
       senderId: p.senderId ?? "",
@@ -135,6 +139,8 @@ export class MessageRouter {
       conversationId: string;
       messageId: string;
       content: string;
+      contentFormat?: "plain" | "lexical";
+      contentHtml?: string | null;
       editedAt: string;
       senderId: string;
     };
@@ -144,7 +150,13 @@ export class MessageRouter {
     setState("messages", (prev) =>
       prev.map((msg) =>
         msg.id === p.messageId
-          ? { ...msg, content: p.content, editedAt: p.editedAt }
+          ? {
+              ...msg,
+              content: p.content,
+              contentFormat: p.contentFormat ?? msg.contentFormat,
+              contentHtml: p.contentHtml !== undefined ? p.contentHtml : msg.contentHtml,
+              editedAt: p.editedAt,
+            }
           : msg,
       ),
     );
@@ -172,6 +184,8 @@ export class MessageRouter {
       messages: Array<{
         id: string;
         content: string;
+        contentFormat?: "plain" | "lexical";
+        contentHtml?: string | null;
         senderId: string;
         senderRole: "visitor" | "operator" | "admin";
         createdAt: string;
@@ -184,6 +198,8 @@ export class MessageRouter {
     const syncedMessages: ChatMessage[] = p.messages.map((m) => ({
       id: m.id,
       content: m.content,
+      contentFormat: m.contentFormat ?? "plain",
+      contentHtml: m.contentHtml ?? null,
       type: ((m as { type?: string }).type === "system"
         ? "system"
         : "text") as ChatMessage["type"],

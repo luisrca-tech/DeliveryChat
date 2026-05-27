@@ -12,7 +12,7 @@ import { useSendMessage } from "../hooks/useSendMessage";
 import { useMessageActions } from "../hooks/useMessageActions";
 import { useConversationAction } from "../hooks/useConversationAction";
 import { getConversationPermissions } from "../lib/conversationPermissions";
-import type { WSClientEvent, WSServerEvent } from "@repo/types";
+import type { ContentFormat, WSClientEvent, WSServerEvent } from "@repo/types";
 import type { TypingUser } from "../hooks/useWebSocket";
 
 type WSHandle = {
@@ -98,8 +98,8 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
           isLoading={messagesLoading}
           currentUserId={currentUserId}
           typingUser={ws.typingUser}
-          onEditMessage={(messageId, content) =>
-            editMessage(conversationId, messageId, content)
+          onEditMessage={(messageId, content, contentFormat) =>
+            editMessage(conversationId, messageId, content, contentFormat as ContentFormat | undefined)
           }
           onDeleteMessage={(messageId) =>
             deleteMessage(conversationId, messageId)
@@ -126,7 +126,7 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
 
         {isActive && (
           <MessageInput
-            onSend={(content) => send(conversationId, content)}
+            onSend={(content, contentFormat) => send(conversationId, content, contentFormat as ContentFormat)}
             onTypingStart={() => {
               ws.sendEvent({
                 type: "typing:start",

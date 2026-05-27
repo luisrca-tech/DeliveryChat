@@ -112,3 +112,37 @@ Each backend error code maps to a specific user-friendly toast message:
 - Response: `{ text: string }`
 - Auth: same as generate-reply
 - Guards: same middleware chain as generate-reply
+
+## AI ↔ Lexical Rich Text Integration
+
+Both AI actions return Markdown (not HTML or Lexical JSON). The admin converts Markdown to Lexical nodes on insert.
+
+### Generate Reply — Rich Text Flow
+
+1. Operator clicks Generate Reply (editor must be empty)
+2. Backend returns `{ text: "**Bold** and a list:\n- Item 1\n- Item 2" }` (constrained Markdown)
+3. Admin calls `editorRef.insertAiMarkdown(text)`:
+   - Clears editor
+   - Converts Markdown → Lexical nodes via `$convertFromMarkdownString` with `AI_MARKDOWN_TRANSFORMERS`
+   - On parse failure, falls back to a single plain paragraph
+4. "AI suggestion" badge appears; operator can edit formatting with the toolbar before sending
+5. On send, editor state serializes as `contentFormat: 'lexical'`
+
+### Improve Message — Rich Text Flow
+
+1. Operator writes a draft (editor must have content)
+2. On click, admin calls `editorRef.exportMarkdown()` to extract the draft as Markdown (not raw Lexical JSON)
+3. Markdown string is sent as `draft` to `POST /api/v1/ai/improve-message`
+4. Original Markdown is snapshotted for Reject
+5. Backend returns improved Markdown → admin calls `insertAiMarkdown(improved)`
+6. Review UI appears with Accept / Reject:
+   - **Accept**: keeps improved content, operator can edit further
+   - **Reject**: restores original draft via `insertAiMarkdown(snapshot)`
+
+### Restricted Markdown Transformers
+
+`AI_MARKDOWN_TRANSFORMERS` in `aiMarkdownTransformers.ts` includes only: `HEADING`, `UNORDERED_LIST`, `ORDERED_LIST`, `BOLD_STAR`, `BOLD_UNDERSCORE`. This matches the backend's constrained grammar — no links, code blocks, or other syntax.
+
+### Conversation Context
+
+Rich text messages (`contentFormat: 'lexical'`) are serialized to plain text before being sent to the LLM. The model never sees raw Lexical JSON — only human-readable conversation history.

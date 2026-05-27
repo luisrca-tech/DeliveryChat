@@ -61,6 +61,7 @@ describe("useMessageEdit", () => {
     expect(result.current.editingState).toMatchObject({
       id: "msg-1",
       content: "Hello",
+      contentFormat: "plain",
       saving: false,
     });
   });
@@ -88,7 +89,12 @@ describe("useMessageEdit", () => {
       editMessage: vi
         .fn()
         .mockResolvedValue({
-          message: { content: "Updated", editedAt: updatedAt },
+          message: {
+            content: "Updated",
+            editedAt: updatedAt,
+            contentFormat: "plain",
+            contentHtml: null,
+          },
         }),
     });
     const msg = makeMessage();
@@ -105,8 +111,61 @@ describe("useMessageEdit", () => {
       await result.current.handleSaveEdit(msg);
     });
 
-    expect(onReplace).toHaveBeenCalledWith("msg-1", "Updated", updatedAt);
+    expect(client.editMessage).toHaveBeenCalledWith(
+      "conv-1",
+      "msg-1",
+      "Updated",
+      "plain",
+    );
+    expect(onReplace).toHaveBeenCalledWith(
+      "msg-1",
+      "Updated",
+      updatedAt,
+      "plain",
+      null,
+    );
     expect(result.current.editingState).toBeNull();
+  });
+
+  it("saves lexical edits with contentFormat and enriched fields", async () => {
+    const updatedAt = new Date().toISOString();
+    const lexicalJson = '{"root":{"children":[]}}';
+    const client = makeClient({
+      editMessage: vi.fn().mockResolvedValue({
+        message: {
+          content: lexicalJson,
+          editedAt: updatedAt,
+          contentFormat: "lexical",
+          contentHtml: "<p>Updated</p>",
+        },
+      }),
+    });
+    const msg = makeMessage({
+      content: lexicalJson,
+      contentFormat: "lexical",
+      contentHtml: "<p>Original</p>",
+    });
+    const { result } = renderHook(() =>
+      useMessageEdit(client, onReplace, onRemove),
+    );
+
+    await act(async () => {
+      await result.current.handleSaveEdit(msg, lexicalJson, "lexical");
+    });
+
+    expect(client.editMessage).toHaveBeenCalledWith(
+      "conv-1",
+      "msg-1",
+      lexicalJson,
+      "lexical",
+    );
+    expect(onReplace).toHaveBeenCalledWith(
+      "msg-1",
+      lexicalJson,
+      updatedAt,
+      "lexical",
+      "<p>Updated</p>",
+    );
   });
 
   it("denies edit (no-op) when message is beyond the 15-minute window", async () => {

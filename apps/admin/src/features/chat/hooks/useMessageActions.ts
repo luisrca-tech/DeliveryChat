@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { conversationsQueryKeys } from "./useConversationsQuery";
-import type { WSClientEvent } from "@repo/types";
+import type { ContentFormat, WSClientEvent } from "@repo/types";
 import type { Message } from "../types/chat.types";
 
 type SendEventFn = (event: WSClientEvent) => void;
@@ -10,8 +10,7 @@ export function useMessageActions(sendEvent: SendEventFn) {
   const queryClient = useQueryClient();
 
   const editMessage = useCallback(
-    (conversationId: string, messageId: string, content: string) => {
-      // Optimistic update
+    (conversationId: string, messageId: string, content: string, contentFormat?: ContentFormat) => {
       queryClient.setQueryData<{
         messages: Message[];
         limit: number;
@@ -22,7 +21,12 @@ export function useMessageActions(sendEvent: SendEventFn) {
           ...old,
           messages: old.messages.map((msg) =>
             msg.id === messageId
-              ? { ...msg, content, editedAt: new Date().toISOString() }
+              ? {
+                  ...msg,
+                  content,
+                  ...(contentFormat && { contentFormat }),
+                  editedAt: new Date().toISOString(),
+                }
               : msg,
           ),
         };
@@ -30,7 +34,7 @@ export function useMessageActions(sendEvent: SendEventFn) {
 
       sendEvent({
         type: "message:edit",
-        payload: { conversationId, messageId, content },
+        payload: { conversationId, messageId, content, contentFormat },
       });
     },
     [sendEvent, queryClient],

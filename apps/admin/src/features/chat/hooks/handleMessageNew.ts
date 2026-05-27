@@ -27,11 +27,13 @@ export function handleMessageNew(
   const newMessage: Message = {
     id: msg.id,
     conversationId: msg.conversationId,
-    senderId: msg.senderId,
+    senderId: msg.senderId ?? "",
     senderName: msg.senderName,
     senderRole: msg.senderRole,
     type: msg.type,
     content: msg.content,
+    contentFormat: msg.contentFormat ?? "plain",
+    contentHtml: msg.contentHtml ?? null,
     createdAt: msg.createdAt,
     editedAt: msg.editedAt ?? null,
   };

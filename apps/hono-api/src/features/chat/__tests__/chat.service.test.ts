@@ -9,6 +9,14 @@ vi.mock("../../../db/index.js", () => ({
   },
 }));
 
+vi.mock("../lexicalSerializer.js", () => ({
+  serializeLexicalToHtml: vi.fn(() => null),
+}));
+
+vi.mock("@repo/lexical-utils", () => ({
+  serializeLexicalToPlainText: vi.fn((content: string) => content),
+}));
+
 vi.mock("../broadcasting.service.js", () => ({
   broadcastOrganizationEvent: vi.fn(),
   broadcastRoomEvent: vi.fn(),
@@ -47,6 +55,14 @@ const mockBroadcastOrganizationEvent =
 const mockBroadcastRoomEvent = broadcasting.broadcastRoomEvent as ReturnType<
   typeof vi.fn
 >;
+
+const lexicalSerializer = await import("../lexicalSerializer.js");
+const mockSerializeLexicalToHtml =
+  lexicalSerializer.serializeLexicalToHtml as ReturnType<typeof vi.fn>;
+
+const lexicalUtils = await import("@repo/lexical-utils");
+const mockSerializeLexicalToPlainText =
+  lexicalUtils.serializeLexicalToPlainText as ReturnType<typeof vi.fn>;
 
 /**
  * Creates a chainable mock that mimics Drizzle's query builder.
@@ -103,6 +119,7 @@ const {
   listConversationsForMember,
   getMessageHistoryForMember,
   createSystemMessage,
+  enrichMessage,
   ConversationNotFoundError,
   ConversationNotActiveError,
   NotAssignedToConversationError,
@@ -204,6 +221,11 @@ describe("chat.service", () => {
       updatedAt: "2026-01-01T00:00:00.000Z",
       deletedAt: null,
     };
+    const enrichedMessageRow = {
+      ...messageRow,
+      contentHtml: null,
+      contentPlainText: "Hello",
+    };
 
     function mockSendTransaction(txInsertResult: unknown) {
       mockTransaction.mockImplementation(async (fn: Function) => {
@@ -217,7 +239,7 @@ describe("chat.service", () => {
       });
     }
 
-    it("inserts a message, bumps updatedAt, and returns the full row", async () => {
+    it("inserts a message, bumps updatedAt, and returns the enriched row", async () => {
       const selectChain = chainMock([
         { status: "active", organizationId: "org-1" },
       ]);
@@ -230,7 +252,9 @@ describe("chat.service", () => {
         content: "Hello",
       });
 
-      expect(result).toEqual(messageRow);
+      expect(result).toEqual(enrichedMessageRow);
+      expect(result.contentHtml).toBeNull();
+      expect(result.contentPlainText).toBe("Hello");
       expect(mockTransaction).toHaveBeenCalled();
     });
 
@@ -274,7 +298,7 @@ describe("chat.service", () => {
         { status: "active", assignedTo: "user-1", organizationId: "org-1" },
       );
 
-      expect(result).toEqual(messageRow);
+      expect(result).toEqual(enrichedMessageRow);
       expect(mockSelect).not.toHaveBeenCalled();
     });
 
@@ -309,7 +333,7 @@ describe("chat.service", () => {
   });
 
   describe("getMessageHistory", () => {
-    it("returns paginated messages ordered by createdAt", async () => {
+    it("returns enriched paginated messages ordered by createdAt", async () => {
       const msgs = [
         { id: "msg-1", content: "Hello", createdAt: "2026-01-01T00:00:00Z" },
         { id: "msg-2", content: "Hi", createdAt: "2026-01-01T00:01:00Z" },
@@ -324,7 +348,10 @@ describe("chat.service", () => {
         offset: 0,
       });
 
-      expect(result).toEqual(msgs);
+      expect(result).toHaveLength(2);
+      expect(result[0]).toMatchObject({ id: "msg-1", content: "Hello" });
+      expect(result[0]).toHaveProperty("contentHtml");
+      expect(result[0]).toHaveProperty("contentPlainText");
     });
   });
 
@@ -896,7 +923,7 @@ describe("chat.service", () => {
       updatedAt: recentTimestamp,
     };
 
-    it("updates content and sets editedAt", async () => {
+    it("updates content, sets editedAt, and returns enriched message", async () => {
       const selectChain = chainMock([existingMessage]);
       mockSelect.mockReturnValueOnce(selectChain);
 
@@ -916,8 +943,10 @@ describe("chat.service", () => {
         content: "Updated content",
       });
 
-      expect(result).toEqual(updatedRow);
+      expect(result).toMatchObject(updatedRow);
       expect(result.editedAt).not.toBeNull();
+      expect(result).toHaveProperty("contentHtml");
+      expect(result).toHaveProperty("contentPlainText");
       expect(mockUpdate).toHaveBeenCalled();
     });
 
@@ -992,7 +1021,7 @@ describe("chat.service", () => {
         content: "Edited",
       });
 
-      expect(result).toEqual(updatedRow);
+      expect(result).toMatchObject(updatedRow);
     });
 
     it("rejects edit after 15-minute window", async () => {
@@ -2020,6 +2049,98 @@ describe("chat.service", () => {
           offset: 0,
         }),
       ).rejects.toThrow("conv-missing");
+    });
+  });
+
+  describe("enrichMessage", () => {
+    const baseMessage = {
+      id: "msg-1",
+      conversationId: "conv-1",
+      senderId: "user-1",
+      type: "text" as const,
+      content: "Hello world",
+      contentFormat: "plain" as const,
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z",
+      editedAt: null,
+      deletedAt: null,
+    };
+
+    it("adds contentHtml and contentPlainText to a plain text message", () => {
+      mockSerializeLexicalToHtml.mockReturnValue(null);
+      mockSerializeLexicalToPlainText.mockReturnValue("Hello world");
+
+      const result = enrichMessage(baseMessage);
+
+      expect(result.contentHtml).toBeNull();
+      expect(result.contentPlainText).toBe("Hello world");
+      expect(result.id).toBe("msg-1");
+      expect(result.content).toBe("Hello world");
+    });
+
+    it("serializes lexical content to HTML and plain text", () => {
+      const lexicalMessage = {
+        ...baseMessage,
+        content: '{"root":{"children":[{"type":"paragraph","children":[{"text":"Rich text"}]}]}}',
+        contentFormat: "lexical" as const,
+      };
+
+      mockSerializeLexicalToHtml.mockReturnValue("<p>Rich text</p>");
+      mockSerializeLexicalToPlainText.mockReturnValue("Rich text");
+
+      const result = enrichMessage(lexicalMessage);
+
+      expect(result.contentHtml).toBe("<p>Rich text</p>");
+      expect(result.contentPlainText).toBe("Rich text");
+    });
+
+    it("passes contentFormat to both serializers", () => {
+      const lexicalMessage = {
+        ...baseMessage,
+        content: '{"root":{}}',
+        contentFormat: "lexical" as const,
+      };
+
+      mockSerializeLexicalToHtml.mockReturnValue(null);
+      mockSerializeLexicalToPlainText.mockReturnValue("");
+
+      enrichMessage(lexicalMessage);
+
+      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith('{"root":{}}', "lexical");
+      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith('{"root":{}}', "lexical");
+    });
+
+    it("defaults contentFormat to plain when undefined", () => {
+      const noFormatMessage = {
+        ...baseMessage,
+        contentFormat: undefined as unknown as "plain",
+      };
+
+      mockSerializeLexicalToHtml.mockReturnValue(null);
+      mockSerializeLexicalToPlainText.mockReturnValue("Hello world");
+
+      const result = enrichMessage(noFormatMessage);
+
+      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith("Hello world", "plain");
+      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith("Hello world", "plain");
+      expect(result.contentPlainText).toBe("Hello world");
+    });
+
+    it("preserves all original message fields", () => {
+      mockSerializeLexicalToHtml.mockReturnValue(null);
+      mockSerializeLexicalToPlainText.mockReturnValue("Hello world");
+
+      const result = enrichMessage(baseMessage);
+
+      expect(result.id).toBe(baseMessage.id);
+      expect(result.conversationId).toBe(baseMessage.conversationId);
+      expect(result.senderId).toBe(baseMessage.senderId);
+      expect(result.type).toBe(baseMessage.type);
+      expect(result.content).toBe(baseMessage.content);
+      expect(result.contentFormat).toBe(baseMessage.contentFormat);
+      expect(result.createdAt).toBe(baseMessage.createdAt);
+      expect(result.editedAt).toBe(baseMessage.editedAt);
+      expect(result.deletedAt).toBe(baseMessage.deletedAt);
     });
   });
 });

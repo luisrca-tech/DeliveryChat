@@ -81,6 +81,46 @@ The system provides user-friendly error messages for all failure modes:
 
 Transient errors (timeouts, provider issues) are automatically retried once on the backend before surfacing to the operator.
 
+## AI Output Format — Constrained Markdown
+
+AI responses use a restricted Markdown subset instead of plain text, HTML, or Lexical JSON. The API response shape remains `{ text: string }` where `text` is Markdown.
+
+### Allowed Syntax
+
+| Construct | Syntax | Example |
+|-----------|--------|---------|
+| Bold | `**text**` | `**Important:** Your order is ready` |
+| Heading H1 | `# Heading` | `# Order Status` |
+| Heading H2 | `## Heading` | `## Tracking Details` |
+| Heading H3 | `### Heading` | `### Next Steps` |
+| Bullet list | `- item` or `* item` | `- Check your email` |
+| Numbered list | `1. item` | `1. Open the tracking link` |
+| Paragraphs | Plain text separated by blank lines | Standard paragraphs |
+
+### Excluded from AI Output
+
+Links, images, code blocks, inline code, italic, underline, blockquotes, HTML tags, tables, and H4+ headings are excluded. The model is instructed not to produce them, and `sanitizeAiMarkdown()` strips any that slip through.
+
+### Backend Sanitization
+
+After every successful LLM response, `sanitizeAiMarkdown()` runs before the `{ text }` response is returned:
+
+- Strips HTML tags (including `<script>` / `<style>` content)
+- Removes fenced code blocks but keeps inner text
+- Strips inline code backticks
+- Converts link syntax `[text](url)` to just `text`
+- Preserves all allowed Markdown constructs
+
+### Lexical Conversion on Insert
+
+When the admin dashboard receives AI Markdown, it converts it to Lexical rich text nodes using `@lexical/markdown` with a restricted transformer list matching the allowed grammar. The operator sees the formatted result (bold text, headings, lists) in the Lexical editor and can further edit with the toolbar before sending.
+
+If Markdown → Lexical conversion fails, the text is inserted as a single plain paragraph — no crash or data loss.
+
+### Conversation Context
+
+When building LLM context, rich text messages (`contentFormat: 'lexical'`) are serialized to plain text — the LLM never receives raw Lexical JSON. This ensures the model focuses on message meaning rather than editor internals.
+
 ## Technical Details
 
 - **Provider**: Groq API via Vercel AI SDK

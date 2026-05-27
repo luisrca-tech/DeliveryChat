@@ -72,6 +72,8 @@ export function wsMessageReducer(
         conversationId,
         senderId,
         content,
+        contentFormat,
+        contentHtml,
         createdAt,
         editedAt,
         type: msgType,
@@ -80,6 +82,8 @@ export function wsMessageReducer(
         conversationId: string;
         senderId: string;
         content: string;
+        contentFormat?: "plain" | "lexical";
+        contentHtml?: string | null;
         createdAt: string;
         editedAt?: string | null;
         type?: string;
@@ -98,6 +102,8 @@ export function wsMessageReducer(
                 conversationId,
                 senderId,
                 content,
+                ...(contentFormat !== undefined && { contentFormat }),
+                ...(contentHtml !== undefined && { contentHtml }),
                 createdAt,
                 editedAt: editedAt ?? null,
                 pending: false,
@@ -141,14 +147,16 @@ export function wsMessageReducer(
     }
 
     case "message:edited": {
-      const { messageId, conversationId, content, editedAt } =
+      const { messageId, conversationId, content, contentFormat, contentHtml, editedAt } =
         event.payload as unknown as MessageEditedPayload;
       if (conversationId !== selectedConversationId) return none;
       return {
         state: {
           ...state,
           messages: state.messages.map((m) =>
-            m.id === messageId ? { ...m, content, editedAt } : m,
+            m.id === messageId
+              ? { ...m, content, contentFormat, contentHtml, editedAt }
+              : m,
           ),
         },
         sideEffects: [],

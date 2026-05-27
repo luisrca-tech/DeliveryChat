@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getAdminUrl, getDocumentationUrl } from "../urls";
+import { getAdminUrl, getApiUrl, getDocumentationUrl, getWidgetScriptUrl } from "../urls";
 
 const ORIGINAL_LOCATION = window.location;
 
@@ -107,6 +107,41 @@ describe("getAdminUrl", () => {
         /PUBLIC_ADMIN_URL is required/i,
       );
     });
+  });
+});
+
+describe("getWidgetScriptUrl", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    restoreLocation();
+  });
+
+  it("serves widget from same origin in dev", () => {
+    vi.stubEnv("DEV", true);
+    setProdHostname("localhost");
+
+    expect(getWidgetScriptUrl()).toBe("/widget.js");
+  });
+
+  it("uses PUBLIC_WIDGET_URL when set", () => {
+    vi.stubEnv("PUBLIC_WIDGET_URL", "https://cdn.example.com/widget.js");
+    setProdHostname("deliverychat.online");
+
+    expect(getWidgetScriptUrl()).toBe("https://cdn.example.com/widget.js");
+  });
+});
+
+describe("getApiUrl", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    restoreLocation();
+  });
+
+  it("defaults to local hono-api in dev", () => {
+    vi.stubEnv("DEV", true);
+    setProdHostname("localhost");
+
+    expect(getApiUrl()).toBe("http://localhost:8000");
   });
 });
 

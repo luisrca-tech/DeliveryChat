@@ -39,6 +39,10 @@ vi.mock("../../../features/chat/error-mapper.js", () => ({
     mockMapServiceError(...args),
 }));
 
+vi.mock("../../../features/chat/lexicalSerializer.js", () => ({
+  serializeLexicalToHtml: vi.fn(() => null),
+}));
+
 vi.mock("../../../features/chat/broadcasting.service.js", () => ({
   broadcastRoomEvent: vi.fn(),
   buildMessageEditedEvent: vi.fn().mockReturnValue({ type: "message:edited" }),

@@ -19,6 +19,7 @@ export * from "./messages";
 export * from "./conversationParticipants";
 export * from "./enums/conversationStatusEnum";
 export * from "./enums/messageTypeEnum";
+export * from "./enums/contentFormatEnum";
 export * from "./enums/participantRoleEnum";
 export * from "./visitorIdentities";
 export * from "./relations";

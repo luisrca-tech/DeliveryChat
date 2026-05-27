@@ -81,6 +81,28 @@ export function getApiUrl(): string {
   return normalizeUrl(publicApiUrl);
 }
 
+/**
+ * Where to load the embed IIFE (`widget.js`).
+ * In dev, serve from the web app's `public/` (synced via `scripts/sync-widget.js`)
+ * so the landing page works without hono-api on :8000.
+ * In production, the API hosts the same bundle.
+ */
+export function getWidgetScriptUrl(): string {
+  const publicWidgetUrl = import.meta.env.PUBLIC_WIDGET_URL as
+    | string
+    | undefined;
+
+  if (publicWidgetUrl) {
+    return normalizeUrl(publicWidgetUrl);
+  }
+
+  if (import.meta.env.DEV || isDevelopment()) {
+    return "/widget.js";
+  }
+
+  return `${getApiUrl()}/widget.js`;
+}
+
 const DOCS_URL_LOCAL = "http://localhost:3003";
 const DOCS_URL_PRODUCTION = "https://docs.deliverychat.online/";
 
