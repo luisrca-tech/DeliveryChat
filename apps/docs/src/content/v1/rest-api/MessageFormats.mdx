@@ -181,3 +181,13 @@ Rich text fields are included in all WebSocket message events:
 - **`messages:sync`** — each message in the array includes `contentFormat` and `contentHtml`
 
 See [WebSocket](/v1/rest-api/websocket) for the full event reference.
+
+---
+
+## AI-Generated Messages
+
+When operators use the AI assistant (Generate Reply or Improve Message), the AI returns a constrained Markdown string. The admin dashboard converts this Markdown into Lexical rich text before sending, so AI-generated messages arrive as `contentFormat: "lexical"` with `contentHtml` containing the rendered formatting (bold, headings, lists).
+
+The API response for AI endpoints remains `{ text: string }` where `text` is Markdown — not HTML or Lexical JSON. Operators can edit the AI-inserted content in the rich text editor before sending.
+
+For details on the allowed Markdown subset and sanitization rules, see the internal AI assistant documentation.
