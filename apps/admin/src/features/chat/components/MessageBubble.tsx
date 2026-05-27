@@ -10,14 +10,15 @@ import {
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import { toast } from "sonner";
 import type { Message } from "../types/chat.types";
+import { InlineEditLexical } from "./lexical/InlineEditLexical";
 
-const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const DELETE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
+const EDIT_WINDOW_MS = 15 * 60 * 1000;
+const DELETE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 
 type Props = {
   message: Message;
   isSelf: boolean;
-  onEdit?: (messageId: string, content: string) => void;
+  onEdit?: (messageId: string, content: string, contentFormat?: "plain" | "lexical") => void;
   onDelete?: (messageId: string) => void;
 };
 
@@ -67,6 +68,7 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
 
   const roleLabel = message.senderRole ? roleLabels[message.senderRole] : null;
   const roleColor = message.senderRole ? roleColors[message.senderRole] : "";
+  const isLexical = message.contentFormat === "lexical";
 
   const canDelete =
     isSelf &&
@@ -76,7 +78,13 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
     Date.now() - new Date(message.createdAt).getTime() < EDIT_WINDOW_MS;
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(message.content);
+    if (isLexical && message.contentHtml) {
+      const tmp = document.createElement("div");
+      tmp.innerHTML = message.contentHtml;
+      navigator.clipboard.writeText(tmp.textContent ?? message.content);
+    } else {
+      navigator.clipboard.writeText(message.content);
+    }
     toast.success("Message copied");
   };
 
@@ -85,10 +93,19 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
     setIsEditing(true);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = (content?: string, contentFormat?: "plain" | "lexical") => {
+    const finalContent = content ?? editContent.trim();
+    const finalFormat = contentFormat ?? (isLexical ? "lexical" : "plain");
+    if (finalContent && finalContent !== message.content) {
+      onEdit?.(message.id, finalContent, finalFormat);
+    }
+    setIsEditing(false);
+  };
+
+  const handleSavePlainEdit = () => {
     const trimmed = editContent.trim();
     if (trimmed && trimmed !== message.content) {
-      onEdit?.(message.id, trimmed);
+      onEdit?.(message.id, trimmed, "plain");
     }
     setIsEditing(false);
   };
@@ -101,7 +118,7 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSaveEdit();
+      handleSavePlainEdit();
     }
     if (e.key === "Escape") {
       handleCancelEdit();
@@ -111,6 +128,80 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
   const handleConfirmDelete = () => {
     onDelete?.(message.id);
     setShowDeleteConfirm(false);
+  };
+
+  const renderContent = () => {
+    if (isEditing) {
+      if (isLexical) {
+        return (
+          <InlineEditLexical
+            initialJson={message.content}
+            onSave={(json) => handleSaveEdit(json, "lexical")}
+            onCancel={handleCancelEdit}
+          />
+        );
+      }
+      return (
+        <div className="flex flex-col gap-1.5">
+          <textarea
+            value={editContent}
+            onChange={(e) => setEditContent(e.target.value)}
+            onKeyDown={handleKeyDown}
+            className="w-full min-h-[36px] max-h-[120px] resize-none rounded-md border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+            autoFocus
+          />
+          <div className="flex justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={handleCancelEdit}
+            >
+              <X className="h-3.5 w-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-6 w-6"
+              onClick={handleSavePlainEdit}
+            >
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
+    if (isLexical && message.contentHtml) {
+      return (
+        <>
+          <div
+            className="rich-text-content"
+            dangerouslySetInnerHTML={{ __html: message.contentHtml }}
+          />
+          {message.editedAt && (
+            <span
+              className={`text-[10px] ml-1.5 italic ${isSelf ? "opacity-70" : "text-muted-foreground"}`}
+            >
+              (edited)
+            </span>
+          )}
+        </>
+      );
+    }
+
+    return (
+      <>
+        {message.content}
+        {message.editedAt && (
+          <span
+            className={`text-[10px] ml-1.5 italic ${isSelf ? "opacity-70" : "text-muted-foreground"}`}
+          >
+            (edited)
+          </span>
+        )}
+      </>
+    );
   };
 
   return (
@@ -142,46 +233,7 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
               : "bg-muted rounded-bl-sm"
           }`}
         >
-          {isEditing ? (
-            <div className="flex flex-col gap-1.5">
-              <textarea
-                value={editContent}
-                onChange={(e) => setEditContent(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="w-full min-h-[36px] max-h-[120px] resize-none rounded-md border bg-background px-2 py-1.5 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                autoFocus
-              />
-              <div className="flex justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={handleCancelEdit}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6"
-                  onClick={handleSaveEdit}
-                >
-                  <Check className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {message.content}
-              {message.editedAt && (
-                <span
-                  className={`text-[10px] ml-1.5 italic ${isSelf ? "opacity-70" : "text-muted-foreground"}`}
-                >
-                  (edited)
-                </span>
-              )}
-            </>
-          )}
+          {renderContent()}
         </div>
 
         {!isEditing && (
