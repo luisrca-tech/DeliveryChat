@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
 import { MessageInput } from "./MessageInput";
 
 const mockGenerate = vi.fn();
@@ -15,7 +15,7 @@ let mockAiAvailable = true;
 vi.mock("@/features/ai/hooks/useGenerateReply", () => ({
   useGenerateReply: ({ onSuccess }: { onSuccess: (text: string) => void }) => {
     mockGenerate.mockImplementation(() => {
-      if (!mockIsGenerating) onSuccess("AI generated reply");
+      if (!mockIsGenerating) onSuccess("**AI generated** reply");
     });
     return {
       generate: mockGenerate,
@@ -26,9 +26,13 @@ vi.mock("@/features/ai/hooks/useGenerateReply", () => ({
 }));
 
 vi.mock("@/features/ai/hooks/useImproveMessage", () => ({
-  useImproveMessage: ({ onSuccess }: { onSuccess: (text: string) => void }) => {
+  useImproveMessage: ({
+    onSuccess,
+  }: {
+    onSuccess: (text: string) => void;
+  }) => {
     mockImprove.mockImplementation(() => {
-      if (!mockIsImproving) onSuccess("Improved message text");
+      if (!mockIsImproving) onSuccess("## Improved\n\n**better** message");
     });
     return {
       improve: mockImprove,
@@ -85,7 +89,7 @@ describe("MessageInput", () => {
     expect(mockGenerate).toHaveBeenCalledWith("conv-123");
   });
 
-  it("shows AI suggestion indicator on success", () => {
+  it("shows AI suggestion indicator on generate success", () => {
     render(<MessageInput {...defaultProps} />);
 
     fireEvent.click(screen.getByTitle("Generate AI reply"));
@@ -110,25 +114,28 @@ describe("MessageInput", () => {
 
   it("shows improve button when AI is available", () => {
     render(<MessageInput {...defaultProps} />);
-    expect(screen.getByTitle("Improve message with AI")).toBeDefined();
+    expect(
+      screen.getByTitle("Type a message first to improve it"),
+    ).toBeDefined();
   });
 
   it("hides improve button when AI is not available", () => {
     mockAiAvailable = false;
     render(<MessageInput {...defaultProps} />);
+    expect(
+      screen.queryByTitle("Type a message first to improve it"),
+    ).toBeNull();
     expect(screen.queryByTitle("Improve message with AI")).toBeNull();
   });
 
-  it("disables both AI buttons while either action is in-flight", () => {
+  it("disables AI generate button while improving is in-flight", () => {
     mockIsImproving = true;
     render(<MessageInput {...defaultProps} />);
 
-    const buttons = screen.getAllByRole("button");
-    const generateBtn = buttons[0]!;
-    const improveBtn = buttons[1]!;
-
+    const generateBtn = screen.getByTitle(
+      "Clear the input to generate an AI reply",
+    );
     expect(generateBtn.hasAttribute("disabled")).toBe(true);
-    expect(improveBtn.hasAttribute("disabled")).toBe(true);
   });
 
   it("renders the send button", () => {
@@ -141,5 +148,41 @@ describe("MessageInput", () => {
     const { container } = render(<MessageInput {...defaultProps} />);
     const contentEditable = container.querySelector("[contenteditable]");
     expect(contentEditable).not.toBeNull();
+  });
+
+  it("shows improvement review UI on improve success after generating content", async () => {
+    render(<MessageInput {...defaultProps} />);
+
+    fireEvent.click(screen.getByTitle("Generate AI reply"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTitle("Improve message with AI"),
+      ).not.toBeNull();
+    });
+
+    fireEvent.click(screen.getByTitle("Improve message with AI"));
+
+    expect(screen.getByText("AI improvement")).toBeDefined();
+    expect(screen.getByText("Accept")).toBeDefined();
+    expect(screen.getByText("Reject")).toBeDefined();
+  });
+
+  it("hides improvement review UI when Accept is clicked", async () => {
+    render(<MessageInput {...defaultProps} />);
+
+    fireEvent.click(screen.getByTitle("Generate AI reply"));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTitle("Improve message with AI"),
+      ).not.toBeNull();
+    });
+
+    fireEvent.click(screen.getByTitle("Improve message with AI"));
+    expect(screen.getByText("AI improvement")).toBeDefined();
+
+    fireEvent.click(screen.getByText("Accept"));
+    expect(screen.queryByText("AI improvement")).toBeNull();
   });
 });

@@ -5,19 +5,23 @@ import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { HistoryPlugin } from "@lexical/react/LexicalHistoryPlugin";
 import { ListPlugin } from "@lexical/react/LexicalListPlugin";
 import { LinkPlugin } from "@lexical/react/LexicalLinkPlugin";
+import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import { CodeNode, CodeHighlightNode } from "@lexical/code";
 import { LinkNode, AutoLinkNode } from "@lexical/link";
 import { editorTheme } from "./theme";
-import { ToolbarPlugin } from "./ToolbarPlugin";
+import { ToolbarPlugin, type AiToolbarProps } from "./ToolbarPlugin";
 import { SendOnEnterPlugin } from "./SendOnEnterPlugin";
 import { ClearEditorPlugin } from "./ClearEditorPlugin";
 import { ExternalSendPlugin } from "./ExternalSendPlugin";
 
 export type EditorHandle = {
   triggerSend: () => void;
+  insertAiMarkdown: (markdown: string) => void;
+  exportMarkdown: () => string;
+  isEmpty: () => boolean;
 };
 
 type Props = {
@@ -28,6 +32,8 @@ type Props = {
   placeholder: string;
   editorHandleRef?: React.MutableRefObject<EditorHandle | null>;
   showToolbar?: boolean;
+  ai?: AiToolbarProps;
+  onChange?: () => void;
 };
 
 const EDITOR_NODES = [
@@ -48,6 +54,8 @@ export function LexicalEditor({
   placeholder,
   editorHandleRef,
   showToolbar = true,
+  ai,
+  onChange,
 }: Props) {
   const lastTypingSentRef = useRef(0);
   const clearEditorRef = useRef<(() => void) | null>(null);
@@ -77,7 +85,7 @@ export function LexicalEditor({
   return (
     <LexicalComposer initialConfig={initialConfig}>
       <div className="flex-1 min-w-0 rounded-md border border-input bg-background text-sm ring-offset-background focus-within:ring-1 focus-within:ring-ring overflow-hidden">
-        {showToolbar && <ToolbarPlugin />}
+        {showToolbar && <ToolbarPlugin ai={ai} />}
         <div className="relative">
           <RichTextPlugin
             contentEditable={
@@ -105,6 +113,7 @@ export function LexicalEditor({
       <HistoryPlugin />
       <ListPlugin />
       <LinkPlugin />
+      {onChange && <OnChangePlugin onChange={() => onChange()} ignoreSelectionChange />}
       <SendOnEnterPlugin onSend={handleSend} />
       <ClearEditorPlugin clearRef={clearEditorRef} />
       {editorHandleRef && (

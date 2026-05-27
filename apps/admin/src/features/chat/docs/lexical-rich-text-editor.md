@@ -1,4 +1,4 @@
-# Lexical Rich Text Editor (Phase 2)
+# Lexical Rich Text Editor (Phases 2 & 4)
 
 ## Overview
 
@@ -9,7 +9,7 @@ Replaces the admin dashboard's plain `<Input>` in `MessageInput` with a Lexical 
 ### Editor Components (`components/lexical/`)
 
 - **`LexicalEditor`** — Main composer with toolbar, used in `MessageInput`. Wraps Lexical's `LexicalComposer` with all required plugins.
-- **`ToolbarPlugin`** — Fixed toolbar with formatting buttons: Bold, Italic, Underline, Strikethrough, Link, Inline Code, Code Block, Heading (H1/H2/H3), Bullet List, Numbered List.
+- **`ToolbarPlugin`** — Fixed toolbar with formatting buttons: Bold, Italic, Underline, Strikethrough, Link, Inline Code, Code Block, Heading (H1/H2/H3), Bullet List, Numbered List. Accepts optional `AiToolbarProps` to render AI action buttons (Generate Reply, Improve Message) with a visual separator.
 - **`SendOnEnterPlugin`** — Enter sends message (serializes editor state to JSON). Ctrl+Enter, Alt+Enter, Shift+Enter insert line breaks.
 - **`ClearEditorPlugin`** — Exposes a ref-based `clear()` function for resetting editor after send.
 - **`ExternalSendPlugin`** — Exposes a `triggerSend()` handle so the Send button can programmatically send.
@@ -53,4 +53,24 @@ All Lexical editor styles and rich text rendering styles are defined in `package
 - Plain text messages from the widget continue rendering as plain text.
 - System messages remain unchanged.
 - Undo/redo via Ctrl+Z / Ctrl+Shift+Z (no toolbar buttons).
-- AI toolbar integration is deferred to Phase 4.
+### AI Toolbar Integration (Phase 4)
+
+- AI Generate Reply and Improve Message buttons are rendered inside the Lexical toolbar, after the formatting buttons, separated by a vertical divider.
+- Buttons use violet coloring (`text-violet-500`) to be visually distinct from formatting buttons.
+- `MessageInput` builds `AiToolbarProps` and passes them through `LexicalEditor` → `ToolbarPlugin`.
+- When AI is unavailable (plan doesn't support it), the `ai` prop is `undefined` and no AI buttons render.
+- AI suggestion and improvement review badges remain above the editor in `MessageInput`.
+- Loading states: generating shows a spinning loader icon with pulse animation; improving does the same.
+- Full editor insert/extract wiring (Markdown → Lexical) is deferred to Phase 7.
+
+### AI ↔ Lexical Wiring (Phase 7)
+
+- **`aiMarkdownTransformers.ts`** — Restricted `AI_MARKDOWN_TRANSFORMERS` list: `HEADING`, `UNORDERED_LIST`, `ORDERED_LIST`, `BOLD_STAR`, `BOLD_UNDERSCORE`. Matches the constrained Markdown grammar the backend instructs the LLM to produce.
+- **`EditorHandle` extensions** — Three new methods added via `ExternalSendPlugin`:
+  - `insertAiMarkdown(markdown)` — Clears editor, converts Markdown → Lexical nodes via `$convertFromMarkdownString` with restricted transformers. On parse failure, falls back to a single plain paragraph.
+  - `exportMarkdown()` — Serializes current editor state to Markdown string via `$convertToMarkdownString` with the same restricted transformers.
+  - `isEmpty()` — Returns whether the editor has no text content.
+- **Generate Reply flow** — On success, `insertAiMarkdown(text)` populates the editor with formatted Lexical nodes (bold, headings, lists). Sets `isAiSuggestion` badge. Generate is disabled when editor has content (`editorHasContent` state).
+- **Improve Message flow** — On click, `exportMarkdown()` extracts the current draft as Markdown (not raw Lexical JSON). Snapshot stored for Reject. On success, `insertAiMarkdown(improved)` replaces content. Accept clears snapshot; Reject restores the original Markdown via `insertAiMarkdown(snapshot)`. Improve is disabled when editor is empty.
+- **`onChange` callback** — `LexicalEditor` accepts an optional `onChange` prop (via `OnChangePlugin`) to notify `MessageInput` of content changes, enabling content-aware button states.
+- **Loading states** — Both generate and improve in-flight states disable the editor and show a descriptive placeholder.

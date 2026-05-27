@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Sparkles, Loader2, Wand2, Check, X } from "lucide-react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { Send, Check, X } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { useGenerateReply } from "@/features/ai/hooks/useGenerateReply";
 import { useImproveMessage } from "@/features/ai/hooks/useImproveMessage";
@@ -27,13 +27,15 @@ export function MessageInput({
 }: Props) {
   const [isAiSuggestion, setIsAiSuggestion] = useState(false);
   const [improveState, setImproveState] = useState<ImproveState>("idle");
+  const [editorHasContent, setEditorHasContent] = useState(false);
   const editorHandleRef = useRef<EditorHandle | null>(null);
+  const improveSnapshotRef = useRef<string>("");
 
   const { isAvailable: aiAvailable } = useAiAvailability();
 
   const handleGenerateSuccess = useCallback((text: string) => {
+    editorHandleRef.current?.insertAiMarkdown(text);
     setIsAiSuggestion(true);
-    void text;
   }, []);
 
   const { generate, cancel: cancelGenerate, isGenerating } = useGenerateReply({
@@ -41,8 +43,8 @@ export function MessageInput({
   });
 
   const handleImproveSuccess = useCallback((text: string) => {
+    editorHandleRef.current?.insertAiMarkdown(text);
     setImproveState("review");
-    void text;
   }, []);
 
   const { improve, cancel: cancelImprove, isImproving } = useImproveMessage({
@@ -76,6 +78,7 @@ export function MessageInput({
       onSend(json, "lexical");
       setIsAiSuggestion(false);
       setImproveState("idle");
+      improveSnapshotRef.current = "";
     },
     [onSend, disabled],
   );
@@ -86,14 +89,63 @@ export function MessageInput({
 
   const handleAcceptImprovement = () => {
     setImproveState("idle");
+    improveSnapshotRef.current = "";
   };
 
   const handleRejectImprovement = () => {
+    const snapshot = improveSnapshotRef.current;
+    if (snapshot) {
+      editorHandleRef.current?.insertAiMarkdown(snapshot);
+    }
     setImproveState("idle");
+    improveSnapshotRef.current = "";
   };
 
-  const canGenerate = aiAvailable && !aiInFlight && !disabled && improveState === "idle";
-  const canImprove = aiAvailable && !aiInFlight && !disabled && improveState === "idle";
+  const handleEditorChange = useCallback(() => {
+    const hasContent = !(editorHandleRef.current?.isEmpty() ?? true);
+    setEditorHasContent(hasContent);
+  }, []);
+
+  const handleGenerate = useCallback(() => {
+    generate(conversationId);
+  }, [generate, conversationId]);
+
+  const handleImprove = useCallback(() => {
+    const draft = editorHandleRef.current?.exportMarkdown() ?? "";
+    if (!draft.trim()) return;
+    improveSnapshotRef.current = draft;
+    improve({ conversationId, draft });
+  }, [improve, conversationId]);
+
+  const canGenerate =
+    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && !editorHasContent;
+  const canImprove =
+    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && editorHasContent;
+
+  const aiToolbarProps = useMemo(
+    () =>
+      aiAvailable
+        ? {
+            onGenerate: handleGenerate,
+            onCancelGenerate: cancelGenerate,
+            isGenerating,
+            canGenerate,
+            onImprove: handleImprove,
+            isImproving,
+            canImprove,
+          }
+        : undefined,
+    [
+      aiAvailable,
+      handleGenerate,
+      cancelGenerate,
+      isGenerating,
+      canGenerate,
+      handleImprove,
+      isImproving,
+      canImprove,
+    ],
+  );
 
   return (
     <div className="p-3 border-t border-border bg-card/50 shrink-0">
@@ -132,50 +184,6 @@ export function MessageInput({
         </div>
       )}
       <div className="flex gap-2 items-end">
-        {aiAvailable && (
-          <>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() =>
-                isGenerating ? cancelGenerate() : generate(conversationId)
-              }
-              disabled={!isGenerating && !canGenerate}
-              title={
-                isGenerating
-                  ? "Cancel generation"
-                  : canGenerate
-                    ? "Generate AI reply"
-                    : "Clear the input to generate an AI reply"
-              }
-              className={isGenerating ? "animate-pulse" : ""}
-            >
-              {isGenerating ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={() => improve({ conversationId, draft: "" })}
-              disabled={!canImprove}
-              title={
-                canImprove
-                  ? "Improve message with AI"
-                  : "Type a message first to improve it"
-              }
-              className={isImproving ? "animate-pulse" : ""}
-            >
-              {isImproving ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Wand2 className="h-4 w-4" />
-              )}
-            </Button>
-          </>
-        )}
         <LexicalEditor
           onSend={handleSend}
           onTypingStart={onTypingStart}
@@ -189,6 +197,8 @@ export function MessageInput({
                 : placeholder
           }
           editorHandleRef={editorHandleRef}
+          ai={aiToolbarProps}
+          onChange={handleEditorChange}
         />
         <Button
           size="icon"

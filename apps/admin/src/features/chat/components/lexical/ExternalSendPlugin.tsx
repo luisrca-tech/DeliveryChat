@@ -1,6 +1,11 @@
 import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $getRoot } from "lexical";
+import { $getRoot, $createParagraphNode, $createTextNode } from "lexical";
+import {
+  $convertFromMarkdownString,
+  $convertToMarkdownString,
+} from "@lexical/markdown";
+import { AI_MARKDOWN_TRANSFORMERS } from "./aiMarkdownTransformers";
 import type { EditorHandle } from "./LexicalEditor";
 
 type Props = {
@@ -15,13 +20,51 @@ export function ExternalSendPlugin({ onSend, editorHandleRef }: Props) {
     editorHandleRef.current = {
       triggerSend: () => {
         const editorState = editor.getEditorState();
-        let isEmpty = true;
+        let empty = true;
         editorState.read(() => {
           const root = $getRoot();
-          isEmpty = root.getTextContent().trim().length === 0;
+          empty = root.getTextContent().trim().length === 0;
         });
         const json = JSON.stringify(editorState.toJSON());
-        onSend(json, isEmpty);
+        onSend(json, empty);
+      },
+
+      insertAiMarkdown: (markdown: string) => {
+        editor.update(() => {
+          const root = $getRoot();
+          root.clear();
+          try {
+            $convertFromMarkdownString(
+              markdown,
+              AI_MARKDOWN_TRANSFORMERS,
+              root,
+              true,
+            );
+          } catch {
+            root.clear();
+            const paragraph = $createParagraphNode();
+            paragraph.append($createTextNode(markdown));
+            root.append(paragraph);
+          }
+        });
+        editor.focus();
+      },
+
+      exportMarkdown: () => {
+        let markdown = "";
+        editor.getEditorState().read(() => {
+          markdown = $convertToMarkdownString(AI_MARKDOWN_TRANSFORMERS);
+        });
+        return markdown;
+      },
+
+      isEmpty: () => {
+        let empty = true;
+        editor.getEditorState().read(() => {
+          const root = $getRoot();
+          empty = root.getTextContent().trim().length === 0;
+        });
+        return empty;
       },
     };
   }, [editor, onSend, editorHandleRef]);
