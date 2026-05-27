@@ -404,7 +404,21 @@ export function MessageThreadPanel({
                           msg.pending && "opacity-60",
                         )}
                       >
-                        {msg.content}
+                        {msg.contentFormat === "lexical" && msg.contentHtml ? (
+                          <div
+                            className={cn(
+                              "rich-text-content",
+                              isVisitor
+                                ? "rich-text-content--self"
+                                : "rich-text-content--other",
+                            )}
+                            dangerouslySetInnerHTML={{
+                              __html: msg.contentHtml,
+                            }}
+                          />
+                        ) : (
+                          msg.content
+                        )}
                         {msg.editedAt && (
                           <span className="ml-1 text-[9px] opacity-60">
                             (edited)

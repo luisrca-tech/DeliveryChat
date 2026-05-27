@@ -21,6 +21,8 @@ export type Message = {
   conversationId: string;
   senderId: string;
   content: string;
+  contentFormat?: "plain" | "lexical";
+  contentHtml?: string | null;
   editedAt: string | null;
   createdAt: string;
   type: "text" | "system";
