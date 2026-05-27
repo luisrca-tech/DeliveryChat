@@ -7,6 +7,7 @@ import { user } from "../../db/schema/users.js";
 import { env } from "../../env.js";
 import { createAIProvider } from "./ai.provider.js";
 import { buildContext, buildSystemPrompt, buildImprovePrompt } from "./ai.context.js";
+import { sanitizeAiMarkdown } from "./ai.sanitize.js";
 import {
   AIProviderError,
   AIProviderRateLimitError,
@@ -122,6 +123,7 @@ export async function generateReply(
     .select({
       senderId: messages.senderId,
       content: messages.content,
+      contentFormat: messages.contentFormat,
       createdAt: messages.createdAt,
     })
     .from(messages)
@@ -204,7 +206,7 @@ export async function generateReply(
         status: "success",
       });
 
-      return { text: result.text };
+      return { text: sanitizeAiMarkdown(result.text) };
     } catch (error) {
       lastError = error;
 
@@ -266,6 +268,7 @@ export async function improveMessage(
     .select({
       senderId: messages.senderId,
       content: messages.content,
+      contentFormat: messages.contentFormat,
       createdAt: messages.createdAt,
     })
     .from(messages)
@@ -354,7 +357,7 @@ export async function improveMessage(
         status: "success",
       });
 
-      return { text: result.text };
+      return { text: sanitizeAiMarkdown(result.text) };
     } catch (error) {
       lastError = error;
 

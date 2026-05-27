@@ -23,6 +23,7 @@ describe("buildContext", () => {
       {
         senderId: "visitor-1",
         content: "I need help with my order",
+        contentFormat: "plain",
         createdAt: "2026-05-25T11:55:00Z",
       },
     ];
@@ -39,6 +40,7 @@ describe("buildContext", () => {
       {
         senderId: "operator-1",
         content: "Let me check that for you",
+        contentFormat: "plain",
         createdAt: "2026-05-25T11:58:00Z",
       },
     ];
@@ -57,6 +59,7 @@ describe("buildContext", () => {
       {
         senderId: "visitor-1",
         content: "Hello",
+        contentFormat: "plain",
         createdAt: "2026-05-25T12:00:00Z",
       },
     ];
@@ -70,16 +73,19 @@ describe("buildContext", () => {
       {
         senderId: "visitor-1",
         content: "Help me",
+        contentFormat: "plain",
         createdAt: "2026-05-25T11:50:00Z",
       },
       {
         senderId: "operator-1",
         content: "Sure",
+        contentFormat: "plain",
         createdAt: "2026-05-25T11:51:00Z",
       },
       {
         senderId: "visitor-1",
         content: "Thanks",
+        contentFormat: "plain",
         createdAt: "2026-05-25T11:52:00Z",
       },
     ];
@@ -95,6 +101,71 @@ describe("buildContext", () => {
   it("returns empty array for empty messages", () => {
     const result = buildContext([], operatorId);
     expect(result).toEqual([]);
+  });
+
+  it("serializes lexical messages to plain text in context", () => {
+    const lexicalJson = JSON.stringify({
+      root: {
+        children: [
+          {
+            type: "paragraph",
+            children: [
+              { type: "text", text: "Hello " },
+              { type: "text", text: "world", format: 1 },
+            ],
+          },
+        ],
+        type: "root",
+      },
+    });
+
+    const messages: ConversationMessage[] = [
+      {
+        senderId: "operator-1",
+        content: lexicalJson,
+        contentFormat: "lexical",
+        createdAt: "2026-05-25T11:58:00Z",
+      },
+    ];
+
+    const result = buildContext(messages, operatorId);
+    expect(result[0]!.content).toBe("[Operator, 2min ago] Hello world");
+    expect(result[0]!.content).not.toContain("{");
+  });
+
+  it("never includes raw Lexical JSON in context", () => {
+    const lexicalJson = JSON.stringify({
+      root: {
+        children: [
+          {
+            type: "paragraph",
+            children: [{ type: "text", text: "Customer question" }],
+          },
+        ],
+        type: "root",
+      },
+    });
+
+    const messages: ConversationMessage[] = [
+      {
+        senderId: "visitor-1",
+        content: lexicalJson,
+        contentFormat: "lexical",
+        createdAt: "2026-05-25T11:55:00Z",
+      },
+      {
+        senderId: "operator-1",
+        content: "Plain reply",
+        contentFormat: "plain",
+        createdAt: "2026-05-25T11:56:00Z",
+      },
+    ];
+
+    const result = buildContext(messages, operatorId);
+    for (const msg of result) {
+      expect(msg.content).not.toContain('"type":"root"');
+      expect(msg.content).not.toContain('"type":"paragraph"');
+    }
   });
 });
 
@@ -112,6 +183,14 @@ describe("buildSystemPrompt", () => {
   it("instructs to reply as a support agent", () => {
     const result = buildSystemPrompt("Acme Corp");
     expect(result).toMatch(/support|customer|agent/i);
+  });
+
+  it("includes constrained Markdown format instructions", () => {
+    const result = buildSystemPrompt("Acme Corp");
+    expect(result).toContain("**bold**");
+    expect(result).toContain("# (H1)");
+    expect(result).toMatch(/Do NOT use.*links/i);
+    expect(result).toMatch(/Do NOT use.*code blocks/i);
   });
 });
 
@@ -131,5 +210,12 @@ describe("buildImprovePrompt", () => {
     const result = buildImprovePrompt("Acme Corp");
     expect(result).toMatch(/preserve/i);
     expect(result).toMatch(/language/i);
+  });
+
+  it("includes constrained Markdown format instructions", () => {
+    const result = buildImprovePrompt("Acme Corp");
+    expect(result).toContain("**bold**");
+    expect(result).toMatch(/Do NOT use.*links/i);
+    expect(result).toMatch(/preserve.*structure/i);
   });
 });
