@@ -22,8 +22,10 @@ import {
   Check,
 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
+import type { ContentFormat } from "@repo/types";
 import type { Conversation } from "../chat-client";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
+import { ChatLexicalEditor, type EditorHandle } from "./lexical";
 
 type WsStatus = "connecting" | "connected" | "disconnected";
 
@@ -216,13 +218,13 @@ export interface MessageThreadPanelProps {
   visitorUserId: string | null;
   operatorTypingName: string | null;
   sendError: string | null;
-  inputValue: string;
   sending: boolean;
   editingState: EditingState | null;
   messagesEndRef: RefObject<HTMLDivElement | null>;
-  handleInputChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  handleInputKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
-  handleSend: (e: React.FormEvent) => Promise<void>;
+  editorHandleRef: React.MutableRefObject<EditorHandle | null>;
+  handleSend: (content: string, contentFormat: ContentFormat) => void;
+  onTypingStart: () => void;
+  onTypingStop: () => void;
   handleStartEdit: (msg: OptimisticMessage) => void;
   handleCancelEdit: () => void;
   setEditingContent: (content: string) => void;
@@ -242,13 +244,13 @@ export function MessageThreadPanel({
   visitorUserId,
   operatorTypingName,
   sendError,
-  inputValue,
   sending,
   editingState,
   messagesEndRef,
-  handleInputChange,
-  handleInputKeyDown,
+  editorHandleRef,
   handleSend,
+  onTypingStart,
+  onTypingStop,
   handleStartEdit,
   handleCancelEdit,
   setEditingContent,
@@ -451,24 +453,24 @@ export function MessageThreadPanel({
           {sendError && (
             <p className="text-[10px] text-destructive px-1">{sendError}</p>
           )}
-          <form onSubmit={handleSend} className="flex gap-1.5">
-            <Input
-              value={inputValue}
-              onChange={handleInputChange}
-              onKeyDown={handleInputKeyDown}
-              placeholder="Type a message…"
-              className="flex-1 h-7 text-xs"
+          <div className="flex gap-1.5 items-end">
+            <ChatLexicalEditor
+              onSend={handleSend}
+              onTypingStart={onTypingStart}
+              onTypingStop={onTypingStop}
               disabled={sending}
+              editorHandleRef={editorHandleRef}
             />
             <Button
-              type="submit"
+              type="button"
               size="icon"
-              className="h-7 w-7"
-              disabled={sending || !inputValue.trim()}
+              className="h-7 w-7 shrink-0"
+              disabled={sending}
+              onClick={() => editorHandleRef.current?.triggerSend()}
             >
               <Send className="h-3 w-3" />
             </Button>
-          </form>
+          </div>
         </div>
       )}
     </div>

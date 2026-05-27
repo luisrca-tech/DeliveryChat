@@ -1,6 +1,8 @@
 import { useState, useCallback } from "react";
 import type { RefObject } from "react";
+import type { ContentFormat } from "@repo/types";
 import type { OptimisticMessage } from "../lib/wsMessageReducer";
+import { serializeLexicalJsonToHtml } from "../components/lexical";
 
 export function useMessageInput(
   wsRef: RefObject<WebSocket | null>,
@@ -9,22 +11,13 @@ export function useMessageInput(
   onAppend: (msg: OptimisticMessage) => void,
   onRollback: (clientId: string) => void,
 ) {
-  const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setValue(e.target.value);
-    },
-    [],
-  );
-
   const handleSend = useCallback(
-    async (e?: React.FormEvent) => {
-      e?.preventDefault();
-      const content = value.trim();
-      if (!content || sending) return;
+    (content: string, contentFormat: ContentFormat) => {
+      const trimmed = content.trim();
+      if (!trimmed || sending) return;
 
       const ws = wsRef.current;
       if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -33,12 +26,19 @@ export function useMessageInput(
       }
 
       const clientMessageId = crypto.randomUUID();
+      const contentHtml =
+        contentFormat === "lexical"
+          ? serializeLexicalJsonToHtml(content)
+          : null;
+
       const optimistic: OptimisticMessage = {
         id: clientMessageId,
         clientId: clientMessageId,
         conversationId: selectedId!,
         senderId: visitorUserId ?? clientMessageId,
         content,
+        contentFormat,
+        contentHtml,
         createdAt: new Date().toISOString(),
         editedAt: null,
         type: "text",
@@ -46,7 +46,6 @@ export function useMessageInput(
       };
 
       onAppend(optimistic);
-      setValue("");
       setError(null);
       setSending(true);
 
@@ -54,7 +53,12 @@ export function useMessageInput(
         ws.send(
           JSON.stringify({
             type: "message:send",
-            payload: { conversationId: selectedId, content, clientMessageId },
+            payload: {
+              conversationId: selectedId,
+              content,
+              contentFormat,
+              clientMessageId,
+            },
           }),
         );
       } catch {
@@ -64,8 +68,8 @@ export function useMessageInput(
         setSending(false);
       }
     },
-    [value, sending, wsRef, selectedId, visitorUserId, onAppend, onRollback],
+    [sending, wsRef, selectedId, visitorUserId, onAppend, onRollback],
   );
 
-  return { value, sending, error, handleInputChange, handleSend };
+  return { sending, error, handleSend };
 }

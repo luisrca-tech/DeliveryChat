@@ -23,6 +23,7 @@ import { useWebSocketDispatch } from "../hooks/useWebSocketDispatch";
 import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
 import { useConversationList } from "../hooks/useConversationList";
 import { useMessageHistory } from "../hooks/useMessageHistory";
+import type { EditorHandle } from "./lexical";
 import {
   ConversationListPanel,
   MessageThreadPanel,
@@ -141,11 +142,11 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
   onMessageRef.current = handleWsMessage;
 
   // --- Input hooks ---
+  const editorHandleRef = useRef<EditorHandle | null>(null);
+
   const {
-    value: inputValue,
     sending,
     error: sendError,
-    handleInputChange: handleInputChangeBase,
     handleSend,
   } = useMessageInput(
     wsRef,
@@ -160,24 +161,9 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     selectedId,
   );
 
-  const handleInputChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      handleInputChangeBase(e);
-      notifyTyping();
-    },
-    [handleInputChangeBase, notifyTyping],
-  );
-
-  const handleInputKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendTypingStop();
-        void handleSend();
-      }
-    },
-    [handleSend, sendTypingStop],
-  );
+  const onTypingStart = useCallback(() => {
+    notifyTyping();
+  }, [notifyTyping]);
 
   const handleEditKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>, msg: OptimisticMessage) => {
@@ -240,13 +226,13 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         visitorUserId={visitorUserId}
         operatorTypingName={operatorTypingName}
         sendError={sendError}
-        inputValue={inputValue}
         sending={sending}
         editingState={editingState}
         messagesEndRef={messagesEndRef}
-        handleInputChange={handleInputChange}
-        handleInputKeyDown={handleInputKeyDown}
+        editorHandleRef={editorHandleRef}
         handleSend={handleSend}
+        onTypingStart={onTypingStart}
+        onTypingStop={sendTypingStop}
         handleStartEdit={handleStartEdit}
         handleCancelEdit={handleCancelEdit}
         setEditingContent={setEditingContent}

@@ -1,48 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
-import { useRef } from "react";
 import { useMessageInput } from "../useMessageInput";
 import type { OptimisticMessage } from "../../lib/wsMessageReducer";
 
-function makeWsRef(readyState = WebSocket.OPEN) {
-  return { current: { readyState, send: vi.fn() } as unknown as WebSocket };
-}
+vi.mock("../../components/lexical", () => ({
+  serializeLexicalJsonToHtml: (json: string) => `<p>html:${json}</p>`,
+}));
 
 describe("useMessageInput", () => {
-  let onAppend: ReturnType<typeof vi.fn>;
-  let onRollback: ReturnType<typeof vi.fn>;
+  let onAppend: (msg: OptimisticMessage) => void;
+  let onRollback: (clientId: string) => void;
 
   beforeEach(() => {
     onAppend = vi.fn();
     onRollback = vi.fn();
   });
 
-  it("starts with empty value, not sending, no error", () => {
+  it("starts not sending with no error", () => {
     const wsRef = { current: null };
     const { result } = renderHook(() =>
       useMessageInput(wsRef, "conv-1", "user-1", onAppend, onRollback),
     );
-    expect(result.current.value).toBe("");
     expect(result.current.sending).toBe(false);
     expect(result.current.error).toBeNull();
   });
 
-  it("updates value on handleInputChange", () => {
-    const wsRef = { current: null };
-    const { result } = renderHook(() =>
-      useMessageInput(wsRef, "conv-1", "user-1", onAppend, onRollback),
-    );
-
-    act(() => {
-      result.current.handleInputChange({
-        target: { value: "hello" },
-      } as React.ChangeEvent<HTMLInputElement>);
-    });
-
-    expect(result.current.value).toBe("hello");
-  });
-
-  it("calls onAppend with an optimistic message and sends via WebSocket", async () => {
+  it("sends plain text message via WebSocket with contentFormat plain", () => {
     const ws = { readyState: WebSocket.OPEN, send: vi.fn() };
     const wsRef = { current: ws as unknown as WebSocket };
 
@@ -51,24 +34,43 @@ describe("useMessageInput", () => {
     );
 
     act(() => {
-      result.current.handleInputChange({
-        target: { value: "Hello world" },
-      } as React.ChangeEvent<HTMLInputElement>);
-    });
-
-    await act(async () => {
-      await result.current.handleSend();
+      result.current.handleSend("Hello world", "plain");
     });
 
     expect(onAppend).toHaveBeenCalledOnce();
-    const appended = onAppend.mock.calls[0][0] as OptimisticMessage;
+    const appended = (onAppend as ReturnType<typeof vi.fn>).mock.calls[0][0] as OptimisticMessage;
     expect(appended.content).toBe("Hello world");
+    expect(appended.contentFormat).toBe("plain");
+    expect(appended.contentHtml).toBeNull();
     expect(appended.pending).toBe(true);
     expect(ws.send).toHaveBeenCalledOnce();
-    expect(result.current.value).toBe("");
+
+    const payload = JSON.parse(ws.send.mock.calls[0][0] as string);
+    expect(payload.payload.contentFormat).toBe("plain");
   });
 
-  it("sets error and does not send when WebSocket is not open", async () => {
+  it("sends lexical message with contentHtml computed client-side", () => {
+    const ws = { readyState: WebSocket.OPEN, send: vi.fn() };
+    const wsRef = { current: ws as unknown as WebSocket };
+
+    const { result } = renderHook(() =>
+      useMessageInput(wsRef, "conv-1", "user-1", onAppend, onRollback),
+    );
+
+    act(() => {
+      result.current.handleSend('{"root":{}}', "lexical");
+    });
+
+    expect(onAppend).toHaveBeenCalledOnce();
+    const appended = (onAppend as ReturnType<typeof vi.fn>).mock.calls[0][0] as OptimisticMessage;
+    expect(appended.contentFormat).toBe("lexical");
+    expect(appended.contentHtml).toBe('<p>html:{"root":{}}</p>');
+
+    const payload = JSON.parse(ws.send.mock.calls[0][0] as string);
+    expect(payload.payload.contentFormat).toBe("lexical");
+  });
+
+  it("sets error when WebSocket is not open", () => {
     const ws = { readyState: WebSocket.CLOSED, send: vi.fn() };
     const wsRef = { current: ws as unknown as WebSocket };
 
@@ -77,13 +79,7 @@ describe("useMessageInput", () => {
     );
 
     act(() => {
-      result.current.handleInputChange({
-        target: { value: "Hello" },
-      } as React.ChangeEvent<HTMLInputElement>);
-    });
-
-    await act(async () => {
-      await result.current.handleSend();
+      result.current.handleSend("Hello", "plain");
     });
 
     expect(result.current.error).not.toBeNull();
@@ -91,7 +87,7 @@ describe("useMessageInput", () => {
     expect(ws.send).not.toHaveBeenCalled();
   });
 
-  it("rolls back optimistic message if send throws", async () => {
+  it("rolls back optimistic message if send throws", () => {
     const ws = {
       readyState: WebSocket.OPEN,
       send: vi.fn().mockImplementation(() => {
@@ -105,13 +101,7 @@ describe("useMessageInput", () => {
     );
 
     act(() => {
-      result.current.handleInputChange({
-        target: { value: "Hello" },
-      } as React.ChangeEvent<HTMLInputElement>);
-    });
-
-    await act(async () => {
-      await result.current.handleSend();
+      result.current.handleSend("Hello", "plain");
     });
 
     expect(onAppend).toHaveBeenCalled();
@@ -119,7 +109,7 @@ describe("useMessageInput", () => {
     expect(result.current.error).not.toBeNull();
   });
 
-  it("does nothing when value is empty", async () => {
+  it("does nothing when content is empty", () => {
     const ws = { readyState: WebSocket.OPEN, send: vi.fn() };
     const wsRef = { current: ws as unknown as WebSocket };
 
@@ -127,8 +117,8 @@ describe("useMessageInput", () => {
       useMessageInput(wsRef, "conv-1", "user-1", onAppend, onRollback),
     );
 
-    await act(async () => {
-      await result.current.handleSend();
+    act(() => {
+      result.current.handleSend("   ", "plain");
     });
 
     expect(onAppend).not.toHaveBeenCalled();

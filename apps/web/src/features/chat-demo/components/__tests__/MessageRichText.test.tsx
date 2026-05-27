@@ -3,9 +3,11 @@ import { render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { MessageThreadPanel } from "../ChatDemoComponents";
 import type { OptimisticMessage } from "../../lib/wsMessageReducer";
+import type { EditorHandle } from "../lexical";
 
 function renderMessages(messages: OptimisticMessage[]) {
   const noop = vi.fn();
+  const editorHandleRef = { current: null as EditorHandle | null };
   return render(
     <MessageThreadPanel
       messages={messages}
@@ -22,13 +24,13 @@ function renderMessages(messages: OptimisticMessage[]) {
       visitorUserId="visitor-1"
       operatorTypingName={null}
       sendError={null}
-      inputValue=""
       sending={false}
       editingState={null}
       messagesEndRef={createRef()}
-      handleInputChange={noop}
-      handleInputKeyDown={noop}
+      editorHandleRef={editorHandleRef}
       handleSend={noop}
+      onTypingStart={noop}
+      onTypingStop={noop}
       handleStartEdit={noop}
       handleCancelEdit={noop}
       setEditingContent={noop}
