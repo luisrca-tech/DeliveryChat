@@ -2,6 +2,8 @@
 
 Messages belong to conversations. Visitors send messages via the REST API; operators reply from the admin dashboard. Messages sent via the REST API are automatically broadcast to connected WebSocket clients in real-time.
 
+Messages support two content formats: plain text and rich text (Lexical). See [Message Formats](/v1/rest-api/MessageFormats) for details on `contentFormat`, `contentHtml`, and the Lexical JSON schema.
+
 ## Send a Message
 
 ```
@@ -14,7 +16,8 @@ Sends a message to a conversation. The conversation must be in `pending` or `act
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `content` | string | Yes | Message text (1–5,000 chars, trimmed) |
+| `content` | string | Yes | Message text (1–5,000 chars, trimmed). For rich text, this is a Lexical JSON string. |
+| `contentFormat` | string | No | `"plain"` (default) or `"lexical"`. See [Message Formats](/v1/rest-api/MessageFormats). |
 
 ### cURL Example
 
@@ -37,6 +40,8 @@ curl -X POST https://api.deliverychat.online/api/v1/conversations/conv-uuid/mess
     "conversationId": "conv-uuid",
     "senderId": "550e8400-e29b-41d4-a716-446655440000",
     "content": "Hi, I need help with order #1234",
+    "contentFormat": "plain",
+    "contentHtml": null,
     "createdAt": "2025-01-15T10:30:05.000Z"
   }
 }
@@ -86,6 +91,8 @@ curl "https://api.deliverychat.online/api/v1/conversations/conv-uuid/messages?li
       "conversationId": "conv-uuid",
       "senderId": "550e8400-...",
       "content": "Hi, I need help with order #1234",
+      "contentFormat": "plain",
+      "contentHtml": null,
       "createdAt": "2025-01-15T10:30:05.000Z",
       "editedAt": null
     },
@@ -93,7 +100,9 @@ curl "https://api.deliverychat.online/api/v1/conversations/conv-uuid/messages?li
       "id": "msg-uuid-2",
       "conversationId": "conv-uuid",
       "senderId": "operator-uuid",
-      "content": "Sure! Let me look into that for you.",
+      "content": "{\"root\":{\"children\":[{\"children\":[{\"format\":1,\"text\":\"Sure!\",\"type\":\"text\",\"version\":1},{\"text\":\" Let me look into that.\",\"type\":\"text\",\"version\":1}],\"type\":\"paragraph\",\"version\":1}],\"type\":\"root\",\"version\":1}}",
+      "contentFormat": "lexical",
+      "contentHtml": "<p><b>Sure!</b> Let me look into that.</p>",
       "createdAt": "2025-01-15T10:31:00.000Z",
       "editedAt": null
     }
@@ -126,7 +135,8 @@ Edits a message you sent. Subject to two constraints:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `content` | string | Yes | Updated message text (1–5,000 chars, trimmed) |
+| `content` | string | Yes | Updated message text (1–5,000 chars, trimmed). For rich text, this is a Lexical JSON string. |
+| `contentFormat` | string | No | `"plain"` (default) or `"lexical"`. See [Message Formats](/v1/rest-api/MessageFormats). |
 
 ### cURL Example
 
@@ -149,6 +159,8 @@ curl -X PATCH https://api.deliverychat.online/api/v1/conversations/conv-uuid/mes
     "conversationId": "conv-uuid",
     "senderId": "550e8400-...",
     "content": "Updated: I need help with order #5678",
+    "contentFormat": "plain",
+    "contentHtml": null,
     "createdAt": "2025-01-15T10:30:05.000Z",
     "editedAt": "2025-01-15T10:32:00.000Z"
   }

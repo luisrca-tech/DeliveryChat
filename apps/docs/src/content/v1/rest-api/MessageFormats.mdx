@@ -1,0 +1,183 @@
+# Message Formats
+
+Messages in Delivery Chat support two content formats: **plain text** and **rich text** (Lexical). The `contentFormat` field on each message tells you how to interpret the `content` field.
+
+## The `contentFormat` Discriminator
+
+| Value | Description |
+|-------|-------------|
+| `"plain"` | Default. `content` is a plain text string. |
+| `"lexical"` | `content` is a JSON string containing a [Lexical](https://lexical.dev/) editor state. |
+
+Every message includes `contentFormat`. Existing messages that were created before rich text support default to `"plain"`.
+
+## Response Fields
+
+All message responses (REST and WebSocket) include three content-related fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `content` | `string` | The raw message content. Plain text for `"plain"`, Lexical JSON for `"lexical"`. |
+| `contentFormat` | `"plain"` \| `"lexical"` | Discriminator indicating how to interpret `content`. |
+| `contentHtml` | `string \| null` | Pre-rendered, sanitized HTML for `"lexical"` messages. `null` for `"plain"` messages. |
+
+<Callout type="info" title="Use contentHtml for rendering">
+  For most integrations, render <code>contentHtml</code> directly instead of parsing the Lexical JSON yourself. The HTML is sanitized server-side to prevent XSS — it only contains safe tags and attributes.
+</Callout>
+
+---
+
+## Example Responses
+
+### Plain text message
+
+```json
+{
+  "message": {
+    "id": "msg-uuid",
+    "conversationId": "conv-uuid",
+    "senderId": "user-uuid",
+    "content": "Hi, I need help with my order",
+    "contentFormat": "plain",
+    "contentHtml": null,
+    "createdAt": "2025-01-15T10:30:05.000Z",
+    "editedAt": null
+  }
+}
+```
+
+### Rich text message
+
+```json
+{
+  "message": {
+    "id": "msg-uuid",
+    "conversationId": "conv-uuid",
+    "senderId": "operator-uuid",
+    "content": "{\"root\":{\"children\":[{\"children\":[{\"format\":1,\"text\":\"Sure!\",\"type\":\"text\",\"version\":1},{\"text\":\" Let me look into that for you.\",\"type\":\"text\",\"version\":1}],\"type\":\"paragraph\",\"version\":1}],\"type\":\"root\",\"version\":1}}",
+    "contentFormat": "lexical",
+    "contentHtml": "<p><b>Sure!</b> Let me look into that for you.</p>",
+    "createdAt": "2025-01-15T10:31:00.000Z",
+    "editedAt": null
+  }
+}
+```
+
+---
+
+## Sending Rich Text Messages
+
+To send a rich text message, set `contentFormat` to `"lexical"` and provide a valid Lexical editor state JSON string in `content`:
+
+```bash
+curl -X POST https://api.deliverychat.online/api/v1/conversations/conv-uuid/messages \
+  -H "Authorization: Bearer dk_live_your_api_key" \
+  -H "X-App-Id: your-app-id" \
+  -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
+  -H "Origin: https://your-domain.com" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "content": "{\"root\":{\"children\":[{\"children\":[{\"text\":\"Hello world\",\"type\":\"text\",\"version\":1}],\"type\":\"paragraph\",\"version\":1}],\"type\":\"root\",\"version\":1}}",
+    "contentFormat": "lexical"
+  }'
+```
+
+If `contentFormat` is omitted, it defaults to `"plain"`.
+
+---
+
+## Lexical JSON Schema
+
+The `content` field for `"lexical"` messages contains a JSON string with the following top-level structure:
+
+```json
+{
+  "root": {
+    "children": [ ... ],
+    "type": "root",
+    "version": 1
+  }
+}
+```
+
+### Supported Node Types
+
+| Node Type | HTML Output | Description |
+|-----------|-------------|-------------|
+| `paragraph` | `<p>` | Standard paragraph |
+| `heading` | `<h1>` – `<h6>` | Heading (level determined by `tag` field) |
+| `list` | `<ul>` or `<ol>` | List container (`listType`: `"bullet"` or `"number"`) |
+| `listitem` | `<li>` | List item |
+| `code` | `<pre><code>` | Code block (optional `language` field) |
+| `link` / `autolink` | `<a>` | Hyperlink (`url`, `target`, `rel` fields) |
+| `text` | inline | Text content with optional formatting |
+| `linebreak` | `<br>` | Line break |
+
+### Text Formatting
+
+Text nodes use a bitmask `format` field for inline styles:
+
+| Bit | Value | Style |
+|-----|-------|-------|
+| 0 | `1` | **Bold** |
+| 1 | `2` | *Italic* |
+| 2 | `4` | ~~Strikethrough~~ |
+| 3 | `8` | <u>Underline</u> |
+| 4 | `16` | `Inline code` |
+
+Combine values to apply multiple formats (e.g., `3` = bold + italic).
+
+---
+
+## Rendering Rich Text
+
+### Recommended: Use `contentHtml`
+
+The simplest approach is to render the pre-computed `contentHtml` field. The HTML is sanitized server-side — only safe tags and attributes are included:
+
+**Allowed HTML tags:** `p`, `br`, `b`, `strong`, `i`, `em`, `u`, `s`, `del`, `code`, `pre`, `h1`–`h6`, `ul`, `ol`, `li`, `a`, `span`
+
+**Allowed attributes:** `href`, `target`, `rel` (on `<a>`), `class` (on `<span>`, `<code>`, `<pre>`)
+
+```javascript
+function renderMessage(message) {
+  if (message.contentFormat === "lexical" && message.contentHtml) {
+    element.innerHTML = message.contentHtml;
+  } else {
+    element.textContent = message.content;
+  }
+}
+```
+
+### Advanced: Parse Lexical JSON
+
+If you need custom rendering (e.g., rendering to a native mobile UI), parse the Lexical JSON from the `content` field directly. The schema above documents the node types and their properties.
+
+<Callout type="warning" title="Always validate Lexical JSON">
+  If you parse Lexical JSON yourself, handle malformed data gracefully. Fall back to displaying <code>content</code> as plain text if the JSON is invalid or contains unexpected node types.
+</Callout>
+
+---
+
+## Backward Compatibility
+
+Rich text support is fully backward compatible:
+
+- **Existing messages** remain `contentFormat: "plain"` with `contentHtml: null`. No data migration is required.
+- **Existing integrations** that only read `content` continue to work. Plain text messages are unaffected.
+- **The `contentFormat` field defaults to `"plain"`** when sending messages without specifying it.
+- **New fields are additive.** The `contentFormat` and `contentHtml` fields are added to all message responses but do not change the structure of existing fields.
+
+If your integration does not need rich text, you can safely ignore `contentFormat` and `contentHtml` — plain text messages behave exactly as before.
+
+---
+
+## WebSocket Events
+
+Rich text fields are included in all WebSocket message events:
+
+- **`message:new`** — includes `contentFormat` and `contentHtml`
+- **`message:edited`** — includes `contentFormat` and `contentHtml` reflecting the updated content
+- **`messages:sync`** — each message in the array includes `contentFormat` and `contentHtml`
+
+See [WebSocket](/v1/rest-api/websocket) for the full event reference.
