@@ -1,5 +1,11 @@
 import { customType } from "drizzle-orm/pg-core";
 
+const hasTimezone = /[Zz]$|[+-]\d{2}:\d{2}$/;
+
+function appendUtcSuffix(value: string): string {
+  return hasTimezone.test(value) ? value : `${value}Z`;
+}
+
 export const timestampString = customType<{
   data: string;
   driverData: string;
@@ -12,7 +18,7 @@ export const timestampString = customType<{
     return value as string;
   },
   fromDriver(value: string): string {
-    return value;
+    return appendUtcSuffix(value);
   },
 });
 
@@ -29,7 +35,8 @@ export const timestampStringNullable = customType<{
     return value as string;
   },
   fromDriver(value: string | null): string | null {
-    return value;
+    if (value === null) return null;
+    return appendUtcSuffix(value);
   },
 });
 
@@ -48,6 +55,7 @@ export const emailVerifiedTimestamp = customType<{
     return value as string;
   },
   fromDriver(value: string | null): string | null {
-    return value;
+    if (value === null) return null;
+    return appendUtcSuffix(value);
   },
 });
