@@ -1,4 +1,5 @@
 import type { ChatMessage, BubbleContext } from "../types/index.js";
+import { serializeLexicalToPlainText } from "../utils/SerializeLexical.js";
 import {
   MORE_ICON,
   COPY_ICON,
@@ -426,7 +427,11 @@ function createBubble(
     dropdown.className = "message-dropdown";
 
     const copyItem = createDropdownItem(COPY_ICON, "Copy", () => {
-      navigator.clipboard.writeText(msg.content);
+      const text =
+        msg.contentFormat === "lexical"
+          ? serializeLexicalToPlainText(msg.content)
+          : msg.content;
+      navigator.clipboard.writeText(text);
       dropdown.classList.remove("open");
       moreBtn.classList.remove("active");
     });

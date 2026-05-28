@@ -70,7 +70,7 @@ export function createInputArea(callbacks: InputCallbacks): InputAreaResult {
 
   btn.addEventListener("click", send);
   textarea.addEventListener("keydown", (e) => {
-    if (e.key === "Enter" && !e.ctrlKey && !e.altKey) {
+    if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
       e.preventDefault();
       send();
     }
