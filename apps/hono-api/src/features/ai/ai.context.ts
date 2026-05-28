@@ -3,6 +3,7 @@ import type { AIProviderMessage } from "./ai.provider.js";
 export type ConversationMessage = {
   senderId: string | null;
   content: string;
+  contentPlainText: string;
   createdAt: string;
 };
 
@@ -20,7 +21,8 @@ export function buildContext(
     const isOperator = msg.senderId === operatorId;
     const roleLabel = isOperator ? "Operator" : "Customer";
     const timeLabel = formatRelativeTime(msg.createdAt);
-    const content = `[${roleLabel}, ${timeLabel}] ${msg.content}`;
+    const plainText = msg.contentPlainText;
+    const content = `[${roleLabel}, ${timeLabel}] ${plainText}`;
 
     return {
       role: isOperator ? "assistant" : "user",
@@ -28,6 +30,14 @@ export function buildContext(
     } satisfies AIProviderMessage;
   });
 }
+
+const MARKDOWN_FORMAT_INSTRUCTIONS = [
+  "\n\nOutput format: You may use only these Markdown constructs:",
+  "**bold**, # (H1), ## (H2), ### (H3) headings at line start,",
+  "- or * bullet lists, 1. numbered lists, and plain paragraphs separated by blank lines.",
+  "Do NOT use links, images, code blocks, inline code, italic, underline, blockquotes, HTML tags, or tables.",
+  "Use headings only when the reply has clear sections. Use lists only for 2+ related items.",
+].join(" ");
 
 export function buildSystemPrompt(tenantName: string): string {
   return [
@@ -37,8 +47,16 @@ export function buildSystemPrompt(tenantName: string): string {
     "Keep the reply concise, professional, and friendly.",
     "Do not invent facts or make promises you cannot keep.",
     "Reply with only the message text — no greetings prefix or signature unless the conversation context calls for it.",
-  ].join(" ");
+  ].join(" ") + MARKDOWN_FORMAT_INSTRUCTIONS;
 }
+
+const IMPROVE_FORMAT_INSTRUCTIONS = [
+  "\n\nOutput format: You may use only these Markdown constructs:",
+  "**bold**, # (H1), ## (H2), ### (H3) headings at line start,",
+  "- or * bullet lists, 1. numbered lists, and plain paragraphs separated by blank lines.",
+  "Do NOT use links, images, code blocks, inline code, italic, underline, blockquotes, HTML tags, or tables.",
+  "Preserve the draft's structure level — do not add headings to a short one-line reply.",
+].join(" ");
 
 export function buildImprovePrompt(tenantName: string): string {
   return [
@@ -49,5 +67,5 @@ export function buildImprovePrompt(tenantName: string): string {
     "Preserve the original intent, key information, and language of the draft.",
     "Match the language used by the operator in the draft.",
     "Return only the improved message text — no explanations, no alternatives.",
-  ].join(" ");
+  ].join(" ") + IMPROVE_FORMAT_INSTRUCTIONS;
 }

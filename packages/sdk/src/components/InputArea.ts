@@ -22,10 +22,11 @@ export function createInputArea(callbacks: InputCallbacks): InputAreaResult {
     "You're sending messages too fast. Please wait a moment.";
   rateLimitNotice.style.display = "none";
 
-  const input = document.createElement("input");
-  input.type = "text";
-  input.placeholder = "Type a message...";
-  input.setAttribute("aria-label", "Message input");
+  const textarea = document.createElement("textarea");
+  textarea.placeholder = "Type a message...";
+  textarea.setAttribute("aria-label", "Message input");
+  textarea.rows = 1;
+  textarea.className = "message-textarea";
 
   const btn = document.createElement("button");
   btn.type = "button";
@@ -35,18 +36,26 @@ export function createInputArea(callbacks: InputCallbacks): InputAreaResult {
   let lastTypingSent = 0;
   let isRateLimited = false;
 
+  const autoResize = () => {
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+  };
+
   const send = () => {
     if (isRateLimited) return;
-    const text = input.value.trim();
+    const text = textarea.value.trim();
     if (text) {
       callbacks.onSend(text);
-      input.value = "";
+      textarea.value = "";
+      autoResize();
       lastTypingSent = 0;
     }
   };
 
-  input.addEventListener("input", () => {
-    if (input.value.length === 0) {
+  textarea.addEventListener("input", () => {
+    autoResize();
+
+    if (textarea.value.length === 0) {
       callbacks.onTypingStop();
       lastTypingSent = 0;
       return;
@@ -60,8 +69,11 @@ export function createInputArea(callbacks: InputCallbacks): InputAreaResult {
   });
 
   btn.addEventListener("click", send);
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") send();
+  textarea.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      send();
+    }
   });
 
   const unsubscribe = subscribe("rateLimited", (limited) => {
@@ -73,7 +85,7 @@ export function createInputArea(callbacks: InputCallbacks): InputAreaResult {
 
   const row = document.createElement("div");
   row.className = "input-row";
-  row.appendChild(input);
+  row.appendChild(textarea);
   row.appendChild(btn);
   container.appendChild(rateLimitNotice);
   container.appendChild(row);

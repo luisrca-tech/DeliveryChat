@@ -142,23 +142,23 @@ export const queriesRoute = new Hono()
             );
           }
 
-          const msgs = await getMessageHistory({
+          const messages = await getMessageHistory({
             conversationId,
             limit,
             offset,
           });
-          return c.json({ messages: msgs, limit, offset });
+          return c.json({ messages, limit, offset });
         }
 
         const { organization } = auth;
 
-        const result = await getMessageHistoryForMember({
+        const messages = await getMessageHistoryForMember({
           conversationId,
           organizationId: organization.id,
           limit,
           offset,
         });
-        return c.json({ messages: result, limit, offset });
+        return c.json({ messages, limit, offset });
       } catch (error) {
         const mapped = mapServiceErrorToResponse(c, error);
         if (mapped) return mapped;

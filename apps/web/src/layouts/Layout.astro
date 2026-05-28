@@ -2,10 +2,11 @@
 import "@repo/ui/styles.css";
 import { Toaster } from "@repo/ui/components/ui/sonner";
 import { getFaviconPublicSrc } from "../lib/faviconPublicSrc";
-import { getApiUrl } from "../lib/urls";
+import { getApiUrl, getWidgetScriptUrl } from "../lib/urls";
 import { env } from "../env";
 
 const widgetApiBaseUrl = getApiUrl();
+const widgetScriptUrl = getWidgetScriptUrl();
 const faviconSrc = getFaviconPublicSrc();
 const demoAppId = env.DEMO_CHAT_APP_ID;
 ---
@@ -24,7 +25,17 @@ const demoAppId = env.DEMO_CHAT_APP_ID;
     <slot />
     <Toaster client:load richColors />
 
-    <script is:inline src={`${widgetApiBaseUrl}/widget.js`}></script>
+    <script is:inline>
+      (function (w) {
+        w.DeliveryChat = w.DeliveryChat || { queue: [] };
+        if (!w.DeliveryChat.init) {
+          w.DeliveryChat.init = function (opts) {
+            w.DeliveryChat.queue.push(["init", opts]);
+          };
+        }
+      })(window);
+    </script>
+    <script is:inline src={widgetScriptUrl} defer></script>
     <script is:inline define:vars={{ widgetApiBaseUrl, demoAppId }}>
       DeliveryChat.init({
         appId: demoAppId,

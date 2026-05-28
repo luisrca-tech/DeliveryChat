@@ -1,4 +1,5 @@
 import type { ChatMessage, BubbleContext } from "../types/index.js";
+import { serializeLexicalToPlainText } from "../utils/SerializeLexical.js";
 import {
   MORE_ICON,
   COPY_ICON,
@@ -146,12 +147,22 @@ export function updateMessageContent(
   messageId: string,
   content: string,
   editedAt?: string | null,
+  contentFormat?: "plain" | "lexical",
+  contentHtml?: string | null,
 ): void {
   const row = list.querySelector(`[data-id="${messageId}"]`);
   if (!row) return;
 
   const textEl = row.querySelector(".message-text");
-  if (textEl) textEl.textContent = content;
+  if (textEl) {
+    if (contentFormat === "lexical" && contentHtml) {
+      textEl.classList.add("rich-text");
+      textEl.innerHTML = contentHtml;
+    } else {
+      textEl.classList.remove("rich-text");
+      textEl.textContent = content;
+    }
+  }
 
   if (editedAt) {
     let metaEl = row.querySelector(".message-meta");
@@ -280,6 +291,8 @@ export function exitEditMode(
   messageId: string,
   content: string,
   editedAt?: string | null,
+  contentFormat?: "plain" | "lexical",
+  contentHtml?: string | null,
 ): void {
   const row = list.querySelector(`[data-id="${messageId}"]`);
   if (!row) return;
@@ -297,7 +310,15 @@ export function exitEditMode(
   if (dropdownAnchor) dropdownAnchor.style.display = "";
 
   const textEl = bubble.querySelector(".message-text");
-  if (textEl) textEl.textContent = content;
+  if (textEl) {
+    if (contentFormat === "lexical" && contentHtml) {
+      textEl.classList.add("rich-text");
+      textEl.innerHTML = contentHtml;
+    } else {
+      textEl.classList.remove("rich-text");
+      textEl.textContent = content;
+    }
+  }
 
   const contentWrapper = bubble.querySelector(".message-content-wrapper");
   if (editedAt) {
@@ -364,7 +385,12 @@ function createBubble(
 
   const textSpan = document.createElement("span");
   textSpan.className = "message-text";
-  textSpan.textContent = msg.content;
+  if (msg.contentFormat === "lexical" && msg.contentHtml) {
+    textSpan.classList.add("rich-text");
+    textSpan.innerHTML = msg.contentHtml;
+  } else {
+    textSpan.textContent = msg.content;
+  }
   wrapper.appendChild(textSpan);
 
   if (msg.editedAt) {
@@ -401,7 +427,11 @@ function createBubble(
     dropdown.className = "message-dropdown";
 
     const copyItem = createDropdownItem(COPY_ICON, "Copy", () => {
-      navigator.clipboard.writeText(msg.content);
+      const text =
+        msg.contentFormat === "lexical"
+          ? serializeLexicalToPlainText(msg.content)
+          : msg.content;
+      navigator.clipboard.writeText(text);
       dropdown.classList.remove("open");
       moreBtn.classList.remove("active");
     });

@@ -2,8 +2,9 @@ import { useCallback, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { conversationsQueryKeys } from "./useConversationsQuery";
 import type { AckedIdRegistrar } from "./useWebSocket";
-import type { WSServerEvent } from "@repo/types";
+import type { ContentFormat, WSServerEvent } from "@repo/types";
 import type { Message } from "../types/chat.types";
+import { serializeLexicalJsonToHtml } from "@repo/lexical-utils";
 
 const ACK_TIMEOUT = 10_000;
 
@@ -12,6 +13,7 @@ type SendMessageFn = (event: {
   payload: {
     conversationId: string;
     content: string;
+    contentFormat?: ContentFormat;
     clientMessageId: string;
   };
 }) => void;
@@ -75,10 +77,9 @@ export function useSendMessage(
   }, [subscribe, queryClient, registerAckedId]);
 
   const send = useCallback(
-    (conversationId: string, content: string) => {
+    (conversationId: string, content: string, contentFormat: ContentFormat = "plain") => {
       const clientMessageId = crypto.randomUUID();
 
-      // Optimistic insert into query cache
       const optimisticMessage: Message = {
         id: clientMessageId,
         conversationId,
@@ -87,6 +88,8 @@ export function useSendMessage(
         senderRole: null,
         type: "text",
         content,
+        contentFormat,
+        contentHtml: contentFormat === "lexical" ? serializeLexicalJsonToHtml(content) : null,
         createdAt: new Date().toISOString(),
       };
 
@@ -103,10 +106,9 @@ export function useSendMessage(
         };
       });
 
-      // Send via WebSocket
       sendEvent({
         type: "message:send",
-        payload: { conversationId, content, clientMessageId },
+        payload: { conversationId, content, contentFormat, clientMessageId },
       });
 
       // Track pending ACK with timeout

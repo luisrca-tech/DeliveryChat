@@ -21,6 +21,8 @@ export type Message = {
   conversationId: string;
   senderId: string;
   content: string;
+  contentFormat?: "plain" | "lexical";
+  contentHtml?: string | null;
   editedAt: string | null;
   createdAt: string;
   type: "text" | "system";
@@ -142,10 +144,14 @@ export function createChatClient({
       conversationId: string,
       messageId: string,
       content: string,
+      contentFormat?: "plain" | "lexical",
     ): Promise<{ message: Message }> {
       return request(`/conversations/${conversationId}/messages/${messageId}`, {
         method: "PATCH",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          content,
+          ...(contentFormat !== undefined && { contentFormat }),
+        }),
       });
     },
 

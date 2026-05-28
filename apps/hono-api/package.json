@@ -24,7 +24,7 @@
   "scripts": {
     "dev": "infisical run --path=/hono-api -- tsx watch src/index.ts",
     "predev": "cd ../.. && bun run --filter=@repo/emails build",
-    "prebuild": "cd ../.. && bun run --filter=@repo/emails build && cd apps/widget && bun run build:embed",
+    "prebuild": "cd ../.. && bun run --filter=@repo/emails build && bun run --filter=@repo/lexical-utils build && cd apps/widget && bun run build:embed",
     "build": "tsc && node scripts/fix-dist-extensions.js && node scripts/copy-widget.js",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "lint": "eslint . --max-warnings 0",
@@ -48,6 +48,7 @@
     "@hono/zod-validator": "^0.7.5",
     "@react-email/render": "^2.0.4",
     "@repo/emails": "*",
+    "@repo/lexical-utils": "*",
     "@repo/types": "*",
     "@repo/ui": "*",
     "@t3-oss/env-core": "^0.13.8",

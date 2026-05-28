@@ -84,6 +84,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "I need help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -105,12 +106,42 @@ describe("generateReply", () => {
     expect(mockProvider.generateText).toHaveBeenCalledOnce();
   });
 
+  it("sanitizes AI output by stripping HTML tags and code blocks", async () => {
+    mockSelect.mockReturnValue(
+      chainMock([
+        {
+          senderId: "visitor-1",
+          content: "Help",
+          contentFormat: "plain",
+          createdAt: "2026-05-25T11:55:00Z",
+        },
+      ]),
+    );
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Try this:\n```js\nconsole.log('hi')\n```\nAnd visit [here](http://example.com)",
+        usage: { promptTokens: 50, completionTokens: 30 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const result = await generateReply(baseInput);
+
+    expect(result.text).not.toContain("```");
+    expect(result.text).not.toContain("[here](http://example.com)");
+    expect(result.text).toContain("here");
+  });
+
   it("logs usage after successful generation", async () => {
     mockSelect.mockReturnValue(
       chainMock([
         {
           senderId: "visitor-1",
           content: "Hello",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -137,6 +168,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -168,6 +200,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -192,6 +225,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -222,6 +256,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -253,6 +288,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -278,6 +314,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -305,6 +342,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -364,6 +402,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -396,6 +435,7 @@ describe("generateReply", () => {
         {
           senderId: "visitor-1",
           content: "Help",
+          contentFormat: "plain",
           createdAt: "2026-05-25T11:55:00Z",
         },
       ]),
@@ -447,6 +487,7 @@ describe("improveMessage", () => {
           {
             senderId: "visitor-1",
             content: "My order is broken",
+            contentFormat: "plain",
             createdAt: "2026-05-25T11:55:00Z",
           },
         ]),

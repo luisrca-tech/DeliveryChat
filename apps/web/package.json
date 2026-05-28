@@ -3,6 +3,7 @@
   "type": "module",
   "version": "0.0.1",
   "scripts": {
+    "predev": "node scripts/sync-widget.js",
     "dev": "infisical run --path=/web -- astro dev --port 3002",
     "local:build": "infisical run --path=/web -- astro build",
     "build": "astro build",
@@ -26,6 +27,7 @@
   },
   "devDependencies": {
     "@repo/eslint-config": "*",
+    "@repo/lexical-utils": "*",
     "@repo/types": "*",
     "@repo/typescript-config": "*",
     "@repo/ui": "*",

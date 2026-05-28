@@ -13,6 +13,8 @@ function makePayload(
     senderName: "Visitor",
     senderRole: "visitor",
     content: "hello",
+    contentFormat: "plain",
+    contentHtml: null,
     type: "text",
     createdAt: new Date().toISOString(),
     ...overrides,

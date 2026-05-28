@@ -1,7 +1,13 @@
-import { useState } from "react";
-import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { useQueryState, parseAsInteger } from "nuqs";
 import { Button } from "@repo/ui/components/ui/button";
+import { Calendar } from "@repo/ui/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@repo/ui/components/ui/popover";
 import {
   Select,
   SelectContent,
@@ -9,7 +15,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/ui/select";
-import { Input } from "@repo/ui/components/ui/input";
 import {
   Table,
   TableBody,
@@ -20,7 +25,7 @@ import {
 } from "@repo/ui/components/ui/table";
 import { useAiUsageLogsQuery } from "../hooks/useAiUsageLogsQuery";
 import { useMembersQuery } from "@/features/members/hooks/useMembersQuery";
-import type { AiUsageFilters } from "../types/aiUsage.types";
+import { useState } from "react";
 
 const PAGE_SIZE = 20;
 
@@ -56,9 +61,45 @@ function formatTimestamp(iso: string): string {
   });
 }
 
+function formatDateLabel(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const date = new Date(dateStr + "T00:00:00");
+  return date.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 export function AiUsagePage() {
-  const [page, setPage] = useState(0);
-  const [filters, setFilters] = useState<AiUsageFilters>({});
+  const [page, setPage] = useQueryState("page", parseAsInteger.withDefault(0));
+  const [action, setAction] = useQueryState("action");
+  const [status, setStatus] = useQueryState("status");
+  const [userId, setUserId] = useQueryState("userId");
+  const [dateFrom, setDateFrom] = useQueryState("dateFrom");
+  const [dateTo, setDateTo] = useQueryState("dateTo");
+
+  const [dateFromOpen, setDateFromOpen] = useState(false);
+  const [dateToOpen, setDateToOpen] = useState(false);
+
+  const hasActiveFilters = !!(action || status || userId || dateFrom || dateTo);
+
+  function resetFilters() {
+    void setPage(0);
+    void setAction(null);
+    void setStatus(null);
+    void setUserId(null);
+    void setDateFrom(null);
+    void setDateTo(null);
+  }
+
+  const filters = {
+    ...(action ? { action } : {}),
+    ...(status ? { status } : {}),
+    ...(userId ? { userId } : {}),
+    ...(dateFrom ? { dateFrom } : {}),
+    ...(dateTo ? { dateTo } : {}),
+  };
 
   const { data, isLoading } = useAiUsageLogsQuery({
     ...filters,
@@ -73,16 +114,16 @@ export function AiUsagePage() {
   const logs = data?.logs ?? [];
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  function updateFilter<K extends keyof AiUsageFilters>(
-    key: K,
-    value: AiUsageFilters[K],
-  ) {
-    setPage(0);
-    setFilters((prev) => {
-      const next = { ...prev, [key]: value };
-      if (!value || value === "all") delete next[key];
-      return next;
-    });
+  function updateFilter(key: string, value: string | null) {
+    void setPage(0);
+    const cleanValue = !value || value === "all" ? null : value;
+    switch (key) {
+      case "action": void setAction(cleanValue); break;
+      case "status": void setStatus(cleanValue); break;
+      case "userId": void setUserId(cleanValue); break;
+      case "dateFrom": void setDateFrom(cleanValue); break;
+      case "dateTo": void setDateTo(cleanValue); break;
+    }
   }
 
   return (
@@ -105,7 +146,7 @@ export function AiUsagePage() {
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-3">
             <Select
-              value={filters.action ?? "all"}
+              value={action ?? "all"}
               onValueChange={(v) => updateFilter("action", v)}
             >
               <SelectTrigger className="w-[160px]">
@@ -119,7 +160,7 @@ export function AiUsagePage() {
             </Select>
 
             <Select
-              value={filters.status ?? "all"}
+              value={status ?? "all"}
               onValueChange={(v) => updateFilter("status", v)}
             >
               <SelectTrigger className="w-[160px]">
@@ -137,7 +178,7 @@ export function AiUsagePage() {
             </Select>
 
             <Select
-              value={filters.userId ?? "all"}
+              value={userId ?? "all"}
               onValueChange={(v) => updateFilter("userId", v)}
             >
               <SelectTrigger className="w-[180px]">
@@ -155,20 +196,65 @@ export function AiUsagePage() {
               </SelectContent>
             </Select>
 
-            <Input
-              type="date"
-              className="w-[160px]"
-              value={filters.dateFrom ?? ""}
-              onChange={(e) => updateFilter("dateFrom", e.target.value)}
-              placeholder="From"
-            />
-            <Input
-              type="date"
-              className="w-[160px]"
-              value={filters.dateTo ?? ""}
-              onChange={(e) => updateFilter("dateTo", e.target.value)}
-              placeholder="To"
-            />
+            <Popover open={dateFromOpen} onOpenChange={setDateFromOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[160px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateFrom ? formatDateLabel(dateFrom) : <span className="text-muted-foreground">From</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateFrom ? new Date(dateFrom + "T00:00:00") : undefined}
+                  onSelect={(day) => {
+                    if (day) {
+                      const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                      updateFilter("dateFrom", iso);
+                    } else {
+                      updateFilter("dateFrom", null);
+                    }
+                    setDateFromOpen(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <Popover open={dateToOpen} onOpenChange={setDateToOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="w-[160px] justify-start text-left font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {dateTo ? formatDateLabel(dateTo) : <span className="text-muted-foreground">To</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={dateTo ? new Date(dateTo + "T00:00:00") : undefined}
+                  onSelect={(day) => {
+                    if (day) {
+                      const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+                      updateFilter("dateTo", iso);
+                    } else {
+                      updateFilter("dateTo", null);
+                    }
+                    setDateToOpen(false);
+                  }}
+                />
+              </PopoverContent>
+            </Popover>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-9 gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset Filters
+              </Button>
+            )}
           </div>
 
           {isLoading ? (
@@ -231,7 +317,7 @@ export function AiUsagePage() {
                   variant="outline"
                   size="sm"
                   disabled={page === 0}
-                  onClick={() => setPage((p) => p - 1)}
+                  onClick={() => void setPage(page - 1)}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -239,7 +325,7 @@ export function AiUsagePage() {
                   variant="outline"
                   size="sm"
                   disabled={page >= totalPages - 1}
-                  onClick={() => setPage((p) => p + 1)}
+                  onClick={() => void setPage(page + 1)}
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>

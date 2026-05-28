@@ -14,6 +14,12 @@ export const MessageType = {
 } as const;
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
 
+export const ContentFormat = {
+  PLAIN: "plain",
+  LEXICAL: "lexical",
+} as const;
+export type ContentFormat = (typeof ContentFormat)[keyof typeof ContentFormat];
+
 export const ParticipantRole = {
   VISITOR: "visitor",
   OPERATOR: "operator",
@@ -49,6 +55,7 @@ export interface RoomLeavePayload {
 export interface MessageSendPayload {
   conversationId: string;
   content: string;
+  contentFormat?: ContentFormat;
   clientMessageId: string;
 }
 
@@ -56,6 +63,7 @@ export interface MessageEditPayload {
   conversationId: string;
   messageId: string;
   content: string;
+  contentFormat?: ContentFormat;
 }
 
 export interface MessageDeletePayload {
@@ -111,6 +119,8 @@ export interface MessageNewPayload {
   senderName: string;
   senderRole: ParticipantRole;
   content: string;
+  contentFormat: ContentFormat;
+  contentHtml: string | null;
   type: MessageType;
   createdAt: string;
   editedAt?: string | null;
@@ -127,6 +137,8 @@ export interface MessageEditedPayload {
   conversationId: string;
   messageId: string;
   content: string;
+  contentFormat: ContentFormat;
+  contentHtml: string | null;
   editedAt: string;
   senderId: string;
 }
