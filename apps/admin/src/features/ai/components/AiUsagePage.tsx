@@ -1,4 +1,4 @@
-import { BarChart3, CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
 import { useQueryState, parseAsInteger } from "nuqs";
 import { Button } from "@repo/ui/components/ui/button";
 import { Calendar } from "@repo/ui/components/ui/calendar";
@@ -81,6 +81,17 @@ export function AiUsagePage() {
 
   const [dateFromOpen, setDateFromOpen] = useState(false);
   const [dateToOpen, setDateToOpen] = useState(false);
+
+  const hasActiveFilters = !!(action || status || userId || dateFrom || dateTo);
+
+  function resetFilters() {
+    void setPage(0);
+    void setAction(null);
+    void setStatus(null);
+    void setUserId(null);
+    void setDateFrom(null);
+    void setDateTo(null);
+  }
 
   const filters = {
     ...(action ? { action } : {}),
@@ -232,6 +243,18 @@ export function AiUsagePage() {
                 />
               </PopoverContent>
             </Popover>
+
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetFilters}
+                className="h-9 gap-1.5 text-muted-foreground hover:text-foreground"
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+                Reset Filters
+              </Button>
+            )}
           </div>
 
           {isLoading ? (
