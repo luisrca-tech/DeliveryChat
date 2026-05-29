@@ -13,6 +13,7 @@ import { Route as SystemRouteImport } from './routes/_system'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as SystemIndexRouteImport } from './routes/_system/index'
 import { Route as SystemConversationsRouteImport } from './routes/_system/conversations'
+import { Route as SystemApplicationsRouteImport } from './routes/_system/applications'
 import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
 import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
@@ -43,6 +44,11 @@ const SystemIndexRoute = SystemIndexRouteImport.update({
 const SystemConversationsRoute = SystemConversationsRouteImport.update({
   id: '/conversations',
   path: '/conversations',
+  getParentRoute: () => SystemRoute,
+} as any)
+const SystemApplicationsRoute = SystemApplicationsRouteImport.update({
+  id: '/applications',
+  path: '/applications',
   getParentRoute: () => SystemRoute,
 } as any)
 const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/applications': typeof SystemApplicationsRoute
   '/conversations': typeof SystemConversationsRoute
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
@@ -135,6 +142,7 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
+  '/applications': typeof SystemApplicationsRoute
   '/conversations': typeof SystemConversationsRoute
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
@@ -155,6 +163,7 @@ export interface FileRoutesById {
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
+  '/_system/applications': typeof SystemApplicationsRoute
   '/_system/conversations': typeof SystemConversationsRoute
   '/_system/': typeof SystemIndexRoute
   '/_system/billing/success': typeof SystemBillingSuccessRoute
@@ -174,6 +183,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/applications'
     | '/conversations'
     | '/'
     | '/billing/success'
@@ -191,6 +201,7 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
+    | '/applications'
     | '/conversations'
     | '/'
     | '/billing/success'
@@ -210,6 +221,7 @@ export interface FileRouteTypes {
     | '/_public/forgot-password'
     | '/_public/login'
     | '/_public/reset-password'
+    | '/_system/applications'
     | '/_system/conversations'
     | '/_system/'
     | '/_system/billing/success'
@@ -256,6 +268,13 @@ declare module '@tanstack/react-router' {
       path: '/conversations'
       fullPath: '/conversations'
       preLoaderRoute: typeof SystemConversationsRouteImport
+      parentRoute: typeof SystemRoute
+    }
+    '/_system/applications': {
+      id: '/_system/applications'
+      path: '/applications'
+      fullPath: '/applications'
+      preLoaderRoute: typeof SystemApplicationsRouteImport
       parentRoute: typeof SystemRoute
     }
     '/_public/reset-password': {
@@ -370,6 +389,7 @@ const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
 interface SystemRouteChildren {
+  SystemApplicationsRoute: typeof SystemApplicationsRoute
   SystemConversationsRoute: typeof SystemConversationsRoute
   SystemIndexRoute: typeof SystemIndexRoute
   SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
@@ -384,6 +404,7 @@ interface SystemRouteChildren {
 }
 
 const SystemRouteChildren: SystemRouteChildren = {
+  SystemApplicationsRoute: SystemApplicationsRoute,
   SystemConversationsRoute: SystemConversationsRoute,
   SystemIndexRoute: SystemIndexRoute,
   SystemBillingSuccessRoute: SystemBillingSuccessRoute,

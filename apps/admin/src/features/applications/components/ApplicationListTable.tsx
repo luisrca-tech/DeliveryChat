@@ -10,6 +10,7 @@ import {
 } from "@repo/ui/components/ui/dropdown-menu";
 import { Input } from "@repo/ui/components/ui/input";
 import { formatRelative } from "@/lib/formatRelative";
+import { AiInterviewStatusCell } from "@/features/aiInterview/components/AiInterviewStatusCell";
 import type { Application } from "../types/applications.types";
 
 export type ApplicationListTableProps = {
@@ -124,6 +125,9 @@ export function ApplicationListTable({
                 Description
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium">
+                AI Interview
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium">
                 Created
               </th>
               <th className="w-20 shrink-0 px-4 py-3 pr-6 text-right text-sm font-medium">
@@ -156,6 +160,12 @@ export function ApplicationListTable({
                 <td className="px-4 py-3 font-mono text-sm">{app.domain}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
                   {app.description || "—"}
+                </td>
+                <td className="px-4 py-3">
+                  <AiInterviewStatusCell
+                    applicationId={app.id}
+                    status={app.aiInterviewStatus}
+                  />
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">
                   {formatRelative(app.createdAt)}

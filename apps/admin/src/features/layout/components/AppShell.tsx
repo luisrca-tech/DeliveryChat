@@ -4,6 +4,7 @@ import {
   Settings,
   MessageSquare,
   BookOpen,
+  AppWindow,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -86,6 +87,18 @@ export function AppShell(props: { children: ReactNode }) {
                 className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
               />
               {!isSidebarCollapsed && "Conversations"}
+            </Button>
+          </Link>
+          <Link to="/applications" className="block">
+            <Button
+              variant="ghost"
+              className={`w-full ${isSidebarCollapsed ? "justify-center" : "justify-start"}`}
+              title="Applications"
+            >
+              <AppWindow
+                className={isSidebarCollapsed ? "h-4 w-4" : "mr-2 h-4 w-4"}
+              />
+              {!isSidebarCollapsed && "Applications"}
             </Button>
           </Link>
           <Link

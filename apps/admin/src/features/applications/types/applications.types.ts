@@ -1,3 +1,5 @@
+import type { AiInterviewStatus } from "@/features/aiInterview/types/aiInterview.types";
+
 export type Application = {
   id: string;
   name: string;
@@ -9,6 +11,7 @@ export type Application = {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  aiInterviewStatus: AiInterviewStatus;
 };
 
 export type CreateApplicationRequest = {

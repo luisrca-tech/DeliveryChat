@@ -3,7 +3,9 @@ import { zValidator } from "@hono/zod-validator";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../db/index.js";
 import { applications } from "../db/schema/applications.js";
+import { applicationAiContext } from "../db/schema/applicationAiContext.js";
 import { conversations } from "../db/schema/conversations.js";
+import { deriveAiInterviewStatus } from "../features/applications/aiInterviewStatus.js";
 import {
   createApplicationSchema,
   listApplicationsQuerySchema,
@@ -55,11 +57,16 @@ export const applicationsRoute = new Hono()
             deletedAt: applications.deletedAt,
             createdAt: applications.createdAt,
             updatedAt: applications.updatedAt,
+            aiContextStatus: applicationAiContext.status,
           })
           .from(applications)
           .innerJoin(
             conversations,
             eq(applications.id, conversations.applicationId),
+          )
+          .leftJoin(
+            applicationAiContext,
+            eq(applications.id, applicationAiContext.applicationId),
           )
           .where(
             and(
@@ -71,12 +78,35 @@ export const applicationsRoute = new Hono()
           .limit(limit)
           .offset(offset);
 
-        return c.json({ applications: rows, limit, offset });
+        const applicationsResult = rows.map(
+          ({ aiContextStatus, ...app }) => ({
+            ...app,
+            aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
+          }),
+        );
+
+        return c.json({ applications: applicationsResult, limit, offset });
       }
 
       const result = await db
-        .select()
+        .select({
+          id: applications.id,
+          name: applications.name,
+          domain: applications.domain,
+          allowedOrigins: applications.allowedOrigins,
+          description: applications.description,
+          organizationId: applications.organizationId,
+          settings: applications.settings,
+          deletedAt: applications.deletedAt,
+          createdAt: applications.createdAt,
+          updatedAt: applications.updatedAt,
+          aiContextStatus: applicationAiContext.status,
+        })
         .from(applications)
+        .leftJoin(
+          applicationAiContext,
+          eq(applications.id, applicationAiContext.applicationId),
+        )
         .where(
           and(
             eq(applications.organizationId, organization.id),
@@ -86,7 +116,18 @@ export const applicationsRoute = new Hono()
         .limit(limit)
         .offset(offset);
 
-      return c.json({ applications: result, limit, offset });
+      const applicationsResult = result.map(
+        ({ aiContextStatus, ...app }) => ({
+          ...app,
+          aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
+        }),
+      );
+
+      return c.json({
+        applications: applicationsResult,
+        limit,
+        offset,
+      });
     } catch (error) {
       console.error("Error fetching applications:", error);
       return jsonError(
