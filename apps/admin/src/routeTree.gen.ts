@@ -27,6 +27,7 @@ import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/sett
 import { Route as SystemSettingsAiUsageRouteImport } from './routes/_system/settings/ai-usage'
 import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
 import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
+import { Route as SystemApplicationsApplicationIdAiInterviewRouteImport } from './routes/_system/applications/$applicationId/ai-interview'
 
 const SystemRoute = SystemRouteImport.update({
   id: '/_system',
@@ -118,13 +119,19 @@ const SystemBillingSuccessRoute = SystemBillingSuccessRouteImport.update({
   path: '/billing/success',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemApplicationsApplicationIdAiInterviewRoute =
+  SystemApplicationsApplicationIdAiInterviewRouteImport.update({
+    id: '/$applicationId/ai-interview',
+    path: '/$applicationId/ai-interview',
+    getParentRoute: () => SystemApplicationsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
-  '/applications': typeof SystemApplicationsRoute
+  '/applications': typeof SystemApplicationsRouteWithChildren
   '/conversations': typeof SystemConversationsRoute
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
@@ -136,13 +143,14 @@ export interface FileRoutesByFullPath {
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
+  '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 export interface FileRoutesByTo {
   '/accept-invitation': typeof PublicAcceptInvitationRoute
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
-  '/applications': typeof SystemApplicationsRoute
+  '/applications': typeof SystemApplicationsRouteWithChildren
   '/conversations': typeof SystemConversationsRoute
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
@@ -154,6 +162,7 @@ export interface FileRoutesByTo {
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
+  '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -163,7 +172,7 @@ export interface FileRoutesById {
   '/_public/forgot-password': typeof PublicForgotPasswordRoute
   '/_public/login': typeof PublicLoginRoute
   '/_public/reset-password': typeof PublicResetPasswordRoute
-  '/_system/applications': typeof SystemApplicationsRoute
+  '/_system/applications': typeof SystemApplicationsRouteWithChildren
   '/_system/conversations': typeof SystemConversationsRoute
   '/_system/': typeof SystemIndexRoute
   '/_system/billing/success': typeof SystemBillingSuccessRoute
@@ -175,6 +184,7 @@ export interface FileRoutesById {
   '/_system/settings/members': typeof SystemSettingsMembersRoute
   '/_system/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/_system/settings/': typeof SystemSettingsIndexRoute
+  '/_system/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/settings/members'
     | '/settings/rate-limits'
     | '/settings'
+    | '/applications/$applicationId/ai-interview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accept-invitation'
@@ -213,6 +224,7 @@ export interface FileRouteTypes {
     | '/settings/members'
     | '/settings/rate-limits'
     | '/settings'
+    | '/applications/$applicationId/ai-interview'
   id:
     | '__root__'
     | '/_public'
@@ -233,6 +245,7 @@ export interface FileRouteTypes {
     | '/_system/settings/members'
     | '/_system/settings/rate-limits'
     | '/_system/settings/'
+    | '/_system/applications/$applicationId/ai-interview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -368,6 +381,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemBillingSuccessRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/_system/applications/$applicationId/ai-interview': {
+      id: '/_system/applications/$applicationId/ai-interview'
+      path: '/$applicationId/ai-interview'
+      fullPath: '/applications/$applicationId/ai-interview'
+      preLoaderRoute: typeof SystemApplicationsApplicationIdAiInterviewRouteImport
+      parentRoute: typeof SystemApplicationsRoute
+    }
   }
 }
 
@@ -388,8 +408,20 @@ const PublicRouteChildren: PublicRouteChildren = {
 const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
+interface SystemApplicationsRouteChildren {
+  SystemApplicationsApplicationIdAiInterviewRoute: typeof SystemApplicationsApplicationIdAiInterviewRoute
+}
+
+const SystemApplicationsRouteChildren: SystemApplicationsRouteChildren = {
+  SystemApplicationsApplicationIdAiInterviewRoute:
+    SystemApplicationsApplicationIdAiInterviewRoute,
+}
+
+const SystemApplicationsRouteWithChildren =
+  SystemApplicationsRoute._addFileChildren(SystemApplicationsRouteChildren)
+
 interface SystemRouteChildren {
-  SystemApplicationsRoute: typeof SystemApplicationsRoute
+  SystemApplicationsRoute: typeof SystemApplicationsRouteWithChildren
   SystemConversationsRoute: typeof SystemConversationsRoute
   SystemIndexRoute: typeof SystemIndexRoute
   SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
@@ -404,7 +436,7 @@ interface SystemRouteChildren {
 }
 
 const SystemRouteChildren: SystemRouteChildren = {
-  SystemApplicationsRoute: SystemApplicationsRoute,
+  SystemApplicationsRoute: SystemApplicationsRouteWithChildren,
   SystemConversationsRoute: SystemConversationsRoute,
   SystemIndexRoute: SystemIndexRoute,
   SystemBillingSuccessRoute: SystemBillingSuccessRoute,
