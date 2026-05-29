@@ -2,7 +2,15 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   buildContext,
   buildSystemPrompt,
-  buildImprovePrompt,
+  baseGuardRails,
+  actionInstructions,
+  applicationContext,
+  SECURITY_RULES,
+  DATA_HONESTY_RULES,
+  AUTHORITY_RULES,
+  SCOPE_RULES,
+  IDENTITY_RULES,
+  MARKDOWN_FORMAT_INSTRUCTIONS,
   type ConversationMessage,
 } from "../ai.context.js";
 
@@ -32,7 +40,9 @@ describe("buildContext", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0]!.role).toBe("user");
-    expect(result[0]!.content).toBe("[Customer, 5min ago] I need help with my order");
+    expect(result[0]!.content).toBe(
+      "[Customer, 5min ago] I need help with my order",
+    );
   });
 
   it("formats an operator message with role prefix", () => {
@@ -169,53 +179,167 @@ describe("buildContext", () => {
   });
 });
 
+describe("baseGuardRails", () => {
+  it("returns text covering all five safety categories", () => {
+    const result = baseGuardRails();
+    for (const rule of SECURITY_RULES) {
+      expect(result).toContain(rule);
+    }
+    for (const rule of DATA_HONESTY_RULES) {
+      expect(result).toContain(rule);
+    }
+    for (const rule of AUTHORITY_RULES) {
+      expect(result).toContain(rule);
+    }
+    for (const rule of SCOPE_RULES) {
+      expect(result).toContain(rule);
+    }
+    for (const rule of IDENTITY_RULES) {
+      expect(result).toContain(rule);
+    }
+  });
+
+  it("each safety category is a non-empty array", () => {
+    expect(SECURITY_RULES.length).toBeGreaterThan(0);
+    expect(DATA_HONESTY_RULES.length).toBeGreaterThan(0);
+    expect(AUTHORITY_RULES.length).toBeGreaterThan(0);
+    expect(SCOPE_RULES.length).toBeGreaterThan(0);
+    expect(IDENTITY_RULES.length).toBeGreaterThan(0);
+  });
+
+  it("is deterministic across calls", () => {
+    expect(baseGuardRails()).toBe(baseGuardRails());
+  });
+});
+
+describe("actionInstructions", () => {
+  it("returns generate-specific instructions for 'generate'", () => {
+    const result = actionInstructions("generate");
+    expect(result).toMatch(/support|customer|agent/i);
+    expect(result).toMatch(/reply/i);
+  });
+
+  it("returns improve-specific instructions for 'improve'", () => {
+    const result = actionInstructions("improve");
+    expect(result).toMatch(/rewrite/i);
+    expect(result).toMatch(/draft/i);
+  });
+
+  it("produces distinct output for generate vs improve", () => {
+    const generate = actionInstructions("generate");
+    const improve = actionInstructions("improve");
+    expect(generate).not.toBe(improve);
+  });
+
+  it("both include markdown format instructions", () => {
+    const generate = actionInstructions("generate");
+    const improve = actionInstructions("improve");
+    expect(generate).toContain("**bold**");
+    expect(improve).toContain("**bold**");
+  });
+
+  it("uses the shared MARKDOWN_FORMAT_INSTRUCTIONS constant", () => {
+    const generate = actionInstructions("generate");
+    const improve = actionInstructions("improve");
+    expect(generate).toContain(MARKDOWN_FORMAT_INSTRUCTIONS);
+    expect(improve).toContain(MARKDOWN_FORMAT_INSTRUCTIONS);
+  });
+});
+
+describe("applicationContext", () => {
+  it("returns formatted summary when provided", () => {
+    const summary = "This is a pizza delivery app.";
+    const result = applicationContext(summary);
+    expect(result).toContain(summary);
+    expect(result.length).toBeGreaterThan(summary.length);
+  });
+
+  it("returns empty string when undefined", () => {
+    expect(applicationContext(undefined)).toBe("");
+  });
+
+  it("returns empty string when empty string", () => {
+    expect(applicationContext("")).toBe("");
+  });
+});
+
 describe("buildSystemPrompt", () => {
   it("includes the tenant name", () => {
-    const result = buildSystemPrompt("Acme Corp");
+    const result = buildSystemPrompt({
+      action: "generate",
+      tenantName: "Acme Corp",
+    });
     expect(result).toContain("Acme Corp");
   });
 
-  it("includes language-matching instruction", () => {
-    const result = buildSystemPrompt("Acme Corp");
-    expect(result).toMatch(/language/i);
+  it("includes guard rails", () => {
+    const result = buildSystemPrompt({
+      action: "generate",
+      tenantName: "Acme Corp",
+    });
+    const guardRails = baseGuardRails();
+    expect(result).toContain(guardRails);
   });
 
-  it("instructs to reply as a support agent", () => {
-    const result = buildSystemPrompt("Acme Corp");
+  it("includes action instructions for generate", () => {
+    const result = buildSystemPrompt({
+      action: "generate",
+      tenantName: "Acme Corp",
+    });
     expect(result).toMatch(/support|customer|agent/i);
   });
 
+  it("includes action instructions for improve", () => {
+    const result = buildSystemPrompt({
+      action: "improve",
+      tenantName: "Acme Corp",
+    });
+    expect(result).toMatch(/rewrite/i);
+  });
+
+  it("includes application context when provided", () => {
+    const result = buildSystemPrompt({
+      action: "generate",
+      tenantName: "Acme Corp",
+      contextSummary: "We sell widgets online.",
+    });
+    expect(result).toContain("We sell widgets online.");
+  });
+
+  it("omits application context when not provided", () => {
+    const withContext = buildSystemPrompt({
+      action: "generate",
+      tenantName: "Acme Corp",
+      contextSummary: "We sell widgets online.",
+    });
+    const withoutContext = buildSystemPrompt({
+      action: "generate",
+      tenantName: "Acme Corp",
+    });
+    expect(withContext.length).toBeGreaterThan(withoutContext.length);
+  });
+
+  it("composes all layers: guard rails + action + context", () => {
+    const result = buildSystemPrompt({
+      action: "generate",
+      tenantName: "TestTenant",
+      contextSummary: "Pizza delivery service.",
+    });
+
+    expect(result).toContain(baseGuardRails());
+    expect(result).toContain("**bold**");
+    expect(result).toContain("Pizza delivery service.");
+    expect(result).toContain("TestTenant");
+  });
+
   it("includes constrained Markdown format instructions", () => {
-    const result = buildSystemPrompt("Acme Corp");
+    const result = buildSystemPrompt({
+      action: "generate",
+      tenantName: "Acme Corp",
+    });
     expect(result).toContain("**bold**");
     expect(result).toContain("# (H1)");
     expect(result).toMatch(/Do NOT use.*links/i);
     expect(result).toMatch(/Do NOT use.*code blocks/i);
-  });
-});
-
-describe("buildImprovePrompt", () => {
-  it("includes the tenant name", () => {
-    const result = buildImprovePrompt("Acme Corp");
-    expect(result).toContain("Acme Corp");
-  });
-
-  it("instructs to rewrite not reply", () => {
-    const result = buildImprovePrompt("Acme Corp");
-    expect(result).toMatch(/rewrite/i);
-    expect(result).toMatch(/do not.*(write a new reply|reply)/i);
-  });
-
-  it("instructs to preserve intent and language", () => {
-    const result = buildImprovePrompt("Acme Corp");
-    expect(result).toMatch(/preserve/i);
-    expect(result).toMatch(/language/i);
-  });
-
-  it("includes constrained Markdown format instructions", () => {
-    const result = buildImprovePrompt("Acme Corp");
-    expect(result).toContain("**bold**");
-    expect(result).toMatch(/Do NOT use.*links/i);
-    expect(result).toMatch(/preserve.*structure/i);
   });
 });

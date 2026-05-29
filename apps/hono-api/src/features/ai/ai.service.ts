@@ -6,7 +6,7 @@ import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import { user } from "../../db/schema/users.js";
 import { env } from "../../env.js";
 import { createAIProvider } from "./ai.provider.js";
-import { buildContext, buildSystemPrompt, buildImprovePrompt } from "./ai.context.js";
+import { buildContext, buildSystemPrompt } from "./ai.context.js";
 import { enrichMessage } from "../chat/chat.service.js";
 import { sanitizeAiMarkdown } from "./ai.sanitize.js";
 import {
@@ -139,7 +139,10 @@ export async function generateReply(
 
   const orderedMessages = rawMessages.reverse().map(enrichMessage);
   const contextMessages = buildContext(orderedMessages, input.operatorId);
-  const systemPrompt = buildSystemPrompt(input.tenantName);
+  const systemPrompt = buildSystemPrompt({
+    action: "generate",
+    tenantName: input.tenantName,
+  });
 
   const startTime = Date.now();
   let lastError: unknown = null;
@@ -290,7 +293,10 @@ export async function improveMessage(
     content: `[Operator draft to improve] ${input.draft}`,
   });
 
-  const systemPrompt = buildImprovePrompt(input.tenantName);
+  const systemPrompt = buildSystemPrompt({
+    action: "improve",
+    tenantName: input.tenantName,
+  });
 
   const startTime = Date.now();
   let lastError: unknown = null;
