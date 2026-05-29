@@ -105,9 +105,8 @@ vi.mock("../../../../features/ai/ai.middleware.js", () => ({
 }));
 
 const mockGetInterviewContext = vi.fn();
-const mockRunBootstrapTurn = vi.fn();
-const mockRunAdvanceTurn = vi.fn();
-const mockRunCompleteInterview = vi.fn();
+const mockRunInterviewTurn = vi.fn();
+const mockRunInterviewComplete = vi.fn();
 
 class TurnConflictErrorMock extends Error {
   readonly currentTurn: number;
@@ -130,14 +129,20 @@ class MissingTopicsErrorMock extends Error {
   }
 }
 
-vi.mock("../../../../features/ai/ai.interviewer.js", () => ({
+vi.mock("../../../../features/ai/ai.interview.service.js", () => ({
   getInterviewContext: (...args: unknown[]) => mockGetInterviewContext(...args),
-  runBootstrapTurn: (...args: unknown[]) => mockRunBootstrapTurn(...args),
-  runAdvanceTurn: (...args: unknown[]) => mockRunAdvanceTurn(...args),
-  runCompleteInterview: (...args: unknown[]) =>
-    mockRunCompleteInterview(...args),
+  runInterviewTurn: (...args: unknown[]) => mockRunInterviewTurn(...args),
+  runInterviewComplete: (...args: unknown[]) =>
+    mockRunInterviewComplete(...args),
+}));
+
+vi.mock("../../../../features/ai/ai.errors.js", () => ({
   TurnConflictError: TurnConflictErrorMock,
   MissingTopicsError: MissingTopicsErrorMock,
+  AIProviderError: class AIProviderError extends Error {},
+  AITimeoutError: class AITimeoutError extends Error {},
+  AIRateLimitError: class AIRateLimitError extends Error {},
+  AIContentSafetyError: class AIContentSafetyError extends Error {},
 }));
 
 vi.mock("../../../../features/ai/ai.provider.js", () => ({
@@ -276,7 +281,7 @@ describe("POST /applications/:applicationId/ai-interview/turns (bootstrap)", () 
   });
 
   it("bootstrap happy path returns state and turn metadata", async () => {
-    mockRunBootstrapTurn.mockResolvedValue({
+    mockRunInterviewTurn.mockResolvedValue({
       row: {
         status: "in_progress",
         currentTurn: 0,
@@ -303,11 +308,13 @@ describe("POST /applications/:applicationId/ai-interview/turns (bootstrap)", () 
       guardrailAction: "none",
     });
 
-    expect(mockRunBootstrapTurn).toHaveBeenCalledWith({
+    expect(mockRunInterviewTurn).toHaveBeenCalledWith({
       provider: expect.any(Object),
       applicationId: APP_ID,
       tenantId: ORG_ID,
       userId: USER_ID,
+      message: "",
+      expectedCurrentTurn: 0,
     });
   });
 
@@ -323,7 +330,7 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
   }
 
   it("happy path: returns updated state and turn metadata, increments currentTurn", async () => {
-    mockRunAdvanceTurn.mockResolvedValue({
+    mockRunInterviewTurn.mockResolvedValue({
       row: {
         status: "in_progress",
         currentTurn: 1,
@@ -351,19 +358,18 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
     expect(body.currentTurn).toBe(1);
     expect(body.interviewLog).toHaveLength(3);
     expect(body.turn.intent).toBe("ask");
-    expect(mockRunBootstrapTurn).not.toHaveBeenCalled();
-    expect(mockRunAdvanceTurn).toHaveBeenCalledWith({
+    expect(mockRunInterviewTurn).toHaveBeenCalledWith({
       provider: expect.any(Object),
       applicationId: APP_ID,
       tenantId: ORG_ID,
       userId: USER_ID,
-      userMessage: "We sell books online.",
+      message: "We sell books online.",
       expectedCurrentTurn: 0,
     });
   });
 
   it("redirect_scope guardrail leaves currentTurn unchanged and surfaces guardrailAction", async () => {
-    mockRunAdvanceTurn.mockResolvedValue({
+    mockRunInterviewTurn.mockResolvedValue({
       row: {
         status: "in_progress",
         currentTurn: 2,
@@ -393,7 +399,7 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
   });
 
   it("pushback_garbage guardrail advances currentTurn and reports the action", async () => {
-    mockRunAdvanceTurn.mockResolvedValue({
+    mockRunInterviewTurn.mockResolvedValue({
       row: {
         status: "in_progress",
         currentTurn: 3,
@@ -423,7 +429,7 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
   });
 
   it("returns 409 turn_conflict on stale expectedCurrentTurn", async () => {
-    mockRunAdvanceTurn.mockRejectedValue(
+    mockRunInterviewTurn.mockRejectedValue(
       new TurnConflictErrorMock(3, "in_progress"),
     );
 
@@ -439,7 +445,7 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
   });
 
   it("returns 409 turn_conflict with status=completed on terminal state", async () => {
-    mockRunAdvanceTurn.mockRejectedValue(
+    mockRunInterviewTurn.mockRejectedValue(
       new TurnConflictErrorMock(7, "completed"),
     );
 
@@ -452,7 +458,7 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
 
   it("LLM provider failure flows through ai.errorMapper (no partial state)", async () => {
     const providerError = new Error("provider down");
-    mockRunAdvanceTurn.mockRejectedValue(providerError);
+    mockRunInterviewTurn.mockRejectedValue(providerError);
     const { mapAiErrorToResponse } = await import(
       "../../../../features/ai/ai.errorMapper.js"
     );
@@ -465,11 +471,11 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
     const res = await postAnswer({ message: "answer", expectedCurrentTurn: 1 });
 
     expect(res.status).toBe(502);
-    expect(mockRunAdvanceTurn).toHaveBeenCalledOnce();
+    expect(mockRunInterviewTurn).toHaveBeenCalledOnce();
   });
 
   it("retrying after a transient failure with the same expectedCurrentTurn succeeds", async () => {
-    mockRunAdvanceTurn
+    mockRunInterviewTurn
       .mockRejectedValueOnce(new Error("LLM transient"))
       .mockResolvedValueOnce({
         row: {
@@ -553,7 +559,7 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
   });
 
   it("happy path: returns completed state", async () => {
-    mockRunCompleteInterview.mockResolvedValue({
+    mockRunInterviewComplete.mockResolvedValue({
       row: {
         status: "completed",
         currentTurn: 6,
@@ -571,7 +577,7 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
       completedBy: USER_ID,
       completedAt: "2026-05-29T10:00:00.000Z",
     });
-    expect(mockRunCompleteInterview).toHaveBeenCalledWith({
+    expect(mockRunInterviewComplete).toHaveBeenCalledWith({
       applicationId: APP_ID,
       userId: USER_ID,
       expectedCurrentTurn: 6,
@@ -579,7 +585,7 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
   });
 
   it("returns 422 with discriminable error code when checklist is incomplete", async () => {
-    mockRunCompleteInterview.mockRejectedValue(
+    mockRunInterviewComplete.mockRejectedValue(
       new MissingTopicsErrorMock(["target_audience", "prohibited_topics"]),
     );
 
@@ -593,7 +599,7 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
   });
 
   it("returns 409 turn_conflict on optimistic-lock mismatch", async () => {
-    mockRunCompleteInterview.mockRejectedValue(
+    mockRunInterviewComplete.mockRejectedValue(
       new TurnConflictErrorMock(4, "in_progress"),
     );
 
@@ -608,7 +614,7 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
   });
 
   it("returns 409 turn_conflict when already completed", async () => {
-    mockRunCompleteInterview.mockRejectedValue(
+    mockRunInterviewComplete.mockRejectedValue(
       new TurnConflictErrorMock(7, "completed"),
     );
 

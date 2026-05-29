@@ -1,9 +1,5 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, isNull } from "drizzle-orm";
-import { db } from "../../../db/index.js";
-import { applications } from "../../../db/schema/applications.js";
-import { env } from "../../../env.js";
 import {
   getTenantAuth,
   requireRole,
@@ -11,50 +7,18 @@ import {
 } from "../../../lib/middleware/auth.js";
 import { checkBillingStatus } from "../../../lib/middleware/billing.js";
 import { requireAiFeature } from "../../../features/ai/ai.middleware.js";
-import { mapAiErrorToResponse } from "../../../features/ai/ai.errorMapper.js";
-import {
-  createAIProvider,
-  type AIProvider,
-} from "../../../features/ai/ai.provider.js";
 import {
   getInterviewContext,
-  MissingTopicsError,
-  runAdvanceTurn,
-  runBootstrapTurn,
-  runCompleteInterview,
-  TurnConflictError,
-} from "../../../features/ai/ai.interviewer.js";
-import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../../../lib/http.js";
+  runInterviewComplete,
+  runInterviewTurn,
+} from "../../../features/ai/ai.interview.service.js";
+import { ERROR_MESSAGES, HTTP_STATUS, jsonError } from "../../../lib/http.js";
 import { completeBodySchema, turnsBodySchema } from "./schemas.js";
-
-let providerInstance: AIProvider | null = null;
-function getProvider(): AIProvider {
-  if (!providerInstance) {
-    providerInstance = createAIProvider(
-      env.AI_INTERVIEW_MODEL,
-      env.GROQ_API_KEY,
-    );
-  }
-  return providerInstance;
-}
-
-async function findOwnedApplication(
-  applicationId: string,
-  organizationId: string,
-) {
-  const rows = await db
-    .select({ id: applications.id })
-    .from(applications)
-    .where(
-      and(
-        eq(applications.id, applicationId),
-        eq(applications.organizationId, organizationId),
-        isNull(applications.deletedAt),
-      ),
-    )
-    .limit(1);
-  return rows[0] ?? null;
-}
+import {
+  findOwnedApplication,
+  getInterviewProvider,
+  mapInterviewError,
+} from "./helpers.js";
 
 export const aiInterviewRoute = new Hono()
   .get(
@@ -99,25 +63,15 @@ export const aiInterviewRoute = new Hono()
         return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
       }
 
-      const trimmedMessage = message?.trim() ?? "";
-      const isBootstrap = expectedCurrentTurn === 0 && trimmedMessage === "";
-
       try {
-        const { row, output, canFinish } = isBootstrap
-          ? await runBootstrapTurn({
-              provider: getProvider(),
-              applicationId,
-              tenantId: organization.id,
-              userId: authUser.id,
-            })
-          : await runAdvanceTurn({
-              provider: getProvider(),
-              applicationId,
-              tenantId: organization.id,
-              userId: authUser.id,
-              userMessage: trimmedMessage,
-              expectedCurrentTurn,
-            });
+        const { row, output, canFinish } = await runInterviewTurn({
+          provider: getInterviewProvider(),
+          applicationId,
+          tenantId: organization.id,
+          userId: authUser.id,
+          message: message ?? "",
+          expectedCurrentTurn,
+        });
 
         return c.json({
           status: row.status,
@@ -131,25 +85,7 @@ export const aiInterviewRoute = new Hono()
           },
         });
       } catch (error) {
-        if (error instanceof TurnConflictError) {
-          return c.json(
-            {
-              error: "turn_conflict",
-              currentTurn: error.currentTurn,
-              status: error.status,
-            },
-            HTTP_STATUS.CONFLICT,
-          );
-        }
-        const mapped = mapAiErrorToResponse(c, error);
-        if (mapped) return mapped;
-        console.error("ai-interview bootstrap failed:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          error instanceof Error ? error.message : "Unknown error",
-        );
+        return mapInterviewError(c, error, "ai-interview turn");
       }
     },
   )
@@ -171,7 +107,7 @@ export const aiInterviewRoute = new Hono()
       }
 
       try {
-        const { row } = await runCompleteInterview({
+        const { row } = await runInterviewComplete({
           applicationId,
           userId: authUser.id,
           expectedCurrentTurn,
@@ -184,32 +120,7 @@ export const aiInterviewRoute = new Hono()
           completedAt: row.completedAt,
         });
       } catch (error) {
-        if (error instanceof TurnConflictError) {
-          return c.json(
-            {
-              error: "turn_conflict",
-              currentTurn: error.currentTurn,
-              status: error.status,
-            },
-            HTTP_STATUS.CONFLICT,
-          );
-        }
-        if (error instanceof MissingTopicsError) {
-          return c.json(
-            {
-              error: error.code,
-              missing: error.missing,
-            },
-            HTTP_STATUS.UNPROCESSABLE_ENTITY,
-          );
-        }
-        console.error("ai-interview complete failed:", error);
-        return jsonError(
-          c,
-          HTTP_STATUS.INTERNAL_SERVER_ERROR,
-          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
-          error instanceof Error ? error.message : "Unknown error",
-        );
+        return mapInterviewError(c, error, "ai-interview complete");
       }
     },
   );
