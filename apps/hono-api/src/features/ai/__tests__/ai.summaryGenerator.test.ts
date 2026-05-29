@@ -11,11 +11,31 @@ vi.mock("../../../env.js", () => ({
   },
 }));
 
+const usageLogInserts: unknown[] = [];
+
+vi.mock("../../../db/schema/aiUsageLog.js", () => ({
+  aiUsageLog: { __table: "ai_usage_log" },
+}));
+
+vi.mock("../../../db/index.js", () => ({
+  db: {
+    insert: vi.fn(() => ({
+      values: async (values: unknown) => {
+        usageLogInserts.push(values);
+        return [];
+      },
+    })),
+  },
+}));
+
 const { generateInterviewSummary, SUMMARY_SYSTEM_PROMPT } = await import(
   "../ai.summaryGenerator.js"
 );
 const { AIEmptyResponseError } = await import("../ai.errors.js");
 const { INTERVIEW_MODEL } = await import("../ai.prompts.interview.js");
+
+const TENANT_ID = "tenant-1";
+const USER_ID = "user-1";
 
 function makeProvider(text: string) {
   const generateText = vi.fn(async (_req: AIProviderRequest) => ({
@@ -77,6 +97,7 @@ Medical advice, legal counsel.
 describe("ai.summaryGenerator", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    usageLogInserts.length = 0;
   });
 
   describe("system prompt", () => {
@@ -96,7 +117,10 @@ describe("ai.summaryGenerator", () => {
     it("includes the application name and the full interview log in the user message", async () => {
       const { provider, generateText } = makeProvider(VALID_SUMMARY);
 
-      await generateInterviewSummary(provider, {
+      await generateInterviewSummary({
+        provider,
+        tenantId: TENANT_ID,
+        userId: USER_ID,
         applicationName: "Quick Grocer",
         interviewLog: SAMPLE_LOG,
       });
@@ -120,7 +144,10 @@ describe("ai.summaryGenerator", () => {
       const { provider, generateText } = makeProvider(VALID_SUMMARY);
       const controller = new AbortController();
 
-      await generateInterviewSummary(provider, {
+      await generateInterviewSummary({
+        provider,
+        tenantId: TENANT_ID,
+        userId: USER_ID,
         applicationName: "Quick Grocer",
         interviewLog: SAMPLE_LOG,
         abortSignal: controller.signal,
@@ -135,7 +162,10 @@ describe("ai.summaryGenerator", () => {
     it("returns the sanitized markdown summary", async () => {
       const { provider } = makeProvider(VALID_SUMMARY);
 
-      const result = await generateInterviewSummary(provider, {
+      const result = await generateInterviewSummary({
+        provider,
+        tenantId: TENANT_ID,
+        userId: USER_ID,
         applicationName: "Quick Grocer",
         interviewLog: SAMPLE_LOG,
       });
@@ -152,7 +182,10 @@ ${VALID_SUMMARY}
 \`\`\``;
       const { provider } = makeProvider(dirty);
 
-      const result = await generateInterviewSummary(provider, {
+      const result = await generateInterviewSummary({
+        provider,
+        tenantId: TENANT_ID,
+        userId: USER_ID,
         applicationName: "Quick Grocer",
         interviewLog: SAMPLE_LOG,
       });
@@ -161,18 +194,51 @@ ${VALID_SUMMARY}
       expect(result).not.toContain("```");
       expect(result).toContain("# Application Context");
     });
+
+    it("writes a successful interview_summary aiUsageLog row", async () => {
+      const { provider } = makeProvider(VALID_SUMMARY);
+
+      await generateInterviewSummary({
+        provider,
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+        applicationName: "Quick Grocer",
+        interviewLog: SAMPLE_LOG,
+      });
+
+      expect(usageLogInserts).toHaveLength(1);
+      expect(usageLogInserts[0]).toMatchObject({
+        action: "interview_summary",
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+        conversationId: null,
+        status: "success",
+        inputTokens: 10,
+        outputTokens: 20,
+        finishReason: "stop",
+      });
+    });
   });
 
   describe("validation", () => {
-    it("rejects empty output with AIEmptyResponseError", async () => {
+    it("rejects empty output with AIEmptyResponseError and logs an empty row", async () => {
       const { provider } = makeProvider("   \n  ");
 
       await expect(
-        generateInterviewSummary(provider, {
+        generateInterviewSummary({
+          provider,
+          tenantId: TENANT_ID,
+          userId: USER_ID,
           applicationName: "Quick Grocer",
           interviewLog: SAMPLE_LOG,
         }),
       ).rejects.toBeInstanceOf(AIEmptyResponseError);
+
+      expect(usageLogInserts).toHaveLength(1);
+      expect(usageLogInserts[0]).toMatchObject({
+        action: "interview_summary",
+        status: "empty",
+      });
     });
 
     it("rejects output exceeding the size cap", async () => {
@@ -180,7 +246,10 @@ ${VALID_SUMMARY}
       const { provider } = makeProvider(oversize);
 
       await expect(
-        generateInterviewSummary(provider, {
+        generateInterviewSummary({
+          provider,
+          tenantId: TENANT_ID,
+          userId: USER_ID,
           applicationName: "Quick Grocer",
           interviewLog: SAMPLE_LOG,
         }),

@@ -8,11 +8,7 @@ import {
   SummaryGenerationFailedError,
   TurnConflictError,
 } from "./ai.errors.js";
-import {
-  SUMMARY_SYSTEM_PROMPT,
-  buildSummaryUserMessage,
-  parseSummaryResponse,
-} from "./ai.summaryGenerator.js";
+import { generateInterviewSummary } from "./ai.summaryGenerator.js";
 import {
   InterviewTurnEngine,
   type AdvanceDecision,
@@ -351,34 +347,12 @@ export async function runGenerateSummary(
 
   let summary: string;
   try {
-    summary = await runAiCall<string, string>({
-      action: "interview_summary",
+    summary = await generateInterviewSummary({
+      provider: params.provider,
       tenantId: params.tenantId,
       userId: params.userId,
-      conversationId: null,
-      model: INTERVIEW_MODEL,
-      providerCall: async () => {
-        const response = await params.provider.generateText({
-          systemPrompt: SUMMARY_SYSTEM_PROMPT,
-          messages: [
-            {
-              role: "user",
-              content: buildSummaryUserMessage(
-                applicationName,
-                row.interviewLog,
-              ),
-            },
-          ],
-          model: INTERVIEW_MODEL,
-        });
-        return {
-          result: response.text ?? "",
-          inputTokens: response.usage.promptTokens,
-          outputTokens: response.usage.completionTokens,
-          finishReason: response.finishReason,
-        };
-      },
-      parse: parseSummaryResponse,
+      applicationName,
+      interviewLog: row.interviewLog,
     });
   } catch (error) {
     throw new SummaryGenerationFailedError(

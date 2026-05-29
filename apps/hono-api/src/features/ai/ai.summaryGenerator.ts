@@ -1,3 +1,5 @@
+import { db } from "../../db/index.js";
+import { runAiCall, type RunAiCallParams } from "./ai.callRunner.js";
 import { AIEmptyResponseError, AIProviderError } from "./ai.errors.js";
 import type { InterviewLogEntry } from "./ai.interview.schema.js";
 import { INTERVIEW_MODEL } from "./ai.prompts.interview.js";
@@ -29,10 +31,16 @@ Output requirements:
   say so explicitly rather than fabricating detail.
 - Do not include meta commentary about the interview process itself.`;
 
-export type GenerateInterviewSummaryParams = {
+type DbLike = NonNullable<RunAiCallParams<unknown, unknown>["tx"]>;
+
+export type GenerateInterviewSummaryInput = {
+  provider: AIProvider;
+  tenantId: string;
+  userId: string;
   applicationName: string;
   interviewLog: InterviewLogEntry[];
   abortSignal?: AbortSignal;
+  tx?: DbLike;
 };
 
 function formatInterviewLog(log: InterviewLogEntry[]): string {
@@ -72,20 +80,35 @@ export function parseSummaryResponse(raw: string): string {
 }
 
 export async function generateInterviewSummary(
-  provider: AIProvider,
-  params: GenerateInterviewSummaryParams,
+  input: GenerateInterviewSummaryInput,
 ): Promise<string> {
   const userMessage = buildSummaryUserMessage(
-    params.applicationName,
-    params.interviewLog,
+    input.applicationName,
+    input.interviewLog,
   );
 
-  const response = await provider.generateText({
-    systemPrompt: SUMMARY_SYSTEM_PROMPT,
-    messages: [{ role: "user", content: userMessage }],
+  return runAiCall<string, string>({
+    action: "interview_summary",
+    tenantId: input.tenantId,
+    userId: input.userId,
+    conversationId: null,
     model: INTERVIEW_MODEL,
-    abortSignal: params.abortSignal,
+    abortSignal: input.abortSignal,
+    tx: input.tx ?? db,
+    providerCall: async () => {
+      const response = await input.provider.generateText({
+        systemPrompt: SUMMARY_SYSTEM_PROMPT,
+        messages: [{ role: "user", content: userMessage }],
+        model: INTERVIEW_MODEL,
+        abortSignal: input.abortSignal,
+      });
+      return {
+        result: response.text ?? "",
+        inputTokens: response.usage.promptTokens,
+        outputTokens: response.usage.completionTokens,
+        finishReason: response.finishReason,
+      };
+    },
+    parse: parseSummaryResponse,
   });
-
-  return parseSummaryResponse(response.text ?? "");
 }

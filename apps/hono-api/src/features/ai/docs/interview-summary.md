@@ -42,12 +42,38 @@ inline summary attempt is made — the admin still has to invoke
 
 Lives at `apps/hono-api/src/features/ai/ai.summaryGenerator.ts`. Deliberately
 isolated from the turn engine: it owns its system prompt, its output
-validation, and its own entry point. The interview turn engine never imports
+validation, its `aiUsageLog` instrumentation, and its single public entry
+point — `generateInterviewSummary`. The interview turn engine never imports
 it.
+
+### Single public entry point
+
+The module exports one function:
+
+```ts
+generateInterviewSummary({
+  provider, tenantId, userId,
+  applicationName, interviewLog,
+  abortSignal?, tx?,
+}): Promise<string>
+```
+
+The function owns the full LLM-call pipeline for an interview summary:
+prompt assembly, provider invocation, output sanitization, validation, and
+the `aiUsageLog` row through the shared `runAiCall` runner. Callers (today,
+the `runGenerateSummary` service action) do **not** wire `runAiCall`
+themselves — they pass identity (`tenantId`/`userId`) and inputs, and get
+back a sanitized markdown string or a typed AI error.
+
+The lower-level helpers (`buildSummaryUserMessage`, `parseSummaryResponse`,
+`SUMMARY_SYSTEM_PROMPT`, `SUMMARY_MAX_CHARS`) remain exported for unit-test
+introspection only. They are not part of the supported runtime interface;
+new callers must go through `generateInterviewSummary`.
 
 ### I/O contract
 
-- **Input**: the persisted `interviewLog` plus the application's display name.
+- **Input**: the persisted `interviewLog`, the application's display name,
+  and the tenant/user identity needed for usage logging.
 - **Output**: a sanitized markdown string covering the six core topics
   (Business, Audience, Products & Services, Tone, Common Scenarios, Prohibited
   Topics) plus a synthesis "Drafting Guidance" section with 2–4 imperative
@@ -61,8 +87,8 @@ The module rejects:
 - empty strings (no output);
 - output exceeding ~8000 characters;
 
-and always runs the existing AI sanitizer before returning. Failures throw a
-typed `summary_generation_failed` error.
+and always runs the existing AI sanitizer before returning. Service-layer
+callers wrap the typed AI errors into `summary_generation_failed`.
 
 ## Atomicity & regeneration semantics
 
