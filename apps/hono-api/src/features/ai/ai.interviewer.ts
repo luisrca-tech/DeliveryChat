@@ -36,7 +36,32 @@ export type InterviewerOutput = z.infer<typeof interviewerOutputSchema>;
 export type InterviewLogEntry = {
   role: "assistant" | "user";
   content: string;
+  topicsCoveredThisTurn?: string[];
 };
+
+const CORE_TOPIC_SET = new Set<string>(CORE_TOPICS);
+
+export function computeCoveredTopics(
+  log: InterviewLogEntry[],
+): Set<CoreTopic> {
+  const covered = new Set<CoreTopic>();
+  for (const entry of log) {
+    if (entry.role !== "assistant") continue;
+    const topics = entry.topicsCoveredThisTurn ?? [];
+    for (const topic of topics) {
+      if (CORE_TOPIC_SET.has(topic)) {
+        covered.add(topic as CoreTopic);
+      } else {
+        console.warn("[ai.interviewer] ignoring unknown topic key:", topic);
+      }
+    }
+  }
+  return covered;
+}
+
+function missingTopics(covered: Set<CoreTopic>): CoreTopic[] {
+  return CORE_TOPICS.filter((t) => !covered.has(t));
+}
 
 export type InterviewContextRow = {
   id: string;
@@ -123,7 +148,19 @@ type RunBootstrapTurnParams = {
 type RunBootstrapTurnResult = {
   row: InterviewContextRow;
   output: InterviewerOutput;
+  canFinish: boolean;
 };
+
+export class MissingTopicsError extends Error {
+  readonly missing: CoreTopic[];
+  readonly code = "interview_checklist_incomplete";
+
+  constructor(missing: CoreTopic[]) {
+    super(`interview_checklist_incomplete: missing=${missing.join(",")}`);
+    this.name = "MissingTopicsError";
+    this.missing = missing;
+  }
+}
 
 export class TurnConflictError extends Error {
   readonly currentTurn: number;
@@ -185,7 +222,11 @@ export async function runBootstrapTurn(
     };
 
     const nextLog: InterviewLogEntry[] = [
-      { role: "assistant", content: sanitized.assistantMessage },
+      {
+        role: "assistant",
+        content: sanitized.assistantMessage,
+        topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
+      },
     ];
 
     const [updated] = await tx
@@ -215,19 +256,25 @@ export async function runBootstrapTurn(
   });
 
   if (result.alreadyBootstrapped) {
+    const covered = computeCoveredTopics(result.row.interviewLog);
     return {
       row: result.row,
       output: {
-        assistantMessage:
-          result.row.interviewLog[0]?.content ?? "",
+        assistantMessage: result.row.interviewLog[0]?.content ?? "",
         intent: "ask",
         topicsCoveredThisTurn: [],
         guardrailAction: "none",
       },
+      canFinish: missingTopics(covered).length === 0,
     };
   }
 
-  return { row: result.row, output: result.output! };
+  const covered = computeCoveredTopics(result.row.interviewLog);
+  return {
+    row: result.row,
+    output: result.output!,
+    canFinish: missingTopics(covered).length === 0,
+  };
 }
 
 export async function runAdvanceTurn(
@@ -276,15 +323,60 @@ export async function runAdvanceTurn(
       schema: interviewerOutputSchema,
     });
 
-    const sanitized: InterviewerOutput = {
+    let sanitized: InterviewerOutput = {
       ...llm.object,
       assistantMessage: sanitizeAiMarkdown(llm.object.assistantMessage),
     };
 
+    let totalPromptTokens = llm.usage.promptTokens;
+    let totalCompletionTokens = llm.usage.completionTokens;
+    let finalFinishReason = llm.finishReason;
+
+    if (sanitized.intent === "suggest_finish") {
+      const projectedCovered = computeCoveredTopics([
+        ...row.interviewLog,
+        {
+          role: "assistant",
+          content: sanitized.assistantMessage,
+          topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
+        },
+      ]);
+      const missing = missingTopics(projectedCovered);
+
+      if (missing.length > 0) {
+        const reprompt: AIProviderMessage[] = [
+          ...messages,
+          {
+            role: "user",
+            content: `You suggested finishing, but the following core topics are still uncovered: ${missing.join(", ")}. Do not suggest finishing yet. Ask the admin a focused question that covers one of the missing topics.`,
+          },
+        ];
+        const retry = await provider.generateObject({
+          systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+          messages: reprompt,
+          model: INTERVIEW_MODEL,
+          schema: interviewerOutputSchema,
+        });
+
+        sanitized = {
+          ...retry.object,
+          intent: "ask",
+          assistantMessage: sanitizeAiMarkdown(retry.object.assistantMessage),
+        };
+        totalPromptTokens += retry.usage.promptTokens;
+        totalCompletionTokens += retry.usage.completionTokens;
+        finalFinishReason = retry.finishReason;
+      }
+    }
+
     const nextLog: InterviewLogEntry[] = [
       ...row.interviewLog,
       { role: "user", content: userMessage },
-      { role: "assistant", content: sanitized.assistantMessage },
+      {
+        role: "assistant",
+        content: sanitized.assistantMessage,
+        topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
+      },
     ];
 
     const [updated] = await txd
@@ -299,16 +391,72 @@ export async function runAdvanceTurn(
       action: "interview",
       conversationId: null,
       model: INTERVIEW_MODEL,
-      inputTokens: llm.usage.promptTokens,
-      outputTokens: llm.usage.completionTokens,
+      inputTokens: totalPromptTokens,
+      outputTokens: totalCompletionTokens,
       latencyMs: Date.now() - startTime,
-      finishReason: llm.finishReason,
+      finishReason: finalFinishReason,
       status: "success",
     });
 
+    const updatedRow = updated as InterviewContextRow;
+    const finalCovered = computeCoveredTopics(updatedRow.interviewLog);
     return {
-      row: updated as InterviewContextRow,
+      row: updatedRow,
       output: sanitized,
+      canFinish: missingTopics(finalCovered).length === 0,
     };
+  });
+}
+
+type RunCompleteInterviewParams = {
+  applicationId: string;
+  userId: string;
+  expectedCurrentTurn: number;
+};
+
+type RunCompleteInterviewResult = {
+  row: InterviewContextRow;
+};
+
+export async function runCompleteInterview(
+  params: RunCompleteInterviewParams,
+): Promise<RunCompleteInterviewResult> {
+  const { applicationId, userId, expectedCurrentTurn } = params;
+
+  return db.transaction(async (tx) => {
+    const txd = tx as unknown as typeof db;
+
+    const rows = await txd
+      .select()
+      .from(applicationAiContext)
+      .where(eq(applicationAiContext.applicationId, applicationId))
+      .limit(1);
+    const row = rows[0] as InterviewContextRow | undefined;
+
+    if (!row) {
+      throw new TurnConflictError(0, "not_started");
+    }
+    if (row.status !== "in_progress" || row.currentTurn !== expectedCurrentTurn) {
+      throw new TurnConflictError(row.currentTurn, row.status);
+    }
+
+    const covered = computeCoveredTopics(row.interviewLog);
+    const missing = missingTopics(covered);
+    if (missing.length > 0) {
+      throw new MissingTopicsError(missing);
+    }
+
+    const completedAt = new Date().toISOString();
+    const [updated] = await txd
+      .update(applicationAiContext)
+      .set({
+        status: "completed",
+        completedBy: userId,
+        completedAt,
+      })
+      .where(eq(applicationAiContext.id, row.id))
+      .returning();
+
+    return { row: updated as InterviewContextRow };
   });
 }

@@ -14,7 +14,11 @@ type Row = {
   applicationId: string;
   status: "in_progress" | "completed";
   currentTurn: number;
-  interviewLog: Array<{ role: "assistant" | "user"; content: string }>;
+  interviewLog: Array<{
+    role: "assistant" | "user";
+    content: string;
+    topicsCoveredThisTurn?: string[];
+  }>;
   contextSummary: string | null;
   completedBy: string | null;
   completedAt: string | null;
@@ -91,6 +95,9 @@ const {
   CORE_TOPICS,
   interviewerOutputSchema,
   runAdvanceTurn,
+  runCompleteInterview,
+  computeCoveredTopics,
+  MissingTopicsError,
   TurnConflictError,
 } = await import("../ai.interviewer.js");
 
@@ -293,7 +300,11 @@ describe("runAdvanceTurn", () => {
     expect(result.row.interviewLog).toEqual([
       { role: "assistant", content: "Tell me about your business." },
       { role: "user", content: "We sell books online." },
-      { role: "assistant", content: "Who are your typical customers?" },
+      {
+        role: "assistant",
+        content: "Who are your typical customers?",
+        topicsCoveredThisTurn: ["business_description"],
+      },
     ]);
     expect(result.output.intent).toBe("ask");
     expect(result.output.topicsCoveredThisTurn).toEqual(["business_description"]);
@@ -336,5 +347,237 @@ describe("runAdvanceTurn", () => {
     // No update should have been written before the failure propagated.
     expect(state.row).toEqual(snapshot);
     expect(state.usageLogs).toHaveLength(0);
+  });
+});
+
+describe("computeCoveredTopics", () => {
+  it("returns the union of topicsCoveredThisTurn across assistant entries", () => {
+    const log = [
+      {
+        role: "assistant" as const,
+        content: "q1",
+        topicsCoveredThisTurn: ["business_description"],
+      },
+      { role: "user" as const, content: "a1" },
+      {
+        role: "assistant" as const,
+        content: "q2",
+        topicsCoveredThisTurn: ["target_audience", "business_description"],
+      },
+    ];
+    const covered = computeCoveredTopics(log);
+    expect(covered.has("business_description")).toBe(true);
+    expect(covered.has("target_audience")).toBe(true);
+    expect(covered.size).toBe(2);
+  });
+
+  it("ignores unknown topic keys silently", () => {
+    const log = [
+      {
+        role: "assistant" as const,
+        content: "q",
+        topicsCoveredThisTurn: ["business_description", "made_up_topic"],
+      },
+    ];
+    const covered = computeCoveredTopics(log);
+    expect(covered.has("business_description")).toBe(true);
+    expect(covered.size).toBe(1);
+  });
+
+  it("handles assistant entries without topicsCoveredThisTurn", () => {
+    const log = [{ role: "assistant" as const, content: "no topics" }];
+    expect(computeCoveredTopics(log).size).toBe(0);
+  });
+});
+
+describe("runAdvanceTurn: suggest_finish handling", () => {
+  function fullyCoveredLog() {
+    return [
+      {
+        role: "assistant" as const,
+        content: "q0",
+        topicsCoveredThisTurn: [
+          "business_description",
+          "target_audience",
+          "products_services",
+          "preferred_tone",
+          "common_support_scenarios",
+        ],
+      },
+    ];
+  }
+
+  it("exposes canFinish: true when all core topics are covered after the turn", async () => {
+    seedRow({ currentTurn: 1, interviewLog: fullyCoveredLog() });
+
+    const provider = makeProvider(() => ({
+      assistantMessage: "Ready to wrap up?",
+      intent: "suggest_finish",
+      topicsCoveredThisTurn: ["prohibited_topics"],
+      guardrailAction: "none",
+    }));
+
+    const result = await runAdvanceTurn({
+      provider,
+      applicationId: "app-1",
+      tenantId: "org-1",
+      userId: "user-1",
+      userMessage: "no banned topics",
+      expectedCurrentTurn: 1,
+    });
+
+    expect(result.canFinish).toBe(true);
+    expect(result.output.intent).toBe("suggest_finish");
+    expect(provider.generateObject).toHaveBeenCalledTimes(1);
+  });
+
+  it("downgrades suggest_finish to ask and re-prompts when topics are missing", async () => {
+    seedRow({
+      currentTurn: 1,
+      interviewLog: [
+        {
+          role: "assistant",
+          content: "q0",
+          topicsCoveredThisTurn: ["business_description"],
+        },
+      ],
+    });
+
+    const responses = [
+      {
+        assistantMessage: "Done?",
+        intent: "suggest_finish",
+        topicsCoveredThisTurn: [],
+        guardrailAction: "none",
+      },
+      {
+        assistantMessage: "Who is your target audience?",
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        guardrailAction: "none",
+      },
+    ];
+    let call = 0;
+    const provider = makeProvider(() => responses[call++]!);
+
+    const result = await runAdvanceTurn({
+      provider,
+      applicationId: "app-1",
+      tenantId: "org-1",
+      userId: "user-1",
+      userMessage: "sure",
+      expectedCurrentTurn: 1,
+    });
+
+    expect(provider.generateObject).toHaveBeenCalledTimes(2);
+    expect(result.output.intent).toBe("ask");
+    expect(result.output.assistantMessage).toBe(
+      "Who is your target audience?",
+    );
+    expect(result.canFinish).toBe(false);
+    // Re-prompt should mention missing topics
+    const secondCall = provider.generateObject.mock.calls[1]![0];
+    const lastMessage =
+      secondCall.messages[secondCall.messages.length - 1]!.content;
+    expect(lastMessage).toMatch(/target_audience/);
+  });
+});
+
+describe("runCompleteInterview", () => {
+  function fullyCoveredLog() {
+    return [
+      {
+        role: "assistant" as const,
+        content: "q",
+        topicsCoveredThisTurn: [
+          "business_description",
+          "target_audience",
+          "products_services",
+          "preferred_tone",
+          "common_support_scenarios",
+          "prohibited_topics",
+        ],
+      },
+    ];
+  }
+
+  it("throws TurnConflictError when no row exists", async () => {
+    await expect(
+      runCompleteInterview({
+        applicationId: "app-1",
+        userId: "user-1",
+        expectedCurrentTurn: 0,
+      }),
+    ).rejects.toBeInstanceOf(TurnConflictError);
+  });
+
+  it("throws TurnConflictError when expectedCurrentTurn is stale", async () => {
+    seedRow({ currentTurn: 3, interviewLog: fullyCoveredLog() });
+    await expect(
+      runCompleteInterview({
+        applicationId: "app-1",
+        userId: "user-1",
+        expectedCurrentTurn: 1,
+      }),
+    ).rejects.toBeInstanceOf(TurnConflictError);
+  });
+
+  it("throws TurnConflictError when already completed", async () => {
+    seedRow({
+      currentTurn: 3,
+      status: "completed",
+      interviewLog: fullyCoveredLog(),
+    });
+    await expect(
+      runCompleteInterview({
+        applicationId: "app-1",
+        userId: "user-1",
+        expectedCurrentTurn: 3,
+      }),
+    ).rejects.toBeInstanceOf(TurnConflictError);
+  });
+
+  it("throws MissingTopicsError when checklist is not satisfied", async () => {
+    seedRow({
+      currentTurn: 2,
+      interviewLog: [
+        {
+          role: "assistant",
+          content: "q",
+          topicsCoveredThisTurn: ["business_description"],
+        },
+      ],
+    });
+
+    let caught: unknown;
+    try {
+      await runCompleteInterview({
+        applicationId: "app-1",
+        userId: "user-1",
+        expectedCurrentTurn: 2,
+      });
+    } catch (error) {
+      caught = error;
+    }
+    expect(caught).toBeInstanceOf(MissingTopicsError);
+    expect((caught as InstanceType<typeof MissingTopicsError>).missing).toEqual(
+      expect.arrayContaining(["target_audience", "products_services"]),
+    );
+  });
+
+  it("marks the row completed and sets completedBy/completedAt when checklist passes", async () => {
+    seedRow({ currentTurn: 4, interviewLog: fullyCoveredLog() });
+
+    const result = await runCompleteInterview({
+      applicationId: "app-1",
+      userId: "user-1",
+      expectedCurrentTurn: 4,
+    });
+
+    expect(result.row.status).toBe("completed");
+    expect(result.row.completedBy).toBe("user-1");
+    expect(result.row.completedAt).toBeTruthy();
+    // contextSummary stays null; applications.aiEnabled is Phase 4's job
+    expect(result.row.contextSummary).toBeNull();
   });
 });

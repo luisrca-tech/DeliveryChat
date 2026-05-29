@@ -22,7 +22,13 @@ export const applicationAiContext = createTable(
       .references(() => applications.id, { onDelete: "cascade" }),
     status: aiContextStatusEnum("status").notNull().default("in_progress"),
     interviewLog: jsonb("interview_log")
-      .$type<Array<{ role: "assistant" | "user"; content: string }>>()
+      .$type<
+        Array<{
+          role: "assistant" | "user";
+          content: string;
+          topicsCoveredThisTurn?: string[];
+        }>
+      >()
       .notNull()
       .default([]),
     currentTurn: integer("current_turn").notNull().default(0),

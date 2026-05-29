@@ -18,12 +18,14 @@ import {
 } from "../../../features/ai/ai.provider.js";
 import {
   getInterviewContext,
+  MissingTopicsError,
   runAdvanceTurn,
   runBootstrapTurn,
+  runCompleteInterview,
   TurnConflictError,
 } from "../../../features/ai/ai.interviewer.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../../../lib/http.js";
-import { turnsBodySchema } from "./schemas.js";
+import { completeBodySchema, turnsBodySchema } from "./schemas.js";
 
 let providerInstance: AIProvider | null = null;
 function getProvider(): AIProvider {
@@ -101,7 +103,7 @@ export const aiInterviewRoute = new Hono()
       const isBootstrap = expectedCurrentTurn === 0 && trimmedMessage === "";
 
       try {
-        const { row, output } = isBootstrap
+        const { row, output, canFinish } = isBootstrap
           ? await runBootstrapTurn({
               provider: getProvider(),
               applicationId,
@@ -121,6 +123,7 @@ export const aiInterviewRoute = new Hono()
           status: row.status,
           currentTurn: row.currentTurn,
           interviewLog: row.interviewLog,
+          canFinish,
           turn: {
             intent: output.intent,
             topicsCoveredThisTurn: output.topicsCoveredThisTurn,
@@ -141,6 +144,66 @@ export const aiInterviewRoute = new Hono()
         const mapped = mapAiErrorToResponse(c, error);
         if (mapped) return mapped;
         console.error("ai-interview bootstrap failed:", error);
+        return jsonError(
+          c,
+          HTTP_STATUS.INTERNAL_SERVER_ERROR,
+          ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+          error instanceof Error ? error.message : "Unknown error",
+        );
+      }
+    },
+  )
+  .post(
+    "/:applicationId/ai-interview/complete",
+    requireTenantAuth(),
+    requireRole("admin"),
+    checkBillingStatus(),
+    requireAiFeature("interview"),
+    zValidator("json", completeBodySchema),
+    async (c) => {
+      const applicationId = c.req.param("applicationId");
+      const { organization, user: authUser } = getTenantAuth(c);
+      const { expectedCurrentTurn } = c.req.valid("json");
+
+      const app = await findOwnedApplication(applicationId, organization.id);
+      if (!app) {
+        return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      try {
+        const { row } = await runCompleteInterview({
+          applicationId,
+          userId: authUser.id,
+          expectedCurrentTurn,
+        });
+
+        return c.json({
+          status: row.status,
+          currentTurn: row.currentTurn,
+          completedBy: row.completedBy,
+          completedAt: row.completedAt,
+        });
+      } catch (error) {
+        if (error instanceof TurnConflictError) {
+          return c.json(
+            {
+              error: "turn_conflict",
+              currentTurn: error.currentTurn,
+              status: error.status,
+            },
+            HTTP_STATUS.CONFLICT,
+          );
+        }
+        if (error instanceof MissingTopicsError) {
+          return c.json(
+            {
+              error: error.code,
+              missing: error.missing,
+            },
+            HTTP_STATUS.UNPROCESSABLE_ENTITY,
+          );
+        }
+        console.error("ai-interview complete failed:", error);
         return jsonError(
           c,
           HTTP_STATUS.INTERNAL_SERVER_ERROR,

@@ -107,6 +107,7 @@ vi.mock("../../../../features/ai/ai.middleware.js", () => ({
 const mockGetInterviewContext = vi.fn();
 const mockRunBootstrapTurn = vi.fn();
 const mockRunAdvanceTurn = vi.fn();
+const mockRunCompleteInterview = vi.fn();
 
 class TurnConflictErrorMock extends Error {
   readonly currentTurn: number;
@@ -119,11 +120,24 @@ class TurnConflictErrorMock extends Error {
   }
 }
 
+class MissingTopicsErrorMock extends Error {
+  readonly missing: string[];
+  readonly code = "interview_checklist_incomplete";
+  constructor(missing: string[]) {
+    super("interview_checklist_incomplete");
+    this.name = "MissingTopicsError";
+    this.missing = missing;
+  }
+}
+
 vi.mock("../../../../features/ai/ai.interviewer.js", () => ({
   getInterviewContext: (...args: unknown[]) => mockGetInterviewContext(...args),
   runBootstrapTurn: (...args: unknown[]) => mockRunBootstrapTurn(...args),
   runAdvanceTurn: (...args: unknown[]) => mockRunAdvanceTurn(...args),
+  runCompleteInterview: (...args: unknown[]) =>
+    mockRunCompleteInterview(...args),
   TurnConflictError: TurnConflictErrorMock,
+  MissingTopicsError: MissingTopicsErrorMock,
 }));
 
 vi.mock("../../../../features/ai/ai.provider.js", () => ({
@@ -433,5 +447,114 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
     expect(second.status).toBe(200);
     const body = await second.json();
     expect(body.currentTurn).toBe(2);
+  });
+});
+
+describe("POST /applications/:applicationId/ai-interview/complete", () => {
+  async function postComplete(
+    body: Record<string, unknown>,
+    appId = APP_ID,
+  ) {
+    return buildApp().request(
+      `/applications/${appId}/ai-interview/complete`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    );
+  }
+
+  it("returns 401 when unauthenticated", async () => {
+    mockAuthContext = null;
+    expect((await postComplete({ expectedCurrentTurn: 5 })).status).toBe(401);
+  });
+
+  it("returns 403 for non-admin roles", async () => {
+    mockAuthContext = operatorAuth();
+    expect((await postComplete({ expectedCurrentTurn: 5 })).status).toBe(403);
+  });
+
+  it("returns 402 when billing is not allowed", async () => {
+    billingAllowed = false;
+    expect((await postComplete({ expectedCurrentTurn: 5 })).status).toBe(402);
+  });
+
+  it("returns 403 when AI feature is not available", async () => {
+    aiFeatureAllowed = false;
+    expect((await postComplete({ expectedCurrentTurn: 5 })).status).toBe(403);
+  });
+
+  it("returns 404 for cross-tenant application", async () => {
+    ownedApplicationRows.length = 0;
+    expect(
+      (await postComplete({ expectedCurrentTurn: 5 }, OTHER_APP_ID)).status,
+    ).toBe(404);
+  });
+
+  it("happy path: returns completed state", async () => {
+    mockRunCompleteInterview.mockResolvedValue({
+      row: {
+        status: "completed",
+        currentTurn: 6,
+        completedBy: USER_ID,
+        completedAt: "2026-05-29T10:00:00.000Z",
+      },
+    });
+
+    const res = await postComplete({ expectedCurrentTurn: 6 });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({
+      status: "completed",
+      currentTurn: 6,
+      completedBy: USER_ID,
+      completedAt: "2026-05-29T10:00:00.000Z",
+    });
+    expect(mockRunCompleteInterview).toHaveBeenCalledWith({
+      applicationId: APP_ID,
+      userId: USER_ID,
+      expectedCurrentTurn: 6,
+    });
+  });
+
+  it("returns 422 with discriminable error code when checklist is incomplete", async () => {
+    mockRunCompleteInterview.mockRejectedValue(
+      new MissingTopicsErrorMock(["target_audience", "prohibited_topics"]),
+    );
+
+    const res = await postComplete({ expectedCurrentTurn: 3 });
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "interview_checklist_incomplete",
+      missing: ["target_audience", "prohibited_topics"],
+    });
+  });
+
+  it("returns 409 turn_conflict on optimistic-lock mismatch", async () => {
+    mockRunCompleteInterview.mockRejectedValue(
+      new TurnConflictErrorMock(4, "in_progress"),
+    );
+
+    const res = await postComplete({ expectedCurrentTurn: 2 });
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "turn_conflict",
+      currentTurn: 4,
+      status: "in_progress",
+    });
+  });
+
+  it("returns 409 turn_conflict when already completed", async () => {
+    mockRunCompleteInterview.mockRejectedValue(
+      new TurnConflictErrorMock(7, "completed"),
+    );
+
+    const res = await postComplete({ expectedCurrentTurn: 7 });
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.status).toBe("completed");
   });
 });
