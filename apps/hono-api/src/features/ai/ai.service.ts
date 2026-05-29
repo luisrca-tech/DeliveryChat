@@ -4,17 +4,14 @@ import { messages } from "../../db/schema/messages.js";
 import { conversations } from "../../db/schema/conversations.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import { user } from "../../db/schema/users.js";
+import { applications } from "../../db/schema/applications.js";
+import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { env } from "../../env.js";
 import { createAIProvider } from "./ai.provider.js";
 import { buildContext, buildSystemPrompt } from "./ai.context.js";
 import { enrichMessage } from "../chat/chat.service.js";
-import { sanitizeAiMarkdown } from "./ai.sanitize.js";
+import { executeAI } from "./ai.executor.js";
 import {
-  AIProviderError,
-  AIProviderRateLimitError,
-  AITimeoutError,
-  AIEmptyResponseError,
-  AIContentFilteredError,
   AIConversationNotFoundError,
 } from "./ai.errors.js";
 
@@ -43,60 +40,15 @@ type ImproveMessageResult = {
   text: string;
 };
 
-type UsageStatus =
-  | "success"
-  | "provider_error"
-  | "timeout"
-  | "empty"
-  | "content_filtered"
-  | "aborted";
-
-async function logUsage(params: {
-  tenantId: string;
-  userId: string;
-  action: "generate" | "improve";
-  conversationId: string;
-  model: string;
-  inputTokens: number | null;
-  outputTokens: number | null;
-  latencyMs: number | null;
-  finishReason: string | null;
-  status: UsageStatus;
-}): Promise<void> {
-  try {
-    await db.insert(aiUsageLog).values({
-      tenantId: params.tenantId,
-      userId: params.userId,
-      action: params.action,
-      conversationId: params.conversationId,
-      model: params.model,
-      inputTokens: params.inputTokens,
-      outputTokens: params.outputTokens,
-      latencyMs: params.latencyMs,
-      finishReason: params.finishReason,
-      status: params.status,
-    });
-  } catch {
-    // Usage logging is best-effort — never fail the main request
-  }
-}
-
-function isRetryable(error: unknown): boolean {
-  if (error instanceof AIProviderRateLimitError) return false;
-  if (error instanceof AIProviderError) return true;
-  return false;
-}
-
-async function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 async function verifyConversationOwnership(
   conversationId: string,
   tenantId: string,
-): Promise<void> {
+): Promise<{ applicationId: string | null }> {
   const result = await db
-    .select({ id: conversations.id })
+    .select({
+      id: conversations.id,
+      applicationId: conversations.applicationId,
+    })
     .from(conversations)
     .where(
       and(
@@ -109,153 +61,83 @@ async function verifyConversationOwnership(
   if (result.length === 0) {
     throw new AIConversationNotFoundError("Conversation not found");
   }
+
+  return { applicationId: result[0]!.applicationId };
+}
+
+export async function getCompletedContextSummary(
+  applicationId: string | null,
+): Promise<string | undefined> {
+  if (!applicationId) return undefined;
+
+  const result = await db
+    .select({
+      aiEnabled: applications.aiEnabled,
+      contextSummary: applicationAiContext.contextSummary,
+    })
+    .from(applications)
+    .leftJoin(
+      applicationAiContext,
+      and(
+        eq(applicationAiContext.applicationId, applications.id),
+        eq(applicationAiContext.status, "completed"),
+      ),
+    )
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+
+  if (!result[0] || !result[0].aiEnabled) return undefined;
+  return result[0].contextSummary ?? undefined;
 }
 
 export async function generateReply(
   input: GenerateReplyInput,
 ): Promise<GenerateReplyResult> {
-  await verifyConversationOwnership(input.conversationId, input.tenantId);
+  const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
 
   const model = env.AI_MODEL;
   const provider = createAIProvider(model, env.GROQ_API_KEY);
   const limit = env.AI_CONTEXT_MESSAGE_LIMIT;
 
-  const rawMessages = await db
-    .select({
-      senderId: messages.senderId,
-      content: messages.content,
-      contentFormat: messages.contentFormat,
-      createdAt: messages.createdAt,
-    })
-    .from(messages)
-    .where(
-      and(
-        eq(messages.conversationId, input.conversationId),
-        isNull(messages.deletedAt),
-      ),
-    )
-    .orderBy(desc(messages.createdAt))
-    .limit(limit);
+  const [rawMessages, contextSummary] = await Promise.all([
+    db
+      .select({
+        senderId: messages.senderId,
+        content: messages.content,
+        contentFormat: messages.contentFormat,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.conversationId, input.conversationId),
+          isNull(messages.deletedAt),
+        ),
+      )
+      .orderBy(desc(messages.createdAt))
+      .limit(limit),
+    getCompletedContextSummary(applicationId),
+  ]);
 
   const orderedMessages = rawMessages.reverse().map(enrichMessage);
   const contextMessages = buildContext(orderedMessages, input.operatorId);
   const systemPrompt = buildSystemPrompt({
     action: "generate",
     tenantName: input.tenantName,
+    contextSummary,
   });
 
-  const startTime = Date.now();
-  let lastError: unknown = null;
-  const maxAttempts = 2;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      if (attempt > 0) {
-        await sleep(1000);
-      }
-
-      const result = await provider.generateText({
-        systemPrompt,
-        messages: contextMessages,
-        model,
-        abortSignal: input.abortSignal,
-      });
-
-      const latencyMs = Date.now() - startTime;
-
-      if (result.finishReason === "content-filter") {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "generate",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: result.usage.promptTokens,
-          outputTokens: result.usage.completionTokens,
-          latencyMs,
-          finishReason: result.finishReason,
-          status: "content_filtered",
-        });
-        throw new AIContentFilteredError(
-          "AI response was blocked by content filter",
-        );
-      }
-
-      if (!result.text || result.text.trim() === "") {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "generate",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: result.usage.promptTokens,
-          outputTokens: result.usage.completionTokens,
-          latencyMs,
-          finishReason: result.finishReason,
-          status: "empty",
-        });
-        throw new AIEmptyResponseError("AI returned an empty response");
-      }
-
-      await logUsage({
-        tenantId: input.tenantId,
-        userId: input.operatorId,
-        action: "generate",
-        conversationId: input.conversationId,
-        model,
-        inputTokens: result.usage.promptTokens,
-        outputTokens: result.usage.completionTokens,
-        latencyMs,
-        finishReason: result.finishReason,
-        status: "success",
-      });
-
-      return { text: sanitizeAiMarkdown(result.text) };
-    } catch (error) {
-      lastError = error;
-
-      if (
-        error instanceof AIEmptyResponseError ||
-        error instanceof AIContentFilteredError
-      ) {
-        throw error;
-      }
-
-      if (error instanceof Error && error.name === "AbortError") {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "generate",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: "aborted",
-        });
-        throw error;
-      }
-
-      if (!isRetryable(error) || attempt === maxAttempts - 1) {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "generate",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: error instanceof AITimeoutError ? "timeout" : "provider_error",
-        });
-        throw error;
-      }
-    }
-  }
-
-  throw lastError;
+  return executeAI({
+    provider,
+    systemPrompt,
+    messages: contextMessages,
+    action: "generate",
+    tenantId: input.tenantId,
+    userId: input.operatorId,
+    conversationId: input.conversationId,
+    model,
+    abortSignal: input.abortSignal,
+  });
 }
 
 const IMPROVE_CONTEXT_LIMIT = 3;
@@ -263,27 +145,30 @@ const IMPROVE_CONTEXT_LIMIT = 3;
 export async function improveMessage(
   input: ImproveMessageInput,
 ): Promise<ImproveMessageResult> {
-  await verifyConversationOwnership(input.conversationId, input.tenantId);
+  const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
 
   const model = env.AI_MODEL;
   const provider = createAIProvider(model, env.GROQ_API_KEY);
 
-  const rawMessages = await db
-    .select({
-      senderId: messages.senderId,
-      content: messages.content,
-      contentFormat: messages.contentFormat,
-      createdAt: messages.createdAt,
-    })
-    .from(messages)
-    .where(
-      and(
-        eq(messages.conversationId, input.conversationId),
-        isNull(messages.deletedAt),
-      ),
-    )
-    .orderBy(desc(messages.createdAt))
-    .limit(IMPROVE_CONTEXT_LIMIT);
+  const [rawMessages, contextSummary] = await Promise.all([
+    db
+      .select({
+        senderId: messages.senderId,
+        content: messages.content,
+        contentFormat: messages.contentFormat,
+        createdAt: messages.createdAt,
+      })
+      .from(messages)
+      .where(
+        and(
+          eq(messages.conversationId, input.conversationId),
+          isNull(messages.deletedAt),
+        ),
+      )
+      .orderBy(desc(messages.createdAt))
+      .limit(IMPROVE_CONTEXT_LIMIT),
+    getCompletedContextSummary(applicationId),
+  ]);
 
   const orderedMessages = rawMessages.reverse().map(enrichMessage);
   const contextMessages = buildContext(orderedMessages, input.operatorId);
@@ -296,120 +181,20 @@ export async function improveMessage(
   const systemPrompt = buildSystemPrompt({
     action: "improve",
     tenantName: input.tenantName,
+    contextSummary,
   });
 
-  const startTime = Date.now();
-  let lastError: unknown = null;
-  const maxAttempts = 2;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    try {
-      if (attempt > 0) {
-        await sleep(1000);
-      }
-
-      const result = await provider.generateText({
-        systemPrompt,
-        messages: contextMessages,
-        model,
-        abortSignal: input.abortSignal,
-      });
-
-      const latencyMs = Date.now() - startTime;
-
-      if (result.finishReason === "content-filter") {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "improve",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: result.usage.promptTokens,
-          outputTokens: result.usage.completionTokens,
-          latencyMs,
-          finishReason: result.finishReason,
-          status: "content_filtered",
-        });
-        throw new AIContentFilteredError(
-          "AI response was blocked by content filter",
-        );
-      }
-
-      if (!result.text || result.text.trim() === "") {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "improve",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: result.usage.promptTokens,
-          outputTokens: result.usage.completionTokens,
-          latencyMs,
-          finishReason: result.finishReason,
-          status: "empty",
-        });
-        throw new AIEmptyResponseError("AI returned an empty response");
-      }
-
-      await logUsage({
-        tenantId: input.tenantId,
-        userId: input.operatorId,
-        action: "improve",
-        conversationId: input.conversationId,
-        model,
-        inputTokens: result.usage.promptTokens,
-        outputTokens: result.usage.completionTokens,
-        latencyMs,
-        finishReason: result.finishReason,
-        status: "success",
-      });
-
-      return { text: sanitizeAiMarkdown(result.text) };
-    } catch (error) {
-      lastError = error;
-
-      if (
-        error instanceof AIEmptyResponseError ||
-        error instanceof AIContentFilteredError
-      ) {
-        throw error;
-      }
-
-      if (error instanceof Error && error.name === "AbortError") {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "improve",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: "aborted",
-        });
-        throw error;
-      }
-
-      if (!isRetryable(error) || attempt === maxAttempts - 1) {
-        await logUsage({
-          tenantId: input.tenantId,
-          userId: input.operatorId,
-          action: "improve",
-          conversationId: input.conversationId,
-          model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: error instanceof AITimeoutError ? "timeout" : "provider_error",
-        });
-        throw error;
-      }
-    }
-  }
-
-  throw lastError;
+  return executeAI({
+    provider,
+    systemPrompt,
+    messages: contextMessages,
+    action: "improve",
+    tenantId: input.tenantId,
+    userId: input.operatorId,
+    conversationId: input.conversationId,
+    model,
+    abortSignal: input.abortSignal,
+  });
 }
 
 type GetAiUsageLogsInput = {

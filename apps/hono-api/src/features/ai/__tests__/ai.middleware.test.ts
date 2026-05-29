@@ -27,7 +27,8 @@ function chainMock(result: unknown) {
   return chain;
 }
 
-const { requireAiFeature, createAiRateLimitMiddleware, _testGetRateLimitStore, QUOTA_EXCLUDED_ACTIONS } = await import("../ai.middleware.js");
+const { requireAiFeature, createAiRateLimitMiddleware, QUOTA_EXCLUDED_ACTIONS } = await import("../ai.middleware.js");
+const { InMemoryRateLimitStore } = await import("../ai.rateLimit.js");
 
 function createMemberAuth(plan: string, organizationId = "org-1") {
   return {
@@ -140,10 +141,14 @@ describe("requireAiFeature", () => {
 });
 
 describe("createAiRateLimitMiddleware - lazy cleanup", () => {
+  let store: InstanceType<typeof InMemoryRateLimitStore>;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    const store = _testGetRateLimitStore();
-    store.clear();
+    store = new InMemoryRateLimitStore([
+      { windowMs: 60_000, maxRequests: 10 },
+      { windowMs: 86_400_000, maxRequests: 250 },
+    ]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetTenantAuth.mockImplementation((c: any) => c.get("auth"));
   });
@@ -155,65 +160,44 @@ describe("createAiRateLimitMiddleware - lazy cleanup", () => {
       c.set("auth", createMemberAuth("PREMIUM", tenantId));
       return next();
     });
-    app.use("*", createAiRateLimitMiddleware());
+    app.use("*", createAiRateLimitMiddleware(store));
     app.get("/test", (c) => c.json({ ok: true }));
     return app;
   }
 
-  it("cleans up expired windows for a tenant on access", async () => {
-    const store = _testGetRateLimitStore();
-    const pastTime = Date.now() - 100_000;
-
-    store.set("org-expired", [
-      { count: 5, resetAt: pastTime },
-      { count: 100, resetAt: pastTime },
-    ]);
+  it("resets counts after window expiration", async () => {
+    vi.useFakeTimers();
+    const now = Date.now();
 
     const app = createRateLimitApp("org-expired");
+    for (let i = 0; i < 10; i++) {
+      await app.request("/test");
+    }
+
+    const blocked = await app.request("/test");
+    expect(blocked.status).toBe(429);
+
+    vi.setSystemTime(now + 61_000);
     const res = await app.request("/test");
     expect(res.status).toBe(200);
 
-    const windows = store.get("org-expired")!;
-    expect(windows[0]!.count).toBe(1);
-    expect(windows[1]!.count).toBe(1);
+    vi.useRealTimers();
   });
 
-  it("removes tenant key from Map when all windows are expired and no new request", async () => {
-    const store = _testGetRateLimitStore();
-    const pastTime = Date.now() - 100_000;
-
-    store.set("org-stale", [
-      { count: 5, resetAt: pastTime },
-      { count: 100, resetAt: pastTime },
-    ]);
-
-    expect(store.has("org-stale")).toBe(true);
-
-    const app = createRateLimitApp("org-active");
-    await app.request("/test");
-
-    expect(store.has("org-stale")).toBe(true);
-
-    const appStale = createRateLimitApp("org-stale");
-    await appStale.request("/test");
-
-    expect(store.has("org-stale")).toBe(true);
-    const windows = store.get("org-stale")!;
-    expect(windows[0]!.count).toBe(1);
-  });
-
-  it("does not use setInterval or background timers", () => {
-    expect(_testGetRateLimitStore).toBeDefined();
-    const store = _testGetRateLimitStore();
-    expect(store).toBeInstanceOf(Map);
+  it("uses in-memory store by default (no setInterval)", () => {
+    expect(store).toBeInstanceOf(InMemoryRateLimitStore);
   });
 });
 
 describe("createAiRateLimitMiddleware - enforcement and tenant isolation", () => {
+  let store: InstanceType<typeof InMemoryRateLimitStore>;
+
   beforeEach(() => {
     vi.clearAllMocks();
-    const store = _testGetRateLimitStore();
-    store.clear();
+    store = new InMemoryRateLimitStore([
+      { windowMs: 60_000, maxRequests: 10 },
+      { windowMs: 86_400_000, maxRequests: 250 },
+    ]);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     mockGetTenantAuth.mockImplementation((c: any) => c.get("auth"));
   });
@@ -225,7 +209,7 @@ describe("createAiRateLimitMiddleware - enforcement and tenant isolation", () =>
       c.set("auth", createMemberAuth("PREMIUM", tenantId));
       return next();
     });
-    app.use("*", createAiRateLimitMiddleware());
+    app.use("*", createAiRateLimitMiddleware(store));
     app.get("/test", (c) => c.json({ ok: true }));
     return app;
   }
