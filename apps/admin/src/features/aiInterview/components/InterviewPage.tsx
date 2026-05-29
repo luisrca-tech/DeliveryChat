@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Navigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -133,6 +134,16 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
       <div className="p-6 text-sm text-destructive">
         Unable to load the interview.
       </div>
+    );
+  }
+
+  if (data.status === "completed" && !finish.isPending && !retrySummary.isPending) {
+    return (
+      <Navigate
+        to="/applications/$applicationId/ai-context"
+        params={{ applicationId }}
+        replace
+      />
     );
   }
 

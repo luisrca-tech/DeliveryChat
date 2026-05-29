@@ -18,6 +18,7 @@ import { completeBodySchema, turnsBodySchema } from "./schemas.js";
 import {
   findOwnedApplication,
   getInterviewProvider,
+  getUserName,
   mapInterviewError,
 } from "./helpers.js";
 
@@ -38,6 +39,21 @@ export const aiInterviewRoute = new Hono()
       const row = await getInterviewContext(applicationId);
       if (!row) {
         return c.json({ status: "not_started" as const });
+      }
+
+      if (row.status === "completed") {
+        const completedByName = row.completedBy
+          ? await getUserName(row.completedBy)
+          : null;
+        return c.json({
+          status: row.status,
+          currentTurn: row.currentTurn,
+          interviewLog: row.interviewLog,
+          contextSummary: row.contextSummary,
+          completedBy: row.completedBy,
+          completedByName,
+          completedAt: row.completedAt,
+        });
       }
 
       return c.json({

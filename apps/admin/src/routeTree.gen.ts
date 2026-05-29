@@ -28,6 +28,7 @@ import { Route as SystemSettingsAiUsageRouteImport } from './routes/_system/sett
 import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
 import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
 import { Route as SystemApplicationsApplicationIdAiInterviewRouteImport } from './routes/_system/applications/$applicationId/ai-interview'
+import { Route as SystemApplicationsApplicationIdAiContextRouteImport } from './routes/_system/applications/$applicationId/ai-context'
 
 const SystemRoute = SystemRouteImport.update({
   id: '/_system',
@@ -125,6 +126,12 @@ const SystemApplicationsApplicationIdAiInterviewRoute =
     path: '/$applicationId/ai-interview',
     getParentRoute: () => SystemApplicationsRoute,
   } as any)
+const SystemApplicationsApplicationIdAiContextRoute =
+  SystemApplicationsApplicationIdAiContextRouteImport.update({
+    id: '/$applicationId/ai-context',
+    path: '/$applicationId/ai-context',
+    getParentRoute: () => SystemApplicationsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/accept-invitation': typeof PublicAcceptInvitationRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
+  '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 export interface FileRoutesByTo {
@@ -162,6 +170,7 @@ export interface FileRoutesByTo {
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/settings': typeof SystemSettingsIndexRoute
+  '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 export interface FileRoutesById {
@@ -184,6 +193,7 @@ export interface FileRoutesById {
   '/_system/settings/members': typeof SystemSettingsMembersRoute
   '/_system/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
   '/_system/settings/': typeof SystemSettingsIndexRoute
+  '/_system/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/_system/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 export interface FileRouteTypes {
@@ -205,6 +215,7 @@ export interface FileRouteTypes {
     | '/settings/members'
     | '/settings/rate-limits'
     | '/settings'
+    | '/applications/$applicationId/ai-context'
     | '/applications/$applicationId/ai-interview'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '/settings/members'
     | '/settings/rate-limits'
     | '/settings'
+    | '/applications/$applicationId/ai-context'
     | '/applications/$applicationId/ai-interview'
   id:
     | '__root__'
@@ -245,6 +257,7 @@ export interface FileRouteTypes {
     | '/_system/settings/members'
     | '/_system/settings/rate-limits'
     | '/_system/settings/'
+    | '/_system/applications/$applicationId/ai-context'
     | '/_system/applications/$applicationId/ai-interview'
   fileRoutesById: FileRoutesById
 }
@@ -388,6 +401,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemApplicationsApplicationIdAiInterviewRouteImport
       parentRoute: typeof SystemApplicationsRoute
     }
+    '/_system/applications/$applicationId/ai-context': {
+      id: '/_system/applications/$applicationId/ai-context'
+      path: '/$applicationId/ai-context'
+      fullPath: '/applications/$applicationId/ai-context'
+      preLoaderRoute: typeof SystemApplicationsApplicationIdAiContextRouteImport
+      parentRoute: typeof SystemApplicationsRoute
+    }
   }
 }
 
@@ -409,10 +429,13 @@ const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
 interface SystemApplicationsRouteChildren {
+  SystemApplicationsApplicationIdAiContextRoute: typeof SystemApplicationsApplicationIdAiContextRoute
   SystemApplicationsApplicationIdAiInterviewRoute: typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 
 const SystemApplicationsRouteChildren: SystemApplicationsRouteChildren = {
+  SystemApplicationsApplicationIdAiContextRoute:
+    SystemApplicationsApplicationIdAiContextRoute,
   SystemApplicationsApplicationIdAiInterviewRoute:
     SystemApplicationsApplicationIdAiInterviewRoute,
 }

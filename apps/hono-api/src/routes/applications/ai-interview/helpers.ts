@@ -2,6 +2,7 @@ import type { Context } from "hono";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "../../../db/index.js";
 import { applications } from "../../../db/schema/applications.js";
+import { user } from "../../../db/schema/users.js";
 import { env } from "../../../env.js";
 import { mapAiErrorToResponse } from "../../../features/ai/ai.errorMapper.js";
 import {
@@ -42,6 +43,15 @@ export async function findOwnedApplication(
     )
     .limit(1);
   return rows[0] ?? null;
+}
+
+export async function getUserName(userId: string): Promise<string | null> {
+  const rows = await db
+    .select({ name: user.name })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  return rows[0]?.name ?? null;
 }
 
 export function mapInterviewError(c: Context, error: unknown, label: string) {

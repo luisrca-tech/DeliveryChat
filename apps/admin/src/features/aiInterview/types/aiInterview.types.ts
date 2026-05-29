@@ -16,6 +16,10 @@ export type InterviewStateActive = {
   status: "in_progress" | "completed";
   currentTurn: number;
   interviewLog: InterviewLogEntry[];
+  contextSummary?: string | null;
+  completedBy?: string | null;
+  completedByName?: string | null;
+  completedAt?: string | null;
 };
 
 export type InterviewState = InterviewStateNotStarted | InterviewStateActive;

@@ -18,14 +18,20 @@ vi.mock("../../../../env.js", () => ({
 // The route's findOwnedApplication does a select->from->where->limit chain.
 // We mock db.select to return that chain, configurable per test.
 const ownedApplicationRows: { id: string }[] = [];
+const userRows: { name: string }[] = [];
+let selectMode: "application" | "user" = "application";
 const dbMock = {
-  select: vi.fn(() => ({
-    from: () => ({
-      where: () => ({
-        limit: async () => ownedApplicationRows,
+  select: vi.fn((shape?: Record<string, unknown>) => {
+    selectMode = shape && "name" in shape ? "user" : "application";
+    return {
+      from: () => ({
+        where: () => ({
+          limit: async () =>
+            selectMode === "user" ? userRows : ownedApplicationRows,
+        }),
       }),
-    }),
-  })),
+    };
+  }),
 };
 
 vi.mock("../../../../db/index.js", () => ({ db: dbMock }));
@@ -36,6 +42,10 @@ vi.mock("../../../../db/schema/applications.js", () => ({
     organizationId: "organizationId",
     deletedAt: "deletedAt",
   },
+}));
+
+vi.mock("../../../../db/schema/users.js", () => ({
+  user: { id: "id", name: "name" },
 }));
 
 let mockAuthContext:
@@ -192,6 +202,7 @@ beforeEach(() => {
   aiFeatureAllowed = true;
   ownedApplicationRows.length = 0;
   ownedApplicationRows.push({ id: APP_ID });
+  userRows.length = 0;
 });
 
 describe("GET /applications/:applicationId/ai-interview", () => {
@@ -219,6 +230,52 @@ describe("GET /applications/:applicationId/ai-interview", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ status: "not_started" });
+  });
+
+  it("returns completed metadata when status is completed", async () => {
+    userRows.push({ name: "Jane Admin" });
+    mockGetInterviewContext.mockResolvedValue({
+      status: "completed",
+      currentTurn: 9,
+      interviewLog: [{ role: "assistant", content: "Done!" }],
+      contextSummary: "# Summary\n\nAll good.",
+      completedBy: USER_ID,
+      completedAt: "2026-05-29T12:00:00.000Z",
+    });
+    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({
+      status: "completed",
+      currentTurn: 9,
+      interviewLog: [{ role: "assistant", content: "Done!" }],
+      contextSummary: "# Summary\n\nAll good.",
+      completedBy: USER_ID,
+      completedByName: "Jane Admin",
+      completedAt: "2026-05-29T12:00:00.000Z",
+    });
+  });
+
+  it("omits completed metadata when status is in_progress", async () => {
+    mockGetInterviewContext.mockResolvedValue({
+      status: "in_progress",
+      currentTurn: 3,
+      interviewLog: [{ role: "assistant", content: "Q?" }],
+      contextSummary: null,
+      completedBy: null,
+      completedAt: null,
+    });
+    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({
+      status: "in_progress",
+      currentTurn: 3,
+      interviewLog: [{ role: "assistant", content: "Q?" }],
+    });
+    expect(body).not.toHaveProperty("contextSummary");
+    expect(body).not.toHaveProperty("completedBy");
+    expect(body).not.toHaveProperty("completedAt");
   });
 
   it("returns persisted state when row exists", async () => {
