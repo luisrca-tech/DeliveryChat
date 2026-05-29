@@ -1,3 +1,8 @@
+import type {
+  CoreTopic,
+  InterviewContextRow,
+} from "./ai.interview.schema.js";
+
 export class AIProviderError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
@@ -59,5 +64,31 @@ export class AIQuotaExceededError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
     super(message, options);
     this.name = "AIQuotaExceededError";
+  }
+}
+
+export class MissingTopicsError extends Error {
+  readonly missing: CoreTopic[];
+  readonly code = "interview_checklist_incomplete";
+
+  constructor(missing: CoreTopic[]) {
+    super(`interview_checklist_incomplete: missing=${missing.join(",")}`);
+    this.name = "MissingTopicsError";
+    this.missing = missing;
+  }
+}
+
+export class TurnConflictError extends Error {
+  readonly currentTurn: number;
+  readonly status: InterviewContextRow["status"] | "not_started";
+
+  constructor(
+    currentTurn: number,
+    status: InterviewContextRow["status"] | "not_started",
+  ) {
+    super(`turn_conflict: current=${currentTurn} status=${status}`);
+    this.name = "TurnConflictError";
+    this.currentTurn = currentTurn;
+    this.status = status;
   }
 }
