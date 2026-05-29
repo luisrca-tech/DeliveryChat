@@ -7,12 +7,20 @@ import {
   AIEmptyResponseError,
   AIContentFilteredError,
   AIConversationNotFoundError,
+  AIApplicationRequiredError,
+  AINotConfiguredError,
   AIQuotaExceededError,
 } from "./ai.errors.js";
 
 export function mapAiErrorToResponse(c: Context, error: unknown): Response | null {
   if (error instanceof AIConversationNotFoundError) {
     return jsonError(c, HTTP_STATUS.NOT_FOUND, "conversation_not_found", "Conversation not found.");
+  }
+  if (error instanceof AIApplicationRequiredError) {
+    return jsonError(c, HTTP_STATUS.UNPROCESSABLE_ENTITY, "ai_application_required", "AI requires a conversation linked to an application.");
+  }
+  if (error instanceof AINotConfiguredError) {
+    return jsonError(c, HTTP_STATUS.FORBIDDEN, "ai_not_configured", "AI is not available for this application. Contact your admin to complete the AI onboarding interview.");
   }
   if (error instanceof AITimeoutError) {
     return jsonError(c, HTTP_STATUS.GATEWAY_TIMEOUT, "ai_timeout", "AI provider timed out. Please try again.");

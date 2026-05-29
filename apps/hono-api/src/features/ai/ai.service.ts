@@ -13,6 +13,8 @@ import { enrichMessage } from "../chat/chat.service.js";
 import { executeAI } from "./ai.executor.js";
 import {
   AIConversationNotFoundError,
+  AIApplicationRequiredError,
+  AINotConfiguredError,
 } from "./ai.errors.js";
 
 type GenerateReplyInput = {
@@ -65,11 +67,19 @@ async function verifyConversationOwnership(
   return { applicationId: result[0]!.applicationId };
 }
 
-export async function getCompletedContextSummary(
+function requireApplicationId(
   applicationId: string | null,
-): Promise<string | undefined> {
-  if (!applicationId) return undefined;
+): asserts applicationId is string {
+  if (!applicationId) {
+    throw new AIApplicationRequiredError(
+      "AI requires a conversation linked to an application.",
+    );
+  }
+}
 
+async function requireApplicationAiContext(
+  applicationId: string,
+): Promise<string | undefined> {
   const result = await db
     .select({
       aiEnabled: applications.aiEnabled,
@@ -86,7 +96,12 @@ export async function getCompletedContextSummary(
     .where(eq(applications.id, applicationId))
     .limit(1);
 
-  if (!result[0] || !result[0].aiEnabled) return undefined;
+  if (!result[0] || !result[0].aiEnabled) {
+    throw new AINotConfiguredError(
+      "AI is not available for this application. Contact your admin to complete the AI onboarding interview.",
+    );
+  }
+
   return result[0].contextSummary ?? undefined;
 }
 
@@ -94,6 +109,7 @@ export async function generateReply(
   input: GenerateReplyInput,
 ): Promise<GenerateReplyResult> {
   const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
+  requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;
   const provider = createAIProvider(model, env.GROQ_API_KEY);
@@ -116,7 +132,7 @@ export async function generateReply(
       )
       .orderBy(desc(messages.createdAt))
       .limit(limit),
-    getCompletedContextSummary(applicationId),
+    requireApplicationAiContext(applicationId),
   ]);
 
   const orderedMessages = rawMessages.reverse().map(enrichMessage);
@@ -146,6 +162,7 @@ export async function improveMessage(
   input: ImproveMessageInput,
 ): Promise<ImproveMessageResult> {
   const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
+  requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;
   const provider = createAIProvider(model, env.GROQ_API_KEY);
@@ -167,7 +184,7 @@ export async function improveMessage(
       )
       .orderBy(desc(messages.createdAt))
       .limit(IMPROVE_CONTEXT_LIMIT),
-    getCompletedContextSummary(applicationId),
+    requireApplicationAiContext(applicationId),
   ]);
 
   const orderedMessages = rawMessages.reverse().map(enrichMessage);

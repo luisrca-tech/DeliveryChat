@@ -8,6 +8,8 @@ import {
   AIEmptyResponseError,
   AIContentFilteredError,
   AIConversationNotFoundError,
+  AIApplicationRequiredError,
+  AINotConfiguredError,
   AIQuotaExceededError,
 } from "../ai.errors.js";
 
@@ -38,6 +40,10 @@ function createError(type: string): Error {
       return new AIContentFilteredError("filtered");
     case "conversation_not_found":
       return new AIConversationNotFoundError("not found");
+    case "application_required":
+      return new AIApplicationRequiredError("no application");
+    case "not_configured":
+      return new AINotConfiguredError("not configured");
     case "quota_exceeded":
       return new AIQuotaExceededError("quota");
     case "provider":
@@ -108,6 +114,27 @@ describe("mapAiErrorToResponse", () => {
     expect(res.status).toBe(404);
     const body = await res.json();
     expect(body.error).toBe("conversation_not_found");
+  });
+
+  it("maps AIApplicationRequiredError to 422 Unprocessable Entity", async () => {
+    const { app } = createTestContext();
+    const res = await app.request("/test", {
+      headers: { "x-test-error": "application_required" },
+    });
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toBe("ai_application_required");
+  });
+
+  it("maps AINotConfiguredError to 403 Forbidden", async () => {
+    const { app } = createTestContext();
+    const res = await app.request("/test", {
+      headers: { "x-test-error": "not_configured" },
+    });
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe("ai_not_configured");
+    expect(body.message).toContain("AI onboarding interview");
   });
 
   it("maps AIProviderError to 502 Bad Gateway", async () => {

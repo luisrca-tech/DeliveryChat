@@ -62,10 +62,11 @@ function mockInsertChain() {
   return chain;
 }
 
-const { generateReply, improveMessage, getCompletedContextSummary } = await import("../ai.service.js");
+const { generateReply, improveMessage } = await import("../ai.service.js");
 
-const OWNERSHIP_OK = [{ id: "conv-1", applicationId: null }];
 const OWNERSHIP_WITH_APP = [{ id: "conv-1", applicationId: "app-1" }];
+const OWNERSHIP_NO_APP = [{ id: "conv-1", applicationId: null }];
+const AI_ENABLED_NO_SUMMARY = [{ aiEnabled: true, contextSummary: null }];
 
 describe("generateReply", () => {
   const baseInput = {
@@ -80,16 +81,19 @@ describe("generateReply", () => {
   });
 
   it("returns generated text on success", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "I need help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "I need help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -108,16 +112,19 @@ describe("generateReply", () => {
   });
 
   it("sanitizes AI output by stripping HTML tags and code blocks", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -137,16 +144,19 @@ describe("generateReply", () => {
   });
 
   it("logs usage after successful generation", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Hello",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Hello",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -164,16 +174,19 @@ describe("generateReply", () => {
   });
 
   it("retries once on transient provider error", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const { AIProviderError } = await import("../ai.errors.js");
@@ -196,16 +209,19 @@ describe("generateReply", () => {
   });
 
   it("does not retry on AIProviderRateLimitError", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const { AIProviderRateLimitError } = await import("../ai.errors.js");
@@ -221,16 +237,19 @@ describe("generateReply", () => {
   });
 
   it("retries once on timeout then throws with status 'timeout'", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
 
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
@@ -252,16 +271,19 @@ describe("generateReply", () => {
   });
 
   it("recovers on second attempt after timeout", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const { AITimeoutError } = await import("../ai.errors.js");
@@ -284,16 +306,19 @@ describe("generateReply", () => {
   });
 
   it("throws AIEmptyResponseError for empty text with stop finish reason", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -310,16 +335,19 @@ describe("generateReply", () => {
   });
 
   it("throws AIContentFilteredError when finish reason is content-filter", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -338,16 +366,19 @@ describe("generateReply", () => {
   });
 
   it("logs status 'empty' for empty response", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
 
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
@@ -398,16 +429,19 @@ describe("generateReply", () => {
   });
 
   it("throws AbortError and logs status 'aborted' when signal is aborted", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
 
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
@@ -431,16 +465,19 @@ describe("generateReply", () => {
   });
 
   it("does not count aborted request against monthly cap (no 'success' status logged)", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Help",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Help",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
 
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
@@ -482,8 +519,8 @@ describe("improveMessage", () => {
 
   it("returns improved text on success", async () => {
     mockSelect
-      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
-      .mockReturnValue(
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
         chainMock([
           {
             senderId: "visitor-1",
@@ -492,7 +529,8 @@ describe("improveMessage", () => {
             createdAt: "2026-05-25T11:55:00Z",
           },
         ]),
-      );
+      )
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -512,8 +550,9 @@ describe("improveMessage", () => {
 
   it("includes operator draft in the context messages", async () => {
     mockSelect
-      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
-      .mockReturnValue(chainMock([]));
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -535,8 +574,9 @@ describe("improveMessage", () => {
 
   it("uses the improve system prompt (rewrite, not reply)", async () => {
     mockSelect
-      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
-      .mockReturnValue(chainMock([]));
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -559,8 +599,9 @@ describe("improveMessage", () => {
 
   it("logs usage with action 'improve'", async () => {
     mockSelect
-      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
-      .mockReturnValue(chainMock([]));
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
 
@@ -584,8 +625,9 @@ describe("improveMessage", () => {
 
   it("fetches only 3 messages for context (not the full limit)", async () => {
     mockSelect
-      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
-      .mockReturnValue(chainMock([]));
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {
@@ -606,8 +648,9 @@ describe("improveMessage", () => {
 
   it("retries once on transient provider error", async () => {
     mockSelect
-      .mockReturnValueOnce(chainMock(OWNERSHIP_OK))
-      .mockReturnValue(chainMock([]));
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const { AIProviderError } = await import("../ai.errors.js");
@@ -650,49 +693,87 @@ describe("improveMessage", () => {
   });
 });
 
-describe("getCompletedContextSummary", () => {
+describe("AI blocking for unconfigured apps", () => {
+  const baseInput = {
+    conversationId: "conv-1",
+    operatorId: "op-1",
+    tenantId: "tenant-1",
+    tenantName: "Acme Corp",
+  };
+
   beforeEach(() => {
     vi.resetAllMocks();
   });
 
-  it("returns undefined when applicationId is null", async () => {
-    const result = await getCompletedContextSummary(null);
-    expect(result).toBeUndefined();
-    expect(mockSelect).not.toHaveBeenCalled();
-  });
+  it("throws AIApplicationRequiredError when conversation has no applicationId", async () => {
+    mockSelect.mockReturnValueOnce(chainMock(OWNERSHIP_NO_APP));
 
-  it("returns undefined when application has aiEnabled=false", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([{ aiEnabled: false, contextSummary: "Some summary" }]),
+    const { AIApplicationRequiredError } = await import("../ai.errors.js");
+    await expect(generateReply(baseInput)).rejects.toThrow(
+      AIApplicationRequiredError,
     );
-
-    const result = await getCompletedContextSummary("app-1");
-    expect(result).toBeUndefined();
   });
 
-  it("returns contextSummary when aiEnabled and context is completed", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([{ aiEnabled: true, contextSummary: "We sell pizza." }]),
+  it("throws AINotConfiguredError when application has aiEnabled=false", async () => {
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([{ senderId: "v-1", content: "Hi", contentFormat: "plain", createdAt: "2026-05-25T11:55:00Z" }]))
+      .mockReturnValueOnce(chainMock([{ aiEnabled: false, contextSummary: null }]));
+
+    const { AINotConfiguredError } = await import("../ai.errors.js");
+    await expect(generateReply(baseInput)).rejects.toThrow(
+      AINotConfiguredError,
     );
-
-    const result = await getCompletedContextSummary("app-1");
-    expect(result).toBe("We sell pizza.");
   });
 
-  it("returns undefined when aiEnabled but no completed context", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([{ aiEnabled: true, contextSummary: null }]),
+  it("throws AINotConfiguredError when application not found in DB", async () => {
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([{ senderId: "v-1", content: "Hi", contentFormat: "plain", createdAt: "2026-05-25T11:55:00Z" }]))
+      .mockReturnValueOnce(chainMock([]));
+
+    const { AINotConfiguredError } = await import("../ai.errors.js");
+    await expect(generateReply(baseInput)).rejects.toThrow(
+      AINotConfiguredError,
     );
-
-    const result = await getCompletedContextSummary("app-1");
-    expect(result).toBeUndefined();
   });
 
-  it("returns undefined when application not found", async () => {
-    mockSelect.mockReturnValue(chainMock([]));
+  it("throws AIApplicationRequiredError for improveMessage when no applicationId", async () => {
+    mockSelect.mockReturnValueOnce(chainMock(OWNERSHIP_NO_APP));
 
-    const result = await getCompletedContextSummary("nonexistent");
-    expect(result).toBeUndefined();
+    const { AIApplicationRequiredError } = await import("../ai.errors.js");
+    await expect(
+      improveMessage({ ...baseInput, draft: "some draft" }),
+    ).rejects.toThrow(AIApplicationRequiredError);
+  });
+
+  it("throws AINotConfiguredError for improveMessage when aiEnabled=false", async () => {
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock([{ aiEnabled: false, contextSummary: null }]));
+
+    const { AINotConfiguredError } = await import("../ai.errors.js");
+    await expect(
+      improveMessage({ ...baseInput, draft: "some draft" }),
+    ).rejects.toThrow(AINotConfiguredError);
+  });
+
+  it("does not call LLM provider when AI is blocked", async () => {
+    mockSelect.mockReturnValueOnce(chainMock(OWNERSHIP_NO_APP));
+
+    const mockProvider = {
+      generateText: vi.fn(),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    try {
+      await generateReply(baseInput);
+    } catch {
+      // expected
+    }
+
+    expect(mockProvider.generateText).not.toHaveBeenCalled();
   });
 });
 
@@ -741,17 +822,20 @@ describe("generateReply with application context", () => {
     expect(callArgs.systemPrompt).toContain("We deliver pizza fast.");
   });
 
-  it("omits contextSummary when conversation has no application", async () => {
-    mockSelect.mockReturnValue(
-      chainMock([
-        {
-          senderId: "visitor-1",
-          content: "Hello",
-          contentFormat: "plain",
-          createdAt: "2026-05-25T11:55:00Z",
-        },
-      ]),
-    );
+  it("proceeds without context section when aiEnabled but contextSummary is null", async () => {
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "visitor-1",
+            content: "Hello",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(chainMock([{ aiEnabled: true, contextSummary: null }]));
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {

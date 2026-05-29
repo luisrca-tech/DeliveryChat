@@ -40,6 +40,20 @@ export class AIConversationNotFoundError extends Error {
   }
 }
 
+export class AIApplicationRequiredError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "AIApplicationRequiredError";
+  }
+}
+
+export class AINotConfiguredError extends Error {
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "AINotConfiguredError";
+  }
+}
+
 // Mapper fallback — primary enforcement is in the rate-limit middleware
 export class AIQuotaExceededError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
