@@ -6,18 +6,20 @@ For phase-by-phase context, see also `interview-checklist-and-completion.md` (Ph
 
 ## Module placement
 
-The engine lives in a single module: `apps/hono-api/src/features/ai/ai.interviewer.ts`. It owns:
+The interviewer is split across focused modules under `apps/hono-api/src/features/ai/`:
 
-- The interviewer system prompt
-- The `CORE_TOPICS` checklist
-- The `interviewerOutputSchema` Zod contract
-- Turn orchestration (`runBootstrapTurn`, `runAdvanceTurn`, `runCompleteInterview`)
-- Guard-rail action handling
-- Checklist union computation
-- Find-or-create row helper
-- The `MAX_TURNS` hard cap and forced-completion path
+- `ai.interview.engine.ts` — pure `InterviewTurnEngine` (`next`, `complete`, turn-cap math, guard-rail dispatch)
+- `ai.interview.guardRails.ts` — `Record<GuardRailAction, GuardRailRules>` strategy table
+- `ai.interview.schema.ts` — `interviewerOutputSchema`, `CORE_TOPICS`, `MAX_TURNS`, log-entry shapes
+- `ai.prompts.interview.ts` — `INTERVIEWER_SYSTEM_PROMPT` and `INTERVIEW_MODEL`
+- `ai.interview.repository.ts` — `InterviewRepository`: `applicationAiContext` reads/writes, optimistic-lock check, `TurnDecision` persistence
+- `ai.callRunner.ts` — shared provider call + `aiUsageLog` write + error mapping (also used by `generateReply` / `improveMessage`)
+- `ai.interview.service.ts` — orchestration glue: opens the transaction and wires repo → runner → engine
+- `ai.errors.ts` — `MissingTopicsError`, `TurnConflictError`, etc.
 
-The Hono route folder under `apps/hono-api/src/routes/applications/ai-interview/` is a thin adapter that dispatches to those helpers.
+The Hono route folder under `apps/hono-api/src/routes/applications/ai-interview/` is a thin adapter that dispatches to the service.
+
+See [`interview-module-boundaries.md`](./interview-module-boundaries.md) for the data flow diagram and extension-point guidance.
 
 ## Structured-output contract
 

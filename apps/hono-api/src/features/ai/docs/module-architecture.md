@@ -6,7 +6,14 @@ The AI feature is split into focused modules, each with a single responsibility:
 
 | Module | Responsibility |
 |--------|---------------|
-| `ai.executor.ts` | Retry loop, error classification, usage logging, and output sanitization |
+| `ai.callRunner.ts` | Shared provider call + `aiUsageLog` write + `ai.errorMapper` translation. Joins the caller's transaction. Used by `generateReply`, `improveMessage`, and the interviewer. |
+| `ai.executor.ts` | Retry loop, error classification, usage logging, and output sanitization (legacy reply/improve path) |
+| `ai.interview.engine.ts` | Pure `InterviewTurnEngine` — `next` / `complete` returning `TurnDecision` |
+| `ai.interview.guardRails.ts` | Guard-rail strategy table |
+| `ai.interview.repository.ts` | `applicationAiContext` reads/writes and optimistic-lock check |
+| `ai.interview.schema.ts` | `interviewerOutputSchema`, `CORE_TOPICS`, `MAX_TURNS` |
+| `ai.interview.service.ts` | Interview orchestration (transaction + runner + engine + repo) |
+| `ai.prompts.interview.ts` | Interview system prompt and model constant |
 | `ai.quota.ts` | Monthly quota check (plan limits + tenant overrides + usage counting) |
 | `ai.rateLimit.ts` | Per-tenant sliding window rate limiting with pluggable store interface |
 | `ai.service.ts` | Business logic orchestration (ownership, messages, context, delegation to executor) |
