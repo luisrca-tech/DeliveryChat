@@ -362,6 +362,66 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
     });
   });
 
+  it("redirect_scope guardrail leaves currentTurn unchanged and surfaces guardrailAction", async () => {
+    mockRunAdvanceTurn.mockResolvedValue({
+      row: {
+        status: "in_progress",
+        currentTurn: 2,
+        interviewLog: [
+          { role: "assistant", content: "q" },
+          { role: "user", content: "off-topic question" },
+          { role: "assistant", content: "Let's stay focused." },
+        ],
+      },
+      output: {
+        assistantMessage: "Let's stay focused.",
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        guardrailAction: "redirect_scope",
+      },
+    });
+
+    const res = await postAnswer({
+      message: "what about the weather?",
+      expectedCurrentTurn: 2,
+    });
+
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.currentTurn).toBe(2);
+    expect(body.turn.guardrailAction).toBe("redirect_scope");
+  });
+
+  it("pushback_garbage guardrail advances currentTurn and reports the action", async () => {
+    mockRunAdvanceTurn.mockResolvedValue({
+      row: {
+        status: "in_progress",
+        currentTurn: 3,
+        interviewLog: [
+          { role: "assistant", content: "q" },
+          {
+            role: "user",
+            content: "asdf",
+            garbagePushbackTopics: ["target_audience"],
+          },
+          { role: "assistant", content: "Could you elaborate?" },
+        ],
+      },
+      output: {
+        assistantMessage: "Could you elaborate?",
+        intent: "ask",
+        topicsCoveredThisTurn: ["target_audience"],
+        guardrailAction: "pushback_garbage",
+      },
+    });
+
+    const res = await postAnswer({ message: "asdf", expectedCurrentTurn: 2 });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.currentTurn).toBe(3);
+    expect(body.turn.guardrailAction).toBe("pushback_garbage");
+  });
+
   it("returns 409 turn_conflict on stale expectedCurrentTurn", async () => {
     mockRunAdvanceTurn.mockRejectedValue(
       new TurnConflictErrorMock(3, "in_progress"),
