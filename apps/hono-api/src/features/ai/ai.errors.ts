@@ -78,6 +78,17 @@ export class MissingTopicsError extends Error {
   }
 }
 
+export class SummaryGenerationFailedError extends Error {
+  readonly code = "summary_generation_failed";
+  readonly cause?: unknown;
+
+  constructor(message: string, options?: { cause?: unknown }) {
+    super(message, options);
+    this.name = "SummaryGenerationFailedError";
+    this.cause = options?.cause;
+  }
+}
+
 export class TurnConflictError extends Error {
   readonly currentTurn: number;
   readonly status: InterviewContextRow["status"] | "not_started";

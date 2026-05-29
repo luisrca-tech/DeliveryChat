@@ -88,6 +88,18 @@ export class InterviewRepository {
     return updated as InterviewContextRow;
   }
 
+  async applyContextSummary(
+    rowId: string,
+    contextSummary: string,
+  ): Promise<InterviewContextRow> {
+    const [updated] = await this.executor
+      .update(applicationAiContext)
+      .set({ contextSummary })
+      .where(eq(applicationAiContext.id, rowId))
+      .returning();
+    return updated as InterviewContextRow;
+  }
+
   async markCompleted(
     rowId: string,
     userId: string,

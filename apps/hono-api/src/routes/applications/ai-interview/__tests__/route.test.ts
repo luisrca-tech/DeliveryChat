@@ -107,6 +107,7 @@ vi.mock("../../../../features/ai/ai.middleware.js", () => ({
 const mockGetInterviewContext = vi.fn();
 const mockRunInterviewTurn = vi.fn();
 const mockRunInterviewComplete = vi.fn();
+const mockRunGenerateSummary = vi.fn();
 
 class TurnConflictErrorMock extends Error {
   readonly currentTurn: number;
@@ -129,16 +130,26 @@ class MissingTopicsErrorMock extends Error {
   }
 }
 
+class SummaryGenerationFailedErrorMock extends Error {
+  readonly code = "summary_generation_failed";
+  constructor(message: string) {
+    super(message);
+    this.name = "SummaryGenerationFailedError";
+  }
+}
+
 vi.mock("../../../../features/ai/ai.interview.service.js", () => ({
   getInterviewContext: (...args: unknown[]) => mockGetInterviewContext(...args),
   runInterviewTurn: (...args: unknown[]) => mockRunInterviewTurn(...args),
   runInterviewComplete: (...args: unknown[]) =>
     mockRunInterviewComplete(...args),
+  runGenerateSummary: (...args: unknown[]) => mockRunGenerateSummary(...args),
 }));
 
 vi.mock("../../../../features/ai/ai.errors.js", () => ({
   TurnConflictError: TurnConflictErrorMock,
   MissingTopicsError: MissingTopicsErrorMock,
+  SummaryGenerationFailedError: SummaryGenerationFailedErrorMock,
   AIProviderError: class AIProviderError extends Error {},
   AITimeoutError: class AITimeoutError extends Error {},
   AIRateLimitError: class AIRateLimitError extends Error {},
@@ -622,5 +633,79 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
     expect(res.status).toBe(409);
     const body = await res.json();
     expect(body.status).toBe("completed");
+  });
+});
+
+describe("POST /applications/:applicationId/ai-interview/generate-summary", () => {
+  async function postGenerate(appId = APP_ID) {
+    return buildApp().request(
+      `/applications/${appId}/ai-interview/generate-summary`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+      },
+    );
+  }
+
+  it("returns 401 when unauthenticated", async () => {
+    mockAuthContext = null;
+    expect((await postGenerate()).status).toBe(401);
+  });
+
+  it("returns 403 for non-admin roles", async () => {
+    mockAuthContext = operatorAuth();
+    expect((await postGenerate()).status).toBe(403);
+  });
+
+  it("returns 402 when billing is not allowed", async () => {
+    billingAllowed = false;
+    expect((await postGenerate()).status).toBe(402);
+  });
+
+  it("returns 403 when AI feature is not available", async () => {
+    aiFeatureAllowed = false;
+    expect((await postGenerate()).status).toBe(403);
+  });
+
+  it("returns 404 for cross-tenant application", async () => {
+    ownedApplicationRows.length = 0;
+    expect((await postGenerate(OTHER_APP_ID)).status).toBe(404);
+  });
+
+  it("happy path: returns persisted summary and aiEnabled=true", async () => {
+    mockRunGenerateSummary.mockResolvedValue({
+      row: {
+        status: "completed",
+        contextSummary: "# Application Context\n...",
+      },
+    });
+
+    const res = await postGenerate();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toEqual({
+      status: "completed",
+      contextSummary: "# Application Context\n...",
+      aiEnabled: true,
+    });
+    expect(mockRunGenerateSummary).toHaveBeenCalledWith(
+      expect.objectContaining({
+        applicationId: APP_ID,
+        tenantId: ORG_ID,
+        userId: USER_ID,
+      }),
+    );
+  });
+
+  it("returns 422 summary_generation_failed when generator fails", async () => {
+    mockRunGenerateSummary.mockRejectedValue(
+      new SummaryGenerationFailedErrorMock("provider boom"),
+    );
+
+    const res = await postGenerate();
+    expect(res.status).toBe(422);
+    const body = await res.json();
+    expect(body.error).toBe("summary_generation_failed");
   });
 });

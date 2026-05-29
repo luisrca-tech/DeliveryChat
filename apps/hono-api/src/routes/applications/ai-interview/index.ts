@@ -9,6 +9,7 @@ import { checkBillingStatus } from "../../../lib/middleware/billing.js";
 import { requireAiFeature } from "../../../features/ai/ai.middleware.js";
 import {
   getInterviewContext,
+  runGenerateSummary,
   runInterviewComplete,
   runInterviewTurn,
 } from "../../../features/ai/ai.interview.service.js";
@@ -121,6 +122,39 @@ export const aiInterviewRoute = new Hono()
         });
       } catch (error) {
         return mapInterviewError(c, error, "ai-interview complete");
+      }
+    },
+  )
+  .post(
+    "/:applicationId/ai-interview/generate-summary",
+    requireTenantAuth(),
+    requireRole("admin"),
+    checkBillingStatus(),
+    requireAiFeature("interview"),
+    async (c) => {
+      const applicationId = c.req.param("applicationId");
+      const { organization, user: authUser } = getTenantAuth(c);
+
+      const app = await findOwnedApplication(applicationId, organization.id);
+      if (!app) {
+        return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+      }
+
+      try {
+        const { row } = await runGenerateSummary({
+          provider: getInterviewProvider(),
+          applicationId,
+          tenantId: organization.id,
+          userId: authUser.id,
+        });
+
+        return c.json({
+          status: row.status,
+          contextSummary: row.contextSummary,
+          aiEnabled: true,
+        });
+      } catch (error) {
+        return mapInterviewError(c, error, "ai-interview generate-summary");
       }
     },
   );

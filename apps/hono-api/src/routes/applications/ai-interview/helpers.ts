@@ -6,6 +6,7 @@ import { env } from "../../../env.js";
 import { mapAiErrorToResponse } from "../../../features/ai/ai.errorMapper.js";
 import {
   MissingTopicsError,
+  SummaryGenerationFailedError,
   TurnConflictError,
 } from "../../../features/ai/ai.errors.js";
 import {
@@ -57,6 +58,13 @@ export function mapInterviewError(c: Context, error: unknown, label: string) {
   if (error instanceof MissingTopicsError) {
     return c.json(
       { error: error.code, missing: error.missing },
+      HTTP_STATUS.UNPROCESSABLE_ENTITY,
+    );
+  }
+  if (error instanceof SummaryGenerationFailedError) {
+    console.error(`${label} failed:`, error);
+    return c.json(
+      { error: error.code, message: error.message },
       HTTP_STATUS.UNPROCESSABLE_ENTITY,
     );
   }
