@@ -79,6 +79,9 @@ The system provides user-friendly error messages for all failure modes:
 - **Content filtered**: "Sorry, AI couldn't generate a suitable response."
 - **Provider unavailable**: "AI service is currently unavailable."
 
+- **Application required**: "AI requires a conversation linked to an application." (HTTP 422, error code `ai_application_required`) — the conversation is not linked to any application.
+- **AI not configured**: "AI is not available for this application. Contact your admin to complete the AI onboarding interview." (HTTP 403, error code `ai_not_configured`) — the application has not completed AI onboarding or `aiEnabled` is false.
+
 Transient errors (timeouts, provider issues) are automatically retried once on the backend before surfacing to the operator.
 
 ## AI Output Format — Constrained Markdown
@@ -139,7 +142,12 @@ Interview LLM calls are logged with `action: "interview"` but excluded from the 
 System prompts are composed from four layers:
 
 1. **Role introduction** — identifies the AI's role based on the action
-2. **Guard rails** — five safety categories (Security, Data & Honesty, Authority, Scope, Identity) applied universally
+2. **Guard rails** — five safety categories applied universally:
+   - **Security** — blocks prompt injection, system prompt leakage, and credential exposure
+   - **Data & Honesty** — prevents hallucination of facts, prices, and unverified personal data
+   - **Authority** — disallows commitments, refunds, or timeline promises on behalf of the company
+   - **Scope** — restricts responses to the application's business domain
+   - **Identity** — prevents claiming to be human or impersonating employees/brands
 3. **Action instructions** — behavior specific to `generate`, `improve`, or `interview`
 4. **Application context** — optional per-app context from the interview summary
 
