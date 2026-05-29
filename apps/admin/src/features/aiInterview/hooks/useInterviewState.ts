@@ -42,3 +42,52 @@ export function useBootstrapInterviewMutation(applicationId: string) {
     },
   });
 }
+
+type SendTurnContext = { previous: InterviewState | undefined };
+
+export function useSendInterviewTurnMutation(applicationId: string) {
+  const queryClient = useQueryClient();
+  const queryKey = aiInterviewQueryKeys.state(applicationId);
+
+  return useMutation<
+    InterviewTurnResponse,
+    Error,
+    { message: string },
+    SendTurnContext
+  >({
+    mutationFn: ({ message }) =>
+      postInterviewTurn(applicationId, { message }),
+    onMutate: async ({ message }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<InterviewState>(queryKey);
+
+      const previousLog =
+        previous && previous.status !== "not_started"
+          ? previous.interviewLog
+          : [];
+      const previousTurn =
+        previous && previous.status !== "not_started"
+          ? previous.currentTurn
+          : 0;
+
+      const optimistic: InterviewState = {
+        status: "in_progress",
+        currentTurn: previousTurn,
+        interviewLog: [...previousLog, { role: "user", content: message }],
+      };
+      queryClient.setQueryData(queryKey, optimistic);
+      return { previous };
+    },
+    onError: (_err, _vars, context) => {
+      if (context) queryClient.setQueryData(queryKey, context.previous);
+    },
+    onSuccess: (data) => {
+      const next: InterviewState = {
+        status: data.status,
+        currentTurn: data.currentTurn,
+        interviewLog: data.interviewLog,
+      };
+      queryClient.setQueryData(queryKey, next);
+    },
+  });
+}

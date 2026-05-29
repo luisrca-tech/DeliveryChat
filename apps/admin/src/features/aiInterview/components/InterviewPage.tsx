@@ -1,8 +1,10 @@
 import {
   useBootstrapInterviewMutation,
   useInterviewStateQuery,
+  useSendInterviewTurnMutation,
 } from "../hooks/useInterviewState";
 import { InterviewChatScrollback } from "./InterviewChatScrollback";
+import { InterviewComposer } from "./InterviewComposer";
 import { InterviewIntroCard } from "./InterviewIntroCard";
 
 export type InterviewPageProps = {
@@ -12,6 +14,7 @@ export type InterviewPageProps = {
 export function InterviewPage({ applicationId }: InterviewPageProps) {
   const { data, isLoading, isError } = useInterviewStateQuery(applicationId);
   const bootstrap = useBootstrapInterviewMutation(applicationId);
+  const sendTurn = useSendInterviewTurnMutation(applicationId);
 
   if (isLoading) {
     return (
@@ -42,7 +45,11 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
-      <InterviewChatScrollback log={data.interviewLog} />
+      <InterviewChatScrollback
+        log={data.interviewLog}
+        showThinkingIndicator={sendTurn.isPending}
+      />
+      <InterviewComposer mutation={sendTurn} />
     </div>
   );
 }
