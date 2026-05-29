@@ -133,6 +133,19 @@ Each application can have its own AI context, configured through an admin-driven
 - **`applicationAiContext`** table stores the interview state (`in_progress` / `completed`), the interview log (JSONB), the resulting context summary, and who completed it.
 - **`aiEnabled`** boolean on `applications` controls whether AI features are active per-app.
 
+### Summary generation & AI activation
+
+Finishing the interview and turning the support AI assistant on are two separate, explicit actions:
+
+1. **`complete`** — deterministic, no LLM call. Flips `status` to `completed` and stamps `completedBy`/`completedAt`. Leaves `applications.aiEnabled = false`. Both the normal admin Finish path and the forced turn-15 cap converge here.
+2. **`generateSummary`** — LLM call via the isolated summary generator module. Persists `contextSummary` and flips `applications.aiEnabled = true`. Re-runnable while `status === 'completed'`; a failed regeneration leaves the prior `contextSummary` intact.
+
+The summary generator logs each invocation with `action: 'interview_summary'` in `aiUsageLog` (token counts, latency, model, finish reason), and these rows are excluded from the monthly quota.
+
+Engine-side, the interviewer system prompt mentions the 8–12 finish window, and the per-turn message builder injects a conditional nudge when the upcoming turn is between 8 and 12 inclusive and all six core topics are already covered.
+
+See `apps/hono-api/src/features/ai/docs/interview-summary.md` for the full module contract, atomicity rules, and `aiUsageLog` semantics.
+
 ### Quota Exclusion
 
 Interview LLM calls are logged with `action: "interview"` but excluded from the monthly usage cap. This ensures the setup process does not consume operational AI budget.

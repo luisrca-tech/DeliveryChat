@@ -1,6 +1,7 @@
 import { GUARD_RAIL_RULES } from "./ai.interview.guardRails.js";
 import {
   computeCoveredTopics,
+  CORE_TOPICS,
   MAX_TURNS,
   missingTopics,
   type CoreTopic,
@@ -9,6 +10,9 @@ import {
   type InterviewLogEntry,
   type InterviewerOutput,
 } from "./ai.interview.schema.js";
+
+export const SOFT_FINISH_WINDOW_MIN = 8;
+export const SOFT_FINISH_WINDOW_MAX = 12;
 
 export type TurnConflictDecision = {
   kind: "conflict";
@@ -134,6 +138,18 @@ export function buildAdvanceMessages(
     role: "system",
     content: `Turn budget: this will be question ${nextTurnNumber} of ${MAX_TURNS}. Remaining after this one: ${remainingAfter}. Pace your follow-ups so every core topic is covered before the cap.`,
   });
+
+  const coveredSoFar = computeCoveredTopics(log);
+  const allTopicsCovered = coveredSoFar.size === CORE_TOPICS.length;
+  const inSoftFinishWindow =
+    nextTurnNumber >= SOFT_FINISH_WINDOW_MIN &&
+    nextTurnNumber <= SOFT_FINISH_WINDOW_MAX;
+  if (inSoftFinishWindow && allTopicsCovered) {
+    messages.push({
+      role: "system",
+      content: `All six core topics are already covered and this is turn ${nextTurnNumber} of ${MAX_TURNS} (inside the 8–12 finish window). It is acceptable to set intent='suggest_finish' for this turn if you have nothing essential left to ask.`,
+    });
+  }
 
   if (nextTurnNumber === MAX_TURNS) {
     messages.push({

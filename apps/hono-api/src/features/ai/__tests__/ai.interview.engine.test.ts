@@ -466,3 +466,70 @@ describe("buildBootstrapMessages / buildAdvanceMessages / MAX_TURNS", () => {
     ).toBe(true);
   });
 });
+
+describe("buildAdvanceMessages — soft-finish nudge (turns 8–12)", () => {
+  const allTopicsLog = [
+    {
+      role: "assistant" as const,
+      content: "Q1",
+      topicsCoveredThisTurn: [
+        "business_description",
+        "target_audience",
+        "products_services",
+        "preferred_tone",
+        "common_support_scenarios",
+        "prohibited_topics",
+      ],
+    },
+  ];
+
+  const partialLog = [
+    {
+      role: "assistant" as const,
+      content: "Q1",
+      topicsCoveredThisTurn: ["business_description", "target_audience"],
+    },
+  ];
+
+  function hasNudge(msgs: { role: string; content: string }[]) {
+    return msgs.some(
+      (m) => m.role === "system" && /suggest_finish/i.test(m.content),
+    );
+  }
+
+  it("injects nudge when next-turn ∈ [8,12] AND all core topics covered", () => {
+    // currentTurn=7 → nextTurn=8
+    const msgs = buildAdvanceMessages(allTopicsLog, "answer", 7);
+    expect(hasNudge(msgs)).toBe(true);
+
+    // currentTurn=11 → nextTurn=12 (upper bound)
+    const msgsUpper = buildAdvanceMessages(allTopicsLog, "answer", 11);
+    expect(hasNudge(msgsUpper)).toBe(true);
+  });
+
+  it("omits nudge when next-turn ∈ [8,12] but topics still missing", () => {
+    const msgs = buildAdvanceMessages(partialLog, "answer", 8);
+    expect(hasNudge(msgs)).toBe(false);
+  });
+
+  it("omits nudge when all topics covered but next-turn outside [8,12]", () => {
+    // currentTurn=6 → nextTurn=7 (below window)
+    const msgsBelow = buildAdvanceMessages(allTopicsLog, "answer", 6);
+    expect(hasNudge(msgsBelow)).toBe(false);
+
+    // currentTurn=12 → nextTurn=13 (above window)
+    const msgsAbove = buildAdvanceMessages(allTopicsLog, "answer", 12);
+    expect(hasNudge(msgsAbove)).toBe(false);
+  });
+
+  it("omits nudge when both conditions fail", () => {
+    const msgs = buildAdvanceMessages(partialLog, "answer", 3);
+    expect(hasNudge(msgs)).toBe(false);
+  });
+});
+
+describe("INTERVIEWER_SYSTEM_PROMPT — finish-window policy", () => {
+  it("mentions the 8–12 finish window", () => {
+    expect(INTERVIEWER_SYSTEM_PROMPT).toMatch(/turns?\s+8\s+and\s+12/i);
+  });
+});
