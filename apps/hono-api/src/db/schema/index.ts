@@ -26,5 +26,7 @@ export * from "./relations";
 
 // AI assistant
 export * from "./aiUsageLog";
+export * from "./applicationAiContext";
 export * from "./enums/aiActionEnum";
+export * from "./enums/aiContextStatusEnum";
 export * from "./enums/aiUsageStatusEnum";

@@ -183,6 +183,13 @@
       "when": 1779846400190,
       "tag": "0028_add-content-format-column",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1780013793712,
+      "tag": "0029_add_application_ai_context",
+      "breakpoints": true
     }
   ]
 }

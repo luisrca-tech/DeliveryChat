@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import {
+  boolean,
   index,
   jsonb,
   text,
@@ -25,6 +26,7 @@ export const applications = createTable(
       .notNull()
       .default(sql`'{}'::text[]`),
     description: text("description"),
+    aiEnabled: boolean("ai_enabled").notNull().default(false),
     settings: jsonb("settings").default({}).notNull(),
     deletedAt: timestamp("deleted_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

@@ -7,6 +7,7 @@ import { applications } from "./applications";
 import { user } from "./users";
 import { visitorIdentities } from "./visitorIdentities";
 import { aiUsageLog } from "./aiUsageLog";
+import { applicationAiContext } from "./applicationAiContext";
 
 export const conversationsRelations = relations(
   conversations,
@@ -81,3 +82,24 @@ export const aiUsageLogRelations = relations(aiUsageLog, ({ one }) => ({
     references: [conversations.id],
   }),
 }));
+
+export const applicationsRelations = relations(applications, ({ one }) => ({
+  aiContext: one(applicationAiContext, {
+    fields: [applications.id],
+    references: [applicationAiContext.applicationId],
+  }),
+}));
+
+export const applicationAiContextRelations = relations(
+  applicationAiContext,
+  ({ one }) => ({
+    application: one(applications, {
+      fields: [applicationAiContext.applicationId],
+      references: [applications.id],
+    }),
+    completedByUser: one(user, {
+      fields: [applicationAiContext.completedBy],
+      references: [user.id],
+    }),
+  }),
+);
