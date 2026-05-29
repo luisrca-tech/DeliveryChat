@@ -13,11 +13,27 @@ const ERROR_MESSAGES: Record<AiErrorCode, string> = {
     "Your organization has reached the monthly AI usage limit.",
   ai_feature_not_available: "AI assistant is not available on your current plan.",
   ai_rate_limit_exceeded: "Too many AI requests. Please wait before trying again.",
+  ai_not_configured:
+    "AI is not set up for this application yet. Ask an admin to complete the AI onboarding interview before using the assistant.",
+  ai_application_required:
+    "This conversation is not linked to an application, so AI can't be used here.",
+  conversation_not_found:
+    "This conversation no longer exists or you don't have access to it.",
 };
 
-export function getAiErrorMessage(code: string, retryAfter?: number): string {
+export function getAiErrorMessage(
+  code: string,
+  retryAfter?: number,
+  serverMessage?: string,
+): string {
   const base = ERROR_MESSAGES[code as AiErrorCode];
-  if (!base) return "An unexpected error occurred. Please try again.";
+
+  if (!base) {
+    if (serverMessage && serverMessage.trim().length > 0) {
+      return serverMessage;
+    }
+    return `AI request failed${code && code !== "unknown_error" ? ` (${code})` : ""}. Please try again, and contact support if the problem persists.`;
+  }
 
   if (code === "ai_rate_limit_exceeded" && retryAfter) {
     return `Too many AI requests. Please wait ${retryAfter} seconds before trying again.`;

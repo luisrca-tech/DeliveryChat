@@ -30,7 +30,9 @@ export function useGenerateReply({ onSuccess }: UseGenerateReplyOptions) {
         error instanceof AiApiError ? error.code : "unknown_error";
       const retryAfter =
         error instanceof AiApiError ? error.retryAfter : undefined;
-      toast.error(getAiErrorMessage(code, retryAfter));
+      const serverMessage =
+        error instanceof AiApiError ? error.message : undefined;
+      toast.error(getAiErrorMessage(code, retryAfter, serverMessage));
     },
   });
 

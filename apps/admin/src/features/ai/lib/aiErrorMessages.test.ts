@@ -11,6 +11,9 @@ describe("getAiErrorMessage", () => {
     expect(getAiErrorMessage("ai_monthly_cap_exceeded")).toContain("monthly");
     expect(getAiErrorMessage("ai_feature_not_available")).toContain("not available");
     expect(getAiErrorMessage("ai_rate_limit_exceeded")).toContain("Too many");
+    expect(getAiErrorMessage("ai_not_configured")).toContain("onboarding interview");
+    expect(getAiErrorMessage("ai_application_required")).toContain("not linked to an application");
+    expect(getAiErrorMessage("conversation_not_found")).toContain("no longer exists");
   });
 
   it("includes retry-after seconds for rate limit errors", () => {
@@ -18,7 +21,19 @@ describe("getAiErrorMessage", () => {
     expect(msg).toContain("30 seconds");
   });
 
-  it("returns generic message for unknown error codes", () => {
-    expect(getAiErrorMessage("something_unknown")).toContain("unexpected error");
+  it("falls back to the server-provided message when the code is unknown", () => {
+    const msg = getAiErrorMessage(
+      "something_unknown",
+      undefined,
+      "Database is offline, please retry.",
+    );
+    expect(msg).toBe("Database is offline, please retry.");
+  });
+
+  it("returns an actionable fallback that surfaces the error code when nothing else is available", () => {
+    const msg = getAiErrorMessage("something_unknown");
+    expect(msg).toContain("AI request failed");
+    expect(msg).toContain("something_unknown");
+    expect(msg).toContain("contact support");
   });
 });
