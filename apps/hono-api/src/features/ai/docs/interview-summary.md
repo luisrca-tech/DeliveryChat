@@ -130,3 +130,8 @@ The interview engine recognizes the natural completion window:
 - Outside the window, or with topics still missing, the nudge is omitted and
   the existing missing-topics reprompt logic continues to govern premature
   finish suggestions.
+
+
+## Related
+
+- Admin UX: [`packages/docs/ai-interview.md`](../../../../../../packages/docs/ai-interview.md)

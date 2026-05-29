@@ -1,6 +1,8 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { Sparkles } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Dialog,
@@ -14,7 +16,10 @@ import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import { DOMAIN_REGEX } from "@repo/types";
 import { parseDomainFromInput } from "../lib/parseDomainFromInput";
-import type { CreateApplicationRequest } from "../types/applications.types";
+import type {
+  Application,
+  CreateApplicationRequest,
+} from "../types/applications.types";
 
 const schema = z.object({
   name: z.string().min(1, "Name is required").max(255),
@@ -37,6 +42,7 @@ export type CreateApplicationDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: CreateApplicationRequest) => Promise<void> | void;
   submitting?: boolean;
+  createdApplication?: Application | null;
 };
 
 export function CreateApplicationDialog({
@@ -44,7 +50,9 @@ export function CreateApplicationDialog({
   onOpenChange,
   onSubmit,
   submitting,
+  createdApplication,
 }: CreateApplicationDialogProps) {
+  const navigate = useNavigate();
   const form = useForm<CreateApplicationFormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -69,75 +77,107 @@ export function CreateApplicationDialog({
     });
   });
 
+  const handleConfigureNow = () => {
+    if (!createdApplication) return;
+    navigate({
+      to: "/applications/$applicationId/ai-interview",
+      params: { applicationId: createdApplication.id },
+    });
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Create application</DialogTitle>
-          <DialogDescription>
-            Add a new application. The domain is used for API key validation and
-            must be unique.
-          </DialogDescription>
-        </DialogHeader>
+        {createdApplication ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Application created
+              </DialogTitle>
+              <DialogDescription>
+                AI needs onboarding. Set up the AI context now so Generate Reply
+                and Improve work for this application, or do it later.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-2">
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Later
+              </Button>
+              <Button onClick={handleConfigureNow}>Configure AI now</Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>Create application</DialogTitle>
+              <DialogDescription>
+                Add a new application. The domain is used for API key
+                validation and must be unique.
+              </DialogDescription>
+            </DialogHeader>
 
-        <form onSubmit={submit} className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="create_app_name">Name</Label>
-            <Input
-              id="create_app_name"
-              placeholder="e.g. My Chat Widget"
-              maxLength={255}
-              {...form.register("name")}
-            />
-            {form.formState.errors.name && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.name.message}
-              </p>
-            )}
-          </div>
+            <form onSubmit={submit} className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="create_app_name">Name</Label>
+                <Input
+                  id="create_app_name"
+                  placeholder="e.g. My Chat Widget"
+                  maxLength={255}
+                  {...form.register("name")}
+                />
+                {form.formState.errors.name && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.name.message}
+                  </p>
+                )}
+              </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="create_app_domain">Domain or URL</Label>
-            <Input
-              id="create_app_domain"
-              placeholder="e.g. https://app.example.com or app.example.com"
-              maxLength={255}
-              className="font-mono"
-              {...form.register("domain")}
-            />
-            {form.formState.errors.domain && (
-              <p className="text-sm text-destructive">
-                {form.formState.errors.domain.message}
-              </p>
-            )}
-          </div>
+              <div className="grid gap-2">
+                <Label htmlFor="create_app_domain">Domain or URL</Label>
+                <Input
+                  id="create_app_domain"
+                  placeholder="e.g. https://app.example.com or app.example.com"
+                  maxLength={255}
+                  className="font-mono"
+                  {...form.register("domain")}
+                />
+                {form.formState.errors.domain && (
+                  <p className="text-sm text-destructive">
+                    {form.formState.errors.domain.message}
+                  </p>
+                )}
+              </div>
 
-          <div className="grid gap-2">
-            <Label htmlFor="create_app_description">
-              Description (optional)
-            </Label>
-            <Input
-              id="create_app_description"
-              placeholder="Brief description"
-              maxLength={500}
-              {...form.register("description")}
-            />
-          </div>
+              <div className="grid gap-2">
+                <Label htmlFor="create_app_description">
+                  Description (optional)
+                </Label>
+                <Input
+                  id="create_app_description"
+                  placeholder="Brief description"
+                  maxLength={500}
+                  {...form.register("description")}
+                />
+              </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={submitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Creating..." : "Create"}
-            </Button>
-          </DialogFooter>
-        </form>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? "Creating..." : "Create"}
+                </Button>
+              </DialogFooter>
+            </form>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );

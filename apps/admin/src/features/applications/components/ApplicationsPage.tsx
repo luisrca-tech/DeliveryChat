@@ -1,9 +1,14 @@
 import { useState, useCallback, useMemo } from "react";
 import { AppWindow, Plus } from "lucide-react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@repo/ui/components/ui/button";
-import { useApplicationsQuery } from "../hooks/useApplicationsQuery";
+import {
+  applicationsQueryKeys,
+  useApplicationsQuery,
+} from "../hooks/useApplicationsQuery";
 import { useApplicationQuery } from "../hooks/useApplicationQuery";
+import type { ApplicationsListResponse } from "../types/applications.types";
 import {
   useCreateApplicationMutation,
   useUpdateApplicationMutation,
@@ -19,8 +24,10 @@ import { DeleteApplicationDialog } from "./DeleteApplicationDialog";
 export function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
+  const [createdApp, setCreatedApp] = useState<Application | null>(null);
   const [editApp, setEditApp] = useState<Application | null>(null);
   const [deleteApp, setDeleteApp] = useState<Application | null>(null);
+  const queryClient = useQueryClient();
 
   const { data: appsData, isLoading } = useApplicationsQuery();
   const { data: deleteAppDetail } = useApplicationQuery(deleteApp?.id ?? null);
@@ -38,9 +45,20 @@ export function ApplicationsPage() {
   const handleCreate = useCallback(
     async (body: { name: string; domain: string; description?: string }) => {
       try {
-        await createMutation.mutateAsync(body);
-        setCreateOpen(false);
-        toast.success("Application created");
+        const { application } = await createMutation.mutateAsync(body);
+        const patched: Application = {
+          ...application,
+          aiInterviewStatus: application.aiInterviewStatus ?? "not_started",
+        };
+        queryClient.setQueriesData<ApplicationsListResponse>(
+          { queryKey: applicationsQueryKeys.all() },
+          (prev) => {
+            if (!prev) return prev;
+            if (prev.applications.some((a) => a.id === patched.id)) return prev;
+            return { ...prev, applications: [patched, ...prev.applications] };
+          },
+        );
+        setCreatedApp(patched);
       } catch (e) {
         if (e instanceof ApplicationDomainConflictError) {
           toast.error("Domain already exists", {
@@ -54,8 +72,13 @@ export function ApplicationsPage() {
         throw e;
       }
     },
-    [createMutation],
+    [createMutation, queryClient],
   );
+
+  const handleCreateDialogOpenChange = useCallback((open: boolean) => {
+    setCreateOpen(open);
+    if (!open) setCreatedApp(null);
+  }, []);
 
   const handleUpdate = useCallback(
     async (body: {
@@ -121,9 +144,10 @@ export function ApplicationsPage() {
 
       <CreateApplicationDialog
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={handleCreateDialogOpenChange}
         onSubmit={handleCreate}
         submitting={createMutation.isPending}
+        createdApplication={createdApp}
       />
 
       <EditApplicationDialog

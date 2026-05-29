@@ -150,6 +150,8 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
                     : "Type a message..."
             }
             conversationId={conversationId}
+            applicationId={conversation?.applicationId ?? null}
+            currentUserRole={currentUserRole}
           />
         )}
 

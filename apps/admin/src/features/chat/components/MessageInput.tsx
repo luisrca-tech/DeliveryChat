@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Send, Check, X } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { Button } from "@repo/ui/components/ui/button";
 import { useGenerateReply } from "@/features/ai/hooks/useGenerateReply";
 import { useImproveMessage } from "@/features/ai/hooks/useImproveMessage";
@@ -14,6 +15,8 @@ type Props = {
   disabled: boolean;
   placeholder: string;
   conversationId: string;
+  applicationId?: string | null;
+  currentUserRole?: string;
 };
 
 type ImproveState = "idle" | "generating" | "review";
@@ -25,6 +28,8 @@ export function MessageInput({
   disabled,
   placeholder,
   conversationId,
+  applicationId,
+  currentUserRole,
 }: Props) {
   const [isAiSuggestion, setIsAiSuggestion] = useState(false);
   const [improveState, setImproveState] = useState<ImproveState>("idle");
@@ -32,7 +37,14 @@ export function MessageInput({
   const editorHandleRef = useRef<EditorHandle | null>(null);
   const improveSnapshotRef = useRef<string>("");
 
-  const { isAvailable: aiAvailable } = useAiAvailability();
+  const {
+    isAvailable: aiAvailable,
+    planAvailable,
+    appConfigured,
+  } = useAiAvailability(applicationId);
+  const canConfigure =
+    currentUserRole === "admin" || currentUserRole === "super_admin";
+  const showConfigHint = planAvailable && !appConfigured && !!applicationId;
 
   const handleGenerateSuccess = useCallback((text: string) => {
     editorHandleRef.current?.insertAiMarkdown(text);
@@ -125,7 +137,7 @@ export function MessageInput({
 
   const aiToolbarProps = useMemo(
     () =>
-      aiAvailable
+      planAvailable
         ? {
             onGenerate: handleGenerate,
             onCancelGenerate: cancelGenerate,
@@ -137,7 +149,7 @@ export function MessageInput({
           }
         : undefined,
     [
-      aiAvailable,
+      planAvailable,
       handleGenerate,
       cancelGenerate,
       isGenerating,
@@ -183,6 +195,23 @@ export function MessageInput({
             Reject
           </button>
         </div>
+      )}
+      {showConfigHint && applicationId && (
+        <p className="text-xs text-muted-foreground mb-1.5 px-1">
+          AI is not configured for this application yet.
+          {canConfigure && (
+            <>
+              {" "}
+              <Link
+                to="/applications/$applicationId/ai-interview"
+                params={{ applicationId }}
+                className="underline hover:text-foreground"
+              >
+                Configure now →
+              </Link>
+            </>
+          )}
+        </p>
       )}
       <div className="flex gap-2 items-end">
         <LexicalEditor

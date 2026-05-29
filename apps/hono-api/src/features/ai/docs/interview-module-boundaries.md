@@ -85,3 +85,8 @@ and `repo.markCompleted`.
 - Forced completion vs voluntary completion remain distinguishable in
   `aiUsageLog` via `finishReason='forced_cap_completion'`.
 - HTTP wire format (`ai.errorMapper.ts`) is unchanged from before the refactor.
+
+
+## Related
+
+- Admin UX: [`packages/docs/ai-interview.md`](../../../../../../packages/docs/ai-interview.md)

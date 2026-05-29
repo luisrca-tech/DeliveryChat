@@ -11,13 +11,8 @@ import type {
 import { applicationsQueryKeys } from "./useApplicationsQuery";
 
 export function useCreateApplicationMutation() {
-  const queryClient = useQueryClient();
-
   return useMutation({
     mutationFn: (body: CreateApplicationRequest) => createApplication(body),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: applicationsQueryKeys.all() });
-    },
   });
 }
 

@@ -43,7 +43,11 @@ vi.mock("@/features/ai/hooks/useImproveMessage", () => ({
 }));
 
 vi.mock("@/features/ai/hooks/useAiAvailability", () => ({
-  useAiAvailability: () => ({ isAvailable: mockAiAvailable }),
+  useAiAvailability: () => ({
+    isAvailable: mockAiAvailable,
+    planAvailable: mockAiAvailable,
+    appConfigured: true,
+  }),
 }));
 
 vi.mock("sonner", () => ({
