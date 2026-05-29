@@ -157,6 +157,8 @@ All prompt composition uses the single `buildSystemPrompt()` API.
 
 - **Provider**: Groq API via Vercel AI SDK
 - **Model**: Configurable via `AI_MODEL` environment variable (default: `llama-3.3-70b-versatile`)
-- **Backend routes**: `POST /api/v1/ai/generate-reply`, `POST /api/v1/ai/improve-message`, `GET /api/v1/ai/usage`
+- **Backend routes**: `POST /api/v1/ai/generate-reply`, `POST /api/v1/ai/improve-message`, `GET /api/v1/ai/usage`, `GET /api/v1/applications/:applicationId/ai-interview`, `POST /api/v1/applications/:applicationId/ai-interview/turns`
+- **Interview model**: Configurable via `AI_INTERVIEW_MODEL` (default mirrors `AI_MODEL`).
+- **Interview lifecycle (Phase 1)**: `GET` returns the persisted state or a `not_started` sentinel. `POST /turns` with `{ expectedCurrentTurn: 0 }` and no message bootstraps the interview row lazily inside a transaction and persists the AI's opening question. Steady-state turns, checklist gating, guard-rails, and the explicit `/complete` transition ship in subsequent phases.
 - **Admin feature module**: `apps/admin/src/features/ai/`
 - **Backend feature module**: `apps/hono-api/src/features/ai/`

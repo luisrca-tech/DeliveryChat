@@ -13,6 +13,7 @@ import { rateLimitsRoute } from "../routes/rateLimits.js";
 import { conversationsRoute } from "../routes/conversations/index.js";
 import { invitationsRoute } from "../routes/invitations.js";
 import { aiRoute } from "../routes/ai.js";
+import { aiInterviewRoute } from "../routes/applications/ai-interview/index.js";
 
 /**
  * Shared Hono instance for API routes
@@ -26,6 +27,7 @@ const app = new Hono()
   .route("/", tenantsRoute)
   .route("/users", usersRoute)
   .route("/applications", applicationsRoute)
+  .route("/applications", aiInterviewRoute)
   .route("/api-keys", apiKeysRoute)
   .route("/billing", billingRoute)
   .route("/rate-limits", rateLimitsRoute)

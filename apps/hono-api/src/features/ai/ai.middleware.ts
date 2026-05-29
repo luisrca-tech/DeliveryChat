@@ -5,12 +5,23 @@ import { checkAiQuota, QUOTA_EXCLUDED_ACTIONS } from "./ai.quota.js";
 
 export { QUOTA_EXCLUDED_ACTIONS };
 
-export function requireAiFeature(): MiddlewareHandler {
+type AiFeatureKind = "reply" | "interview";
+
+export function requireAiFeature(
+  feature: AiFeatureKind = "reply",
+): MiddlewareHandler {
   return async (c, next) => {
     const auth = getTenantAuth(c);
     const result = await checkAiQuota(auth.organization.id, auth.organization.plan);
 
     if (!result.allowed) {
+      // Interview calls are excluded from the monthly cap; only the
+      // plan-availability gate applies.
+      if (feature === "interview" && result.reason === "ai_monthly_cap_exceeded") {
+        await next();
+        return;
+      }
+
       const message =
         result.reason === "ai_feature_not_available"
           ? "AI assistant is not available on your current plan."

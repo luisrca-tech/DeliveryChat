@@ -34,6 +34,7 @@ export const env = createEnv({
     WS_TOKEN_SECRET: z.string().min(32),
     GROQ_API_KEY: z.string().min(1).optional(),
     AI_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
+    AI_INTERVIEW_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
     AI_CONTEXT_MESSAGE_LIMIT: z
       .string()
       .optional()
@@ -64,6 +65,7 @@ export const env = createEnv({
     WS_TOKEN_SECRET: process.env.WS_TOKEN_SECRET,
     GROQ_API_KEY: process.env.GROQ_API_KEY,
     AI_MODEL: process.env.AI_MODEL,
+    AI_INTERVIEW_MODEL: process.env.AI_INTERVIEW_MODEL,
     AI_CONTEXT_MESSAGE_LIMIT: process.env.AI_CONTEXT_MESSAGE_LIMIT,
   },
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,

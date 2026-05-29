@@ -1,5 +1,6 @@
-import { generateText } from "ai";
+import { generateText, generateObject } from "ai";
 import { createGroq } from "@ai-sdk/groq";
+import type { z } from "zod";
 import { AITimeoutError, AIProviderError, AIProviderRateLimitError } from "./ai.errors.js";
 
 export type AIProviderMessage = {
@@ -20,8 +21,25 @@ export type AIProviderResponse = {
   finishReason: string;
 };
 
+export type AIProviderObjectRequest<TSchema extends z.ZodTypeAny> = {
+  systemPrompt: string;
+  messages: AIProviderMessage[];
+  model: string;
+  schema: TSchema;
+  abortSignal?: AbortSignal;
+};
+
+export type AIProviderObjectResponse<TSchema extends z.ZodTypeAny> = {
+  object: z.infer<TSchema>;
+  usage: { promptTokens: number; completionTokens: number };
+  finishReason: string;
+};
+
 export interface AIProvider {
   generateText(request: AIProviderRequest): Promise<AIProviderResponse>;
+  generateObject<TSchema extends z.ZodTypeAny>(
+    request: AIProviderObjectRequest<TSchema>,
+  ): Promise<AIProviderObjectResponse<TSchema>>;
 }
 
 export class GroqProvider implements AIProvider {
@@ -49,31 +67,64 @@ export class GroqProvider implements AIProvider {
         finishReason: result.finishReason,
       };
     } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        throw error;
-      }
-      if (
-        error instanceof Error &&
-        (error.message.includes("timeout") ||
-          error.message.includes("ETIMEDOUT"))
-      ) {
-        throw new AITimeoutError("AI provider timed out", { cause: error });
-      }
-      const statusCode = (error as { statusCode?: number }).statusCode ??
-        (error as { status?: number }).status;
-      if (statusCode === 429) {
-        throw new AIProviderRateLimitError("AI provider rate limit exceeded", {
-          cause: error,
-        });
-      }
-      throw new AIProviderError("AI provider request failed", {
-        cause: error,
+      throw mapProviderError(error);
+    }
+  }
+
+  async generateObject<TSchema extends z.ZodTypeAny>(
+    request: AIProviderObjectRequest<TSchema>,
+  ): Promise<AIProviderObjectResponse<TSchema>> {
+    try {
+      const result = await generateObject({
+        model: this.client(request.model),
+        system: request.systemPrompt,
+        messages: request.messages,
+        schema: request.schema,
+        abortSignal: request.abortSignal,
       });
+
+      return {
+        object: result.object as z.infer<TSchema>,
+        usage: {
+          promptTokens: result.usage.inputTokens ?? 0,
+          completionTokens: result.usage.outputTokens ?? 0,
+        },
+        finishReason: result.finishReason,
+      };
+    } catch (error) {
+      throw mapProviderError(error);
     }
   }
 }
 
+function mapProviderError(error: unknown): unknown {
+  if (error instanceof Error && error.name === "AbortError") {
+    return error;
+  }
+  if (
+    error instanceof Error &&
+    (error.message.includes("timeout") || error.message.includes("ETIMEDOUT"))
+  ) {
+    return new AITimeoutError("AI provider timed out", { cause: error });
+  }
+  const statusCode =
+    (error as { statusCode?: number }).statusCode ??
+    (error as { status?: number }).status;
+  if (statusCode === 429) {
+    return new AIProviderRateLimitError("AI provider rate limit exceeded", {
+      cause: error,
+    });
+  }
+  return new AIProviderError("AI provider request failed", { cause: error });
+}
+
 export class MockProvider implements AIProvider {
+  private readonly objectQueue: unknown[] = [];
+
+  queueObject(object: unknown): void {
+    this.objectQueue.push(object);
+  }
+
   async generateText(request: AIProviderRequest): Promise<AIProviderResponse> {
     const prompt = request.systemPrompt;
 
@@ -107,6 +158,40 @@ export class MockProvider implements AIProvider {
 
     return {
       text: "I understand your concern. Let me help you with that.",
+      usage: { promptTokens: 50, completionTokens: 20 },
+      finishReason: "stop",
+    };
+  }
+
+  async generateObject<TSchema extends z.ZodTypeAny>(
+    request: AIProviderObjectRequest<TSchema>,
+  ): Promise<AIProviderObjectResponse<TSchema>> {
+    const prompt = request.systemPrompt;
+
+    if (prompt.includes("__TIMEOUT__")) {
+      throw new AITimeoutError("AI provider timed out: mock timeout");
+    }
+    if (prompt.includes("__RATE_LIMIT__")) {
+      throw new AIProviderRateLimitError(
+        "AI provider rate limit exceeded: mock rate limit",
+      );
+    }
+    if (prompt.includes("__PROVIDER_ERROR__")) {
+      throw new AIProviderError(
+        "AI provider request failed: mock provider error",
+      );
+    }
+
+    if (this.objectQueue.length === 0) {
+      throw new Error(
+        "MockProvider: no mock object queued. Call queueObject(...) before generateObject.",
+      );
+    }
+    const next = this.objectQueue.shift();
+    const parsed = request.schema.parse(next);
+
+    return {
+      object: parsed as z.infer<TSchema>,
       usage: { promptTokens: 50, completionTokens: 20 },
       finishReason: "stop",
     };
