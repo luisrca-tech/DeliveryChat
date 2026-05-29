@@ -189,6 +189,58 @@ export function useFinishInterviewMutation(
   });
 }
 
+type RegenerateContext = { previous: InterviewState | undefined };
+
+export type RegenerateSummaryOptions = {
+  onError?: (error: unknown) => void;
+};
+
+export function useRegenerateSummaryMutation(
+  applicationId: string,
+  options: RegenerateSummaryOptions = {},
+) {
+  const queryClient = useQueryClient();
+  const queryKey = aiInterviewQueryKeys.state(applicationId);
+  const { onError } = options;
+
+  return useMutation<
+    InterviewGenerateSummaryResponse,
+    Error,
+    void,
+    RegenerateContext
+  >({
+    mutationFn: () => postInterviewGenerateSummary(applicationId),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<InterviewState>(queryKey);
+      if (previous && previous.status !== "not_started") {
+        const optimistic: InterviewState = {
+          ...previous,
+          contextSummary: null,
+        };
+        queryClient.setQueryData(queryKey, optimistic);
+      }
+      return { previous };
+    },
+    onError: (error, _vars, context) => {
+      if (context) queryClient.setQueryData(queryKey, context.previous);
+      onError?.(error);
+    },
+    onSuccess: (data) => {
+      const current = queryClient.getQueryData<InterviewState>(queryKey);
+      if (current && current.status !== "not_started") {
+        const next: InterviewState = {
+          ...current,
+          status: "completed",
+          contextSummary: data.contextSummary,
+        };
+        queryClient.setQueryData(queryKey, next);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["applications"] });
+    },
+  });
+}
+
 export function useRetrySummaryGenerationMutation(
   applicationId: string,
   options: { onError?: (error: unknown) => void } = {},

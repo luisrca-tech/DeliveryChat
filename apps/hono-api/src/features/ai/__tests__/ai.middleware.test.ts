@@ -118,6 +118,7 @@ describe("requireAiFeature", () => {
   it("excludes interview actions from quota count", () => {
     expect(QUOTA_EXCLUDED_ACTIONS).toBeDefined();
     expect(QUOTA_EXCLUDED_ACTIONS).toContain("interview");
+    expect(QUOTA_EXCLUDED_ACTIONS).toContain("interview_summary");
   });
 
   it("uses aiMonthlyCapOverride for ENTERPRISE tenants", async () => {
