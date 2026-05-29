@@ -44,7 +44,8 @@ export function MessageInput({
   } = useAiAvailability(applicationId);
   const canConfigure =
     currentUserRole === "admin" || currentUserRole === "super_admin";
-  const showConfigHint = planAvailable && !appConfigured && !!applicationId;
+  const showConfigHint =
+    planAvailable && !appConfigured && !!applicationId && canConfigure;
 
   const handleGenerateSuccess = useCallback((text: string) => {
     editorHandleRef.current?.insertAiMarkdown(text);
@@ -196,21 +197,16 @@ export function MessageInput({
           </button>
         </div>
       )}
-      {showConfigHint && applicationId && (
+      {showConfigHint && (
         <p className="text-xs text-muted-foreground mb-1.5 px-1">
-          AI is not configured for this application yet.
-          {canConfigure && (
-            <>
-              {" "}
-              <Link
-                to="/applications/$applicationId/ai-interview"
-                params={{ applicationId }}
-                className="underline hover:text-foreground"
-              >
-                Configure now →
-              </Link>
-            </>
-          )}
+          AI is not configured for this application yet.{" "}
+          <Link
+            to="/applications/$applicationId/ai-interview"
+            params={{ applicationId }}
+            className="underline hover:text-foreground"
+          >
+            Configure now →
+          </Link>
         </p>
       )}
       <div className="flex gap-2 items-end">

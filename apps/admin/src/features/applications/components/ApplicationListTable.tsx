@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
-import { Copy, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { Copy, MoreHorizontal, Pencil, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -11,6 +12,10 @@ import {
 import { Input } from "@repo/ui/components/ui/input";
 import { formatRelative } from "@/lib/formatRelative";
 import { AiInterviewStatusCell } from "@/features/aiInterview/components/AiInterviewStatusCell";
+import {
+  AI_INTERVIEW_ACTION_LABEL,
+  getAiInterviewRoute,
+} from "@/features/aiInterview/lib/aiInterviewNavigation";
 import type { Application } from "../types/applications.types";
 
 export type ApplicationListTableProps = {
@@ -162,10 +167,7 @@ export function ApplicationListTable({
                   {app.description || "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <AiInterviewStatusCell
-                    applicationId={app.id}
-                    status={app.aiInterviewStatus}
-                  />
+                  <AiInterviewStatusCell status={app.aiInterviewStatus} />
                 </td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">
                   {formatRelative(app.createdAt)}
@@ -178,17 +180,32 @@ export function ApplicationListTable({
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => copyAppId(app.id)}>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => copyAppId(app.id)}
+                      >
                         <Copy className="mr-2 h-4 w-4" />
                         Copy App ID
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onEdit(app)}>
+                      <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link
+                          to={getAiInterviewRoute(app.aiInterviewStatus)}
+                          params={{ applicationId: app.id }}
+                        >
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          {AI_INTERVIEW_ACTION_LABEL[app.aiInterviewStatus]}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="cursor-pointer"
+                        onClick={() => onEdit(app)}
+                      >
                         <Pencil className="mr-2 h-4 w-4" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => onDelete(app)}
-                        className="text-destructive focus:text-destructive"
+                        className="cursor-pointer text-destructive focus:text-destructive"
                       >
                         <Trash2 className="mr-2 h-4 w-4" />
                         Delete

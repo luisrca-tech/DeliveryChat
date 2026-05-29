@@ -19,6 +19,7 @@ import { Route as PublicLoginRouteImport } from './routes/_public/login'
 import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
 import { Route as PublicAcceptInvitationRouteImport } from './routes/_public/accept-invitation'
 import { Route as SystemSettingsIndexRouteImport } from './routes/_system/settings/index'
+import { Route as SystemApplicationsIndexRouteImport } from './routes/_system/applications/index'
 import { Route as SystemSettingsRateLimitsRouteImport } from './routes/_system/settings/rate-limits'
 import { Route as SystemSettingsMembersRouteImport } from './routes/_system/settings/members'
 import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
@@ -77,6 +78,11 @@ const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
   getParentRoute: () => SystemRoute,
+} as any)
+const SystemApplicationsIndexRoute = SystemApplicationsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SystemApplicationsRoute,
 } as any)
 const SystemSettingsRateLimitsRoute =
   SystemSettingsRateLimitsRouteImport.update({
@@ -149,6 +155,7 @@ export interface FileRoutesByFullPath {
   '/settings/billing': typeof SystemSettingsBillingRoute
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
+  '/applications/': typeof SystemApplicationsIndexRoute
   '/settings': typeof SystemSettingsIndexRoute
   '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
@@ -158,7 +165,6 @@ export interface FileRoutesByTo {
   '/forgot-password': typeof PublicForgotPasswordRoute
   '/login': typeof PublicLoginRoute
   '/reset-password': typeof PublicResetPasswordRoute
-  '/applications': typeof SystemApplicationsRouteWithChildren
   '/conversations': typeof SystemConversationsRoute
   '/': typeof SystemIndexRoute
   '/billing/success': typeof SystemBillingSuccessRoute
@@ -169,6 +175,7 @@ export interface FileRoutesByTo {
   '/settings/billing': typeof SystemSettingsBillingRoute
   '/settings/members': typeof SystemSettingsMembersRoute
   '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
+  '/applications': typeof SystemApplicationsIndexRoute
   '/settings': typeof SystemSettingsIndexRoute
   '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
@@ -192,6 +199,7 @@ export interface FileRoutesById {
   '/_system/settings/billing': typeof SystemSettingsBillingRoute
   '/_system/settings/members': typeof SystemSettingsMembersRoute
   '/_system/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
+  '/_system/applications/': typeof SystemApplicationsIndexRoute
   '/_system/settings/': typeof SystemSettingsIndexRoute
   '/_system/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/_system/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
@@ -214,6 +222,7 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/members'
     | '/settings/rate-limits'
+    | '/applications/'
     | '/settings'
     | '/applications/$applicationId/ai-context'
     | '/applications/$applicationId/ai-interview'
@@ -223,7 +232,6 @@ export interface FileRouteTypes {
     | '/forgot-password'
     | '/login'
     | '/reset-password'
-    | '/applications'
     | '/conversations'
     | '/'
     | '/billing/success'
@@ -234,6 +242,7 @@ export interface FileRouteTypes {
     | '/settings/billing'
     | '/settings/members'
     | '/settings/rate-limits'
+    | '/applications'
     | '/settings'
     | '/applications/$applicationId/ai-context'
     | '/applications/$applicationId/ai-interview'
@@ -256,6 +265,7 @@ export interface FileRouteTypes {
     | '/_system/settings/billing'
     | '/_system/settings/members'
     | '/_system/settings/rate-limits'
+    | '/_system/applications/'
     | '/_system/settings/'
     | '/_system/applications/$applicationId/ai-context'
     | '/_system/applications/$applicationId/ai-interview'
@@ -337,6 +347,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings'
       preLoaderRoute: typeof SystemSettingsIndexRouteImport
       parentRoute: typeof SystemRoute
+    }
+    '/_system/applications/': {
+      id: '/_system/applications/'
+      path: '/'
+      fullPath: '/applications/'
+      preLoaderRoute: typeof SystemApplicationsIndexRouteImport
+      parentRoute: typeof SystemApplicationsRoute
     }
     '/_system/settings/rate-limits': {
       id: '/_system/settings/rate-limits'
@@ -429,11 +446,13 @@ const PublicRouteWithChildren =
   PublicRoute._addFileChildren(PublicRouteChildren)
 
 interface SystemApplicationsRouteChildren {
+  SystemApplicationsIndexRoute: typeof SystemApplicationsIndexRoute
   SystemApplicationsApplicationIdAiContextRoute: typeof SystemApplicationsApplicationIdAiContextRoute
   SystemApplicationsApplicationIdAiInterviewRoute: typeof SystemApplicationsApplicationIdAiInterviewRoute
 }
 
 const SystemApplicationsRouteChildren: SystemApplicationsRouteChildren = {
+  SystemApplicationsIndexRoute: SystemApplicationsIndexRoute,
   SystemApplicationsApplicationIdAiContextRoute:
     SystemApplicationsApplicationIdAiContextRoute,
   SystemApplicationsApplicationIdAiInterviewRoute:

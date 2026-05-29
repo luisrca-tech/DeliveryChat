@@ -1,21 +1,15 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ApplicationsPage } from "@/features/applications/components/ApplicationsPage";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useRequireRole } from "@/features/auth/hooks/useRequireRole";
-import { createAdminPageHead } from "@/lib/adminMeta";
 
 export const Route = createFileRoute("/_system/applications")({
-  head: createAdminPageHead(
-    "Applications",
-    "Create and manage embedded chat applications and domains.",
-  ),
-  component: ApplicationsRoute,
+  component: ApplicationsLayout,
 });
 
-function ApplicationsRoute() {
+function ApplicationsLayout() {
   const { isAllowed, isLoading } = useRequireRole(["admin", "super_admin"]);
 
   if (isLoading) return null;
   if (!isAllowed) return null;
 
-  return <ApplicationsPage />;
+  return <Outlet />;
 }
