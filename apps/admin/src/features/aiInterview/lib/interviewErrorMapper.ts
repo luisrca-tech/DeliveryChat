@@ -32,10 +32,41 @@ export type InterviewErrorSurface =
       detail: string;
     }
   | {
+      kind: "missing_topics";
+      code: "interview_checklist_incomplete";
+      title: string;
+      detail: string;
+      missingLabels: string[];
+    }
+  | {
+      kind: "full_page_error";
+      code: "summary_generation_failed";
+      title: string;
+      detail: string;
+      retryLabel: string;
+    }
+  | {
       kind: "toast_fallback";
       code: string;
       message: string;
     };
+
+const CORE_TOPIC_LABELS: Record<string, string> = {
+  business_description: "Business description",
+  target_audience: "Target audience",
+  products_services: "Products and services",
+  preferred_tone: "Preferred tone",
+  common_support_scenarios: "Common support scenarios",
+  prohibited_topics: "Prohibited topics",
+};
+
+export function humaniseMissingTopic(topic: string): string {
+  if (topic in CORE_TOPIC_LABELS) return CORE_TOPIC_LABELS[topic]!;
+  return topic
+    .split("_")
+    .map((part) => (part ? part[0]!.toUpperCase() + part.slice(1) : part))
+    .join(" ");
+}
 
 const RETRY_COPY: Record<RetryableCode, { title: string; detail: string }> = {
   ai_timeout: {
@@ -91,6 +122,28 @@ export function mapInterviewErrorToSurface(
       kind: "system_bubble",
       code: bubbleCode,
       message: SYSTEM_BUBBLE_COPY[bubbleCode],
+    };
+  }
+
+  if (code === "interview_checklist_incomplete") {
+    const missing = error instanceof InterviewClientError ? error.missing : [];
+    return {
+      kind: "missing_topics",
+      code: "interview_checklist_incomplete",
+      title: "A few topics still need answers before finishing.",
+      detail: "Please cover the remaining topics, then try again.",
+      missingLabels: (missing ?? []).map(humaniseMissingTopic),
+    };
+  }
+
+  if (code === "summary_generation_failed") {
+    return {
+      kind: "full_page_error",
+      code: "summary_generation_failed",
+      title: "We could not generate the AI context.",
+      detail:
+        "Your interview was saved, but the summary step failed. You can retry without losing your answers.",
+      retryLabel: "Retry generation",
     };
   }
 

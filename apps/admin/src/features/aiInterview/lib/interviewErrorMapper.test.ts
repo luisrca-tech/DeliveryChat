@@ -1,12 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { InterviewTurnConflictError } from "./aiInterview.client";
 import {
+  humaniseMissingTopic,
   InterviewClientError,
   mapInterviewErrorToSurface,
 } from "./interviewErrorMapper";
 
-function err(code: string, status: number, message = "API error") {
-  return new InterviewClientError({ code, status, message });
+function err(
+  code: string,
+  status: number,
+  message = "API error",
+  extra: { missing?: string[] } = {},
+) {
+  return new InterviewClientError({
+    code,
+    status,
+    message,
+    missing: extra.missing,
+  });
 }
 
 describe("mapInterviewErrorToSurface", () => {
@@ -50,6 +61,50 @@ describe("mapInterviewErrorToSurface", () => {
       code: "ai_monthly_cap_exceeded",
     });
     expect((surface as { title: string }).title).toMatch(/limit/i);
+  });
+
+  it("maps interview_checklist_incomplete to a missing-topics surface with humanised labels", () => {
+    const surface = mapInterviewErrorToSurface(
+      err("interview_checklist_incomplete", 422, "Missing topics", {
+        missing: ["business_description", "preferred_tone"],
+      }),
+    );
+    expect(surface).toMatchObject({
+      kind: "missing_topics",
+      code: "interview_checklist_incomplete",
+      missingLabels: ["Business description", "Preferred tone"],
+    });
+  });
+
+  it("handles interview_checklist_incomplete with no missing payload (empty list)", () => {
+    const surface = mapInterviewErrorToSurface(
+      err("interview_checklist_incomplete", 422),
+    );
+    expect(surface).toMatchObject({
+      kind: "missing_topics",
+      missingLabels: [],
+    });
+  });
+
+  it("maps summary_generation_failed to a full-page error with retry label", () => {
+    const surface = mapInterviewErrorToSurface(
+      err("summary_generation_failed", 422, "LLM blew up"),
+    );
+    expect(surface).toMatchObject({
+      kind: "full_page_error",
+      code: "summary_generation_failed",
+      retryLabel: "Retry generation",
+    });
+  });
+
+  it("humanises unknown topic codes as Title Case", () => {
+    expect(humaniseMissingTopic("custom_topic_name")).toBe("Custom Topic Name");
+  });
+
+  it("humanises known CORE_TOPICS with curated labels", () => {
+    expect(humaniseMissingTopic("common_support_scenarios")).toBe(
+      "Common support scenarios",
+    );
   });
 
   it("falls back to a toast for unknown 5xx, including the code", () => {

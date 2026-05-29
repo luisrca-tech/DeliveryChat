@@ -1,6 +1,8 @@
 import { getApiBaseUrl } from "@/lib/urls";
 import { getTenantHeaders } from "@/lib/tenantHeaders";
 import type {
+  InterviewCompleteResponse,
+  InterviewGenerateSummaryResponse,
   InterviewState,
   InterviewTurnResponse,
 } from "../types/aiInterview.types";
@@ -21,12 +23,19 @@ export class InterviewTurnConflictError extends Error {
 export class InterviewClientError extends Error {
   readonly code: string;
   readonly status: number;
+  readonly missing?: string[];
 
-  constructor(args: { code: string; status: number; message: string }) {
+  constructor(args: {
+    code: string;
+    status: number;
+    message: string;
+    missing?: string[];
+  }) {
     super(args.message);
     this.name = "InterviewClientError";
     this.code = args.code;
     this.status = args.status;
+    this.missing = args.missing;
   }
 }
 
@@ -36,6 +45,7 @@ async function parseError(res: Response): Promise<Error> {
     message?: string;
     currentTurn?: number;
     status?: "in_progress" | "completed";
+    missing?: string[];
   } | null;
 
   if (res.status === 409 && body?.error === "turn_conflict") {
@@ -52,6 +62,7 @@ async function parseError(res: Response): Promise<Error> {
     code,
     status: res.status,
     message,
+    missing: Array.isArray(body?.missing) ? body.missing : undefined,
   });
 }
 
@@ -82,4 +93,34 @@ export async function postInterviewTurn(
   );
   if (!res.ok) throw await parseError(res);
   return (await res.json()) as InterviewTurnResponse;
+}
+
+export async function postInterviewComplete(
+  applicationId: string,
+  body: { expectedCurrentTurn: number },
+): Promise<InterviewCompleteResponse> {
+  const res = await fetch(
+    `${base()}/applications/${applicationId}/ai-interview/complete`,
+    {
+      method: "POST",
+      headers: getTenantHeaders({ json: true }),
+      body: JSON.stringify(body),
+    },
+  );
+  if (!res.ok) throw await parseError(res);
+  return (await res.json()) as InterviewCompleteResponse;
+}
+
+export async function postInterviewGenerateSummary(
+  applicationId: string,
+): Promise<InterviewGenerateSummaryResponse> {
+  const res = await fetch(
+    `${base()}/applications/${applicationId}/ai-interview/generate-summary`,
+    {
+      method: "POST",
+      headers: getTenantHeaders({ json: true }),
+    },
+  );
+  if (!res.ok) throw await parseError(res);
+  return (await res.json()) as InterviewGenerateSummaryResponse;
 }

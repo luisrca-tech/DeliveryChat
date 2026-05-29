@@ -20,6 +20,19 @@ export type InterviewStateActive = {
 
 export type InterviewState = InterviewStateNotStarted | InterviewStateActive;
 
+export type InterviewCompleteResponse = {
+  status: "completed";
+  currentTurn: number;
+  completedBy: string | null;
+  completedAt: string | null;
+};
+
+export type InterviewGenerateSummaryResponse = {
+  status: "completed";
+  contextSummary: string | null;
+  aiEnabled: boolean;
+};
+
 export type InterviewTurnResponse = {
   status: "in_progress" | "completed";
   currentTurn: number;

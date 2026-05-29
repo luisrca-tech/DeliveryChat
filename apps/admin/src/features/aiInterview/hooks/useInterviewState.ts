@@ -2,9 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getInterviewState,
   InterviewTurnConflictError,
+  postInterviewComplete,
+  postInterviewGenerateSummary,
   postInterviewTurn,
 } from "../lib/aiInterview.client";
 import type {
+  InterviewCompleteResponse,
+  InterviewGenerateSummaryResponse,
   InterviewState,
   InterviewTurnResponse,
 } from "../types/aiInterview.types";
@@ -119,6 +123,84 @@ export function useSendInterviewTurnMutation(
         interviewLog: data.interviewLog,
       };
       queryClient.setQueryData(queryKey, next);
+    },
+  });
+}
+
+export type FinishInterviewResult = {
+  complete: InterviewCompleteResponse;
+  summary: InterviewGenerateSummaryResponse;
+};
+
+export type FinishInterviewOptions = {
+  onCompleteError?: (error: unknown) => void;
+  onSummaryError?: (error: unknown) => void;
+  onChainSuccess?: (result: FinishInterviewResult) => void;
+};
+
+export function useFinishInterviewMutation(
+  applicationId: string,
+  options: FinishInterviewOptions = {},
+) {
+  const queryClient = useQueryClient();
+  const queryKey = aiInterviewQueryKeys.state(applicationId);
+  const { onCompleteError, onSummaryError, onChainSuccess } = options;
+
+  return useMutation<FinishInterviewResult, Error, void>({
+    mutationFn: async () => {
+      const current = queryClient.getQueryData<InterviewState>(queryKey);
+      const expectedCurrentTurn = cachedCurrentTurn(current);
+
+      let complete: InterviewCompleteResponse;
+      try {
+        complete = await postInterviewComplete(applicationId, {
+          expectedCurrentTurn,
+        });
+      } catch (error) {
+        onCompleteError?.(error);
+        throw error;
+      }
+
+      let summary: InterviewGenerateSummaryResponse;
+      try {
+        summary = await postInterviewGenerateSummary(applicationId);
+      } catch (error) {
+        onSummaryError?.(error);
+        throw error;
+      }
+
+      return { complete, summary };
+    },
+    onSuccess: (result) => {
+      const current = queryClient.getQueryData<InterviewState>(queryKey);
+      const previousLog =
+        current && current.status !== "not_started"
+          ? current.interviewLog
+          : [];
+      const next: InterviewState = {
+        status: "completed",
+        currentTurn: result.complete.currentTurn,
+        interviewLog: previousLog,
+      };
+      queryClient.setQueryData(queryKey, next);
+      void queryClient.invalidateQueries({ queryKey: ["applications"] });
+      onChainSuccess?.(result);
+    },
+  });
+}
+
+export function useRetrySummaryGenerationMutation(
+  applicationId: string,
+  options: { onError?: (error: unknown) => void } = {},
+) {
+  const queryClient = useQueryClient();
+  const { onError } = options;
+
+  return useMutation<InterviewGenerateSummaryResponse, Error, void>({
+    mutationFn: () => postInterviewGenerateSummary(applicationId),
+    onError: (error) => onError?.(error),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["applications"] });
     },
   });
 }
