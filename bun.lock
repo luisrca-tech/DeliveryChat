@@ -76,6 +76,7 @@
         "@tanstack/eslint-plugin-query": "^5.91.4",
         "@testing-library/dom": "^10.4.0",
         "@testing-library/react": "^16.2.0",
+        "@testing-library/user-event": "^14.5.2",
         "@types/node": "^22.10.2",
         "@types/react": "^19.2.0",
         "@types/react-dom": "^19.2.0",
@@ -329,6 +330,7 @@
       "devDependencies": {
         "@repo/eslint-config": "*",
         "@repo/typescript-config": "*",
+        "@types/node": "^22.15.3",
         "jsdom": "^28.1.0",
         "typescript": "^5.9.2",
         "vite": "^8.0.13",

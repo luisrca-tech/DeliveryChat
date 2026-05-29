@@ -31,6 +31,7 @@ function makeConversation(
     closedAt: null,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
+    lastMessageId: null,
     unreadCount: 0,
     participants: [],
     ...overrides,

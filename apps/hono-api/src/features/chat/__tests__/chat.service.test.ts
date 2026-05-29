@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 vi.mock("../../../db/index.js", () => ({
   db: {
     select: vi.fn(),
+    selectDistinctOn: vi.fn(),
     insert: vi.fn(),
     update: vi.fn(),
     transaction: vi.fn(),
@@ -45,6 +46,7 @@ vi.mock("../broadcasting.service.js", () => ({
 const { db } = await import("../../../db/index.js");
 
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
+const mockSelectDistinctOn = db.selectDistinctOn as ReturnType<typeof vi.fn>;
 const mockInsert = db.insert as ReturnType<typeof vi.fn>;
 const mockUpdate = db.update as ReturnType<typeof vi.fn>;
 const mockTransaction = db.transaction as ReturnType<typeof vi.fn>;
@@ -131,6 +133,7 @@ const {
 describe("chat.service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSelectDistinctOn.mockImplementation(() => chainMock([]));
   });
 
   describe("createConversation", () => {
