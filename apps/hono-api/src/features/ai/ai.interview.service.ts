@@ -8,7 +8,11 @@ import {
   SummaryGenerationFailedError,
   TurnConflictError,
 } from "./ai.errors.js";
-import { generateInterviewSummary } from "./ai.summaryGenerator.js";
+import {
+  SUMMARY_SYSTEM_PROMPT,
+  buildSummaryUserMessage,
+  parseSummaryResponse,
+} from "./ai.summaryGenerator.js";
 import {
   InterviewTurnEngine,
   type AdvanceDecision,
@@ -322,52 +326,75 @@ export async function runInterviewComplete(
 export async function runGenerateSummary(
   params: RunGenerateSummaryParams,
 ): Promise<{ row: InterviewContextRow }> {
+  const repo = createInterviewRepository(db);
+  const row = await repo.loadByApplicationId(params.applicationId);
+  if (!row) {
+    throw new SummaryGenerationFailedError(
+      "Interview row not found for application",
+    );
+  }
+  if (row.status !== "completed") {
+    throw new SummaryGenerationFailedError(
+      `Interview is not completed (status=${row.status})`,
+    );
+  }
+
+  const appRows = await db
+    .select({ name: applications.name })
+    .from(applications)
+    .where(eq(applications.id, params.applicationId))
+    .limit(1);
+  const applicationName = appRows[0]?.name;
+  if (!applicationName) {
+    throw new SummaryGenerationFailedError("Application not found");
+  }
+
+  let summary: string;
+  try {
+    summary = await runAiCall<string, string>({
+      action: "interview_summary",
+      tenantId: params.tenantId,
+      userId: params.userId,
+      conversationId: null,
+      model: INTERVIEW_MODEL,
+      providerCall: async () => {
+        const response = await params.provider.generateText({
+          systemPrompt: SUMMARY_SYSTEM_PROMPT,
+          messages: [
+            {
+              role: "user",
+              content: buildSummaryUserMessage(
+                applicationName,
+                row.interviewLog,
+              ),
+            },
+          ],
+          model: INTERVIEW_MODEL,
+        });
+        return {
+          result: response.text ?? "",
+          inputTokens: response.usage.promptTokens,
+          outputTokens: response.usage.completionTokens,
+          finishReason: response.finishReason,
+        };
+      },
+      parse: parseSummaryResponse,
+    });
+  } catch (error) {
+    throw new SummaryGenerationFailedError(
+      error instanceof Error ? error.message : "Summary generation failed",
+      { cause: error },
+    );
+  }
+
   return db.transaction(async (tx) => {
     const txd = tx as unknown as typeof db;
-    const repo = createInterviewRepository(txd);
-
-    const row = await repo.loadByApplicationId(params.applicationId);
-    if (!row) {
-      throw new SummaryGenerationFailedError(
-        "Interview row not found for application",
-      );
-    }
-    if (row.status !== "completed") {
-      throw new SummaryGenerationFailedError(
-        `Interview is not completed (status=${row.status})`,
-      );
-    }
-
-    const appRows = await txd
-      .select({ name: applications.name })
-      .from(applications)
-      .where(eq(applications.id, params.applicationId))
-      .limit(1);
-    const applicationName = appRows[0]?.name;
-    if (!applicationName) {
-      throw new SummaryGenerationFailedError("Application not found");
-    }
-
-    let summary: string;
-    try {
-      summary = await generateInterviewSummary(params.provider, {
-        applicationName,
-        interviewLog: row.interviewLog,
-      });
-    } catch (error) {
-      throw new SummaryGenerationFailedError(
-        error instanceof Error ? error.message : "Summary generation failed",
-        { cause: error },
-      );
-    }
-
-    const updated = await repo.applyContextSummary(row.id, summary);
-
+    const txRepo = createInterviewRepository(txd);
+    const updated = await txRepo.applyContextSummary(row.id, summary);
     await txd
       .update(applications)
       .set({ aiEnabled: true })
       .where(eq(applications.id, params.applicationId));
-
     return { row: updated };
   });
 }

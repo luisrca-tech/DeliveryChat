@@ -44,7 +44,7 @@ function formatInterviewLog(log: InterviewLogEntry[]): string {
     .join("\n\n");
 }
 
-function buildUserMessage(
+export function buildSummaryUserMessage(
   applicationName: string,
   log: InterviewLogEntry[],
 ): string {
@@ -57,11 +57,25 @@ ${formatInterviewLog(log)}
 Produce the application context markdown summary now, following the structure in the system instructions.`;
 }
 
+export function parseSummaryResponse(raw: string): string {
+  if (raw.length > SUMMARY_MAX_CHARS) {
+    throw new AIProviderError(
+      `Summary output too large: ${raw.length} chars exceeds ${SUMMARY_MAX_CHARS}`,
+    );
+  }
+
+  const sanitized = sanitizeAiMarkdown(raw);
+  if (!sanitized) {
+    throw new AIEmptyResponseError("Summary generator returned empty output");
+  }
+  return sanitized;
+}
+
 export async function generateInterviewSummary(
   provider: AIProvider,
   params: GenerateInterviewSummaryParams,
 ): Promise<string> {
-  const userMessage = buildUserMessage(
+  const userMessage = buildSummaryUserMessage(
     params.applicationName,
     params.interviewLog,
   );
@@ -73,17 +87,5 @@ export async function generateInterviewSummary(
     abortSignal: params.abortSignal,
   });
 
-  const raw = response.text ?? "";
-  if (raw.length > SUMMARY_MAX_CHARS) {
-    throw new AIProviderError(
-      `Summary output too large: ${raw.length} chars exceeds ${SUMMARY_MAX_CHARS}`,
-    );
-  }
-
-  const sanitized = sanitizeAiMarkdown(raw);
-  if (!sanitized) {
-    throw new AIEmptyResponseError("Summary generator returned empty output");
-  }
-
-  return sanitized;
+  return parseSummaryResponse(response.text ?? "");
 }

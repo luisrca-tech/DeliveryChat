@@ -14,15 +14,8 @@ vi.mock("../../../env.js", () => ({
 type TxCallback = (tx: unknown) => Promise<unknown>;
 
 const updateContextSummary = vi.fn();
-const updateAiEnabled = vi.fn();
 const loadCompletedRow = vi.fn();
 const loadApplicationName = vi.fn();
-
-vi.mock("../../../db/index.js", () => ({
-  db: {
-    transaction: vi.fn(async (cb: TxCallback) => cb({})),
-  },
-}));
 
 vi.mock("../ai.interview.repository.js", () => ({
   createInterviewRepository: () => ({
@@ -35,13 +28,9 @@ vi.mock("../../../db/schema/applications.js", () => ({
   applications: { id: "id", aiEnabled: "aiEnabled", name: "name" },
 }));
 
-const mockGenerate = vi.fn();
-vi.mock("../ai.summaryGenerator.js", () => ({
-  generateInterviewSummary: (...args: unknown[]) => mockGenerate(...args),
+vi.mock("../../../db/schema/aiUsageLog.js", () => ({
+  aiUsageLog: { __table: "ai_usage_log" },
 }));
-
-// Capture executor.update calls for applications.aiEnabled flip
-const updateCalls: Array<{ table: unknown; set: unknown; where: unknown }> = [];
 
 vi.mock("drizzle-orm", async () => {
   const actual = await vi.importActual<typeof import("drizzle-orm")>(
@@ -50,9 +39,10 @@ vi.mock("drizzle-orm", async () => {
   return { ...actual, eq: (...args: unknown[]) => ({ eq: args }) };
 });
 
-// db.transaction provides an executor; we mock it to expose update() that records calls
-// and an internal select for application name.
-function makeExecutor() {
+const updateCalls: Array<{ table: unknown; set: unknown; where: unknown }> = [];
+const usageLogInserts: unknown[] = [];
+
+function makeTxExecutor() {
   return {
     update: vi.fn((table: unknown) => ({
       set: (values: unknown) => ({
@@ -62,20 +52,26 @@ function makeExecutor() {
         },
       }),
     })),
-    select: vi.fn(() => ({
-      from: () => ({
-        where: () => ({
-          limit: async () => [{ name: loadApplicationName() }],
-        }),
-      }),
-    })),
   };
 }
 
 vi.mock("../../../db/index.js", () => {
   return {
     db: {
-      transaction: vi.fn(async (cb: TxCallback) => cb(makeExecutor())),
+      transaction: vi.fn(async (cb: TxCallback) => cb(makeTxExecutor())),
+      select: vi.fn(() => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ name: loadApplicationName() }],
+          }),
+        }),
+      })),
+      insert: vi.fn(() => ({
+        values: async (values: unknown) => {
+          usageLogInserts.push(values);
+          return [];
+        },
+      })),
     },
   };
 });
@@ -106,9 +102,44 @@ function makeRow(overrides: Partial<InterviewContextRow> = {}): InterviewContext
   } as InterviewContextRow;
 }
 
-function makeProvider(): AIProvider {
+const VALID_SUMMARY = `# Application Context
+
+## Business
+desc
+
+## Audience
+aud
+
+## Products & Services
+prod
+
+## Tone
+tone
+
+## Common Scenarios
+scen
+
+## Prohibited Topics
+none
+
+## Drafting Guidance
+- be polite
+- be concise`;
+
+function makeProvider(
+  result:
+    | { kind: "text"; text: string; finishReason?: string }
+    | { kind: "error"; error: unknown } = { kind: "text", text: VALID_SUMMARY },
+): AIProvider {
   return {
-    generateText: vi.fn() as unknown as AIProvider["generateText"],
+    generateText: vi.fn(async () => {
+      if (result.kind === "error") throw result.error;
+      return {
+        text: result.text,
+        usage: { promptTokens: 42, completionTokens: 99 },
+        finishReason: result.finishReason ?? "stop",
+      };
+    }) as unknown as AIProvider["generateText"],
     generateObject: vi.fn() as unknown as AIProvider["generateObject"],
   };
 }
@@ -117,14 +148,14 @@ describe("runGenerateSummary", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateCalls.length = 0;
+    usageLogInserts.length = 0;
     loadApplicationName.mockReturnValue("Quick Grocer");
   });
 
-  it("happy path: persists summary and flips applications.aiEnabled=true", async () => {
+  it("happy path: persists summary, flips aiEnabled, and logs interview_summary success", async () => {
     loadCompletedRow.mockResolvedValue(makeRow());
-    mockGenerate.mockResolvedValue("# Application Context\n...summary...");
     updateContextSummary.mockResolvedValue(
-      makeRow({ contextSummary: "# Application Context\n...summary..." }),
+      makeRow({ contextSummary: VALID_SUMMARY }),
     );
 
     const provider = makeProvider();
@@ -135,33 +166,39 @@ describe("runGenerateSummary", () => {
       userId: USER_ID,
     });
 
-    expect(mockGenerate).toHaveBeenCalledTimes(1);
-    const generateArgs = mockGenerate.mock.calls[0]![1];
-    expect(generateArgs).toMatchObject({
-      applicationName: "Quick Grocer",
-    });
-
     expect(updateContextSummary).toHaveBeenCalledWith(
       "ctx-1",
-      "# Application Context\n...summary...",
+      expect.stringContaining("# Application Context"),
     );
 
-    // aiEnabled flip happens via executor.update on the applications table
     expect(updateCalls.length).toBeGreaterThanOrEqual(1);
     expect(updateCalls[0]!.set).toMatchObject({ aiEnabled: true });
 
-    expect(result.row.contextSummary).toBe(
-      "# Application Context\n...summary...",
-    );
+    expect(result.row.contextSummary).toContain("# Application Context");
+
+    expect(usageLogInserts).toHaveLength(1);
+    expect(usageLogInserts[0]).toMatchObject({
+      action: "interview_summary",
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+      conversationId: null,
+      status: "success",
+      inputTokens: 42,
+      outputTokens: 99,
+      finishReason: "stop",
+    });
+    expect((usageLogInserts[0] as { model: string }).model).toBeTruthy();
+    expect(
+      (usageLogInserts[0] as { latencyMs: number | null }).latencyMs,
+    ).not.toBeNull();
   });
 
-  it("regeneration: overwrites prior contextSummary on success", async () => {
+  it("regeneration: overwrites prior contextSummary and logs another success row", async () => {
     loadCompletedRow.mockResolvedValue(
       makeRow({ contextSummary: "old summary" }),
     );
-    mockGenerate.mockResolvedValue("new summary");
     updateContextSummary.mockResolvedValue(
-      makeRow({ contextSummary: "new summary" }),
+      makeRow({ contextSummary: VALID_SUMMARY }),
     );
 
     const result = await runGenerateSummary({
@@ -171,19 +208,31 @@ describe("runGenerateSummary", () => {
       userId: USER_ID,
     });
 
-    expect(updateContextSummary).toHaveBeenCalledWith("ctx-1", "new summary");
-    expect(result.row.contextSummary).toBe("new summary");
+    expect(updateContextSummary).toHaveBeenCalledWith(
+      "ctx-1",
+      expect.stringContaining("# Application Context"),
+    );
+    expect(result.row.contextSummary).toContain("# Application Context");
+
+    expect(usageLogInserts).toHaveLength(1);
+    expect(usageLogInserts[0]).toMatchObject({
+      action: "interview_summary",
+      status: "success",
+    });
   });
 
-  it("failure: throws SummaryGenerationFailedError and persists nothing", async () => {
+  it("provider failure: throws, persists nothing, logs failed row", async () => {
+    const { AIProviderError } = await import("../ai.errors.js");
     loadCompletedRow.mockResolvedValue(
       makeRow({ contextSummary: "old summary" }),
     );
-    mockGenerate.mockRejectedValue(new Error("provider boom"));
 
     await expect(
       runGenerateSummary({
-        provider: makeProvider(),
+        provider: makeProvider({
+          kind: "error",
+          error: new AIProviderError("provider boom"),
+        }),
         applicationId: APP_ID,
         tenantId: TENANT_ID,
         userId: USER_ID,
@@ -192,9 +241,70 @@ describe("runGenerateSummary", () => {
 
     expect(updateContextSummary).not.toHaveBeenCalled();
     expect(updateCalls).toHaveLength(0);
+
+    // One retry happens for retryable AIProviderError → two failed rows expected, then surface
+    expect(usageLogInserts.length).toBeGreaterThanOrEqual(1);
+    const lastLog = usageLogInserts[usageLogInserts.length - 1] as {
+      action: string;
+      status: string;
+    };
+    expect(lastLog).toMatchObject({
+      action: "interview_summary",
+      status: "provider_error",
+    });
   });
 
-  it("throws when interview is not completed", async () => {
+  it("validation failure (empty output): throws, persists nothing, logs empty row", async () => {
+    loadCompletedRow.mockResolvedValue(makeRow());
+
+    await expect(
+      runGenerateSummary({
+        provider: makeProvider({ kind: "text", text: "   \n   " }),
+        applicationId: APP_ID,
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+      }),
+    ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
+
+    expect(updateContextSummary).not.toHaveBeenCalled();
+    expect(updateCalls).toHaveLength(0);
+
+    expect(usageLogInserts).toHaveLength(1);
+    expect(usageLogInserts[0]).toMatchObject({
+      action: "interview_summary",
+      status: "empty",
+    });
+  });
+
+  it("multiple regenerations produce multiple usage rows", async () => {
+    loadCompletedRow.mockResolvedValue(makeRow());
+    updateContextSummary.mockResolvedValue(
+      makeRow({ contextSummary: VALID_SUMMARY }),
+    );
+
+    await runGenerateSummary({
+      provider: makeProvider(),
+      applicationId: APP_ID,
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+    });
+    await runGenerateSummary({
+      provider: makeProvider(),
+      applicationId: APP_ID,
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+    });
+
+    expect(usageLogInserts).toHaveLength(2);
+    for (const row of usageLogInserts) {
+      expect(row).toMatchObject({
+        action: "interview_summary",
+        status: "success",
+      });
+    }
+  });
+
+  it("throws when interview is not completed and writes no usage row", async () => {
     loadCompletedRow.mockResolvedValue(makeRow({ status: "in_progress" }));
 
     await expect(
@@ -206,12 +316,12 @@ describe("runGenerateSummary", () => {
       }),
     ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
 
-    expect(mockGenerate).not.toHaveBeenCalled();
     expect(updateContextSummary).not.toHaveBeenCalled();
     expect(updateCalls).toHaveLength(0);
+    expect(usageLogInserts).toHaveLength(0);
   });
 
-  it("throws when interview row does not exist", async () => {
+  it("throws when interview row does not exist and writes no usage row", async () => {
     loadCompletedRow.mockResolvedValue(null);
 
     await expect(
@@ -223,6 +333,6 @@ describe("runGenerateSummary", () => {
       }),
     ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
 
-    expect(mockGenerate).not.toHaveBeenCalled();
+    expect(usageLogInserts).toHaveLength(0);
   });
 });
