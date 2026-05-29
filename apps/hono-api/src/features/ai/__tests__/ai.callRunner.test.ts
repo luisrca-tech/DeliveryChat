@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import type { DbExecutor } from "../../../db/index.js";
 
 vi.mock("../../../db/index.js", () => ({
   db: {
@@ -190,7 +191,7 @@ describe("runAiCall", () => {
       ...BASE,
       providerCall,
       parse: (r: string) => r,
-      tx: tx as unknown as typeof db,
+      tx: tx as unknown as DbExecutor,
     });
 
     expect(tx.insert).toHaveBeenCalled();

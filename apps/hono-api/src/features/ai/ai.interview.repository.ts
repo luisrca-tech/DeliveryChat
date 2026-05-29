@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db } from "../../db/index.js";
+import type { DbExecutor } from "../../db/index.js";
 import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import type {
   AdvanceDecision,
@@ -8,7 +8,7 @@ import type {
 } from "./ai.interview.engine.js";
 import type { InterviewContextRow } from "./ai.interview.schema.js";
 
-type Executor = typeof db;
+type Executor = DbExecutor;
 
 export class InterviewRepository {
   constructor(private readonly executor: Executor) {}

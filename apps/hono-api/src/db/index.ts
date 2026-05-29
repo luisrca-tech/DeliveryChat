@@ -49,3 +49,6 @@ export const db = drizzle(conn, {
   schema: { ...schema },
   logger: new QueryCountingLogger(),
 });
+
+type TxHandle = Parameters<Parameters<typeof db.transaction>[0]>[0];
+export type DbExecutor = typeof db | TxHandle;

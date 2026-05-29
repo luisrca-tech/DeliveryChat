@@ -1,4 +1,4 @@
-import { db } from "../../db/index.js";
+import { db, type DbExecutor } from "../../db/index.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import {
   AIProviderError,
@@ -29,8 +29,6 @@ export type AiCallProviderOutcome<TRaw> = {
   finishReason: string | null;
 };
 
-type DbLike = Pick<typeof db, "insert">;
-
 export type RunAiCallParams<TRaw, TParsed> = {
   action: AiCallAction;
   tenantId: string;
@@ -40,7 +38,7 @@ export type RunAiCallParams<TRaw, TParsed> = {
   abortSignal?: AbortSignal;
   providerCall: () => Promise<AiCallProviderOutcome<TRaw>>;
   parse: (raw: TRaw) => TParsed;
-  tx?: DbLike;
+  tx?: DbExecutor;
 };
 
 const MAX_ATTEMPTS = 2;
@@ -57,7 +55,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 async function logUsage(
-  executor: DbLike,
+  executor: DbExecutor,
   values: {
     tenantId: string;
     userId: string;
@@ -73,15 +71,22 @@ async function logUsage(
 ): Promise<void> {
   try {
     await executor.insert(aiUsageLog).values(values);
-  } catch {
-    // Usage logging is best-effort — never fail the main request
+  } catch (error) {
+    // Usage logging is best-effort — never fail the main request, but surface
+    // the failure so a broken aiUsageLog write is not silently invisible.
+    console.error("[ai.callRunner] aiUsageLog insert failed", {
+      action: values.action,
+      tenantId: values.tenantId,
+      status: values.status,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 }
 
 export async function runAiCall<TRaw, TParsed>(
   params: RunAiCallParams<TRaw, TParsed>,
 ): Promise<TParsed> {
-  const executor: DbLike = params.tx ?? db;
+  const executor: DbExecutor = params.tx ?? db;
   const startTime = Date.now();
   let lastError: unknown = null;
 

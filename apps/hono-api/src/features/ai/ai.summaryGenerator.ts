@@ -1,5 +1,5 @@
-import { db } from "../../db/index.js";
-import { runAiCall, type RunAiCallParams } from "./ai.callRunner.js";
+import { db, type DbExecutor } from "../../db/index.js";
+import { runAiCall } from "./ai.callRunner.js";
 import { AIEmptyResponseError, AIProviderError } from "./ai.errors.js";
 import type { InterviewLogEntry } from "./ai.interview.schema.js";
 import { INTERVIEW_MODEL } from "./ai.prompts.interview.js";
@@ -31,8 +31,6 @@ Output requirements:
   say so explicitly rather than fabricating detail.
 - Do not include meta commentary about the interview process itself.`;
 
-type DbLike = NonNullable<RunAiCallParams<unknown, unknown>["tx"]>;
-
 export type GenerateInterviewSummaryInput = {
   provider: AIProvider;
   tenantId: string;
@@ -40,7 +38,7 @@ export type GenerateInterviewSummaryInput = {
   applicationName: string;
   interviewLog: InterviewLogEntry[];
   abortSignal?: AbortSignal;
-  tx?: DbLike;
+  tx?: DbExecutor;
 };
 
 function formatInterviewLog(log: InterviewLogEntry[]): string {

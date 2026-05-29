@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { db } from "../../db/index.js";
+import { db, type DbExecutor } from "../../db/index.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import { applications } from "../../db/schema/applications.js";
 import { runAiCall } from "./ai.callRunner.js";
@@ -95,8 +95,7 @@ export async function runInterviewTurn(
   } = params;
 
   return db.transaction(async (tx) => {
-    const txd = tx as unknown as typeof db;
-    const repo = createInterviewRepository(txd);
+    const repo = createInterviewRepository(tx);
     const trimmedMessage = message.trim();
     const isBootstrap =
       expectedCurrentTurn === 0 && trimmedMessage === "";
@@ -111,7 +110,7 @@ export async function runInterviewTurn(
       }
 
       if (InterviewTurnEngine.shouldForceCompletion(row)) {
-        return runForcedCompletion(txd, repo, row, {
+        return runForcedCompletion(tx, repo, row, {
           tenantId,
           userId,
           message: trimmedMessage,
@@ -120,7 +119,7 @@ export async function runInterviewTurn(
       }
     }
 
-    return runLlmTurn(txd, repo, provider, row, isBootstrap, {
+    return runLlmTurn(tx, repo, provider, row, isBootstrap, {
       tenantId,
       userId,
       message: trimmedMessage,
@@ -137,7 +136,7 @@ type LlmTurnParams = {
 };
 
 async function runForcedCompletion(
-  tx: typeof db,
+  tx: DbExecutor,
   repo: InterviewRepository,
   row: InterviewContextRow,
   params: LlmTurnParams,
@@ -188,7 +187,7 @@ async function runForcedCompletion(
 }
 
 async function runLlmTurn(
-  tx: typeof db,
+  tx: DbExecutor,
   repo: InterviewRepository,
   provider: AIProvider,
   row: InterviewContextRow,
@@ -294,8 +293,7 @@ export async function runInterviewComplete(
   params: RunCompleteParams,
 ): Promise<{ row: InterviewContextRow }> {
   return db.transaction(async (tx) => {
-    const txd = tx as unknown as typeof db;
-    const repo = createInterviewRepository(txd);
+    const repo = createInterviewRepository(tx);
     const row = await repo.loadByApplicationId(params.applicationId);
 
     const decision = InterviewTurnEngine.complete(row, {
@@ -362,10 +360,9 @@ export async function runGenerateSummary(
   }
 
   return db.transaction(async (tx) => {
-    const txd = tx as unknown as typeof db;
-    const txRepo = createInterviewRepository(txd);
+    const txRepo = createInterviewRepository(tx);
     const updated = await txRepo.applyContextSummary(row.id, summary);
-    await txd
+    await tx
       .update(applications)
       .set({ aiEnabled: true })
       .where(eq(applications.id, params.applicationId));
