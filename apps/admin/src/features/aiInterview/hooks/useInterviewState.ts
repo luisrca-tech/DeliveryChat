@@ -58,6 +58,7 @@ type SendTurnContext = { previous: InterviewState | undefined };
 
 export type SendInterviewTurnOptions = {
   onTurnConflict?: () => void;
+  onSendError?: (error: unknown, failedMessage: string) => void;
 };
 
 export function useSendInterviewTurnMutation(
@@ -66,7 +67,7 @@ export function useSendInterviewTurnMutation(
 ) {
   const queryClient = useQueryClient();
   const queryKey = aiInterviewQueryKeys.state(applicationId);
-  const { onTurnConflict } = options;
+  const { onTurnConflict, onSendError } = options;
 
   return useMutation<
     InterviewTurnResponse,
@@ -102,12 +103,14 @@ export function useSendInterviewTurnMutation(
       queryClient.setQueryData(queryKey, optimistic);
       return { previous };
     },
-    onError: (err, _vars, context) => {
+    onError: (err, vars, context) => {
       if (context) queryClient.setQueryData(queryKey, context.previous);
       if (err instanceof InterviewTurnConflictError) {
         void queryClient.invalidateQueries({ queryKey });
         onTurnConflict?.();
+        return;
       }
+      onSendError?.(err, vars.message);
     },
     onSuccess: (data) => {
       const next: InterviewState = {

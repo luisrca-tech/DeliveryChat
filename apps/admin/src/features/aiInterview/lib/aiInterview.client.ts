@@ -18,6 +18,18 @@ export class InterviewTurnConflictError extends Error {
   }
 }
 
+export class InterviewClientError extends Error {
+  readonly code: string;
+  readonly status: number;
+
+  constructor(args: { code: string; status: number; message: string }) {
+    super(args.message);
+    this.name = "InterviewClientError";
+    this.code = args.code;
+    this.status = args.status;
+  }
+}
+
 async function parseError(res: Response): Promise<Error> {
   const body = (await res.json().catch(() => null)) as {
     error?: string;
@@ -33,9 +45,14 @@ async function parseError(res: Response): Promise<Error> {
     );
   }
 
+  const code = body?.error ?? "unknown_error";
   const message =
     body?.message ?? body?.error ?? `Request failed (${res.status})`;
-  return new Error(message);
+  return new InterviewClientError({
+    code,
+    status: res.status,
+    message,
+  });
 }
 
 export async function getInterviewState(
