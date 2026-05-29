@@ -125,6 +125,30 @@ type RunBootstrapTurnResult = {
   output: InterviewerOutput;
 };
 
+export class TurnConflictError extends Error {
+  readonly currentTurn: number;
+  readonly status: InterviewContextRow["status"] | "not_started";
+
+  constructor(
+    currentTurn: number,
+    status: InterviewContextRow["status"] | "not_started",
+  ) {
+    super(`turn_conflict: current=${currentTurn} status=${status}`);
+    this.name = "TurnConflictError";
+    this.currentTurn = currentTurn;
+    this.status = status;
+  }
+}
+
+type RunAdvanceTurnParams = {
+  provider: AIProvider;
+  applicationId: string;
+  tenantId: string;
+  userId: string;
+  userMessage: string;
+  expectedCurrentTurn: number;
+};
+
 export async function runBootstrapTurn(
   params: RunBootstrapTurnParams,
 ): Promise<RunBootstrapTurnResult> {
@@ -204,4 +228,87 @@ export async function runBootstrapTurn(
   }
 
   return { row: result.row, output: result.output! };
+}
+
+export async function runAdvanceTurn(
+  params: RunAdvanceTurnParams,
+): Promise<RunBootstrapTurnResult> {
+  const {
+    provider,
+    applicationId,
+    tenantId,
+    userId,
+    userMessage,
+    expectedCurrentTurn,
+  } = params;
+  const startTime = Date.now();
+
+  return db.transaction(async (tx) => {
+    const txd = tx as unknown as typeof db;
+
+    const rows = await txd
+      .select()
+      .from(applicationAiContext)
+      .where(eq(applicationAiContext.applicationId, applicationId))
+      .limit(1);
+    const row = rows[0] as InterviewContextRow | undefined;
+
+    if (!row) {
+      throw new TurnConflictError(0, "not_started");
+    }
+    if (row.status !== "in_progress" || row.currentTurn !== expectedCurrentTurn) {
+      throw new TurnConflictError(row.currentTurn, row.status);
+    }
+
+    const history: AIProviderMessage[] = row.interviewLog.map((entry) => ({
+      role: entry.role,
+      content: entry.content,
+    }));
+    const messages: AIProviderMessage[] = [
+      ...history,
+      { role: "user", content: userMessage },
+    ];
+
+    const llm = await provider.generateObject({
+      systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+      messages,
+      model: INTERVIEW_MODEL,
+      schema: interviewerOutputSchema,
+    });
+
+    const sanitized: InterviewerOutput = {
+      ...llm.object,
+      assistantMessage: sanitizeAiMarkdown(llm.object.assistantMessage),
+    };
+
+    const nextLog: InterviewLogEntry[] = [
+      ...row.interviewLog,
+      { role: "user", content: userMessage },
+      { role: "assistant", content: sanitized.assistantMessage },
+    ];
+
+    const [updated] = await txd
+      .update(applicationAiContext)
+      .set({ interviewLog: nextLog, currentTurn: row.currentTurn + 1 })
+      .where(eq(applicationAiContext.id, row.id))
+      .returning();
+
+    await txd.insert(aiUsageLog).values({
+      tenantId,
+      userId,
+      action: "interview",
+      conversationId: null,
+      model: INTERVIEW_MODEL,
+      inputTokens: llm.usage.promptTokens,
+      outputTokens: llm.usage.completionTokens,
+      latencyMs: Date.now() - startTime,
+      finishReason: llm.finishReason,
+      status: "success",
+    });
+
+    return {
+      row: updated as InterviewContextRow,
+      output: sanitized,
+    };
+  });
 }

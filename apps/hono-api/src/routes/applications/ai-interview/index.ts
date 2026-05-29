@@ -18,7 +18,9 @@ import {
 } from "../../../features/ai/ai.provider.js";
 import {
   getInterviewContext,
+  runAdvanceTurn,
   runBootstrapTurn,
+  TurnConflictError,
 } from "../../../features/ai/ai.interviewer.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../../../lib/http.js";
 import { turnsBodySchema } from "./schemas.js";
@@ -95,24 +97,25 @@ export const aiInterviewRoute = new Hono()
         return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
       }
 
-      const isBootstrap =
-        expectedCurrentTurn === 0 && (!message || message.trim() === "");
-      if (!isBootstrap) {
-        return jsonError(
-          c,
-          HTTP_STATUS.UNPROCESSABLE_ENTITY,
-          "not_implemented",
-          "Steady-state turns land in Phase 2.",
-        );
-      }
+      const trimmedMessage = message?.trim() ?? "";
+      const isBootstrap = expectedCurrentTurn === 0 && trimmedMessage === "";
 
       try {
-        const { row, output } = await runBootstrapTurn({
-          provider: getProvider(),
-          applicationId,
-          tenantId: organization.id,
-          userId: authUser.id,
-        });
+        const { row, output } = isBootstrap
+          ? await runBootstrapTurn({
+              provider: getProvider(),
+              applicationId,
+              tenantId: organization.id,
+              userId: authUser.id,
+            })
+          : await runAdvanceTurn({
+              provider: getProvider(),
+              applicationId,
+              tenantId: organization.id,
+              userId: authUser.id,
+              userMessage: trimmedMessage,
+              expectedCurrentTurn,
+            });
 
         return c.json({
           status: row.status,
@@ -125,6 +128,16 @@ export const aiInterviewRoute = new Hono()
           },
         });
       } catch (error) {
+        if (error instanceof TurnConflictError) {
+          return c.json(
+            {
+              error: "turn_conflict",
+              currentTurn: error.currentTurn,
+              status: error.status,
+            },
+            HTTP_STATUS.CONFLICT,
+          );
+        }
         const mapped = mapAiErrorToResponse(c, error);
         if (mapped) return mapped;
         console.error("ai-interview bootstrap failed:", error);

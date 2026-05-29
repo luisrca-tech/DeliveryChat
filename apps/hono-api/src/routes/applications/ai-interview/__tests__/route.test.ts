@@ -106,9 +106,24 @@ vi.mock("../../../../features/ai/ai.middleware.js", () => ({
 
 const mockGetInterviewContext = vi.fn();
 const mockRunBootstrapTurn = vi.fn();
+const mockRunAdvanceTurn = vi.fn();
+
+class TurnConflictErrorMock extends Error {
+  readonly currentTurn: number;
+  readonly status: string;
+  constructor(currentTurn: number, status: string) {
+    super("turn_conflict");
+    this.name = "TurnConflictError";
+    this.currentTurn = currentTurn;
+    this.status = status;
+  }
+}
+
 vi.mock("../../../../features/ai/ai.interviewer.js", () => ({
   getInterviewContext: (...args: unknown[]) => mockGetInterviewContext(...args),
   runBootstrapTurn: (...args: unknown[]) => mockRunBootstrapTurn(...args),
+  runAdvanceTurn: (...args: unknown[]) => mockRunAdvanceTurn(...args),
+  TurnConflictError: TurnConflictErrorMock,
 }));
 
 vi.mock("../../../../features/ai/ai.provider.js", () => ({
@@ -282,17 +297,141 @@ describe("POST /applications/:applicationId/ai-interview/turns (bootstrap)", () 
     });
   });
 
-  it("rejects steady-state body (Phase 2) with 422 not_implemented", async () => {
-    const res = await buildApp().request(
-      `/applications/${APP_ID}/ai-interview/turns`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "answer", expectedCurrentTurn: 1 }),
+});
+
+describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", () => {
+  async function postAnswer(body: Record<string, unknown>, appId = APP_ID) {
+    return buildApp().request(`/applications/${appId}/ai-interview/turns`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("happy path: returns updated state and turn metadata, increments currentTurn", async () => {
+    mockRunAdvanceTurn.mockResolvedValue({
+      row: {
+        status: "in_progress",
+        currentTurn: 1,
+        interviewLog: [
+          { role: "assistant", content: "Welcome — tell me about your business." },
+          { role: "user", content: "We sell books online." },
+          { role: "assistant", content: "Who are your typical customers?" },
+        ],
       },
-    );
-    expect(res.status).toBe(422);
+      output: {
+        assistantMessage: "Who are your typical customers?",
+        intent: "ask",
+        topicsCoveredThisTurn: ["business_description"],
+        guardrailAction: "none",
+      },
+    });
+
+    const res = await postAnswer({
+      message: "We sell books online.",
+      expectedCurrentTurn: 0,
+    });
+
+    expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.error).toBe("not_implemented");
+    expect(body.currentTurn).toBe(1);
+    expect(body.interviewLog).toHaveLength(3);
+    expect(body.turn.intent).toBe("ask");
+    expect(mockRunBootstrapTurn).not.toHaveBeenCalled();
+    expect(mockRunAdvanceTurn).toHaveBeenCalledWith({
+      provider: expect.any(Object),
+      applicationId: APP_ID,
+      tenantId: ORG_ID,
+      userId: USER_ID,
+      userMessage: "We sell books online.",
+      expectedCurrentTurn: 0,
+    });
+  });
+
+  it("returns 409 turn_conflict on stale expectedCurrentTurn", async () => {
+    mockRunAdvanceTurn.mockRejectedValue(
+      new TurnConflictErrorMock(3, "in_progress"),
+    );
+
+    const res = await postAnswer({ message: "answer", expectedCurrentTurn: 1 });
+
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body).toEqual({
+      error: "turn_conflict",
+      currentTurn: 3,
+      status: "in_progress",
+    });
+  });
+
+  it("returns 409 turn_conflict with status=completed on terminal state", async () => {
+    mockRunAdvanceTurn.mockRejectedValue(
+      new TurnConflictErrorMock(7, "completed"),
+    );
+
+    const res = await postAnswer({ message: "answer", expectedCurrentTurn: 7 });
+
+    expect(res.status).toBe(409);
+    const body = await res.json();
+    expect(body.status).toBe("completed");
+  });
+
+  it("LLM provider failure flows through ai.errorMapper (no partial state)", async () => {
+    const providerError = new Error("provider down");
+    mockRunAdvanceTurn.mockRejectedValue(providerError);
+    const { mapAiErrorToResponse } = await import(
+      "../../../../features/ai/ai.errorMapper.js"
+    );
+    vi.mocked(mapAiErrorToResponse).mockReturnValue(
+      new Response(JSON.stringify({ error: "ai_provider_unavailable" }), {
+        status: 502,
+      }),
+    );
+
+    const res = await postAnswer({ message: "answer", expectedCurrentTurn: 1 });
+
+    expect(res.status).toBe(502);
+    expect(mockRunAdvanceTurn).toHaveBeenCalledOnce();
+  });
+
+  it("retrying after a transient failure with the same expectedCurrentTurn succeeds", async () => {
+    mockRunAdvanceTurn
+      .mockRejectedValueOnce(new Error("LLM transient"))
+      .mockResolvedValueOnce({
+        row: {
+          status: "in_progress",
+          currentTurn: 2,
+          interviewLog: [],
+        },
+        output: {
+          assistantMessage: "next?",
+          intent: "ask",
+          topicsCoveredThisTurn: [],
+          guardrailAction: "none",
+        },
+      });
+
+    const { mapAiErrorToResponse } = await import(
+      "../../../../features/ai/ai.errorMapper.js"
+    );
+    vi.mocked(mapAiErrorToResponse).mockReturnValueOnce(
+      new Response(JSON.stringify({ error: "ai_provider_unavailable" }), {
+        status: 502,
+      }),
+    );
+
+    const first = await postAnswer({
+      message: "answer",
+      expectedCurrentTurn: 1,
+    });
+    expect(first.status).toBe(502);
+
+    const second = await postAnswer({
+      message: "answer",
+      expectedCurrentTurn: 1,
+    });
+    expect(second.status).toBe(200);
+    const body = await second.json();
+    expect(body.currentTurn).toBe(2);
   });
 });
