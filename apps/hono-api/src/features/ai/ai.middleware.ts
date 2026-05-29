@@ -1,11 +1,13 @@
 import type { MiddlewareHandler } from "hono";
-import { and, eq, gte, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, ne, sql } from "drizzle-orm";
 import { getTenantAuth } from "../../lib/middleware/auth.js";
 import { jsonError, HTTP_STATUS } from "../../lib/http.js";
 import { getAiLimitsByPlan } from "../../lib/planLimits.js";
 import { db } from "../../db/index.js";
 import { tenantRateLimits } from "../../db/schema/tenantRateLimits.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
+
+export const QUOTA_EXCLUDED_ACTIONS = ["interview"] as const;
 
 function getMonthStart(): Date {
   const now = new Date();
@@ -50,6 +52,9 @@ export function requireAiFeature(): MiddlewareHandler {
           eq(aiUsageLog.tenantId, auth.organization.id),
           gte(aiUsageLog.createdAt, monthStart.toISOString()),
           inArray(aiUsageLog.status, [...countableStatuses]),
+          ...QUOTA_EXCLUDED_ACTIONS.map((action) =>
+            ne(aiUsageLog.action, action),
+          ),
         ),
       );
 

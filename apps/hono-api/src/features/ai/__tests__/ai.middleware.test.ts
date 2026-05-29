@@ -27,7 +27,7 @@ function chainMock(result: unknown) {
   return chain;
 }
 
-const { requireAiFeature, createAiRateLimitMiddleware, _testGetRateLimitStore } = await import("../ai.middleware.js");
+const { requireAiFeature, createAiRateLimitMiddleware, _testGetRateLimitStore, QUOTA_EXCLUDED_ACTIONS } = await import("../ai.middleware.js");
 
 function createMemberAuth(plan: string, organizationId = "org-1") {
   return {
@@ -112,6 +112,11 @@ describe("requireAiFeature", () => {
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe("ai_monthly_cap_exceeded");
+  });
+
+  it("excludes interview actions from quota count", () => {
+    expect(QUOTA_EXCLUDED_ACTIONS).toBeDefined();
+    expect(QUOTA_EXCLUDED_ACTIONS).toContain("interview");
   });
 
   it("uses aiMonthlyCapOverride for ENTERPRISE tenants", async () => {

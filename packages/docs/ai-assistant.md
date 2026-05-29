@@ -121,6 +121,30 @@ If Markdown → Lexical conversion fails, the text is inserted as a single plain
 
 When building LLM context, rich text messages (`contentFormat: 'lexical'`) are serialized to plain text — the LLM never receives raw Lexical JSON. This ensures the model focuses on message meaning rather than editor internals.
 
+## Application AI Context
+
+Each application can have its own AI context, configured through an admin-driven interview flow. The interview is a multi-turn conversation (up to 15 turns) that produces a context summary used to customize AI responses for that specific application.
+
+### Schema
+
+- **`applicationAiContext`** table stores the interview state (`in_progress` / `completed`), the interview log (JSONB), the resulting context summary, and who completed it.
+- **`aiEnabled`** boolean on `applications` controls whether AI features are active per-app.
+
+### Quota Exclusion
+
+Interview LLM calls are logged with `action: "interview"` but excluded from the monthly usage cap. This ensures the setup process does not consume operational AI budget.
+
+### Prompt Architecture
+
+System prompts are composed from four layers:
+
+1. **Role introduction** — identifies the AI's role based on the action
+2. **Guard rails** — five safety categories (Security, Data & Honesty, Authority, Scope, Identity) applied universally
+3. **Action instructions** — behavior specific to `generate`, `improve`, or `interview`
+4. **Application context** — optional per-app context from the interview summary
+
+All prompt composition uses the single `buildSystemPrompt()` API.
+
 ## Technical Details
 
 - **Provider**: Groq API via Vercel AI SDK
