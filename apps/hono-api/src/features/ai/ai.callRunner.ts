@@ -1,0 +1,166 @@
+import { db } from "../../db/index.js";
+import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
+import {
+  AIProviderError,
+  AIProviderRateLimitError,
+  AITimeoutError,
+  AIEmptyResponseError,
+  AIContentFilteredError,
+} from "./ai.errors.js";
+
+export type AiCallAction = "generate" | "improve" | "interview";
+
+type UsageStatus =
+  | "success"
+  | "provider_error"
+  | "timeout"
+  | "empty"
+  | "content_filtered"
+  | "aborted";
+
+export type AiCallProviderOutcome<TRaw> = {
+  result: TRaw;
+  inputTokens: number | null;
+  outputTokens: number | null;
+  finishReason: string | null;
+};
+
+type DbLike = Pick<typeof db, "insert">;
+
+export type RunAiCallParams<TRaw, TParsed> = {
+  action: AiCallAction;
+  tenantId: string;
+  userId: string;
+  conversationId: string | null;
+  model: string;
+  abortSignal?: AbortSignal;
+  providerCall: () => Promise<AiCallProviderOutcome<TRaw>>;
+  parse: (raw: TRaw) => TParsed;
+  tx?: DbLike;
+};
+
+const MAX_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 1000;
+
+function isRetryable(error: unknown): boolean {
+  if (error instanceof AIProviderRateLimitError) return false;
+  if (error instanceof AIProviderError) return true;
+  return false;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function logUsage(
+  executor: DbLike,
+  values: {
+    tenantId: string;
+    userId: string;
+    action: AiCallAction;
+    conversationId: string | null;
+    model: string;
+    inputTokens: number | null;
+    outputTokens: number | null;
+    latencyMs: number | null;
+    finishReason: string | null;
+    status: UsageStatus;
+  },
+): Promise<void> {
+  try {
+    await executor.insert(aiUsageLog).values(values);
+  } catch {
+    // Usage logging is best-effort — never fail the main request
+  }
+}
+
+export async function runAiCall<TRaw, TParsed>(
+  params: RunAiCallParams<TRaw, TParsed>,
+): Promise<TParsed> {
+  const executor: DbLike = params.tx ?? db;
+  const startTime = Date.now();
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+    try {
+      if (attempt > 0) {
+        await sleep(RETRY_DELAY_MS);
+      }
+
+      const outcome = await params.providerCall();
+      const latencyMs = Date.now() - startTime;
+      const base = {
+        tenantId: params.tenantId,
+        userId: params.userId,
+        action: params.action,
+        conversationId: params.conversationId,
+        model: params.model,
+        inputTokens: outcome.inputTokens,
+        outputTokens: outcome.outputTokens,
+        latencyMs,
+        finishReason: outcome.finishReason,
+      };
+
+      if (outcome.finishReason === "content-filter") {
+        await logUsage(executor, { ...base, status: "content_filtered" });
+        throw new AIContentFilteredError("AI response was blocked by content filter");
+      }
+
+      let parsed: TParsed;
+      try {
+        parsed = params.parse(outcome.result);
+      } catch (parseError) {
+        if (parseError instanceof AIEmptyResponseError) {
+          await logUsage(executor, { ...base, status: "empty" });
+        }
+        throw parseError;
+      }
+
+      await logUsage(executor, { ...base, status: "success" });
+      return parsed;
+    } catch (error) {
+      lastError = error;
+
+      if (
+        error instanceof AIEmptyResponseError ||
+        error instanceof AIContentFilteredError
+      ) {
+        throw error;
+      }
+
+      if (error instanceof Error && error.name === "AbortError") {
+        await logUsage(executor, {
+          tenantId: params.tenantId,
+          userId: params.userId,
+          action: params.action,
+          conversationId: params.conversationId,
+          model: params.model,
+          inputTokens: null,
+          outputTokens: null,
+          latencyMs: Date.now() - startTime,
+          finishReason: null,
+          status: "aborted",
+        });
+        throw error;
+      }
+
+      if (!isRetryable(error) || attempt === MAX_ATTEMPTS - 1) {
+        await logUsage(executor, {
+          tenantId: params.tenantId,
+          userId: params.userId,
+          action: params.action,
+          conversationId: params.conversationId,
+          model: params.model,
+          inputTokens: null,
+          outputTokens: null,
+          latencyMs: Date.now() - startTime,
+          finishReason: null,
+          status: error instanceof AITimeoutError ? "timeout" : "provider_error",
+        });
+        throw error;
+      }
+    }
+  }
+
+  throw lastError;
+}
