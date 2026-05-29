@@ -19,6 +19,7 @@ type Row = {
     content: string;
     topicsCoveredThisTurn?: string[];
     garbagePushbackTopics?: string[];
+    intent?: "final_question";
   }>;
   contextSummary: string | null;
   completedBy: string | null;
@@ -94,6 +95,7 @@ vi.mock("../ai.sanitize.js", () => ({
 
 const {
   CORE_TOPICS,
+  MAX_TURNS,
   interviewerOutputSchema,
   runAdvanceTurn,
   runCompleteInterview,
@@ -751,5 +753,186 @@ describe("runCompleteInterview", () => {
     expect(result.row.completedAt).toBeTruthy();
     // contextSummary stays null; applications.aiEnabled is Phase 4's job
     expect(result.row.contextSummary).toBeNull();
+  });
+});
+
+describe("runAdvanceTurn: turn cap and forced conclusion (Phase 5)", () => {
+  it("exports MAX_TURNS = 15", () => {
+    expect(MAX_TURNS).toBe(15);
+  });
+
+  it("passes a remainingTurns / turn-budget hint to the LLM every turn", async () => {
+    seedRow({
+      currentTurn: 3,
+      interviewLog: [{ role: "assistant", content: "q" }],
+    });
+
+    const provider = makeProvider(() => ({
+      assistantMessage: "next?",
+      intent: "ask",
+      topicsCoveredThisTurn: [],
+      guardrailAction: "none",
+    }));
+
+    await runAdvanceTurn({
+      provider,
+      applicationId: "app-1",
+      tenantId: "org-1",
+      userId: "user-1",
+      userMessage: "answer",
+      expectedCurrentTurn: 3,
+    });
+
+    const call = provider.generateObject.mock.calls[0]![0];
+    const systemBudget = call.messages.find(
+      (m: { role: string; content: string }) =>
+        m.role === "system" && /turn\s*budget|remaining/i.test(m.content),
+    );
+    expect(systemBudget).toBeDefined();
+    expect(systemBudget!.content).toMatch(/15/);
+  });
+
+  it("on turn MAX_TURNS-1 going in, forces intent='final_question' and flags the assistant log entry", async () => {
+    seedRow({
+      currentTurn: 14,
+      interviewLog: [{ role: "assistant", content: "q14" }],
+    });
+
+    const provider = makeProvider((args) => {
+      const systemFinal = args.messages.find(
+        (m) => m.role === "system" && /final/i.test(m.content),
+      );
+      expect(systemFinal).toBeDefined();
+      return {
+        assistantMessage: "Final: what topics are off-limits?",
+        intent: "ask",
+        topicsCoveredThisTurn: ["prohibited_topics"],
+        guardrailAction: "none",
+      };
+    });
+
+    const result = await runAdvanceTurn({
+      provider,
+      applicationId: "app-1",
+      tenantId: "org-1",
+      userId: "user-1",
+      userMessage: "answer 14",
+      expectedCurrentTurn: 14,
+    });
+
+    expect(result.row.currentTurn).toBe(15);
+    expect(result.output.intent).toBe("final_question");
+    const lastAssistant = [...result.row.interviewLog]
+      .reverse()
+      .find((e) => e.role === "assistant");
+    expect(lastAssistant?.intent).toBe("final_question");
+  });
+
+  it("on turn MAX_TURNS going in (admin's turn-15 answer), forces completion without calling the LLM", async () => {
+    seedRow({
+      currentTurn: 15,
+      interviewLog: [
+        {
+          role: "assistant",
+          content: "Q15",
+          intent: "final_question",
+          topicsCoveredThisTurn: ["business_description"],
+        },
+      ],
+    });
+
+    const provider = makeProvider(() => ({
+      assistantMessage: "should not be called",
+      intent: "ask",
+      topicsCoveredThisTurn: [],
+      guardrailAction: "none",
+    }));
+
+    const result = await runAdvanceTurn({
+      provider,
+      applicationId: "app-1",
+      tenantId: "org-1",
+      userId: "user-1",
+      userMessage: "final answer",
+      expectedCurrentTurn: 15,
+    });
+
+    expect(provider.generateObject).not.toHaveBeenCalled();
+    expect(result.row.status).toBe("completed");
+    expect(result.row.completedBy).toBe("user-1");
+    expect(result.row.completedAt).toBeTruthy();
+    // The user's turn-15 answer is preserved in the log.
+    const lastUser = [...result.row.interviewLog]
+      .reverse()
+      .find((e) => e.role === "user");
+    expect(lastUser?.content).toBe("final answer");
+  });
+
+  it("forced completion bypasses an incomplete checklist", async () => {
+    seedRow({
+      currentTurn: 15,
+      interviewLog: [
+        {
+          role: "assistant",
+          content: "Q15",
+          intent: "final_question",
+          topicsCoveredThisTurn: ["business_description"],
+        },
+      ],
+    });
+
+    const provider = makeProvider(() => ({
+      assistantMessage: "x",
+      intent: "ask",
+      topicsCoveredThisTurn: [],
+      guardrailAction: "none",
+    }));
+
+    const result = await runAdvanceTurn({
+      provider,
+      applicationId: "app-1",
+      tenantId: "org-1",
+      userId: "user-1",
+      userMessage: "final answer",
+      expectedCurrentTurn: 15,
+    });
+
+    expect(result.row.status).toBe("completed");
+  });
+
+  it("forced completion writes a distinctly-marked usage log entry", async () => {
+    seedRow({
+      currentTurn: 15,
+      interviewLog: [
+        {
+          role: "assistant",
+          content: "Q15",
+          intent: "final_question",
+        },
+      ],
+    });
+
+    const provider = makeProvider(() => ({
+      assistantMessage: "x",
+      intent: "ask",
+      topicsCoveredThisTurn: [],
+      guardrailAction: "none",
+    }));
+
+    await runAdvanceTurn({
+      provider,
+      applicationId: "app-1",
+      tenantId: "org-1",
+      userId: "user-1",
+      userMessage: "final answer",
+      expectedCurrentTurn: 15,
+    });
+
+    expect(state.usageLogs).toHaveLength(1);
+    expect(state.usageLogs[0]?.values).toMatchObject({
+      action: "interview",
+      finishReason: "forced_cap_completion",
+      status: "success",
+    });
   });
 });

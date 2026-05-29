@@ -38,7 +38,11 @@ export type InterviewLogEntry = {
   content: string;
   topicsCoveredThisTurn?: string[];
   garbagePushbackTopics?: string[];
+  intent?: "final_question";
 };
+
+export const MAX_TURNS = 15;
+export const FORCED_COMPLETION_FINISH_REASON = "forced_cap_completion";
 
 const CORE_TOPIC_SET = new Set<string>(CORE_TOPICS);
 
@@ -109,6 +113,7 @@ Guard-rails — set guardrailAction when the admin's input warrants it:
 function buildAdvanceMessages(
   log: InterviewLogEntry[],
   userMessage: string,
+  currentTurn: number,
 ): AIProviderMessage[] {
   const history: AIProviderMessage[] = log.map((entry) => ({
     role: entry.role,
@@ -124,6 +129,21 @@ function buildAdvanceMessages(
   }
 
   const messages: AIProviderMessage[] = [...history];
+
+  const nextTurnNumber = currentTurn + 1;
+  const remainingAfter = Math.max(0, MAX_TURNS - nextTurnNumber);
+  messages.push({
+    role: "system",
+    content: `Turn budget: this will be question ${nextTurnNumber} of ${MAX_TURNS}. Remaining after this one: ${remainingAfter}. Pace your follow-ups so every core topic is covered before the cap.`,
+  });
+
+  if (nextTurnNumber === MAX_TURNS) {
+    messages.push({
+      role: "system",
+      content: `This is the FINAL question (turn ${MAX_TURNS} of ${MAX_TURNS}). You must set intent='final_question' and frame your message as the last one. Cover any remaining core topic in a single concluding question.`,
+    });
+  }
+
   if (pushbackTopics.size > 0) {
     messages.push({
       role: "system",
@@ -343,7 +363,62 @@ export async function runAdvanceTurn(
       throw new TurnConflictError(row.currentTurn, row.status);
     }
 
-    const messages = buildAdvanceMessages(row.interviewLog, userMessage);
+    if (row.currentTurn >= MAX_TURNS) {
+      const completedAt = new Date().toISOString();
+      const userEntry: InterviewLogEntry = {
+        role: "user",
+        content: userMessage,
+      };
+      const nextLog: InterviewLogEntry[] = [...row.interviewLog, userEntry];
+
+      const [updated] = await txd
+        .update(applicationAiContext)
+        .set({
+          interviewLog: nextLog,
+          status: "completed",
+          completedBy: userId,
+          completedAt,
+        })
+        .where(eq(applicationAiContext.id, row.id))
+        .returning();
+
+      await txd.insert(aiUsageLog).values({
+        tenantId,
+        userId,
+        action: "interview",
+        conversationId: null,
+        model: INTERVIEW_MODEL,
+        inputTokens: 0,
+        outputTokens: 0,
+        latencyMs: Date.now() - startTime,
+        finishReason: FORCED_COMPLETION_FINISH_REASON,
+        status: "success",
+      });
+
+      console.warn("[ai.interviewer] forced completion at turn cap", {
+        applicationId,
+        userId,
+        currentTurn: row.currentTurn,
+      });
+
+      return {
+        row: updated as InterviewContextRow,
+        output: {
+          assistantMessage: "",
+          intent: "final_question",
+          topicsCoveredThisTurn: [],
+          guardrailAction: "none",
+        },
+        canFinish: true,
+      };
+    }
+
+    const isFinalQuestionTurn = row.currentTurn + 1 === MAX_TURNS;
+    const messages = buildAdvanceMessages(
+      row.interviewLog,
+      userMessage,
+      row.currentTurn,
+    );
 
     const llm = await provider.generateObject({
       systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
@@ -402,19 +477,28 @@ export async function runAdvanceTurn(
       }
     }
 
+    if (isFinalQuestionTurn && !isNoAdvanceGuardrail) {
+      sanitized = { ...sanitized, intent: "final_question" };
+    }
+
     const userEntry: InterviewLogEntry = { role: "user", content: userMessage };
     if (sanitized.guardrailAction === "pushback_garbage") {
       userEntry.garbagePushbackTopics = sanitized.topicsCoveredThisTurn;
     }
 
+    const assistantEntry: InterviewLogEntry = {
+      role: "assistant",
+      content: sanitized.assistantMessage,
+      topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
+    };
+    if (sanitized.intent === "final_question") {
+      assistantEntry.intent = "final_question";
+    }
+
     const nextLog: InterviewLogEntry[] = [
       ...row.interviewLog,
       userEntry,
-      {
-        role: "assistant",
-        content: sanitized.assistantMessage,
-        topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
-      },
+      assistantEntry,
     ];
 
     const nextTurn = isNoAdvanceGuardrail
