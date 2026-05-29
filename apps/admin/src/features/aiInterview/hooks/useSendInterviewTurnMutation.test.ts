@@ -4,12 +4,20 @@ import { renderHook, waitFor, act } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createElement, type ReactNode } from "react";
 
-vi.mock("../lib/aiInterview.client", () => ({
-  postInterviewTurn: vi.fn(),
-  getInterviewState: vi.fn(),
-}));
+vi.mock("../lib/aiInterview.client", async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import("../lib/aiInterview.client")>();
+  return {
+    ...actual,
+    postInterviewTurn: vi.fn(),
+    getInterviewState: vi.fn(),
+  };
+});
 
-import { postInterviewTurn } from "../lib/aiInterview.client";
+import {
+  InterviewTurnConflictError,
+  postInterviewTurn,
+} from "../lib/aiInterview.client";
 import {
   aiInterviewQueryKeys,
   useSendInterviewTurnMutation,
@@ -142,6 +150,88 @@ describe("useSendInterviewTurnMutation", () => {
       aiInterviewQueryKeys.state(APPLICATION_ID),
     );
     expect(cached).toEqual(seeded);
+  });
+
+  it("on turn_conflict: rolls back optimistic bubble, invalidates the state query, and fires onTurnConflict", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    const seeded: InterviewState = {
+      status: "in_progress",
+      currentTurn: 2,
+      interviewLog: [
+        { role: "assistant", content: "Hello?" },
+        { role: "user", content: "Hi." },
+        { role: "assistant", content: "Tell me more." },
+      ],
+    };
+    seedState(queryClient, seeded);
+
+    vi.mocked(postInterviewTurn).mockRejectedValueOnce(
+      new InterviewTurnConflictError(3, "in_progress"),
+    );
+
+    const onTurnConflict = vi.fn();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+    const { result } = renderHook(
+      () => useSendInterviewTurnMutation(APPLICATION_ID, { onTurnConflict }),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.mutate({ message: "stale turn" });
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(onTurnConflict).toHaveBeenCalledTimes(1);
+    expect(invalidateSpy).toHaveBeenCalledWith({
+      queryKey: aiInterviewQueryKeys.state(APPLICATION_ID),
+    });
+    const cached = queryClient.getQueryData<InterviewState>(
+      aiInterviewQueryKeys.state(APPLICATION_ID),
+    );
+    expect(cached).toEqual(seeded);
+  });
+
+  it("sends expectedCurrentTurn derived from the cached state", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    seedState(queryClient, {
+      status: "in_progress",
+      currentTurn: 4,
+      interviewLog: [{ role: "assistant", content: "Hi" }],
+    });
+
+    vi.mocked(postInterviewTurn).mockResolvedValueOnce({
+      status: "in_progress",
+      currentTurn: 5,
+      interviewLog: [
+        { role: "assistant", content: "Hi" },
+        { role: "user", content: "ok" },
+        { role: "assistant", content: "?" },
+      ],
+      canFinish: false,
+      turn: {
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        guardrailAction: "none",
+      },
+    });
+
+    const { result } = renderHook(
+      () => useSendInterviewTurnMutation(APPLICATION_ID),
+      { wrapper },
+    );
+
+    act(() => {
+      result.current.mutate({ message: "ok" });
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(postInterviewTurn).toHaveBeenCalledWith(APPLICATION_ID, {
+      message: "ok",
+      expectedCurrentTurn: 4,
+    });
   });
 
   it("exposes the failed message on the mutation variables so the composer can restore the draft", async () => {

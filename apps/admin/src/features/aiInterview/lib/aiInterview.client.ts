@@ -7,11 +7,32 @@ import type {
 
 const base = () => getApiBaseUrl();
 
+export class InterviewTurnConflictError extends Error {
+  readonly code = "turn_conflict" as const;
+  constructor(
+    readonly currentTurn: number,
+    readonly status: "in_progress" | "completed",
+  ) {
+    super(`turn_conflict: current=${currentTurn} status=${status}`);
+    this.name = "InterviewTurnConflictError";
+  }
+}
+
 async function parseError(res: Response): Promise<Error> {
   const body = (await res.json().catch(() => null)) as {
     error?: string;
     message?: string;
+    currentTurn?: number;
+    status?: "in_progress" | "completed";
   } | null;
+
+  if (res.status === 409 && body?.error === "turn_conflict") {
+    return new InterviewTurnConflictError(
+      typeof body.currentTurn === "number" ? body.currentTurn : 0,
+      body.status ?? "in_progress",
+    );
+  }
+
   const message =
     body?.message ?? body?.error ?? `Request failed (${res.status})`;
   return new Error(message);
@@ -32,7 +53,7 @@ export async function getInterviewState(
 
 export async function postInterviewTurn(
   applicationId: string,
-  body: { message: string; expectedCurrentTurn?: number },
+  body: { message: string; expectedCurrentTurn: number },
 ): Promise<InterviewTurnResponse> {
   const res = await fetch(
     `${base()}/applications/${applicationId}/ai-interview/turns`,

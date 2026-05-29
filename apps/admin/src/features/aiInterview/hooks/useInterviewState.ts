@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getInterviewState,
+  InterviewTurnConflictError,
   postInterviewTurn,
 } from "../lib/aiInterview.client";
 import type {
@@ -23,12 +24,22 @@ export function useInterviewStateQuery(applicationId: string) {
   });
 }
 
+function cachedCurrentTurn(
+  state: InterviewState | undefined,
+): number {
+  if (!state || state.status === "not_started") return 0;
+  return state.currentTurn;
+}
+
 export function useBootstrapInterviewMutation(applicationId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: () =>
-      postInterviewTurn(applicationId, { message: "" }),
+      postInterviewTurn(applicationId, {
+        message: "",
+        expectedCurrentTurn: 0,
+      }),
     onSuccess: (data: InterviewTurnResponse) => {
       const next: InterviewState = {
         status: data.status,
@@ -45,9 +56,17 @@ export function useBootstrapInterviewMutation(applicationId: string) {
 
 type SendTurnContext = { previous: InterviewState | undefined };
 
-export function useSendInterviewTurnMutation(applicationId: string) {
+export type SendInterviewTurnOptions = {
+  onTurnConflict?: () => void;
+};
+
+export function useSendInterviewTurnMutation(
+  applicationId: string,
+  options: SendInterviewTurnOptions = {},
+) {
   const queryClient = useQueryClient();
   const queryKey = aiInterviewQueryKeys.state(applicationId);
+  const { onTurnConflict } = options;
 
   return useMutation<
     InterviewTurnResponse,
@@ -55,8 +74,13 @@ export function useSendInterviewTurnMutation(applicationId: string) {
     { message: string },
     SendTurnContext
   >({
-    mutationFn: ({ message }) =>
-      postInterviewTurn(applicationId, { message }),
+    mutationFn: ({ message }) => {
+      const current = queryClient.getQueryData<InterviewState>(queryKey);
+      return postInterviewTurn(applicationId, {
+        message,
+        expectedCurrentTurn: cachedCurrentTurn(current),
+      });
+    },
     onMutate: async ({ message }) => {
       await queryClient.cancelQueries({ queryKey });
       const previous = queryClient.getQueryData<InterviewState>(queryKey);
@@ -78,8 +102,12 @@ export function useSendInterviewTurnMutation(applicationId: string) {
       queryClient.setQueryData(queryKey, optimistic);
       return { previous };
     },
-    onError: (_err, _vars, context) => {
+    onError: (err, _vars, context) => {
       if (context) queryClient.setQueryData(queryKey, context.previous);
+      if (err instanceof InterviewTurnConflictError) {
+        void queryClient.invalidateQueries({ queryKey });
+        onTurnConflict?.();
+      }
     },
     onSuccess: (data) => {
       const next: InterviewState = {
