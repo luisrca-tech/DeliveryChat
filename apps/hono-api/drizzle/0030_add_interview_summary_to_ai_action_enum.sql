@@ -1,0 +1,1 @@
+ALTER TYPE "public"."ai_action" ADD VALUE 'interview_summary';

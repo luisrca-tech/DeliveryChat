@@ -4,7 +4,7 @@ import { tenantRateLimits } from "../../db/schema/tenantRateLimits.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import { getAiLimitsByPlan } from "../../lib/planLimits.js";
 
-export const QUOTA_EXCLUDED_ACTIONS = ["interview"] as const;
+export const QUOTA_EXCLUDED_ACTIONS = ["interview", "interview_summary"] as const;
 
 type QuotaResult =
   | { allowed: true }

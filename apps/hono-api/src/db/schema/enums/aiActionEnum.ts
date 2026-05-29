@@ -4,4 +4,5 @@ export const aiActionEnum = pgEnum("ai_action", [
   "generate",
   "improve",
   "interview",
+  "interview_summary",
 ]);

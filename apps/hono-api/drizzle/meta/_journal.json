@@ -190,6 +190,13 @@
       "when": 1780013793712,
       "tag": "0029_add_application_ai_context",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1780081632673,
+      "tag": "0030_add_interview_summary_to_ai_action_enum",
+      "breakpoints": true
     }
   ]
 }

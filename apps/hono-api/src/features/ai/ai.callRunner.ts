@@ -8,7 +8,11 @@ import {
   AIContentFilteredError,
 } from "./ai.errors.js";
 
-export type AiCallAction = "generate" | "improve" | "interview";
+export type AiCallAction =
+  | "generate"
+  | "improve"
+  | "interview"
+  | "interview_summary";
 
 type UsageStatus =
   | "success"
