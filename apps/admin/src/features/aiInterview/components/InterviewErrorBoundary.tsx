@@ -1,0 +1,110 @@
+import { Button } from "@repo/ui/components/ui/button";
+import type { InterviewErrorSurface } from "../lib/interviewErrorMapper";
+
+export type InterviewErrorBoundaryProps = {
+  surface: InterviewErrorSurface | null;
+  onRetrySend?: () => void;
+  onRetrySummary?: () => void;
+  isSending?: boolean;
+};
+
+export function InterviewErrorBoundary({
+  surface,
+  onRetrySend,
+  onRetrySummary,
+  isSending = false,
+}: InterviewErrorBoundaryProps) {
+  if (!surface) return null;
+
+  switch (surface.kind) {
+    case "full_page_error":
+      return (
+        <div
+          role="alert"
+          data-testid="interview-summary-error"
+          className="mx-auto flex w-full max-w-2xl flex-col items-start gap-4 p-6"
+        >
+          <h2 className="text-lg font-semibold text-destructive">
+            {surface.title}
+          </h2>
+          <p className="text-sm text-muted-foreground">{surface.detail}</p>
+          {onRetrySummary ? (
+            <Button type="button" onClick={onRetrySummary}>
+              {surface.retryLabel}
+            </Button>
+          ) : null}
+        </div>
+      );
+    case "blocking_banner":
+      return (
+        <div
+          role="alert"
+          data-testid="interview-cap-banner"
+          className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+        >
+          <div className="font-semibold">{surface.title}</div>
+          <div className="mt-1 text-xs">{surface.detail}</div>
+        </div>
+      );
+    case "missing_topics":
+      return (
+        <div
+          role="status"
+          data-testid="interview-missing-topics"
+          className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200"
+        >
+          <p className="font-medium">{surface.title}</p>
+          {surface.missingLabels.length > 0 ? (
+            <ul className="mt-1 list-disc pl-4">
+              {surface.missingLabels.map((label) => (
+                <li key={label}>{label}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1">{surface.detail}</p>
+          )}
+        </div>
+      );
+    case "system_bubble":
+      return (
+        <div
+          role="status"
+          data-testid="interview-system-bubble"
+          data-code={surface.code}
+          className="max-w-[80%] self-start rounded-lg border border-dashed border-muted-foreground/40 bg-muted px-3 py-2 text-sm text-muted-foreground"
+        >
+          {surface.message}
+        </div>
+      );
+    case "retry_row":
+      return (
+        <div
+          role="alert"
+          data-testid="interview-retry-row"
+          data-code={surface.code}
+          className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200"
+        >
+          <div className="flex flex-col">
+            <span className="font-medium">{surface.title}</span>
+            <span>{surface.detail}</span>
+          </div>
+          {onRetrySend ? (
+            <button
+              type="button"
+              onClick={onRetrySend}
+              disabled={isSending}
+              className="rounded-md border border-amber-300 bg-white px-2 py-1 text-xs font-medium text-amber-900 shadow-sm hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
+            >
+              {surface.retryLabel}
+            </button>
+          ) : null}
+        </div>
+      );
+    case "toast_fallback":
+      return null;
+    default: {
+      const _exhaustive: never = surface;
+      return _exhaustive;
+    }
+  }
+}

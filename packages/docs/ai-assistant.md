@@ -84,6 +84,18 @@ The system provides user-friendly error messages for all failure modes:
 
 Transient errors (timeouts, provider issues) are automatically retried once on the backend before surfacing to the operator.
 
+### AI Interview & AI Context surfaces
+
+The AI onboarding interview (and the regenerate-summary flow on the AI Context page) renders all backend error codes through a single component — `<InterviewErrorBoundary>` — fed by the discriminated union `InterviewErrorSurface`. Surfaces:
+
+- `retry_row` (transient send failures): inline row with a "Try again" button.
+- `system_bubble` (empty or content-filtered AI response): system message inside the chat scrollback; no retry button.
+- `blocking_banner` (`ai_monthly_cap_exceeded`): banner above the composer; the composer is hidden.
+- `missing_topics` (`interview_checklist_incomplete`): inline list of missing core topics next to the Finish button.
+- `full_page_error` (`summary_generation_failed`): full-page block with a "Retry generation" button. Used both during the finish flow and on the AI Context page when `summaryStatus === "failed"` (the row is in partial-finish state and the operator can recover from it via the same `POST /generate-summary` endpoint).
+
+Adding a new surface only requires editing `<InterviewErrorBoundary>` and the mapper — no other admin module switches on `surface.kind`.
+
 ## AI Output Format — Constrained Markdown
 
 AI responses use a restricted Markdown subset instead of plain text, HTML, or Lexical JSON. The API response shape remains `{ text: string }` where `text` is Markdown.

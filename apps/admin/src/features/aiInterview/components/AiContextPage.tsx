@@ -21,35 +21,55 @@ import {
   useRegenerateSummaryMutation,
 } from "../hooks/useInterviewState";
 import { formatCompletedAt } from "../lib/formatCompletedAt";
-import { mapInterviewErrorToSurface } from "../lib/interviewErrorMapper";
+import {
+  mapInterviewErrorToSurface,
+  type InterviewErrorSurface,
+} from "../lib/interviewErrorMapper";
+import { InterviewErrorBoundary } from "./InterviewErrorBoundary";
 
 export type AiContextPageProps = {
   applicationId: string;
+};
+
+const SUMMARY_FAILED_SURFACE: InterviewErrorSurface = {
+  kind: "full_page_error",
+  code: "summary_generation_failed",
+  title: "The previous summary generation failed.",
+  detail:
+    "Regenerate the summary from your interview transcript to recover.",
+  retryLabel: "Regenerate summary",
 };
 
 export function AiContextPage({ applicationId }: AiContextPageProps) {
   const { data, isLoading, isError } = useInterviewStateQuery(applicationId);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [regenerateSurface, setRegenerateSurface] =
+    useState<InterviewErrorSurface | null>(null);
 
   const handleRegenerateError = useCallback((error: unknown) => {
     const surface = mapInterviewErrorToSurface(error);
     if (!surface) return;
-    const message =
-      surface.kind === "toast_fallback" || surface.kind === "system_bubble"
-        ? surface.message
-        : surface.title;
-    toast.error(`${message} (code: ${surface.code})`);
+    if (surface.kind === "toast_fallback") {
+      toast.error(`${surface.message} (code: ${surface.code})`);
+      return;
+    }
+    setRegenerateSurface(surface);
   }, []);
 
   const regenerate = useRegenerateSummaryMutation(applicationId, {
     onError: handleRegenerateError,
   });
 
-  const handleConfirmRegenerate = useCallback(() => {
-    setConfirmOpen(false);
+  const triggerRegenerate = useCallback(() => {
+    setRegenerateSurface(null);
     regenerate.mutate();
   }, [regenerate]);
+
+  const handleConfirmRegenerate = useCallback(() => {
+    setConfirmOpen(false);
+    triggerRegenerate();
+  }, [triggerRegenerate]);
 
   if (isLoading) {
     return (
@@ -80,6 +100,12 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
   const completer = data.completedByName ?? "an admin";
   const completedAtLabel = formatCompletedAt(data.completedAt);
 
+  const activeSurface =
+    regenerateSurface ??
+    (data.summaryStatus === "failed" && !regenerate.isPending
+      ? SUMMARY_FAILED_SURFACE
+      : null);
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6 md:flex-row md:items-start">
       <Card className="w-full md:flex-1">
@@ -103,7 +129,11 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
             Regenerate summary
           </Button>
         </CardHeader>
-        <CardContent>
+        <CardContent className="flex flex-col gap-4">
+          <InterviewErrorBoundary
+            surface={activeSurface}
+            onRetrySummary={triggerRegenerate}
+          />
           {regenerate.isPending ? (
             <div
               role="status"

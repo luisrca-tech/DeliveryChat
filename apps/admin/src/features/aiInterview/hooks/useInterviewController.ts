@@ -69,9 +69,19 @@ export type InterviewControllerState = {
   showConflictNotice: boolean;
   isSendingTurn: boolean;
   isStartingInterview: boolean;
+  isCapExceeded: boolean;
   summaryStatus: InterviewSummaryStatus;
   composer: InterviewComposerBinding;
   callbacks: InterviewControllerCallbacks;
+};
+
+const SUMMARY_PENDING_RETRY_SURFACE: InterviewErrorSurface = {
+  kind: "full_page_error",
+  code: "summary_generation_failed",
+  title: "We could not generate the AI context.",
+  detail:
+    "Your interview was saved, but the summary step failed. You can retry without losing your answers.",
+  retryLabel: "Retry generation",
 };
 
 function fireToastIfFallback(surface: InterviewErrorSurface | null) {
@@ -232,7 +242,7 @@ export function useInterviewController(
   const showResumePill =
     resumeTurnRef.current !== null && resumeTurnRef.current > 0;
 
-  const errorSurface = effectiveSendError ?? finishErrorSurface ?? null;
+  const baseErrorSurface = effectiveSendError ?? finishErrorSurface ?? null;
 
   const phase: InterviewPhase = (() => {
     if (isLoading) return "loading";
@@ -260,6 +270,13 @@ export function useInterviewController(
     return "active";
   })();
 
+  const errorSurface: InterviewErrorSurface | null =
+    phase === "summary_pending_retry"
+      ? SUMMARY_PENDING_RETRY_SURFACE
+      : baseErrorSurface;
+
+  const isCapExceeded = errorSurface?.kind === "blocking_banner";
+
   const composer: InterviewComposerBinding = {
     isSending: sendInFlight,
     sendDidFail: sendTurn.isError,
@@ -283,6 +300,7 @@ export function useInterviewController(
     showConflictNotice: effectiveConflictNotice,
     isSendingTurn: sendInFlight,
     isStartingInterview: bootstrap.isPending,
+    isCapExceeded,
     summaryStatus: active.summaryStatus,
     composer,
     callbacks,
