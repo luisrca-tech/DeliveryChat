@@ -45,8 +45,16 @@ export function useBootstrapInterviewMutation(applicationId: string) {
         expectedCurrentTurn: 0,
       }),
     onSuccess: (data: InterviewTurnResponse) => {
+      const previous = queryClient.getQueryData<InterviewState>(
+        aiInterviewQueryKeys.state(applicationId),
+      );
+      const previousSummaryStatus =
+        previous && previous.status !== "not_started"
+          ? previous.summaryStatus
+          : "none";
       const next: InterviewState = {
         status: data.status,
+        summaryStatus: previousSummaryStatus,
         currentTurn: data.currentTurn,
         interviewLog: data.interviewLog,
       };
@@ -98,9 +106,14 @@ export function useSendInterviewTurnMutation(
         previous && previous.status !== "not_started"
           ? previous.currentTurn
           : 0;
+      const previousSummaryStatus =
+        previous && previous.status !== "not_started"
+          ? previous.summaryStatus
+          : "none";
 
       const optimistic: InterviewState = {
         status: "in_progress",
+        summaryStatus: previousSummaryStatus,
         currentTurn: previousTurn,
         interviewLog: [...previousLog, { role: "user", content: message }],
       };
@@ -117,8 +130,14 @@ export function useSendInterviewTurnMutation(
       onSendError?.(err, vars.message);
     },
     onSuccess: (data) => {
+      const previous = queryClient.getQueryData<InterviewState>(queryKey);
+      const previousSummaryStatus =
+        previous && previous.status !== "not_started"
+          ? previous.summaryStatus
+          : "none";
       const next: InterviewState = {
         status: data.status,
+        summaryStatus: previousSummaryStatus,
         currentTurn: data.currentTurn,
         interviewLog: data.interviewLog,
       };
@@ -179,8 +198,10 @@ export function useFinishInterviewMutation(
           : [];
       const next: InterviewState = {
         status: "completed",
+        summaryStatus: result.summary.summaryStatus,
         currentTurn: result.complete.currentTurn,
         interviewLog: previousLog,
+        contextSummary: result.summary.contextSummary,
       };
       queryClient.setQueryData(queryKey, next);
       void queryClient.invalidateQueries({ queryKey: ["applications"] });
@@ -232,6 +253,7 @@ export function useRegenerateSummaryMutation(
         const next: InterviewState = {
           ...current,
           status: "completed",
+          summaryStatus: data.summaryStatus,
           contextSummary: data.contextSummary,
         };
         queryClient.setQueryData(queryKey, next);
@@ -246,12 +268,23 @@ export function useRetrySummaryGenerationMutation(
   options: { onError?: (error: unknown) => void } = {},
 ) {
   const queryClient = useQueryClient();
+  const queryKey = aiInterviewQueryKeys.state(applicationId);
   const { onError } = options;
 
   return useMutation<InterviewGenerateSummaryResponse, Error, void>({
     mutationFn: () => postInterviewGenerateSummary(applicationId),
     onError: (error) => onError?.(error),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const current = queryClient.getQueryData<InterviewState>(queryKey);
+      if (current && current.status !== "not_started") {
+        const next: InterviewState = {
+          ...current,
+          status: "completed",
+          summaryStatus: data.summaryStatus,
+          contextSummary: data.contextSummary,
+        };
+        queryClient.setQueryData(queryKey, next);
+      }
       void queryClient.invalidateQueries({ queryKey: ["applications"] });
     },
   });

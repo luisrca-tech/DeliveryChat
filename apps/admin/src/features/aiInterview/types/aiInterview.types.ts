@@ -1,5 +1,7 @@
 export type AiInterviewStatus = "not_started" | "in_progress" | "completed";
 
+export type InterviewSummaryStatus = "none" | "pending" | "ready" | "failed";
+
 export type InterviewLogEntry = {
   role: "assistant" | "user";
   content: string;
@@ -14,6 +16,7 @@ export type InterviewStateNotStarted = {
 
 export type InterviewStateActive = {
   status: "in_progress" | "completed";
+  summaryStatus: InterviewSummaryStatus;
   currentTurn: number;
   interviewLog: InterviewLogEntry[];
   contextSummary?: string | null;
@@ -26,6 +29,7 @@ export type InterviewState = InterviewStateNotStarted | InterviewStateActive;
 
 export type InterviewCompleteResponse = {
   status: "completed";
+  summaryStatus: InterviewSummaryStatus;
   currentTurn: number;
   completedBy: string | null;
   completedAt: string | null;
@@ -33,6 +37,7 @@ export type InterviewCompleteResponse = {
 
 export type InterviewGenerateSummaryResponse = {
   status: "completed";
+  summaryStatus: InterviewSummaryStatus;
   contextSummary: string | null;
   aiEnabled: boolean;
 };

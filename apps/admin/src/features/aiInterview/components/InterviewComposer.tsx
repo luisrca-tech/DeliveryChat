@@ -1,36 +1,37 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@repo/ui/components/ui/button";
-import type { UseMutationResult } from "@tanstack/react-query";
-import type { InterviewTurnResponse } from "../types/aiInterview.types";
 
 export type InterviewComposerProps = {
-  mutation: UseMutationResult<
-    InterviewTurnResponse,
-    Error,
-    { message: string },
-    unknown
-  >;
+  isSending: boolean;
+  sendDidFail: boolean;
+  onSubmit: (message: string) => void;
+  acknowledgeFailure: () => void;
 };
 
-export function InterviewComposer({ mutation }: InterviewComposerProps) {
+export function InterviewComposer({
+  isSending,
+  sendDidFail,
+  onSubmit,
+  acknowledgeFailure,
+}: InterviewComposerProps) {
   const [draft, setDraft] = useState("");
   const lastSentRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (mutation.isError && lastSentRef.current !== null) {
+    if (sendDidFail && lastSentRef.current !== null) {
       setDraft(lastSentRef.current);
       lastSentRef.current = null;
-      mutation.reset();
+      acknowledgeFailure();
     }
-  }, [mutation.isError, mutation]);
+  }, [sendDidFail, acknowledgeFailure]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const message = draft.trim();
-    if (!message || mutation.isPending) return;
+    if (!message || isSending) return;
     lastSentRef.current = draft;
     setDraft("");
-    mutation.mutate({ message });
+    onSubmit(message);
   };
 
   return (
@@ -43,16 +44,16 @@ export function InterviewComposer({ mutation }: InterviewComposerProps) {
         onChange={(event) => setDraft(event.target.value)}
         placeholder="Type your answer..."
         rows={3}
-        disabled={mutation.isPending}
+        disabled={isSending}
         aria-label="Interview reply"
         className="min-h-[80px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       />
       <div className="flex justify-end">
         <Button
           type="submit"
-          disabled={mutation.isPending || draft.trim().length === 0}
+          disabled={isSending || draft.trim().length === 0}
         >
-          {mutation.isPending ? "Sending..." : "Send"}
+          {isSending ? "Sending..." : "Send"}
         </Button>
       </div>
     </form>
