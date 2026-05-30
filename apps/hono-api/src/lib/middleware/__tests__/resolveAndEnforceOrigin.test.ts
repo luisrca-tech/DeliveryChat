@@ -27,6 +27,8 @@ function appRow(
     domain: string;
     allowedOrigins: string[];
     organizationId: string;
+    kind: "production" | "test";
+    port: number | null;
   }> = {},
 ) {
   return {
@@ -34,6 +36,8 @@ function appRow(
     domain: "example.com",
     allowedOrigins: ["example.com"],
     organizationId: "org-1",
+    kind: "production" as const,
+    port: null,
     ...overrides,
   };
 }

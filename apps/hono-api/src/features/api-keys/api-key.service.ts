@@ -230,6 +230,8 @@ export async function verifyApiKey(
       appDomain: applications.domain,
       appAllowedOrigins: applications.allowedOrigins,
       appOrganizationId: applications.organizationId,
+      appKind: applications.kind,
+      appPort: applications.port,
     })
     .from(apiKeys)
     .innerJoin(applications, eq(apiKeys.applicationId, applications.id))
@@ -248,6 +250,8 @@ export async function verifyApiKey(
       domain: row.appDomain,
       allowedOrigins: row.appAllowedOrigins,
       organizationId: row.appOrganizationId,
+      kind: row.appKind,
+      port: row.appPort,
     },
     apiKey: { id: row.id, environment: row.environment },
   };

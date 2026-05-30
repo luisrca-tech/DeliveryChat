@@ -27,6 +27,8 @@ export type OriginEnforceInput = {
   allowedOrigins: string[];
   keyEnvironment?: "live" | "test";
   requireOrigin?: boolean;
+  appKind?: "production" | "test";
+  appPort?: number | null;
 };
 
 export type OriginEnforceResult =
@@ -39,6 +41,8 @@ export function enforceOrigin(input: OriginEnforceInput): OriginEnforceResult {
     allowedOrigins,
     keyEnvironment,
     requireOrigin = false,
+    appKind,
+    appPort,
   } = input;
 
   if (!origin) {
@@ -47,6 +51,18 @@ export function enforceOrigin(input: OriginEnforceInput): OriginEnforceResult {
         allowed: false,
         error: "origin_not_allowed",
         message: "Origin header is required",
+      };
+    }
+    return { allowed: true };
+  }
+
+  if (appKind === "test") {
+    const allowed = matchesTestAppOrigin(origin, appPort ?? null);
+    if (!allowed) {
+      return {
+        allowed: false,
+        error: "origin_not_allowed",
+        message: "Origin is not in the application allow-list",
       };
     }
     return { allowed: true };
@@ -67,6 +83,25 @@ export function enforceOrigin(input: OriginEnforceInput): OriginEnforceResult {
   }
 
   return { allowed: true };
+}
+
+function matchesTestAppOrigin(
+  origin: string,
+  appPort: number | null,
+): boolean {
+  if (appPort === null) return false;
+
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  const host = url.hostname.toLowerCase();
+  if (!isLocalhostHost(host)) return false;
+
+  return url.port === String(appPort);
 }
 
 function parseHost(origin: string): string | null {

@@ -9,6 +9,8 @@ export type ResolvedApplication = {
   domain: string;
   allowedOrigins: string[];
   organizationId: string;
+  kind: "production" | "test";
+  port: number | null;
 };
 
 type EnforceOriginOptions = {
@@ -47,6 +49,8 @@ export async function resolveAndEnforceOrigin(
     allowedOrigins: application.allowedOrigins,
     keyEnvironment: options?.keyEnvironment,
     requireOrigin: options?.requireOrigin,
+    appKind: application.kind,
+    appPort: application.port,
   });
 
   if (!originCheck.allowed) {
@@ -79,6 +83,8 @@ export async function resolveApplicationById(
       domain: applications.domain,
       allowedOrigins: applications.allowedOrigins,
       organizationId: applications.organizationId,
+      kind: applications.kind,
+      port: applications.port,
     })
     .from(applications)
     .where(and(eq(applications.id, appId), isNull(applications.deletedAt)))

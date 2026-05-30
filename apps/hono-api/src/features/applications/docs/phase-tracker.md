@@ -10,7 +10,7 @@ and to any phase-local docs added in this folder.
 | ----- | ---------------------------------------------- | ----------- | --------- | ----- |
 | 1     | Fix unique-violation conflict detection        | ✅ Completed | TBD       | `isUniqueViolation` now walks `err.cause.code` so Drizzle-wrapped `23505` is detected. Conflict path returns 409 fast instead of falling through to a 500. |
 | 2     | Test application end-to-end (create flow)      | ✅ Completed | TBD       | Schema adds `kind`/`port` + CHECK + partial unique indexes. Zod discriminated union forces `domain='localhost'` for test apps and validates port range. Service returns `DOMAIN_TAKEN`/`PORT_TAKEN` with conflicting app name. Admin dialog gains kind toggle, port input, `localhost:<port>` preview, pin tooltip, distinct toasts. See `phase-2-test-apps.md`. |
-| 3     | Runtime origin enforcement for test apps       | ⏳ Pending   | —         | Port-aware origin matcher; remove localhost shortcut for `kind='test'`. |
+| 3     | Runtime origin enforcement for test apps       | ✅ Completed | TBD       | `enforceOrigin` accepts `appKind`/`appPort`; for `kind='test'` apps the URL port must equal the declared port and the localhost auto-allow shortcut is bypassed. Production apps unchanged. See `phase-3-origin-enforcement.md`. |
 | 4     | API key environment ↔ app-kind binding         | ⏳ Pending   | —         | `dk_test_` ↔ `kind='test'`, `dk_live_` ↔ `kind='production'`. |
 | 5     | Cross-cutting documentation                    | ⏳ Pending   | —         | Feature doc, public doc, deferred Stripe-style alternative TODO. |
 

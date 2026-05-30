@@ -45,6 +45,8 @@ type AppRow = {
   domain: string;
   allowedOrigins: string[];
   organizationId: string;
+  kind: "production" | "test";
+  port: number | null;
 };
 
 function appRow(overrides: Partial<AppRow> = {}): AppRow {
@@ -53,6 +55,8 @@ function appRow(overrides: Partial<AppRow> = {}): AppRow {
     domain: "example.com",
     allowedOrigins: ["example.com"],
     organizationId: "org-1",
+    kind: "production",
+    port: null,
     ...overrides,
   };
 }

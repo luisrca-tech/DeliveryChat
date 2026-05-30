@@ -359,6 +359,104 @@ describe("enforceOrigin", () => {
     });
   });
 
+  describe("test-kind app port pinning", () => {
+    it("allows localhost when origin port matches the app port", () => {
+      const result = enforceOrigin({
+        origin: "http://localhost:3001",
+        allowedOrigins: [],
+        appKind: "test",
+        appPort: 3001,
+        keyEnvironment: "test",
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it("rejects localhost when origin port does not match the app port", () => {
+      const result = enforceOrigin({
+        origin: "http://localhost:4000",
+        allowedOrigins: [],
+        appKind: "test",
+        appPort: 3001,
+        keyEnvironment: "test",
+      });
+      expect(result).toEqual({
+        allowed: false,
+        error: "origin_not_allowed",
+        message: "Origin is not in the application allow-list",
+      });
+    });
+
+    it("rejects localhost without a port when the app declares a port", () => {
+      const result = enforceOrigin({
+        origin: "http://localhost",
+        allowedOrigins: [],
+        appKind: "test",
+        appPort: 3001,
+        keyEnvironment: "test",
+      });
+      expect(result.allowed).toBe(false);
+    });
+
+    it("rejects non-localhost host even if allow-list would otherwise match", () => {
+      const result = enforceOrigin({
+        origin: "https://example.com",
+        allowedOrigins: ["example.com"],
+        appKind: "test",
+        appPort: 3001,
+        keyEnvironment: "test",
+      });
+      expect(result.allowed).toBe(false);
+    });
+
+    it("does not consult the testMode localhost shortcut for test-kind apps", () => {
+      // keyEnvironment=test would normally auto-allow any localhost,
+      // but for test-kind apps the port must match.
+      const result = enforceOrigin({
+        origin: "http://localhost:9999",
+        allowedOrigins: ["example.com"],
+        appKind: "test",
+        appPort: 3001,
+        keyEnvironment: "test",
+      });
+      expect(result.allowed).toBe(false);
+    });
+
+    it("allows *.localhost subdomain when port matches", () => {
+      const result = enforceOrigin({
+        origin: "http://tenant.localhost:3001",
+        allowedOrigins: [],
+        appKind: "test",
+        appPort: 3001,
+        keyEnvironment: "test",
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+  });
+
+  describe("production-kind app preserves existing behavior", () => {
+    it("still auto-allows localhost when keyEnvironment is test", () => {
+      const result = enforceOrigin({
+        origin: "http://localhost:4321",
+        allowedOrigins: ["example.com"],
+        appKind: "production",
+        appPort: null,
+        keyEnvironment: "test",
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+
+    it("still matches against allow-list in live mode", () => {
+      const result = enforceOrigin({
+        origin: "https://example.com",
+        allowedOrigins: ["example.com"],
+        appKind: "production",
+        appPort: null,
+        keyEnvironment: "live",
+      });
+      expect(result).toEqual({ allowed: true });
+    });
+  });
+
   describe("allowed origins matching", () => {
     it("allows exact match", () => {
       const result = enforceOrigin({

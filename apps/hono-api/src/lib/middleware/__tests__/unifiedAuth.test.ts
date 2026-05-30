@@ -107,6 +107,25 @@ function validLiveKey() {
   return "dk_live_" + "a".repeat(32);
 }
 
+function validTestKey() {
+  return "dk_test_" + "a".repeat(32);
+}
+
+function testApiResult() {
+  return {
+    valid: true as const,
+    application: {
+      id: "app-1",
+      domain: "localhost",
+      allowedOrigins: [],
+      organizationId: "org-1",
+      kind: "test" as const,
+      port: 3001,
+    },
+    apiKey: { id: "key-1", environment: "test" as const },
+  };
+}
+
 function validApiResult() {
   return {
     valid: true as const,
@@ -115,6 +134,8 @@ function validApiResult() {
       domain: "example.com",
       allowedOrigins: ["example.com"],
       organizationId: "org-1",
+      kind: "production" as const,
+      port: null,
     },
     apiKey: { id: "key-1", environment: "live" as const },
   };
@@ -188,6 +209,42 @@ describe("requireAuth", () => {
       expect(body.visitorUserId).toBe("visitor-user-1");
       expect(body.application.id).toBe("app-1");
       expect(body.apiKey.id).toBe("key-1");
+    });
+
+    it("allows widget request from the test app's declared port", async () => {
+      mockVerify.mockResolvedValue(testApiResult());
+      mockResolveVisitor.mockResolvedValue("visitor-user-1");
+
+      const res = await createAuthApp().request("/test", {
+        headers: {
+          Authorization: `Bearer ${validTestKey()}`,
+          "X-App-Id": "app-1",
+          "X-Visitor-Id": "550e8400-e29b-41d4-a716-446655440000",
+          Origin: "http://localhost:3001",
+        },
+      });
+
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.type).toBe("visitor");
+    });
+
+    it("rejects widget request from a port other than the test app's declared port", async () => {
+      mockVerify.mockResolvedValue(testApiResult());
+      mockResolveVisitor.mockResolvedValue("visitor-user-1");
+
+      const res = await createAuthApp().request("/test", {
+        headers: {
+          Authorization: `Bearer ${validTestKey()}`,
+          "X-App-Id": "app-1",
+          "X-Visitor-Id": "550e8400-e29b-41d4-a716-446655440000",
+          Origin: "http://localhost:4000",
+        },
+      });
+
+      expect(res.status).toBe(403);
+      const body = await res.json();
+      expect(body.error).toBe("origin_not_allowed");
     });
   });
 

@@ -195,6 +195,8 @@ export function requireAuth(): MiddlewareHandler {
       allowedOrigins: result.application.allowedOrigins,
       keyEnvironment: result.apiKey.environment,
       requireOrigin: true,
+      appKind: result.application.kind,
+      appPort: result.application.port,
     });
     if (!originCheck.allowed) {
       return jsonError(

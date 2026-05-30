@@ -62,6 +62,8 @@ describe("resolveApplicationById", () => {
       domain: "example.com",
       allowedOrigins: ["example.com"],
       organizationId: "org-1",
+      kind: "production" as const,
+      port: null,
     };
     mockSelect.mockReturnValue(chainMock([app]));
     const result = await resolveApplicationById(app.id);
