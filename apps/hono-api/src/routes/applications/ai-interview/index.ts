@@ -12,7 +12,7 @@ import {
   runGenerateSummary,
   runInterviewComplete,
   runInterviewTurn,
-} from "../../../features/ai/ai.interview.service.js";
+} from "../../../features/ai/ai.interview.stateMachine.js";
 import { ERROR_MESSAGES, HTTP_STATUS, jsonError } from "../../../lib/http.js";
 import { completeBodySchema, turnsBodySchema } from "./schemas.js";
 import {

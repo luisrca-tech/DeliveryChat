@@ -1,0 +1,848 @@
+import { eq } from "drizzle-orm";
+import { db, type DbExecutor } from "../../db/index.js";
+import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
+import { applications } from "../../db/schema/applications.js";
+import { runAICall } from "./ai.callOrchestrator.js";
+import {
+  MissingTopicsError,
+  SummaryGenerationFailedError,
+  TurnConflictError,
+} from "./ai.errors.js";
+import { GUARD_RAIL_RULES } from "./ai.interview.guardRails.js";
+import {
+  computeCoveredTopics,
+  CORE_TOPICS,
+  FORCED_COMPLETION_FINISH_REASON,
+  interviewerOutputSchema,
+  MAX_TURNS,
+  missingTopics,
+  type CoreTopic,
+  type EngineMessage,
+  type InterviewContextRow,
+  type InterviewerOutput,
+  type InterviewLogEntry,
+} from "./ai.interview.schema.js";
+import {
+  INTERVIEW_MODEL,
+  INTERVIEWER_SYSTEM_PROMPT,
+} from "./ai.prompts.interview.js";
+import type { AIProviderPort } from "./ai.providerPort.js";
+import { sanitizeAiMarkdown } from "./ai.sanitize.js";
+import { generateInterviewSummary } from "./ai.summaryGenerator.js";
+
+export const SOFT_FINISH_WINDOW_MIN = 8;
+export const SOFT_FINISH_WINDOW_MAX = 12;
+
+export type TurnResult = {
+  row: InterviewContextRow;
+  output: InterviewerOutput;
+  canFinish: boolean;
+};
+
+export type RunTurnParams = {
+  provider: AIProviderPort;
+  applicationId: string;
+  tenantId: string;
+  userId: string;
+  message: string;
+  expectedCurrentTurn: number;
+};
+
+export type RunCompleteParams = {
+  applicationId: string;
+  userId: string;
+  expectedCurrentTurn: number;
+};
+
+export type RunGenerateSummaryParams = {
+  provider: AIProviderPort;
+  applicationId: string;
+  tenantId: string;
+  userId: string;
+};
+
+export class InterviewReadPort {
+  constructor(private readonly executor: DbExecutor) {}
+
+  async loadByApplicationId(
+    applicationId: string,
+  ): Promise<InterviewContextRow | null> {
+    const rows = await this.executor
+      .select()
+      .from(applicationAiContext)
+      .where(eq(applicationAiContext.applicationId, applicationId))
+      .limit(1);
+    return (rows[0] as InterviewContextRow | undefined) ?? null;
+  }
+}
+
+export function createInterviewReadPort(executor: DbExecutor): InterviewReadPort {
+  return new InterviewReadPort(executor);
+}
+
+type TurnConflictDecision = {
+  kind: "conflict";
+  currentTurn: number;
+  status: InterviewContextRow["status"] | "not_started";
+};
+
+type BootstrapAlreadyDoneDecision = {
+  kind: "bootstrap_already_done";
+  output: InterviewerOutput;
+  canFinish: boolean;
+};
+
+type BootstrapPersistDecision = {
+  kind: "bootstrap_persist";
+  nextLog: InterviewLogEntry[];
+  output: InterviewerOutput;
+  canFinish: boolean;
+};
+
+type ForcedCompletionDecision = {
+  kind: "forced_completion";
+  nextLog: InterviewLogEntry[];
+  output: InterviewerOutput;
+  completedAt: string;
+};
+
+type NeedsRepromptDecision = {
+  kind: "needs_reprompt";
+  missing: CoreTopic[];
+  repromptMessages: EngineMessage[];
+};
+
+type AdvanceDecision = {
+  kind: "advance";
+  nextLog: InterviewLogEntry[];
+  nextTurn: number;
+  output: InterviewerOutput;
+  canFinish: boolean;
+};
+
+type CompleteDecision = {
+  kind: "complete";
+  completedAt: string;
+};
+
+type AlreadyCompleteDecision = {
+  kind: "already_complete";
+};
+
+type MissingTopicsDecision = {
+  kind: "missing_topics";
+  missing: CoreTopic[];
+};
+
+type TurnDecision =
+  | TurnConflictDecision
+  | BootstrapAlreadyDoneDecision
+  | BootstrapPersistDecision
+  | ForcedCompletionDecision
+  | NeedsRepromptDecision
+  | AdvanceDecision
+  | CompleteDecision
+  | MissingTopicsDecision;
+
+type EngineNextInput =
+  | { kind: "bootstrap"; llmOutput: InterviewerOutput }
+  | {
+      kind: "advance";
+      expectedCurrentTurn: number;
+      userMessage: string;
+      llmOutput: InterviewerOutput;
+      baseMessages: EngineMessage[];
+    }
+  | {
+      kind: "advance_after_reprompt";
+      expectedCurrentTurn: number;
+      userMessage: string;
+      llmOutput: InterviewerOutput;
+      originalGuardrailAction: InterviewerOutput["guardrailAction"];
+    }
+  | {
+      kind: "forced_completion";
+      expectedCurrentTurn: number;
+      userMessage: string;
+      nowIso: string;
+    };
+
+function buildBootstrapMessages(): EngineMessage[] {
+  return [
+    {
+      role: "user",
+      content:
+        "Start the interview. Greet the admin briefly and ask the first question covering one of the core topics.",
+    },
+  ];
+}
+
+function buildAdvanceMessages(
+  log: InterviewLogEntry[],
+  userMessage: string,
+  currentTurn: number,
+): EngineMessage[] {
+  const history: EngineMessage[] = log.map((entry) => ({
+    role: entry.role,
+    content: entry.content,
+  }));
+
+  const pushbackTopics = new Set<string>();
+  for (const entry of log) {
+    if (entry.role !== "user") continue;
+    for (const topic of entry.garbagePushbackTopics ?? []) {
+      pushbackTopics.add(topic);
+    }
+  }
+
+  const messages: EngineMessage[] = [...history];
+
+  const nextTurnNumber = currentTurn + 1;
+  const remainingAfter = Math.max(0, MAX_TURNS - nextTurnNumber);
+  messages.push({
+    role: "system",
+    content: `Turn budget: this will be question ${nextTurnNumber} of ${MAX_TURNS}. Remaining after this one: ${remainingAfter}. Pace your follow-ups so every core topic is covered before the cap.`,
+  });
+
+  const coveredSoFar = computeCoveredTopics(log);
+  const allTopicsCovered = coveredSoFar.size === CORE_TOPICS.length;
+  const inSoftFinishWindow =
+    nextTurnNumber >= SOFT_FINISH_WINDOW_MIN &&
+    nextTurnNumber <= SOFT_FINISH_WINDOW_MAX;
+  if (inSoftFinishWindow && allTopicsCovered) {
+    messages.push({
+      role: "system",
+      content: `All six core topics are already covered and this is turn ${nextTurnNumber} of ${MAX_TURNS} (inside the 8–12 finish window). It is acceptable to set intent='suggest_finish' for this turn if you have nothing essential left to ask.`,
+    });
+  }
+
+  if (nextTurnNumber === MAX_TURNS) {
+    messages.push({
+      role: "system",
+      content: `This is the FINAL question (turn ${MAX_TURNS} of ${MAX_TURNS}). You must set intent='final_question' and frame your message as the last one. Cover any remaining core topic in a single concluding question.`,
+    });
+  }
+
+  if (pushbackTopics.size > 0) {
+    messages.push({
+      role: "system",
+      content: `Prior push-back markers exist for topics: ${[...pushbackTopics].join(", ")}. If the admin's next attempt on any of these topics is still imperfect, set guardrailAction='accept_garbage' and move on so the admin is never blocked.`,
+    });
+  }
+  messages.push({ role: "user", content: userMessage });
+  return messages;
+}
+
+function shouldForceCompletion(row: InterviewContextRow): boolean {
+  return row.currentTurn >= MAX_TURNS;
+}
+
+function decideNext(
+  state: InterviewContextRow | null,
+  input: EngineNextInput,
+): TurnDecision {
+  if (input.kind === "bootstrap") {
+    if (!state) {
+      return { kind: "conflict", currentTurn: 0, status: "not_started" };
+    }
+    if (state.currentTurn !== 0 || state.interviewLog.length > 0) {
+      const covered = computeCoveredTopics(state.interviewLog);
+      return {
+        kind: "bootstrap_already_done",
+        output: {
+          assistantMessage: state.interviewLog[0]?.content ?? "",
+          intent: "ask",
+          topicsCoveredThisTurn: [],
+          guardrailAction: "none",
+        },
+        canFinish: missingTopics(covered).length === 0,
+      };
+    }
+    const nextLog: InterviewLogEntry[] = [
+      {
+        role: "assistant",
+        content: input.llmOutput.assistantMessage,
+        topicsCoveredThisTurn: input.llmOutput.topicsCoveredThisTurn,
+      },
+    ];
+    const covered = computeCoveredTopics(nextLog);
+    return {
+      kind: "bootstrap_persist",
+      nextLog,
+      output: input.llmOutput,
+      canFinish: missingTopics(covered).length === 0,
+    };
+  }
+
+  if (input.kind === "forced_completion") {
+    if (!state) {
+      return { kind: "conflict", currentTurn: 0, status: "not_started" };
+    }
+    if (
+      state.status !== "in_progress" ||
+      state.currentTurn !== input.expectedCurrentTurn
+    ) {
+      return {
+        kind: "conflict",
+        currentTurn: state.currentTurn,
+        status: state.status,
+      };
+    }
+    const userEntry: InterviewLogEntry = {
+      role: "user",
+      content: input.userMessage,
+    };
+    return {
+      kind: "forced_completion",
+      nextLog: [...state.interviewLog, userEntry],
+      output: {
+        assistantMessage: "",
+        intent: "final_question",
+        topicsCoveredThisTurn: [],
+        guardrailAction: "none",
+      },
+      completedAt: input.nowIso,
+    };
+  }
+
+  if (!state) {
+    return { kind: "conflict", currentTurn: 0, status: "not_started" };
+  }
+  if (
+    state.status !== "in_progress" ||
+    state.currentTurn !== input.expectedCurrentTurn
+  ) {
+    return {
+      kind: "conflict",
+      currentTurn: state.currentTurn,
+      status: state.status,
+    };
+  }
+
+  if (shouldForceCompletion(state)) {
+    return {
+      kind: "conflict",
+      currentTurn: state.currentTurn,
+      status: state.status,
+    };
+  }
+
+  let sanitized = input.llmOutput;
+  const effectiveGuardrailForAdvance =
+    input.kind === "advance_after_reprompt"
+      ? input.originalGuardrailAction
+      : sanitized.guardrailAction;
+  const advanceRules = GUARD_RAIL_RULES[effectiveGuardrailForAdvance];
+  const persistRules = GUARD_RAIL_RULES[sanitized.guardrailAction];
+  const isFinalQuestionTurn = state.currentTurn + 1 === MAX_TURNS;
+
+  if (
+    input.kind === "advance" &&
+    !persistRules.suppressFinishReprompt &&
+    sanitized.intent === "suggest_finish"
+  ) {
+    const projectedCovered = computeCoveredTopics([
+      ...state.interviewLog,
+      {
+        role: "assistant",
+        content: sanitized.assistantMessage,
+        topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
+      },
+    ]);
+    const missing = missingTopics(projectedCovered);
+    if (missing.length > 0) {
+      const repromptMessages: EngineMessage[] = [
+        ...input.baseMessages,
+        {
+          role: "user",
+          content: `You suggested finishing, but the following core topics are still uncovered: ${missing.join(", ")}. Do not suggest finishing yet. Ask the admin a focused question that covers one of the missing topics.`,
+        },
+      ];
+      return { kind: "needs_reprompt", missing, repromptMessages };
+    }
+  }
+
+  if (input.kind === "advance_after_reprompt") {
+    sanitized = { ...sanitized, intent: "ask" };
+  }
+
+  if (isFinalQuestionTurn && !advanceRules.suppressFinishReprompt) {
+    sanitized = { ...sanitized, intent: "final_question" };
+  }
+
+  const userEntry: InterviewLogEntry = {
+    role: "user",
+    content: input.userMessage,
+  };
+  if (persistRules.persistMarker === "garbage_pushback") {
+    userEntry.garbagePushbackTopics = sanitized.topicsCoveredThisTurn;
+  }
+
+  const assistantEntry: InterviewLogEntry = {
+    role: "assistant",
+    content: sanitized.assistantMessage,
+    topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
+  };
+  if (sanitized.intent === "final_question") {
+    assistantEntry.intent = "final_question";
+  }
+
+  const nextLog: InterviewLogEntry[] = [
+    ...state.interviewLog,
+    userEntry,
+    assistantEntry,
+  ];
+
+  const nextTurn = advanceRules.advanceTurn
+    ? state.currentTurn + 1
+    : state.currentTurn;
+
+  const finalCovered = computeCoveredTopics(nextLog);
+  return {
+    kind: "advance",
+    nextLog,
+    nextTurn,
+    output: sanitized,
+    canFinish: missingTopics(finalCovered).length === 0,
+  };
+}
+
+function decideComplete(
+  state: InterviewContextRow | null,
+  input: { expectedCurrentTurn: number; nowIso: string },
+):
+  | TurnConflictDecision
+  | MissingTopicsDecision
+  | CompleteDecision
+  | AlreadyCompleteDecision {
+  if (!state) {
+    return { kind: "conflict", currentTurn: 0, status: "not_started" };
+  }
+  if (state.status === "completed") {
+    return { kind: "already_complete" };
+  }
+  if (state.currentTurn !== input.expectedCurrentTurn) {
+    return {
+      kind: "conflict",
+      currentTurn: state.currentTurn,
+      status: state.status,
+    };
+  }
+  const covered = computeCoveredTopics(state.interviewLog);
+  const missing = missingTopics(covered);
+  if (missing.length > 0) {
+    return { kind: "missing_topics", missing };
+  }
+  return { kind: "complete", completedAt: input.nowIso };
+}
+
+function sanitizeOutput(o: InterviewerOutput): InterviewerOutput {
+  return { ...o, assistantMessage: sanitizeAiMarkdown(o.assistantMessage) };
+}
+
+async function callInterviewerLlm(
+  provider: AIProviderPort,
+  messages: EngineMessage[],
+) {
+  return provider.generateObject({
+    systemPrompt: INTERVIEWER_SYSTEM_PROMPT,
+    messages,
+    model: INTERVIEW_MODEL,
+    schema: interviewerOutputSchema,
+  });
+}
+
+async function loadOrInit(
+  executor: DbExecutor,
+  applicationId: string,
+): Promise<InterviewContextRow> {
+  const existing = await executor
+    .select()
+    .from(applicationAiContext)
+    .where(eq(applicationAiContext.applicationId, applicationId))
+    .limit(1);
+  if (existing[0]) {
+    return existing[0] as InterviewContextRow;
+  }
+  const [created] = await executor
+    .insert(applicationAiContext)
+    .values({ applicationId })
+    .returning();
+  return created as InterviewContextRow;
+}
+
+async function writeBootstrap(
+  executor: DbExecutor,
+  rowId: string,
+  nextLog: InterviewLogEntry[],
+): Promise<InterviewContextRow> {
+  const [updated] = await executor
+    .update(applicationAiContext)
+    .set({ interviewLog: nextLog })
+    .where(eq(applicationAiContext.id, rowId))
+    .returning();
+  return updated as InterviewContextRow;
+}
+
+async function writeAdvance(
+  executor: DbExecutor,
+  rowId: string,
+  nextLog: InterviewLogEntry[],
+  nextTurn: number,
+): Promise<InterviewContextRow> {
+  const [updated] = await executor
+    .update(applicationAiContext)
+    .set({ interviewLog: nextLog, currentTurn: nextTurn })
+    .where(eq(applicationAiContext.id, rowId))
+    .returning();
+  return updated as InterviewContextRow;
+}
+
+async function writeForcedCompletion(
+  executor: DbExecutor,
+  rowId: string,
+  userId: string,
+  nextLog: InterviewLogEntry[],
+  completedAt: string,
+): Promise<InterviewContextRow> {
+  const [updated] = await executor
+    .update(applicationAiContext)
+    .set({
+      interviewLog: nextLog,
+      status: "completed",
+      summaryStatus: "pending",
+      completedBy: userId,
+      completedAt,
+    })
+    .where(eq(applicationAiContext.id, rowId))
+    .returning();
+  return updated as InterviewContextRow;
+}
+
+async function writeMarkCompleted(
+  executor: DbExecutor,
+  rowId: string,
+  userId: string,
+  completedAt: string,
+): Promise<InterviewContextRow> {
+  const [updated] = await executor
+    .update(applicationAiContext)
+    .set({
+      status: "completed",
+      summaryStatus: "pending",
+      completedBy: userId,
+      completedAt,
+    })
+    .where(eq(applicationAiContext.id, rowId))
+    .returning();
+  return updated as InterviewContextRow;
+}
+
+async function writeSummaryReady(
+  executor: DbExecutor,
+  rowId: string,
+  contextSummary: string,
+): Promise<InterviewContextRow> {
+  const [updated] = await executor
+    .update(applicationAiContext)
+    .set({ contextSummary, summaryStatus: "ready" })
+    .where(eq(applicationAiContext.id, rowId))
+    .returning();
+  return updated as InterviewContextRow;
+}
+
+async function writeSummaryFailed(
+  executor: DbExecutor,
+  rowId: string,
+): Promise<void> {
+  await executor
+    .update(applicationAiContext)
+    .set({ summaryStatus: "failed" })
+    .where(eq(applicationAiContext.id, rowId));
+}
+
+export async function getInterviewContext(
+  applicationId: string,
+): Promise<InterviewContextRow | null> {
+  return createInterviewReadPort(db).loadByApplicationId(applicationId);
+}
+
+export async function runInterviewTurn(
+  params: RunTurnParams,
+): Promise<TurnResult> {
+  const {
+    provider,
+    applicationId,
+    tenantId,
+    userId,
+    message,
+    expectedCurrentTurn,
+  } = params;
+
+  return db.transaction(async (tx) => {
+    const trimmedMessage = message.trim();
+    const isBootstrap = expectedCurrentTurn === 0 && trimmedMessage === "";
+    const row = await loadOrInit(tx, applicationId);
+
+    if (!isBootstrap) {
+      if (
+        row.status !== "in_progress" ||
+        row.currentTurn !== expectedCurrentTurn
+      ) {
+        throw new TurnConflictError(row.currentTurn, row.status);
+      }
+      if (shouldForceCompletion(row)) {
+        return runForcedCompletionTurn(tx, row, {
+          tenantId,
+          userId,
+          message: trimmedMessage,
+          expectedCurrentTurn,
+        });
+      }
+    }
+
+    return runLlmTurn(tx, provider, row, isBootstrap, {
+      tenantId,
+      userId,
+      message: trimmedMessage,
+      expectedCurrentTurn,
+    });
+  });
+}
+
+type LlmTurnParams = {
+  tenantId: string;
+  userId: string;
+  message: string;
+  expectedCurrentTurn: number;
+};
+
+async function runForcedCompletionTurn(
+  tx: DbExecutor,
+  row: InterviewContextRow,
+  params: LlmTurnParams,
+): Promise<TurnResult> {
+  const decision = decideNext(row, {
+    kind: "forced_completion",
+    expectedCurrentTurn: params.expectedCurrentTurn,
+    userMessage: params.message,
+    nowIso: new Date().toISOString(),
+  });
+  if (decision.kind === "conflict") {
+    throw new TurnConflictError(decision.currentTurn, decision.status);
+  }
+  if (decision.kind !== "forced_completion") {
+    throw new Error(`unexpected forced decision: ${decision.kind}`);
+  }
+
+  const updated = await writeForcedCompletion(
+    tx,
+    row.id,
+    params.userId,
+    decision.nextLog,
+    decision.completedAt,
+  );
+
+  await runAICall<null, null>({
+    action: "interview_forced_completion",
+    tenantId: params.tenantId,
+    userId: params.userId,
+    conversationId: null,
+    model: INTERVIEW_MODEL,
+    tx,
+    providerCall: async () => ({
+      result: null,
+      inputTokens: 0,
+      outputTokens: 0,
+      finishReason: FORCED_COMPLETION_FINISH_REASON,
+    }),
+    parse: (v) => v,
+  });
+
+  console.warn("[ai.interviewer] forced completion at turn cap", {
+    applicationId: row.applicationId,
+    userId: params.userId,
+    currentTurn: row.currentTurn,
+  });
+
+  return { row: updated, output: decision.output, canFinish: true };
+}
+
+async function runLlmTurn(
+  tx: DbExecutor,
+  provider: AIProviderPort,
+  row: InterviewContextRow,
+  isBootstrap: boolean,
+  params: LlmTurnParams,
+): Promise<TurnResult> {
+  const baseMessages = isBootstrap
+    ? buildBootstrapMessages()
+    : buildAdvanceMessages(row.interviewLog, params.message, row.currentTurn);
+
+  const decision = await runAICall<TurnDecision, TurnDecision>({
+    action: "interview",
+    tenantId: params.tenantId,
+    userId: params.userId,
+    conversationId: null,
+    model: INTERVIEW_MODEL,
+    tx,
+    providerCall: async () => {
+      const first = await callInterviewerLlm(provider, baseMessages);
+      let totalIn = first.usage.promptTokens;
+      let totalOut = first.usage.completionTokens;
+      let finalFinish = first.finishReason;
+
+      const sanitizedFirst = sanitizeOutput(first.object);
+      let next: TurnDecision = isBootstrap
+        ? decideNext(row, { kind: "bootstrap", llmOutput: sanitizedFirst })
+        : decideNext(row, {
+            kind: "advance",
+            expectedCurrentTurn: params.expectedCurrentTurn,
+            userMessage: params.message,
+            llmOutput: sanitizedFirst,
+            baseMessages,
+          });
+
+      if (next.kind === "needs_reprompt") {
+        const retry = await callInterviewerLlm(provider, next.repromptMessages);
+        totalIn += retry.usage.promptTokens;
+        totalOut += retry.usage.completionTokens;
+        finalFinish = retry.finishReason;
+        const sanitizedRetry = sanitizeOutput(retry.object);
+        next = decideNext(row, {
+          kind: "advance_after_reprompt",
+          expectedCurrentTurn: params.expectedCurrentTurn,
+          userMessage: params.message,
+          llmOutput: sanitizedRetry,
+          originalGuardrailAction: sanitizedFirst.guardrailAction,
+        });
+      }
+
+      return {
+        result: next,
+        inputTokens: totalIn,
+        outputTokens: totalOut,
+        finishReason: finalFinish,
+      };
+    },
+    parse: (d) => d,
+  });
+
+  if (decision.kind === "conflict") {
+    throw new TurnConflictError(decision.currentTurn, decision.status);
+  }
+
+  if (decision.kind === "bootstrap_already_done") {
+    return { row, output: decision.output, canFinish: decision.canFinish };
+  }
+
+  if (decision.kind === "bootstrap_persist") {
+    const updated = await writeBootstrap(tx, row.id, decision.nextLog);
+    return {
+      row: updated,
+      output: decision.output,
+      canFinish: decision.canFinish,
+    };
+  }
+
+  if (decision.kind === "advance") {
+    const updated = await writeAdvance(
+      tx,
+      row.id,
+      decision.nextLog,
+      decision.nextTurn,
+    );
+    return {
+      row: updated,
+      output: decision.output,
+      canFinish: decision.canFinish,
+    };
+  }
+
+  throw new Error(`unexpected turn decision: ${decision.kind}`);
+}
+
+export async function runInterviewComplete(
+  params: RunCompleteParams,
+): Promise<{ row: InterviewContextRow }> {
+  return db.transaction(async (tx) => {
+    const port = createInterviewReadPort(tx);
+    const row = await port.loadByApplicationId(params.applicationId);
+
+    const decision = decideComplete(row, {
+      expectedCurrentTurn: params.expectedCurrentTurn,
+      nowIso: new Date().toISOString(),
+    });
+
+    if (decision.kind === "conflict") {
+      throw new TurnConflictError(decision.currentTurn, decision.status);
+    }
+    if (decision.kind === "missing_topics") {
+      throw new MissingTopicsError(decision.missing);
+    }
+    if (decision.kind === "already_complete") {
+      return { row: row as InterviewContextRow };
+    }
+
+    const updated = await writeMarkCompleted(
+      tx,
+      row!.id,
+      params.userId,
+      decision.completedAt,
+    );
+    return { row: updated };
+  });
+}
+
+export async function runGenerateSummary(
+  params: RunGenerateSummaryParams,
+): Promise<{ row: InterviewContextRow }> {
+  const port = createInterviewReadPort(db);
+  const row = await port.loadByApplicationId(params.applicationId);
+  if (!row) {
+    throw new SummaryGenerationFailedError(
+      "Interview row not found for application",
+    );
+  }
+  if (row.status !== "completed") {
+    throw new SummaryGenerationFailedError(
+      `Interview is not completed (status=${row.status})`,
+    );
+  }
+
+  const appRows = await db
+    .select({ name: applications.name })
+    .from(applications)
+    .where(eq(applications.id, params.applicationId))
+    .limit(1);
+  const applicationName = appRows[0]?.name;
+  if (!applicationName) {
+    throw new SummaryGenerationFailedError("Application not found");
+  }
+
+  let summary: string;
+  try {
+    summary = await generateInterviewSummary({
+      provider: params.provider,
+      tenantId: params.tenantId,
+      userId: params.userId,
+      applicationName,
+      interviewLog: row.interviewLog,
+    });
+  } catch (error) {
+    await writeSummaryFailed(db, row.id);
+    throw new SummaryGenerationFailedError(
+      error instanceof Error ? error.message : "Summary generation failed",
+      { cause: error },
+    );
+  }
+
+  return db.transaction(async (tx) => {
+    const updated = await writeSummaryReady(tx, row.id, summary);
+    await tx
+      .update(applications)
+      .set({ aiEnabled: true })
+      .where(eq(applications.id, params.applicationId));
+    return { row: updated };
+  });
+}

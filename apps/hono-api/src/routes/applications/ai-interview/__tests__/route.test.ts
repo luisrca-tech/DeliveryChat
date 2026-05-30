@@ -148,7 +148,7 @@ class SummaryGenerationFailedErrorMock extends Error {
   }
 }
 
-vi.mock("../../../../features/ai/ai.interview.service.js", () => ({
+vi.mock("../../../../features/ai/ai.interview.stateMachine.js", () => ({
   getInterviewContext: (...args: unknown[]) => mockGetInterviewContext(...args),
   runInterviewTurn: (...args: unknown[]) => mockRunInterviewTurn(...args),
   runInterviewComplete: (...args: unknown[]) =>

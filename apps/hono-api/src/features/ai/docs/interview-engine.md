@@ -6,18 +6,20 @@ For phase-by-phase context, see also `interview-checklist-and-completion.md` (Ph
 
 ## Module placement
 
-The interviewer is split across focused modules under `apps/hono-api/src/features/ai/`:
+After the Phase 2b state-machine merge, the interviewer is consolidated:
 
-- `ai.interview.engine.ts` — pure `InterviewTurnEngine` (`next`, `complete`, turn-cap math, guard-rail dispatch)
+- `ai.interview.stateMachine.ts` — `InterviewStateMachine`: turn decision rules,
+  persistence, and provider invocation via the orchestrator. Public surface is
+  `getInterviewContext`, `runInterviewTurn`, `runInterviewComplete`,
+  `runGenerateSummary`. Internal decision-kind types are not exported.
 - `ai.interview.guardRails.ts` — `Record<GuardRailAction, GuardRailRules>` strategy table
 - `ai.interview.schema.ts` — `interviewerOutputSchema`, `CORE_TOPICS`, `MAX_TURNS`, log-entry shapes
 - `ai.prompts.interview.ts` — `INTERVIEWER_SYSTEM_PROMPT` and `INTERVIEW_MODEL`
-- `ai.interview.repository.ts` — `InterviewRepository`: `applicationAiContext` reads/writes, optimistic-lock check, `TurnDecision` persistence
-- `ai.callRunner.ts` — shared provider call + `aiUsageLog` write + error mapping (also used by `generateReply` / `improveMessage`)
-- `ai.interview.service.ts` — orchestration glue: opens the transaction and wires repo → runner → engine
-- `ai.errors.ts` — `MissingTopicsError`, `TurnConflictError`, etc.
+- `ai.callOrchestrator.ts` — shared provider call + `aiUsageLog` write + error mapping (used by `generateReply`, `improveMessage`, and the state machine)
+- `ai.summaryGenerator.ts` — summary prompt + provider call (delegated to from the state machine's `runGenerateSummary`)
+- `ai.errors.ts` — `MissingTopicsError`, `TurnConflictError`, `SummaryGenerationFailedError`, AI-call error classes
 
-The Hono route folder under `apps/hono-api/src/routes/applications/ai-interview/` is a thin adapter that dispatches to the service.
+The Hono route folder under `apps/hono-api/src/routes/applications/ai-interview/` is a thin adapter that dispatches to the state machine.
 
 See [`interview-module-boundaries.md`](./interview-module-boundaries.md) for the data flow diagram and extension-point guidance.
 
