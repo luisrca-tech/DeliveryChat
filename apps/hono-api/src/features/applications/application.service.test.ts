@@ -44,6 +44,22 @@ describe("isUniqueViolation", () => {
     expect(isUniqueViolation(undefined)).toBe(false);
     expect(isUniqueViolation("error")).toBe(false);
   });
+
+  it("returns true when Postgres 23505 is wrapped as cause (DrizzleQueryError)", () => {
+    const wrapped = Object.assign(new Error("query failed"), {
+      name: "DrizzleQueryError",
+      cause: { code: "23505" },
+    });
+    expect(isUniqueViolation(wrapped)).toBe(true);
+  });
+
+  it("returns false when wrapped cause is a non-unique-violation code", () => {
+    const wrapped = Object.assign(new Error("query failed"), {
+      name: "DrizzleQueryError",
+      cause: { code: "23503" },
+    });
+    expect(isUniqueViolation(wrapped)).toBe(false);
+  });
 });
 
 describe("getApplicationSettings", () => {

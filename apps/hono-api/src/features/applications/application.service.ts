@@ -18,12 +18,13 @@ export class ApplicationDomainConflictError extends Error {
 }
 
 export function isUniqueViolation(err: unknown): boolean {
-  return (
-    err != null &&
-    typeof err === "object" &&
-    "code" in err &&
-    (err as { code: string }).code === "23505"
-  );
+  if (err == null || typeof err !== "object") return false;
+  if ((err as { code?: unknown }).code === "23505") return true;
+  const cause = (err as { cause?: unknown }).cause;
+  if (cause != null && typeof cause === "object") {
+    return (cause as { code?: unknown }).code === "23505";
+  }
+  return false;
 }
 
 export type UpdateApplicationInput = {
