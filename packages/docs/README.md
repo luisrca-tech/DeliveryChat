@@ -34,6 +34,10 @@ Architecture guides, implementation references, and technical decision records f
 - [Conversation Lifecycle](websocket/conversation-lifecycle.md) — Full conversation flow: creation, acceptance, messaging, release, resolution
 - [Client Implementations](websocket/client-implementations.md) — Admin WebSocketManager, widget standalone client, reconnection, state management
 
+### Applications
+
+- [Test Applications](applications/test-applications.md) — Production vs test app kinds, port pinning, API-key environment binding, conflict messages
+
 ### Rate Limiting
 
 - [Redis Migration (TODO)](rate-limiting/to-do/redis-migration.md) — Migration plan from MemoryStore to Redis-backed rate limiting
