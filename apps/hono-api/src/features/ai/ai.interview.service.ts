@@ -309,6 +309,9 @@ export async function runInterviewComplete(
     if (decision.kind === "missing_topics") {
       throw new MissingTopicsError(decision.missing);
     }
+    if (decision.kind === "already_complete") {
+      return { row: row as InterviewContextRow };
+    }
 
     const updated = await repo.markCompleted(
       row!.id,
@@ -355,6 +358,7 @@ export async function runGenerateSummary(
       interviewLog: row.interviewLog,
     });
   } catch (error) {
+    await repo.markSummaryFailed(row.id);
     throw new SummaryGenerationFailedError(
       error instanceof Error ? error.message : "Summary generation failed",
       { cause: error },
@@ -363,7 +367,7 @@ export async function runGenerateSummary(
 
   return db.transaction(async (tx) => {
     const txRepo = createInterviewRepository(tx);
-    const updated = await txRepo.applyContextSummary(row.id, summary);
+    const updated = await txRepo.markSummaryReady(row.id, summary);
     await tx
       .update(applications)
       .set({ aiEnabled: true })

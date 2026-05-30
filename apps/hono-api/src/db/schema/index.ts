@@ -29,4 +29,5 @@ export * from "./aiUsageLog";
 export * from "./applicationAiContext";
 export * from "./enums/aiActionEnum";
 export * from "./enums/aiContextStatusEnum";
+export * from "./enums/summaryStatusEnum";
 export * from "./enums/aiUsageStatusEnum";

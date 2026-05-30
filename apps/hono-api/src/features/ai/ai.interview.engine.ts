@@ -59,6 +59,10 @@ export type CompleteDecision = {
   completedAt: string;
 };
 
+export type AlreadyCompleteDecision = {
+  kind: "already_complete";
+};
+
 export type MissingTopicsDecision = {
   kind: "missing_topics";
   missing: CoreTopic[];
@@ -350,14 +354,18 @@ export function next(
 export function complete(
   state: InterviewContextRow | null,
   input: EngineCompleteInput,
-): TurnConflictDecision | MissingTopicsDecision | CompleteDecision {
+):
+  | TurnConflictDecision
+  | MissingTopicsDecision
+  | CompleteDecision
+  | AlreadyCompleteDecision {
   if (!state) {
     return { kind: "conflict", currentTurn: 0, status: "not_started" };
   }
-  if (
-    state.status !== "in_progress" ||
-    state.currentTurn !== input.expectedCurrentTurn
-  ) {
+  if (state.status === "completed") {
+    return { kind: "already_complete" };
+  }
+  if (state.currentTurn !== input.expectedCurrentTurn) {
     return {
       kind: "conflict",
       currentTurn: state.currentTurn,

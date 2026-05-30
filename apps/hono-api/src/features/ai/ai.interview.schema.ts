@@ -41,10 +41,21 @@ export type InterviewLogEntry = {
   intent?: "final_question";
 };
 
+export type SummaryStatus = "none" | "pending" | "ready" | "failed";
+
+export function deriveBackfilledSummaryStatus(row: {
+  status: "in_progress" | "completed";
+  contextSummary: string | null;
+}): SummaryStatus {
+  if (row.status !== "completed") return "none";
+  return row.contextSummary != null ? "ready" : "pending";
+}
+
 export type InterviewContextRow = {
   id: string;
   applicationId: string;
   status: "in_progress" | "completed";
+  summaryStatus: SummaryStatus;
   interviewLog: InterviewLogEntry[];
   currentTurn: number;
   contextSummary: string | null;

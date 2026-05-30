@@ -14,13 +14,15 @@ vi.mock("../../../env.js", () => ({
 type TxCallback = (tx: unknown) => Promise<unknown>;
 
 const updateContextSummary = vi.fn();
+const markSummaryFailed = vi.fn();
 const loadCompletedRow = vi.fn();
 const loadApplicationName = vi.fn();
 
 vi.mock("../ai.interview.repository.js", () => ({
   createInterviewRepository: () => ({
     loadByApplicationId: loadCompletedRow,
-    applyContextSummary: updateContextSummary,
+    markSummaryReady: updateContextSummary,
+    markSummaryFailed,
   }),
 }));
 
@@ -319,6 +321,57 @@ describe("runGenerateSummary", () => {
     expect(updateContextSummary).not.toHaveBeenCalled();
     expect(updateCalls).toHaveLength(0);
     expect(usageLogInserts).toHaveLength(0);
+  });
+
+  it("retry: accepts a previously-failed row and persists ready", async () => {
+    loadCompletedRow.mockResolvedValue(
+      makeRow({ summaryStatus: "failed" as never }),
+    );
+    updateContextSummary.mockResolvedValue(
+      makeRow({
+        contextSummary: VALID_SUMMARY,
+        summaryStatus: "ready" as never,
+      }),
+    );
+
+    const result = await runGenerateSummary({
+      provider: makeProvider(),
+      applicationId: APP_ID,
+      tenantId: TENANT_ID,
+      userId: USER_ID,
+    });
+
+    expect(updateContextSummary).toHaveBeenCalledWith(
+      "ctx-1",
+      expect.stringContaining("# Application Context"),
+    );
+    expect(result.row.contextSummary).toContain("# Application Context");
+    expect(markSummaryFailed).not.toHaveBeenCalled();
+  });
+
+  it("provider failure marks summaryStatus=failed without touching contextSummary", async () => {
+    const { AIProviderError } = await import("../ai.errors.js");
+    loadCompletedRow.mockResolvedValue(
+      makeRow({
+        contextSummary: "prior ready summary",
+        summaryStatus: "ready" as never,
+      }),
+    );
+
+    await expect(
+      runGenerateSummary({
+        provider: makeProvider({
+          kind: "error",
+          error: new AIProviderError("provider boom"),
+        }),
+        applicationId: APP_ID,
+        tenantId: TENANT_ID,
+        userId: USER_ID,
+      }),
+    ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
+
+    expect(markSummaryFailed).toHaveBeenCalledWith("ctx-1");
+    expect(updateContextSummary).not.toHaveBeenCalled();
   });
 
   it("throws when interview row does not exist and writes no usage row", async () => {

@@ -47,6 +47,7 @@ export const aiInterviewRoute = new Hono()
           : null;
         return c.json({
           status: row.status,
+          summaryStatus: row.summaryStatus,
           currentTurn: row.currentTurn,
           interviewLog: row.interviewLog,
           contextSummary: row.contextSummary,
@@ -58,6 +59,7 @@ export const aiInterviewRoute = new Hono()
 
       return c.json({
         status: row.status,
+        summaryStatus: row.summaryStatus,
         currentTurn: row.currentTurn,
         interviewLog: row.interviewLog,
       });
@@ -132,6 +134,7 @@ export const aiInterviewRoute = new Hono()
 
         return c.json({
           status: row.status,
+          summaryStatus: row.summaryStatus,
           currentTurn: row.currentTurn,
           completedBy: row.completedBy,
           completedAt: row.completedAt,
@@ -166,6 +169,7 @@ export const aiInterviewRoute = new Hono()
 
         return c.json({
           status: row.status,
+          summaryStatus: row.summaryStatus,
           contextSummary: row.contextSummary,
           aiEnabled: true,
         });

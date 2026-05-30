@@ -10,6 +10,7 @@ import {
 import { createTable } from "../table";
 import { timestampString, timestampStringNullable } from "./customTypes";
 import { aiContextStatusEnum } from "./enums/aiContextStatusEnum";
+import { summaryStatusEnum } from "./enums/summaryStatusEnum";
 import { applications } from "./applications";
 import { user } from "./users";
 
@@ -21,6 +22,7 @@ export const applicationAiContext = createTable(
       .notNull()
       .references(() => applications.id, { onDelete: "cascade" }),
     status: aiContextStatusEnum("status").notNull().default("in_progress"),
+    summaryStatus: summaryStatusEnum("summary_status").notNull().default("none"),
     interviewLog: jsonb("interview_log")
       .$type<
         Array<{

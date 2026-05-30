@@ -21,6 +21,37 @@ not_started ──▶ in_progress ──▶ completed
 - Pressing **Finish** (then summary generation succeeds) transitions to `completed`.
 - Regenerating the summary keeps the status at `completed` — only the summary text changes.
 
+## `summaryStatus` lifecycle
+
+The `summaryStatus` column on `applicationAiContext` makes "interview completed, summary not yet generated" a queryable database state. It is independent from `status` and tracks the summary-generation step.
+
+```
+none ──(complete) ──▶ pending ──(generate-summary success) ──▶ ready
+                                 └──(generate-summary failure) ──▶ failed
+                                                                    │
+                            (retry generate-summary) ◀──────────────┘
+```
+
+| `summaryStatus` | When it appears                                                                             |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `none`          | Interview is still `in_progress` (or has never been started).                               |
+| `pending`       | Interview just transitioned to `completed`; summary has not yet been generated.             |
+| `ready`         | Summary generation succeeded; `contextSummary` is populated.                                |
+| `failed`        | Summary generation attempt failed; the row is eligible for retry.                            |
+
+Endpoint semantics:
+
+- **`POST /applications/:id/ai-interview/complete`** is idempotent. Calling it on an already-completed row returns the existing row unchanged — it does not re-run the checklist and does not overwrite `summaryStatus`. The first successful completion sets `summaryStatus = 'pending'`.
+- **`POST /applications/:id/ai-interview/generate-summary`** is retry-safe. It is accepted whenever `status === 'completed'`, regardless of the current `summaryStatus` (`pending` for the first attempt, `failed` for a recovery retry, or `ready` for a regeneration). Success sets `summaryStatus = 'ready'` and updates `contextSummary`. Failure sets `summaryStatus = 'failed'` and preserves the previous `contextSummary` if any.
+
+Backfill rules applied by migration `0032`:
+
+- `status = 'completed'` AND `contextSummary IS NOT NULL` → `ready`
+- `status = 'completed'` AND `contextSummary IS NULL` → `pending`
+- otherwise → `none`
+
+The GET `/applications/:id/ai-interview` response returns `summaryStatus` on every branch (in-progress and completed). The applications-list `aiInterviewStatus` derived field still reflects only `status` and is unchanged.
+
 ## Authorization
 
 All three routes are gated by `useRequireRole(["admin", "super_admin"])`. Operators are redirected to the home page.

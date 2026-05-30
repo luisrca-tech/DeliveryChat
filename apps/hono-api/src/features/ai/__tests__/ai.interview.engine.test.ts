@@ -33,6 +33,7 @@ function row(overrides: Partial<InterviewContextRow> = {}): InterviewContextRow 
     id: "ctx-1",
     applicationId: "app-1",
     status: "in_progress",
+    summaryStatus: "none",
     interviewLog: [],
     currentTurn: 0,
     contextSummary: null,
@@ -405,6 +406,35 @@ describe("InterviewTurnEngine.complete", () => {
     expect(decision.kind).toBe("complete");
     if (decision.kind !== "complete") return;
     expect(decision.completedAt).toBe("2026-01-01T00:00:00.000Z");
+  });
+
+  it("already completed → already_complete (idempotent, no conflict)", () => {
+    const r = row({
+      status: "completed",
+      currentTurn: 4,
+      interviewLog: fullyCoveredLog(),
+      summaryStatus: "ready",
+      contextSummary: "# Summary",
+    });
+    const decision = InterviewTurnEngine.complete(r, {
+      expectedCurrentTurn: 4,
+      nowIso: "2026-01-02T00:00:00.000Z",
+    });
+    expect(decision.kind).toBe("already_complete");
+  });
+
+  it("already completed with stale expectedCurrentTurn → still already_complete", () => {
+    const r = row({
+      status: "completed",
+      currentTurn: 4,
+      interviewLog: fullyCoveredLog(),
+      summaryStatus: "failed",
+    });
+    const decision = InterviewTurnEngine.complete(r, {
+      expectedCurrentTurn: 2,
+      nowIso: "2026-01-02T00:00:00.000Z",
+    });
+    expect(decision.kind).toBe("already_complete");
   });
 });
 

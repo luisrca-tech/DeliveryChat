@@ -80,6 +80,7 @@ export class InterviewRepository {
       .set({
         interviewLog: decision.nextLog,
         status: "completed",
+        summaryStatus: "pending",
         completedBy: userId,
         completedAt: decision.completedAt,
       })
@@ -107,7 +108,42 @@ export class InterviewRepository {
   ): Promise<InterviewContextRow> {
     const [updated] = await this.executor
       .update(applicationAiContext)
-      .set({ status: "completed", completedBy: userId, completedAt })
+      .set({
+        status: "completed",
+        summaryStatus: "pending",
+        completedBy: userId,
+        completedAt,
+      })
+      .where(eq(applicationAiContext.id, rowId))
+      .returning();
+    return updated as InterviewContextRow;
+  }
+
+  async markSummaryPending(rowId: string): Promise<InterviewContextRow> {
+    const [updated] = await this.executor
+      .update(applicationAiContext)
+      .set({ summaryStatus: "pending" })
+      .where(eq(applicationAiContext.id, rowId))
+      .returning();
+    return updated as InterviewContextRow;
+  }
+
+  async markSummaryReady(
+    rowId: string,
+    contextSummary: string,
+  ): Promise<InterviewContextRow> {
+    const [updated] = await this.executor
+      .update(applicationAiContext)
+      .set({ contextSummary, summaryStatus: "ready" })
+      .where(eq(applicationAiContext.id, rowId))
+      .returning();
+    return updated as InterviewContextRow;
+  }
+
+  async markSummaryFailed(rowId: string): Promise<InterviewContextRow> {
+    const [updated] = await this.executor
+      .update(applicationAiContext)
+      .set({ summaryStatus: "failed" })
       .where(eq(applicationAiContext.id, rowId))
       .returning();
     return updated as InterviewContextRow;

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getTableColumns } from "drizzle-orm";
 import { applicationAiContext } from "./applicationAiContext";
 import { aiContextStatusEnum } from "./enums/aiContextStatusEnum";
+import { summaryStatusEnum } from "./enums/summaryStatusEnum";
 import { applications } from "./applications";
 
 describe("aiContextStatusEnum", () => {
@@ -9,6 +10,17 @@ describe("aiContextStatusEnum", () => {
     expect(aiContextStatusEnum.enumValues).toEqual([
       "in_progress",
       "completed",
+    ]);
+  });
+});
+
+describe("summaryStatusEnum", () => {
+  it("has none/pending/ready/failed values", () => {
+    expect(summaryStatusEnum.enumValues).toEqual([
+      "none",
+      "pending",
+      "ready",
+      "failed",
     ]);
   });
 });
@@ -40,6 +52,12 @@ describe("applicationAiContext table", () => {
 
   it("has status defaulting to in_progress", () => {
     expect(columns.status.hasDefault).toBe(true);
+  });
+
+  it("has summaryStatus column defaulting to none", () => {
+    expect(columns.summaryStatus).toBeDefined();
+    expect(columns.summaryStatus.notNull).toBe(true);
+    expect(columns.summaryStatus.hasDefault).toBe(true);
   });
 
   it("has currentTurn defaulting to 0", () => {

@@ -236,6 +236,7 @@ describe("GET /applications/:applicationId/ai-interview", () => {
     userRows.push({ name: "Jane Admin" });
     mockGetInterviewContext.mockResolvedValue({
       status: "completed",
+      summaryStatus: "ready",
       currentTurn: 9,
       interviewLog: [{ role: "assistant", content: "Done!" }],
       contextSummary: "# Summary\n\nAll good.",
@@ -247,6 +248,7 @@ describe("GET /applications/:applicationId/ai-interview", () => {
     const body = await res.json();
     expect(body).toEqual({
       status: "completed",
+      summaryStatus: "ready",
       currentTurn: 9,
       interviewLog: [{ role: "assistant", content: "Done!" }],
       contextSummary: "# Summary\n\nAll good.",
@@ -256,9 +258,44 @@ describe("GET /applications/:applicationId/ai-interview", () => {
     });
   });
 
+  it("includes summaryStatus=pending when completed without summary yet", async () => {
+    userRows.push({ name: "Jane Admin" });
+    mockGetInterviewContext.mockResolvedValue({
+      status: "completed",
+      summaryStatus: "pending",
+      currentTurn: 9,
+      interviewLog: [{ role: "assistant", content: "Done!" }],
+      contextSummary: null,
+      completedBy: USER_ID,
+      completedAt: "2026-05-29T12:00:00.000Z",
+    });
+    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const body = await res.json();
+    expect(body.summaryStatus).toBe("pending");
+    expect(body.contextSummary).toBeNull();
+  });
+
+  it("includes summaryStatus=failed when summary generation failed", async () => {
+    userRows.push({ name: "Jane Admin" });
+    mockGetInterviewContext.mockResolvedValue({
+      status: "completed",
+      summaryStatus: "failed",
+      currentTurn: 9,
+      interviewLog: [{ role: "assistant", content: "Done!" }],
+      contextSummary: "# Stale Summary",
+      completedBy: USER_ID,
+      completedAt: "2026-05-29T12:00:00.000Z",
+    });
+    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const body = await res.json();
+    expect(body.summaryStatus).toBe("failed");
+    expect(body.contextSummary).toBe("# Stale Summary");
+  });
+
   it("omits completed metadata when status is in_progress", async () => {
     mockGetInterviewContext.mockResolvedValue({
       status: "in_progress",
+      summaryStatus: "none",
       currentTurn: 3,
       interviewLog: [{ role: "assistant", content: "Q?" }],
       contextSummary: null,
@@ -270,6 +307,7 @@ describe("GET /applications/:applicationId/ai-interview", () => {
     const body = await res.json();
     expect(body).toEqual({
       status: "in_progress",
+      summaryStatus: "none",
       currentTurn: 3,
       interviewLog: [{ role: "assistant", content: "Q?" }],
     });
@@ -281,6 +319,7 @@ describe("GET /applications/:applicationId/ai-interview", () => {
   it("returns persisted state when row exists", async () => {
     mockGetInterviewContext.mockResolvedValue({
       status: "in_progress",
+      summaryStatus: "none",
       currentTurn: 0,
       interviewLog: [{ role: "assistant", content: "Hi!" }],
     });
@@ -289,6 +328,7 @@ describe("GET /applications/:applicationId/ai-interview", () => {
     const body = await res.json();
     expect(body).toEqual({
       status: "in_progress",
+      summaryStatus: "none",
       currentTurn: 0,
       interviewLog: [{ role: "assistant", content: "Hi!" }],
     });
@@ -626,10 +666,11 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
     ).toBe(404);
   });
 
-  it("happy path: returns completed state", async () => {
+  it("happy path: returns completed state with summaryStatus=pending", async () => {
     mockRunInterviewComplete.mockResolvedValue({
       row: {
         status: "completed",
+        summaryStatus: "pending",
         currentTurn: 6,
         completedBy: USER_ID,
         completedAt: "2026-05-29T10:00:00.000Z",
@@ -641,6 +682,7 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
     const body = await res.json();
     expect(body).toEqual({
       status: "completed",
+      summaryStatus: "pending",
       currentTurn: 6,
       completedBy: USER_ID,
       completedAt: "2026-05-29T10:00:00.000Z",
@@ -650,6 +692,23 @@ describe("POST /applications/:applicationId/ai-interview/complete", () => {
       userId: USER_ID,
       expectedCurrentTurn: 6,
     });
+  });
+
+  it("is idempotent on second call: returns existing summaryStatus unchanged", async () => {
+    mockRunInterviewComplete.mockResolvedValue({
+      row: {
+        status: "completed",
+        summaryStatus: "ready",
+        currentTurn: 6,
+        completedBy: USER_ID,
+        completedAt: "2026-05-29T10:00:00.000Z",
+      },
+    });
+
+    const res = await postComplete({ expectedCurrentTurn: 6 });
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.summaryStatus).toBe("ready");
   });
 
   it("returns 422 with discriminable error code when checklist is incomplete", async () => {
@@ -730,10 +789,11 @@ describe("POST /applications/:applicationId/ai-interview/generate-summary", () =
     expect((await postGenerate(OTHER_APP_ID)).status).toBe(404);
   });
 
-  it("happy path: returns persisted summary and aiEnabled=true", async () => {
+  it("happy path: returns persisted summary, summaryStatus=ready, aiEnabled=true", async () => {
     mockRunGenerateSummary.mockResolvedValue({
       row: {
         status: "completed",
+        summaryStatus: "ready",
         contextSummary: "# Application Context\n...",
       },
     });
@@ -743,6 +803,7 @@ describe("POST /applications/:applicationId/ai-interview/generate-summary", () =
     const body = await res.json();
     expect(body).toEqual({
       status: "completed",
+      summaryStatus: "ready",
       contextSummary: "# Application Context\n...",
       aiEnabled: true,
     });
