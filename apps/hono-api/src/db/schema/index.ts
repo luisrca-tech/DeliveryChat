@@ -1,6 +1,7 @@
 export * from "./users";
 export * from "./organization";
 export * from "./applications";
+export * from "./enums/applicationKindEnum";
 export * from "./session";
 export * from "./account";
 export * from "./verification";

@@ -211,6 +211,13 @@
       "when": 1780104249036,
       "tag": "0032_add_summary_status_to_application_ai_context",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1780147664622,
+      "tag": "0033_add_application_kind_and_port",
+      "breakpoints": true
     }
   ]
 }

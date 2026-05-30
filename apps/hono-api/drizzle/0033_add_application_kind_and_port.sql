@@ -1,0 +1,7 @@
+CREATE TYPE "public"."application_kind" AS ENUM('production', 'test');--> statement-breakpoint
+DROP INDEX "applications_domain_unique";--> statement-breakpoint
+ALTER TABLE "delivery_chat_applications" ADD COLUMN "kind" "application_kind" DEFAULT 'production' NOT NULL;--> statement-breakpoint
+ALTER TABLE "delivery_chat_applications" ADD COLUMN "port" integer;--> statement-breakpoint
+CREATE UNIQUE INDEX "applications_production_domain_unique" ON "delivery_chat_applications" USING btree ("domain") WHERE "delivery_chat_applications"."kind" = 'production' AND "delivery_chat_applications"."deleted_at" IS NULL;--> statement-breakpoint
+CREATE UNIQUE INDEX "applications_test_port_unique" ON "delivery_chat_applications" USING btree ("organization_id","port") WHERE "delivery_chat_applications"."kind" = 'test' AND "delivery_chat_applications"."deleted_at" IS NULL;--> statement-breakpoint
+ALTER TABLE "delivery_chat_applications" ADD CONSTRAINT "applications_kind_port_domain_check" CHECK (("delivery_chat_applications"."kind" = 'test' AND "delivery_chat_applications"."port" IS NOT NULL AND "delivery_chat_applications"."domain" = 'localhost') OR ("delivery_chat_applications"."kind" = 'production' AND "delivery_chat_applications"."port" IS NULL));
