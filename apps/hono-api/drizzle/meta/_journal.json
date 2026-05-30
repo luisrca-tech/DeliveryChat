@@ -197,6 +197,13 @@
       "when": 1780081632673,
       "tag": "0030_add_interview_summary_to_ai_action_enum",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1780102449065,
+      "tag": "0031_add_interview_forced_completion_action",
+      "breakpoints": true
     }
   ]
 }
