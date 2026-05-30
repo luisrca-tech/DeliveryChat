@@ -4,6 +4,7 @@ import { db } from "../../db/index.js";
 import { apiKeys } from "../../db/schema/apiKeys.js";
 import { applications } from "../../db/schema/applications.js";
 import { keyEnvironmentEnum } from "../../db/schema/enums/keyEnvironmentEnum.js";
+import { applicationKindEnum } from "../../db/schema/enums/applicationKindEnum.js";
 import type { ResolvedApplication } from "../../lib/middleware/resolveApplication.js";
 
 type KeyEnvironment = (typeof keyEnvironmentEnum.enumValues)[number];
@@ -18,6 +19,31 @@ export class ApiKeyLimitError extends Error {
   constructor(message = "Maximum API keys per application exceeded") {
     super(message);
     this.name = "ApiKeyLimitError";
+  }
+}
+
+export class ApiKeyEnvironmentMismatchError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ApiKeyEnvironmentMismatchError";
+  }
+}
+
+type ApplicationKind = (typeof applicationKindEnum.enumValues)[number];
+
+export function assertApiKeyEnvironmentMatchesApp(
+  appKind: ApplicationKind,
+  environment: KeyEnvironment,
+): void {
+  if (appKind === "test" && environment !== "test") {
+    throw new ApiKeyEnvironmentMismatchError(
+      "Test applications can only mint test API keys.",
+    );
+  }
+  if (appKind === "production" && environment !== "live") {
+    throw new ApiKeyEnvironmentMismatchError(
+      "Production applications can only mint live API keys.",
+    );
   }
 }
 

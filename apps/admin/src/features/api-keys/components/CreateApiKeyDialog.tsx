@@ -45,6 +45,7 @@ export type CreateApiKeyDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: CreateApiKeyRequest) => Promise<void> | void;
   submitting?: boolean;
+  appKind?: "production" | "test";
 };
 
 export function CreateApiKeyDialog({
@@ -52,11 +53,15 @@ export function CreateApiKeyDialog({
   onOpenChange,
   onSubmit,
   submitting,
+  appKind = "production",
 }: CreateApiKeyDialogProps) {
+  const lockedEnvironment: ApiKeyEnvironment =
+    appKind === "test" ? "test" : "live";
+
   const form = useForm<CreateApiKeyFormValues>({
     defaultValues: {
       name: "",
-      environment: "live",
+      environment: lockedEnvironment,
       expiresAt: undefined,
       neverExpire: true,
     },
@@ -69,7 +74,7 @@ export function CreateApiKeyDialog({
     if (next) {
       form.reset({
         name: "",
-        environment: "live",
+        environment: lockedEnvironment,
         expiresAt: undefined,
         neverExpire: true,
       });
@@ -80,7 +85,7 @@ export function CreateApiKeyDialog({
   const submit = form.handleSubmit(async (values) => {
     await onSubmit({
       name: values.name?.trim() || undefined,
-      environment: values.environment,
+      environment: lockedEnvironment,
       expiresAt:
         values.neverExpire || !values.expiresAt
           ? undefined
@@ -112,12 +117,7 @@ export function CreateApiKeyDialog({
 
           <div className="grid gap-2">
             <Label htmlFor="create_key_environment">Environment</Label>
-            <Select
-              value={form.watch("environment")}
-              onValueChange={(v) =>
-                form.setValue("environment", v as ApiKeyEnvironment)
-              }
-            >
+            <Select value={lockedEnvironment} disabled>
               <SelectTrigger id="create_key_environment">
                 <SelectValue />
               </SelectTrigger>
@@ -126,6 +126,11 @@ export function CreateApiKeyDialog({
                 <SelectItem value="test">Test</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-muted-foreground text-xs">
+              {appKind === "test"
+                ? "Test applications only mint test keys."
+                : "Production applications only mint live keys."}
+            </p>
           </div>
 
           <div className="grid gap-2">

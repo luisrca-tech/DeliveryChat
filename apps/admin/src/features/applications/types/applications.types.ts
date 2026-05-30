@@ -11,6 +11,8 @@ export type Application = {
   deletedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  kind: "production" | "test";
+  port: number | null;
   aiInterviewStatus: AiInterviewStatus;
 };
 

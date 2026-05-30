@@ -5,6 +5,8 @@ import {
   createApiKey,
   verifyApiKey,
   ApiKeyLimitError,
+  assertApiKeyEnvironmentMatchesApp,
+  ApiKeyEnvironmentMismatchError,
 } from "./api-key.service.js";
 import { db } from "../../db/index.js";
 
@@ -105,6 +107,32 @@ describe("createApiKey", () => {
       environment: "live",
     });
     expect(result.key).toMatch(/^dk_live_/);
+  });
+});
+
+describe("assertApiKeyEnvironmentMatchesApp", () => {
+  it("rejects live key on test app", () => {
+    expect(() => assertApiKeyEnvironmentMatchesApp("test", "live")).toThrow(
+      ApiKeyEnvironmentMismatchError,
+    );
+  });
+
+  it("rejects test key on production app", () => {
+    expect(() =>
+      assertApiKeyEnvironmentMatchesApp("production", "test"),
+    ).toThrow(ApiKeyEnvironmentMismatchError);
+  });
+
+  it("allows test key on test app", () => {
+    expect(() =>
+      assertApiKeyEnvironmentMatchesApp("test", "test"),
+    ).not.toThrow();
+  });
+
+  it("allows live key on production app", () => {
+    expect(() =>
+      assertApiKeyEnvironmentMatchesApp("production", "live"),
+    ).not.toThrow();
   });
 });
 

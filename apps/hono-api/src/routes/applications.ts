@@ -16,6 +16,8 @@ import {
   createApiKey,
   listApiKeys,
   ApiKeyLimitError,
+  assertApiKeyEnvironmentMatchesApp,
+  ApiKeyEnvironmentMismatchError,
 } from "../features/api-keys/api-key.service.js";
 import {
   ApplicationDomainConflictError,
@@ -59,6 +61,8 @@ export const applicationsRoute = new Hono()
             deletedAt: applications.deletedAt,
             createdAt: applications.createdAt,
             updatedAt: applications.updatedAt,
+            kind: applications.kind,
+            port: applications.port,
             aiContextStatus: applicationAiContext.status,
           })
           .from(applications)
@@ -102,6 +106,8 @@ export const applicationsRoute = new Hono()
           deletedAt: applications.deletedAt,
           createdAt: applications.createdAt,
           updatedAt: applications.updatedAt,
+          kind: applications.kind,
+          port: applications.port,
           aiContextStatus: applicationAiContext.status,
         })
         .from(applications)
@@ -308,6 +314,8 @@ export const applicationsRoute = new Hono()
           return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
         }
 
+        assertApiKeyEnvironmentMatchesApp(app.kind, data.environment);
+
         const maxKeys = getApiKeyLimitByPlan(organization.plan);
         const result = await createApiKey(
           {
@@ -332,6 +340,14 @@ export const applicationsRoute = new Hono()
           201,
         );
       } catch (error) {
+        if (error instanceof ApiKeyEnvironmentMismatchError) {
+          return jsonError(
+            c,
+            HTTP_STATUS.BAD_REQUEST,
+            ERROR_MESSAGES.BAD_REQUEST,
+            error.message,
+          );
+        }
         if (error instanceof ApiKeyLimitError) {
           return jsonError(
             c,
