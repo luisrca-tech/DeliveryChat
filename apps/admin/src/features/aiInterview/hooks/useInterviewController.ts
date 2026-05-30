@@ -1,5 +1,7 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { InterviewTurnConflictError } from "../lib/aiInterview.client";
 import {
   mapInterviewErrorToSurface,
   type InterviewErrorSurface,
@@ -15,12 +17,16 @@ import type {
   InterviewSummaryStatus,
 } from "../types/aiInterview.types";
 import {
+  aiInterviewQueryKeys,
   useBootstrapInterviewMutation,
   useFinishInterviewMutation,
   useInterviewStateQuery,
   useRetrySummaryGenerationMutation,
   useSendInterviewTurnMutation,
 } from "./useInterviewState";
+
+const TURN_CONFLICT_TOAST_COPY =
+  "The interview was updated in another tab or session. We refreshed the latest answers — please try again.";
 
 export type InterviewPhase =
   | "loading"
@@ -115,6 +121,7 @@ function extractActive(data: InterviewState | undefined): {
 export function useInterviewController(
   applicationId: string,
 ): InterviewControllerState {
+  const queryClient = useQueryClient();
   const { data, isLoading, isError } = useInterviewStateQuery(applicationId);
 
   const [sendErrorSurface, setSendErrorSurface] =
@@ -125,6 +132,13 @@ export function useInterviewController(
 
   const lastFailedMessageRef = useRef<string | null>(null);
   const resumeTurnRef = useRef<number | null>(null);
+
+  const notifyConflict = useCallback(() => {
+    toast.error(TURN_CONFLICT_TOAST_COPY);
+    void queryClient.invalidateQueries({
+      queryKey: aiInterviewQueryKeys.state(applicationId),
+    });
+  }, [applicationId, queryClient]);
 
   const handleSendError = useCallback(
     (error: unknown, failedMessage: string) => {
@@ -139,7 +153,8 @@ export function useInterviewController(
 
   const handleConflict = useCallback(() => {
     setShowConflictNotice(true);
-  }, []);
+    notifyConflict();
+  }, [notifyConflict]);
 
   const bootstrap = useBootstrapInterviewMutation(applicationId);
   const sendTurn = useSendInterviewTurnMutation(applicationId, {
@@ -147,12 +162,19 @@ export function useInterviewController(
     onSendError: handleSendError,
   });
 
-  const handleCompleteError = useCallback((error: unknown) => {
-    const surface = mapInterviewErrorToSurface(error);
-    if (!surface) return;
-    setFinishErrorSurface(surface);
-    fireToastIfFallback(surface);
-  }, []);
+  const handleCompleteError = useCallback(
+    (error: unknown) => {
+      if (error instanceof InterviewTurnConflictError) {
+        notifyConflict();
+        return;
+      }
+      const surface = mapInterviewErrorToSurface(error);
+      if (!surface) return;
+      setFinishErrorSurface(surface);
+      fireToastIfFallback(surface);
+    },
+    [notifyConflict],
+  );
 
   const handleSummaryError = useCallback((error: unknown) => {
     const surface = mapInterviewErrorToSurface(error);

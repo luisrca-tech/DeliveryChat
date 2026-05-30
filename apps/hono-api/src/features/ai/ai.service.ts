@@ -145,11 +145,12 @@ export async function generateReply(
     tenantName: input.tenantName,
     contextSummary,
   });
+  const guidedMessages = anchorOnUserTurn(contextMessages);
 
   return runOperatorTextCall({
     provider,
     systemPrompt,
-    messages: contextMessages,
+    messages: guidedMessages,
     action: "generate",
     tenantId: input.tenantId,
     userId: input.operatorId,
@@ -157,6 +158,20 @@ export async function generateReply(
     model,
     abortSignal: input.abortSignal,
   });
+}
+
+const FOLLOW_UP_DRAFT_INSTRUCTION =
+  "[System] Draft the next operator reply that follows on from the conversation above. Keep it concise and return only the message text.";
+
+function anchorOnUserTurn(
+  contextMessages: AIProviderMessage[],
+): AIProviderMessage[] {
+  const last = contextMessages[contextMessages.length - 1];
+  if (!last || last.role !== "assistant") return contextMessages;
+  return [
+    ...contextMessages,
+    { role: "user", content: FOLLOW_UP_DRAFT_INSTRUCTION },
+  ];
 }
 
 type RunOperatorTextCallParams = {

@@ -14,7 +14,7 @@ export type CoreTopic = (typeof CORE_TOPICS)[number];
 export const interviewerOutputSchema = z.object({
   assistantMessage: z.string().min(1),
   intent: z.enum(["ask", "suggest_finish", "final_question"]),
-  topicsCoveredThisTurn: z.array(z.string()).default([]),
+  topicsCoveredThisTurn: z.array(z.string()),
   guardrailAction: z.enum([
     "none",
     "redirect_scope",
