@@ -166,7 +166,7 @@ vi.mock("../../../../features/ai/ai.errors.js", () => ({
   AIContentSafetyError: class AIContentSafetyError extends Error {},
 }));
 
-vi.mock("../../../../features/ai/ai.provider.js", () => ({
+vi.mock("../../../../features/ai/ai.groqProvider.js", () => ({
   createAIProvider: vi.fn(() => ({ generateText: vi.fn(), generateObject: vi.fn() })),
 }));
 

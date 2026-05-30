@@ -15,8 +15,8 @@ vi.mock("../../../env.js", () => ({
   },
 }));
 
-vi.mock("../ai.provider.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../ai.provider.js")>();
+vi.mock("../ai.groqProvider.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../ai.groqProvider.js")>();
   return {
     ...actual,
     createAIProvider: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock("../ai.provider.js", async (importOriginal) => {
 });
 
 const { db } = await import("../../../db/index.js");
-const { createAIProvider } = await import("../ai.provider.js");
+const { createAIProvider } = await import("../ai.groqProvider.js");
 
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
 const mockInsert = db.insert as ReturnType<typeof vi.fn>;

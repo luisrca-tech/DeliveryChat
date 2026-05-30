@@ -7,15 +7,18 @@ import { user } from "../../db/schema/users.js";
 import { applications } from "../../db/schema/applications.js";
 import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { env } from "../../env.js";
-import { createAIProvider } from "./ai.provider.js";
+import { createAIProvider } from "./ai.groqProvider.js";
 import { buildContext, buildSystemPrompt } from "./ai.context.js";
 import { enrichMessage } from "../chat/chat.service.js";
-import { executeAI } from "./ai.executor.js";
+import { runAICall } from "./ai.callOrchestrator.js";
+import { sanitizeAiMarkdown } from "./ai.sanitize.js";
 import {
   AIConversationNotFoundError,
   AIApplicationRequiredError,
+  AIEmptyResponseError,
   AINotConfiguredError,
 } from "./ai.errors.js";
+import type { AIProviderMessage } from "./ai.providerPort.js";
 
 type GenerateReplyInput = {
   conversationId: string;
@@ -143,7 +146,7 @@ export async function generateReply(
     contextSummary,
   });
 
-  return executeAI({
+  return runOperatorTextCall({
     provider,
     systemPrompt,
     messages: contextMessages,
@@ -153,6 +156,52 @@ export async function generateReply(
     conversationId: input.conversationId,
     model,
     abortSignal: input.abortSignal,
+  });
+}
+
+type RunOperatorTextCallParams = {
+  provider: ReturnType<typeof createAIProvider>;
+  systemPrompt: string;
+  messages: AIProviderMessage[];
+  action: "generate" | "improve";
+  tenantId: string;
+  userId: string;
+  conversationId: string;
+  model: string;
+  abortSignal?: AbortSignal;
+};
+
+function runOperatorTextCall(
+  params: RunOperatorTextCallParams,
+): Promise<{ text: string }> {
+  const { provider, systemPrompt, messages, abortSignal, model } = params;
+  return runAICall<string, { text: string }>({
+    action: params.action,
+    tenantId: params.tenantId,
+    userId: params.userId,
+    conversationId: params.conversationId,
+    model,
+    abortSignal,
+    providerCall: async () => {
+      const r = await provider.generateText({
+        systemPrompt,
+        messages,
+        model,
+        abortSignal,
+      });
+      return {
+        result: r.text,
+        inputTokens: r.usage.promptTokens,
+        outputTokens: r.usage.completionTokens,
+        finishReason: r.finishReason,
+      };
+    },
+    parse: (text) => {
+      if (!text || text.trim() === "") {
+        throw new AIEmptyResponseError("AI returned an empty response");
+      }
+      return { text: sanitizeAiMarkdown(text) };
+    },
   });
 }
 
@@ -201,7 +250,7 @@ export async function improveMessage(
     contextSummary,
   });
 
-  return executeAI({
+  return runOperatorTextCall({
     provider,
     systemPrompt,
     messages: contextMessages,

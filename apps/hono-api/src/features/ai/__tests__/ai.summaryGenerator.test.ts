@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { InterviewLogEntry } from "../ai.interview.schema.js";
-import type { AIProvider, AIProviderRequest } from "../ai.provider.js";
+import type { AIProviderPort, AIProviderRequest } from "../ai.providerPort.js";
 
 vi.mock("../../../env.js", () => ({
   env: {
@@ -44,9 +44,9 @@ function makeProvider(text: string) {
     finishReason: "stop",
   }));
   const generateObject = vi.fn();
-  const provider: AIProvider = {
-    generateText: generateText as unknown as AIProvider["generateText"],
-    generateObject: generateObject as unknown as AIProvider["generateObject"],
+  const provider: AIProviderPort = {
+    generateText: generateText as unknown as AIProviderPort["generateText"],
+    generateObject: generateObject as unknown as AIProviderPort["generateObject"],
   };
   return { provider, generateText };
 }

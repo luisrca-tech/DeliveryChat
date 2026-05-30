@@ -1,4 +1,4 @@
-import type { AIProviderMessage } from "./ai.provider.js";
+import type { AIProviderMessage } from "./ai.providerPort.js";
 
 export type ConversationMessage = {
   senderId: string | null;

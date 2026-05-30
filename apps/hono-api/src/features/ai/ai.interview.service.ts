@@ -1,8 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db, type DbExecutor } from "../../db/index.js";
-import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import { applications } from "../../db/schema/applications.js";
-import { runAiCall } from "./ai.callRunner.js";
+import { runAICall } from "./ai.callOrchestrator.js";
 import {
   MissingTopicsError,
   SummaryGenerationFailedError,
@@ -29,7 +28,7 @@ import {
   INTERVIEW_MODEL,
   INTERVIEWER_SYSTEM_PROMPT,
 } from "./ai.prompts.interview.js";
-import type { AIProvider } from "./ai.provider.js";
+import type { AIProviderPort } from "./ai.providerPort.js";
 import { sanitizeAiMarkdown } from "./ai.sanitize.js";
 
 export type TurnResult = {
@@ -39,7 +38,7 @@ export type TurnResult = {
 };
 
 export type RunTurnParams = {
-  provider: AIProvider;
+  provider: AIProviderPort;
   applicationId: string;
   tenantId: string;
   userId: string;
@@ -54,7 +53,7 @@ export type RunCompleteParams = {
 };
 
 export type RunGenerateSummaryParams = {
-  provider: AIProvider;
+  provider: AIProviderPort;
   applicationId: string;
   tenantId: string;
   userId: string;
@@ -65,7 +64,7 @@ function sanitizeOutput(o: InterviewerOutput): InterviewerOutput {
 }
 
 async function callInterviewerLlm(
-  provider: AIProvider,
+  provider: AIProviderPort,
   messages: ReturnType<typeof InterviewTurnEngine.buildAdvanceMessages>,
 ) {
   return provider.generateObject({
@@ -160,17 +159,20 @@ async function runForcedCompletion(
     decision,
   );
 
-  await tx.insert(aiUsageLog).values({
+  await runAICall<null, null>({
+    action: "interview_forced_completion",
     tenantId: params.tenantId,
     userId: params.userId,
-    action: "interview",
     conversationId: null,
     model: INTERVIEW_MODEL,
-    inputTokens: 0,
-    outputTokens: 0,
-    latencyMs: 0,
-    finishReason: FORCED_COMPLETION_FINISH_REASON,
-    status: "success",
+    tx,
+    providerCall: async () => ({
+      result: null,
+      inputTokens: 0,
+      outputTokens: 0,
+      finishReason: FORCED_COMPLETION_FINISH_REASON,
+    }),
+    parse: (v) => v,
   });
 
   console.warn("[ai.interviewer] forced completion at turn cap", {
@@ -189,7 +191,7 @@ async function runForcedCompletion(
 async function runLlmTurn(
   tx: DbExecutor,
   repo: InterviewRepository,
-  provider: AIProvider,
+  provider: AIProviderPort,
   row: InterviewContextRow,
   isBootstrap: boolean,
   params: LlmTurnParams,
@@ -202,7 +204,7 @@ async function runLlmTurn(
         row.currentTurn,
       );
 
-  const decision = await runAiCall<TurnDecision, TurnDecision>({
+  const decision = await runAICall<TurnDecision, TurnDecision>({
     action: "interview",
     tenantId: params.tenantId,
     userId: params.userId,

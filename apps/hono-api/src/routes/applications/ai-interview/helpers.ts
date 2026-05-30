@@ -10,14 +10,12 @@ import {
   SummaryGenerationFailedError,
   TurnConflictError,
 } from "../../../features/ai/ai.errors.js";
-import {
-  createAIProvider,
-  type AIProvider,
-} from "../../../features/ai/ai.provider.js";
+import { createAIProvider } from "../../../features/ai/ai.groqProvider.js";
+import type { AIProviderPort } from "../../../features/ai/ai.providerPort.js";
 import { ERROR_MESSAGES, HTTP_STATUS, jsonError } from "../../../lib/http.js";
 
-let providerInstance: AIProvider | null = null;
-export function getInterviewProvider(): AIProvider {
+let providerInstance: AIProviderPort | null = null;
+export function getInterviewProvider(): AIProviderPort {
   if (!providerInstance) {
     providerInstance = createAIProvider(
       env.AI_INTERVIEW_MODEL,

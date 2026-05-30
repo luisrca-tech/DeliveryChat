@@ -12,7 +12,8 @@ export type AiCallAction =
   | "generate"
   | "improve"
   | "interview"
-  | "interview_summary";
+  | "interview_summary"
+  | "interview_forced_completion";
 
 type UsageStatus =
   | "success"
@@ -29,7 +30,7 @@ export type AiCallProviderOutcome<TRaw> = {
   finishReason: string | null;
 };
 
-export type RunAiCallParams<TRaw, TParsed> = {
+export type RunAICallParams<TRaw, TParsed> = {
   action: AiCallAction;
   tenantId: string;
   userId: string;
@@ -74,7 +75,7 @@ async function logUsage(
   } catch (error) {
     // Usage logging is best-effort — never fail the main request, but surface
     // the failure so a broken aiUsageLog write is not silently invisible.
-    console.error("[ai.callRunner] aiUsageLog insert failed", {
+    console.error("[ai.callOrchestrator] aiUsageLog insert failed", {
       action: values.action,
       tenantId: values.tenantId,
       status: values.status,
@@ -83,8 +84,8 @@ async function logUsage(
   }
 }
 
-export async function runAiCall<TRaw, TParsed>(
-  params: RunAiCallParams<TRaw, TParsed>,
+export async function runAICall<TRaw, TParsed>(
+  params: RunAICallParams<TRaw, TParsed>,
 ): Promise<TParsed> {
   const executor: DbExecutor = params.tx ?? db;
   const startTime = Date.now();
@@ -112,7 +113,9 @@ export async function runAiCall<TRaw, TParsed>(
 
       if (outcome.finishReason === "content-filter") {
         await logUsage(executor, { ...base, status: "content_filtered" });
-        throw new AIContentFilteredError("AI response was blocked by content filter");
+        throw new AIContentFilteredError(
+          "AI response was blocked by content filter",
+        );
       }
 
       let parsed: TParsed;

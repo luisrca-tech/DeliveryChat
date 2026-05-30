@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { AIProvider } from "../ai.provider.js";
+import type { AIProviderPort } from "../ai.providerPort.js";
 import type { InterviewContextRow } from "../ai.interview.schema.js";
 
 vi.mock("../../../env.js", () => ({
@@ -130,7 +130,7 @@ function makeProvider(
   result:
     | { kind: "text"; text: string; finishReason?: string }
     | { kind: "error"; error: unknown } = { kind: "text", text: VALID_SUMMARY },
-): AIProvider {
+): AIProviderPort {
   return {
     generateText: vi.fn(async () => {
       if (result.kind === "error") throw result.error;
@@ -139,8 +139,8 @@ function makeProvider(
         usage: { promptTokens: 42, completionTokens: 99 },
         finishReason: result.finishReason ?? "stop",
       };
-    }) as unknown as AIProvider["generateText"],
-    generateObject: vi.fn() as unknown as AIProvider["generateObject"],
+    }) as unknown as AIProviderPort["generateText"],
+    generateObject: vi.fn() as unknown as AIProviderPort["generateObject"],
   };
 }
 

@@ -1,9 +1,9 @@
 import { db, type DbExecutor } from "../../db/index.js";
-import { runAiCall } from "./ai.callRunner.js";
+import { runAICall } from "./ai.callOrchestrator.js";
 import { AIEmptyResponseError, AIProviderError } from "./ai.errors.js";
 import type { InterviewLogEntry } from "./ai.interview.schema.js";
 import { INTERVIEW_MODEL } from "./ai.prompts.interview.js";
-import type { AIProvider } from "./ai.provider.js";
+import type { AIProviderPort } from "./ai.providerPort.js";
 import { sanitizeAiMarkdown } from "./ai.sanitize.js";
 
 export const SUMMARY_MAX_CHARS = 8000;
@@ -32,7 +32,7 @@ Output requirements:
 - Do not include meta commentary about the interview process itself.`;
 
 export type GenerateInterviewSummaryInput = {
-  provider: AIProvider;
+  provider: AIProviderPort;
   tenantId: string;
   userId: string;
   applicationName: string;
@@ -85,7 +85,7 @@ export async function generateInterviewSummary(
     input.interviewLog,
   );
 
-  return runAiCall<string, string>({
+  return runAICall<string, string>({
     action: "interview_summary",
     tenantId: input.tenantId,
     userId: input.userId,
