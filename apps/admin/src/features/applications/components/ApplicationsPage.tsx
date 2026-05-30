@@ -14,8 +14,14 @@ import {
   useUpdateApplicationMutation,
   useDeleteApplicationMutation,
 } from "../hooks/useApplicationMutations";
-import { ApplicationDomainConflictError } from "../lib/applications.client";
-import type { Application } from "../types/applications.types";
+import {
+  ApplicationDomainConflictError,
+  ApplicationPortConflictError,
+} from "../lib/applications.client";
+import type {
+  Application,
+  CreateApplicationRequest,
+} from "../types/applications.types";
 import { ApplicationListTable } from "./ApplicationListTable";
 import { CreateApplicationDialog } from "./CreateApplicationDialog";
 import { EditApplicationDialog } from "./EditApplicationDialog";
@@ -43,7 +49,7 @@ export function ApplicationsPage() {
   const activeApiKeysCount = deleteAppDetail?.activeApiKeysCount ?? 0;
 
   const handleCreate = useCallback(
-    async (body: { name: string; domain: string; description?: string }) => {
+    async (body: CreateApplicationRequest) => {
       try {
         const { application } = await createMutation.mutateAsync(body);
         const patched: Application = {
@@ -60,7 +66,11 @@ export function ApplicationsPage() {
         );
         setCreatedApp(patched);
       } catch (e) {
-        if (e instanceof ApplicationDomainConflictError) {
+        if (e instanceof ApplicationPortConflictError) {
+          toast.error(`Port ${e.port} is already in use`, {
+            description: `Application "${e.conflictingAppName}" already uses this port. Choose a different port.`,
+          });
+        } else if (e instanceof ApplicationDomainConflictError) {
           toast.error("Domain already exists", {
             description: "Choose a different domain.",
           });

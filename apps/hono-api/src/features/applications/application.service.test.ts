@@ -1,5 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import {
+  ApplicationDomainConflictError,
+  ApplicationPortConflictError,
+  createApplication,
   getApplication,
   getApplicationSettings,
   updateApplication,
@@ -12,6 +15,7 @@ import { db } from "../../db/index.js";
 vi.mock("../../db/index.js", () => ({
   db: {
     select: vi.fn(),
+    insert: vi.fn(),
     update: vi.fn(),
     transaction: vi.fn((fn: (tx: unknown) => Promise<boolean>) => fn({})),
   },
@@ -241,6 +245,103 @@ describe("countActiveApiKeys", () => {
 
     const result = await countActiveApiKeys("app-123");
     expect(result).toBe(0);
+  });
+});
+
+describe("createApplication", () => {
+  beforeEach(() => {
+    vi.mocked(db.insert).mockReset();
+    vi.mocked(db.select).mockReset();
+  });
+
+  const mockInsertSuccess = (row: unknown) => {
+    vi.mocked(db.insert).mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([row]),
+      }),
+    } as never);
+  };
+
+  const mockInsertReject = (err: unknown) => {
+    vi.mocked(db.insert).mockReturnValue({
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockRejectedValue(err),
+      }),
+    } as never);
+  };
+
+  it("creates a production application with allowedOrigins=[domain]", async () => {
+    const created = { ...mockApp, name: "Prod", domain: "app.example.com" };
+    mockInsertSuccess(created);
+
+    const result = await createApplication("org-1", {
+      kind: "production",
+      name: "Prod",
+      domain: "app.example.com",
+    });
+    expect(result).toEqual(created);
+  });
+
+  it("throws ApplicationDomainConflictError on production unique violation", async () => {
+    mockInsertReject(
+      Object.assign(new Error("dup"), {
+        name: "DrizzleQueryError",
+        cause: { code: "23505" },
+      }),
+    );
+
+    await expect(
+      createApplication("org-1", {
+        kind: "production",
+        name: "Prod",
+        domain: "app.example.com",
+      }),
+    ).rejects.toBeInstanceOf(ApplicationDomainConflictError);
+  });
+
+  it("throws ApplicationPortConflictError naming the conflicting app for test kind", async () => {
+    mockInsertReject(
+      Object.assign(new Error("dup"), {
+        name: "DrizzleQueryError",
+        cause: { code: "23505" },
+      }),
+    );
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([{ name: "Existing Local" }]),
+        }),
+      }),
+    } as never);
+
+    let caught: unknown;
+    try {
+      await createApplication("org-1", {
+        kind: "test",
+        name: "Local",
+        domain: "localhost",
+        port: 3000,
+      });
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(ApplicationPortConflictError);
+    expect((caught as ApplicationPortConflictError).port).toBe(3000);
+    expect((caught as ApplicationPortConflictError).conflictingAppName).toBe(
+      "Existing Local",
+    );
+  });
+
+  it("re-throws unknown errors unchanged", async () => {
+    const err = new Error("boom");
+    mockInsertReject(err);
+    await expect(
+      createApplication("org-1", {
+        kind: "production",
+        name: "Prod",
+        domain: "app.example.com",
+      }),
+    ).rejects.toBe(err);
   });
 });
 

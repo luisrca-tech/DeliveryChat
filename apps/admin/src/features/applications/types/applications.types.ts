@@ -14,12 +14,21 @@ export type Application = {
   aiInterviewStatus: AiInterviewStatus;
 };
 
-export type CreateApplicationRequest = {
-  name: string;
-  domain: string;
-  description?: string;
-  settings?: Record<string, unknown>;
-};
+export type CreateApplicationRequest =
+  | {
+      kind?: "production";
+      name: string;
+      domain: string;
+      description?: string;
+      settings?: Record<string, unknown>;
+    }
+  | {
+      kind: "test";
+      name: string;
+      port: number;
+      description?: string;
+      settings?: Record<string, unknown>;
+    };
 
 export type UpdateApplicationRequest = {
   name?: string;

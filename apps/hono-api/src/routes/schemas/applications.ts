@@ -14,7 +14,8 @@ export const listApplicationsQuerySchema = z.object({
     .optional(),
 });
 
-export const createApplicationSchema = z.object({
+const productionApplicationSchema = z.object({
+  kind: z.literal("production").optional().default("production"),
   name: z.string().min(1).max(255),
   domain: z.string().min(1).max(255).regex(DOMAIN_REGEX, {
     message:
@@ -23,6 +24,22 @@ export const createApplicationSchema = z.object({
   description: z.string().optional(),
   settings: z.record(z.string(), z.unknown()).optional().default({}),
 });
+
+const testApplicationSchema = z.object({
+  kind: z.literal("test"),
+  name: z.string().min(1).max(255),
+  port: z.number().int().min(1).max(65535),
+  description: z.string().optional(),
+  settings: z.record(z.string(), z.unknown()).optional().default({}),
+});
+
+export const createApplicationSchema = z
+  .union([productionApplicationSchema, testApplicationSchema])
+  .transform((data) =>
+    data.kind === "test"
+      ? { ...data, domain: "localhost" as const }
+      : { ...data, port: null },
+  );
 
 const allowedOriginEntry = z
   .string()
@@ -36,14 +53,16 @@ const allowedOriginEntry = z
     }),
   );
 
-export const updateApplicationSchema = z.object({
-  name: z.string().min(1).max(255).optional(),
-  description: z.string().optional(),
-  settings: z.record(z.string(), z.unknown()).optional(),
-  allowedOrigins: z
-    .array(allowedOriginEntry)
-    .refine((arr) => new Set(arr).size === arr.length, {
-      message: "Duplicate entries are not allowed",
-    })
-    .optional(),
-});
+export const updateApplicationSchema = z
+  .object({
+    name: z.string().min(1).max(255).optional(),
+    description: z.string().optional(),
+    settings: z.record(z.string(), z.unknown()).optional(),
+    allowedOrigins: z
+      .array(allowedOriginEntry)
+      .refine((arr) => new Set(arr).size === arr.length, {
+        message: "Duplicate entries are not allowed",
+      })
+      .optional(),
+  })
+  .strict();

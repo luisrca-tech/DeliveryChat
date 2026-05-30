@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  createApplicationSchema,
   listApplicationsQuerySchema,
   updateApplicationSchema,
 } from "../applications.js";
@@ -130,6 +131,92 @@ describe("updateApplicationSchema", () => {
   it("rejects duplicate entries", () => {
     const result = updateApplicationSchema.safeParse({
       allowedOrigins: ["example.com", "example.com"],
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects kind in update payload", () => {
+    const result = updateApplicationSchema.safeParse({
+      name: "ok",
+      kind: "test",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects port in update payload", () => {
+    const result = updateApplicationSchema.safeParse({
+      name: "ok",
+      port: 3000,
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("createApplicationSchema", () => {
+  it("accepts a production payload and forces port to null", () => {
+    const result = createApplicationSchema.safeParse({
+      name: "My App",
+      domain: "app.example.com",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("production");
+      expect(result.data.domain).toBe("app.example.com");
+      expect((result.data as { port: number | null }).port).toBeNull();
+    }
+  });
+
+  it("accepts an explicit production payload", () => {
+    const result = createApplicationSchema.safeParse({
+      kind: "production",
+      name: "My App",
+      domain: "app.example.com",
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a test payload and forces domain to localhost", () => {
+    const result = createApplicationSchema.safeParse({
+      kind: "test",
+      name: "Local",
+      port: 3000,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.kind).toBe("test");
+      expect(result.data.domain).toBe("localhost");
+      expect((result.data as { port: number | null }).port).toBe(3000);
+    }
+  });
+
+  it("rejects a test payload without port", () => {
+    const result = createApplicationSchema.safeParse({
+      kind: "test",
+      name: "Local",
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a test payload with port out of range", () => {
+    expect(
+      createApplicationSchema.safeParse({
+        kind: "test",
+        name: "Local",
+        port: 0,
+      }).success,
+    ).toBe(false);
+    expect(
+      createApplicationSchema.safeParse({
+        kind: "test",
+        name: "Local",
+        port: 70000,
+      }).success,
+    ).toBe(false);
+  });
+
+  it("rejects a production payload missing domain", () => {
+    const result = createApplicationSchema.safeParse({
+      name: "My App",
     });
     expect(result.success).toBe(false);
   });

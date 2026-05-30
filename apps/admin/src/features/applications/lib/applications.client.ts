@@ -17,6 +17,8 @@ async function handleError(res: Response): Promise<never> {
   const err = (await res.json().catch(() => null)) as {
     error?: string;
     message?: string;
+    port?: number;
+    conflictingAppName?: string;
   } | null;
   const message =
     err?.message ?? err?.error ?? `Request failed (${res.status})`;
@@ -25,6 +27,13 @@ async function handleError(res: Response): Promise<never> {
     throw new ApplicationNotFoundError(message);
   }
   if (res.status === HTTP_STATUS.CONFLICT) {
+    if (err?.error === "PORT_TAKEN" && typeof err.port === "number") {
+      throw new ApplicationPortConflictError(
+        message,
+        err.port,
+        err.conflictingAppName ?? "another application",
+      );
+    }
     throw new ApplicationDomainConflictError(message);
   }
   if (
@@ -48,6 +57,17 @@ export class ApplicationDomainConflictError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "ApplicationDomainConflictError";
+  }
+}
+
+export class ApplicationPortConflictError extends Error {
+  readonly port: number;
+  readonly conflictingAppName: string;
+  constructor(message: string, port: number, conflictingAppName: string) {
+    super(message);
+    this.name = "ApplicationPortConflictError";
+    this.port = port;
+    this.conflictingAppName = conflictingAppName;
   }
 }
 

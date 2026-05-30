@@ -7,6 +7,7 @@ import {
   deleteApplication,
   ApplicationNotFoundError,
   ApplicationDomainConflictError,
+  ApplicationPortConflictError,
 } from "./applications.client";
 
 vi.mock("@/lib/urls", () => ({
@@ -109,16 +110,46 @@ describe("applications.client", () => {
       expect(result.application).toEqual(mockApp);
     });
 
-    it("throws ApplicationDomainConflictError on 409", async () => {
+    it("throws ApplicationDomainConflictError on 409 with DOMAIN_TAKEN", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 409,
-        json: () => Promise.resolve({ message: "Domain already exists" }),
+        json: () =>
+          Promise.resolve({
+            error: "DOMAIN_TAKEN",
+            message: "Domain already exists",
+          }),
       } as Response);
 
       await expect(
         createApplication({ name: "App", domain: "existing" }),
       ).rejects.toThrow(ApplicationDomainConflictError);
+    });
+
+    it("throws ApplicationPortConflictError on 409 with PORT_TAKEN", async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        json: () =>
+          Promise.resolve({
+            error: "PORT_TAKEN",
+            message: "Port 3000 is already used by application \"Other\"",
+            port: 3000,
+            conflictingAppName: "Other",
+          }),
+      } as Response);
+
+      let caught: unknown;
+      try {
+        await createApplication({ kind: "test", name: "Local", port: 3000 });
+      } catch (e) {
+        caught = e;
+      }
+      expect(caught).toBeInstanceOf(ApplicationPortConflictError);
+      expect((caught as ApplicationPortConflictError).port).toBe(3000);
+      expect(
+        (caught as ApplicationPortConflictError).conflictingAppName,
+      ).toBe("Other");
     });
   });
 

@@ -17,6 +17,88 @@ export class ApplicationDomainConflictError extends Error {
   }
 }
 
+export class ApplicationPortConflictError extends Error {
+  readonly conflictingAppName: string;
+  readonly port: number;
+  constructor(port: number, conflictingAppName: string) {
+    super(
+      `Port ${port} is already used by application "${conflictingAppName}"`,
+    );
+    this.name = "ApplicationPortConflictError";
+    this.port = port;
+    this.conflictingAppName = conflictingAppName;
+  }
+}
+
+export type CreateApplicationInput =
+  | {
+      kind: "production";
+      name: string;
+      domain: string;
+      description?: string;
+      settings?: Record<string, unknown>;
+    }
+  | {
+      kind: "test";
+      name: string;
+      domain: "localhost";
+      port: number;
+      description?: string;
+      settings?: Record<string, unknown>;
+    };
+
+export async function createApplication(
+  organizationId: string,
+  input: CreateApplicationInput,
+): Promise<typeof applications.$inferSelect> {
+  const id = crypto.randomUUID();
+  const allowedOrigins =
+    input.kind === "test"
+      ? [`localhost:${input.port}`]
+      : [input.domain];
+
+  try {
+    const [row] = await db
+      .insert(applications)
+      .values({
+        id,
+        organizationId,
+        name: input.name,
+        domain: input.domain,
+        kind: input.kind,
+        port: input.kind === "test" ? input.port : null,
+        description: input.description,
+        settings: input.settings ?? {},
+        allowedOrigins,
+      })
+      .returning();
+    if (!row) throw new Error("Failed to create application");
+    return row;
+  } catch (err) {
+    if (!isUniqueViolation(err)) throw err;
+
+    if (input.kind === "test") {
+      const [conflict] = await db
+        .select({ name: applications.name })
+        .from(applications)
+        .where(
+          and(
+            eq(applications.organizationId, organizationId),
+            eq(applications.kind, "test"),
+            eq(applications.port, input.port),
+            isNull(applications.deletedAt),
+          ),
+        )
+        .limit(1);
+      throw new ApplicationPortConflictError(
+        input.port,
+        conflict?.name ?? "another application",
+      );
+    }
+    throw new ApplicationDomainConflictError();
+  }
+}
+
 export function isUniqueViolation(err: unknown): boolean {
   if (err == null || typeof err !== "object") return false;
   if ((err as { code?: unknown }).code === "23505") return true;

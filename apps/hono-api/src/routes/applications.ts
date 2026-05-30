@@ -18,11 +18,13 @@ import {
   ApiKeyLimitError,
 } from "../features/api-keys/api-key.service.js";
 import {
+  ApplicationDomainConflictError,
+  ApplicationPortConflictError,
+  createApplication,
   getApplication,
   updateApplication,
   deleteApplication,
   countActiveApiKeys,
-  isUniqueViolation,
 } from "../features/applications/application.service.js";
 import { getApiKeyLimitByPlan } from "../lib/planLimits.js";
 import {
@@ -147,23 +149,27 @@ export const applicationsRoute = new Hono()
         const { organization } = getTenantAuth(c);
         const data = c.req.valid("json");
 
-        const [newApp] = await db
-          .insert(applications)
-          .values({
-            ...data,
-            allowedOrigins: [data.domain],
-            organizationId: organization.id,
-            id: crypto.randomUUID(),
-          })
-          .returning();
+        const newApp = await createApplication(organization.id, data);
         return c.json({ application: newApp }, 201);
       } catch (error) {
-        if (isUniqueViolation(error)) {
-          return jsonError(
-            c,
+        if (error instanceof ApplicationPortConflictError) {
+          return c.json(
+            {
+              error: "PORT_TAKEN",
+              message: error.message,
+              port: error.port,
+              conflictingAppName: error.conflictingAppName,
+            },
             HTTP_STATUS.CONFLICT,
-            ERROR_MESSAGES.CONFLICT,
-            "Domain already exists",
+          );
+        }
+        if (error instanceof ApplicationDomainConflictError) {
+          return c.json(
+            {
+              error: "DOMAIN_TAKEN",
+              message: "Domain already exists",
+            },
+            HTTP_STATUS.CONFLICT,
           );
         }
         console.error("Error creating application:", error);
