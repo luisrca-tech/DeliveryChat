@@ -20,8 +20,10 @@ async function handleError(res: Response): Promise<never> {
     port?: number;
     conflictingAppName?: string;
   } | null;
-  const message =
-    err?.message ?? err?.error ?? `Request failed (${res.status})`;
+  const isServerError = res.status >= 500;
+  const message = isServerError
+    ? "Something went wrong. Please try again."
+    : (err?.message ?? err?.error ?? `Request failed (${res.status})`);
 
   if (res.status === HTTP_STATUS.NOT_FOUND) {
     throw new ApplicationNotFoundError(message);
