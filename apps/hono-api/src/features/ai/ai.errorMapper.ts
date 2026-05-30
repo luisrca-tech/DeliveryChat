@@ -38,6 +38,7 @@ export function mapAiErrorToResponse(c: Context, error: unknown): Response | nul
     return jsonError(c, HTTP_STATUS.FORBIDDEN, "ai_monthly_cap_exceeded", "Monthly AI usage limit reached.");
   }
   if (error instanceof AIProviderError) {
+    console.error("[AI] provider error:", error.message, (error as { cause?: unknown }).cause);
     return jsonError(c, HTTP_STATUS.BAD_GATEWAY, "ai_provider_unavailable", "AI provider is currently unavailable. Please try again.");
   }
   return null;
