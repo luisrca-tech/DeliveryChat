@@ -152,6 +152,9 @@ const {
   AIProviderError,
 } = await import("../ai.errors.js");
 const { MAX_TURNS } = await import("../ai.interview.schema.js");
+const { SUGGEST_FINISH_CLOSING_MESSAGE } = await import(
+  "../ai.interview.stateMachine.js"
+);
 
 const TENANT = "tenant-1";
 const USER = "user-1";
@@ -432,6 +435,79 @@ describe("runInterviewTurn — advance", () => {
 
     expect(result.output.intent).toBe("ask");
     expect(provider.generateObject).toHaveBeenCalledTimes(2);
+  });
+
+  it("suggest_finish with all topics covered overwrites assistantMessage with the canned closing line", async () => {
+    resetStore({
+      currentTurn: 7,
+      interviewLog: [
+        {
+          role: "assistant",
+          content: "Q",
+          topicsCoveredThisTurn: [
+            "business_description",
+            "target_audience",
+            "products_services",
+            "preferred_tone",
+            "common_support_scenarios",
+            "prohibited_topics",
+          ],
+        },
+      ],
+    });
+    const llmFollowUpQuestion = "Could you describe the specific target audience?";
+    const provider = makeProvider([
+      out({
+        assistantMessage: llmFollowUpQuestion,
+        intent: "suggest_finish",
+        topicsCoveredThisTurn: [],
+      }),
+    ]);
+
+    const result = await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "no, it's fine",
+      expectedCurrentTurn: 7,
+    });
+
+    expect(result.output.intent).toBe("suggest_finish");
+    expect(result.output.assistantMessage).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
+    const lastAssistant = [...result.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistant?.content).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
+    expect(lastAssistant?.content).not.toContain(llmFollowUpQuestion);
+    expect(provider.generateObject).toHaveBeenCalledTimes(1);
+  });
+
+  it("final_question does not overwrite the LLM's assistant message", async () => {
+    resetStore({
+      currentTurn: 14,
+      interviewLog: [{ role: "assistant", content: "Q14" }],
+    });
+    const finalQuestion = "Last one: anything else we should know?";
+    const provider = makeProvider([
+      out({
+        assistantMessage: finalQuestion,
+        intent: "ask",
+        topicsCoveredThisTurn: ["prohibited_topics"],
+      }),
+    ]);
+
+    const result = await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "answer",
+      expectedCurrentTurn: 14,
+    });
+
+    expect(result.output.intent).toBe("final_question");
+    expect(result.output.assistantMessage).toBe(finalQuestion);
   });
 
   it("throws TurnConflictError on stale expectedCurrentTurn", async () => {

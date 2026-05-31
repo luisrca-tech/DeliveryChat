@@ -104,6 +104,8 @@ Phase 5 explicitly leaves `contextSummary = null` and `applications.aiEnabled = 
 
 When the LLM returns `intent='suggest_finish'` but the checklist is incomplete, the server silently downgrades to `intent='ask'` and re-prompts the LLM with the missing topics. Both LLM calls in the re-prompt path are accounted for in `aiUsageLog`.
 
+When the LLM returns `intent='suggest_finish'` with the checklist already complete (no re-prompt path), the engine ignores whatever the LLM put in `assistantMessage` and persists a deterministic closing line (`SUGGEST_FINISH_CLOSING_MESSAGE`). This prevents the LLM from rendering the finish CTA *and* slipping in an extra follow-up question on the same turn — the admin only sees the close prompt and the Finish button.
+
 ## Guard-rail actions
 
 Local to the interview engine; do not touch the universal `baseGuardRails`.

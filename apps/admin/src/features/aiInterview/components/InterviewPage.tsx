@@ -95,16 +95,9 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
-      <div className="flex items-start justify-between gap-4">
-        {progress.showResumePill ? (
-          <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-            Resumed from turn {progress.resumedFromTurn}
-          </span>
-        ) : (
-          <span />
-        )}
+      <div className="flex items-start justify-end gap-4">
         <div className="flex items-center gap-3">
-          <InterviewProgressChip currentTurn={progress.currentTurn} />
+          <InterviewProgressChip displayTurn={progress.displayTurn} />
           {showFinishCta ? (
             <Button
               type="button"

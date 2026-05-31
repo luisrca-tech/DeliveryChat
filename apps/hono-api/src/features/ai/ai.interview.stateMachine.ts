@@ -33,6 +33,9 @@ import { generateInterviewSummary } from "./ai.summaryGenerator.js";
 export const SOFT_FINISH_WINDOW_MIN = 8;
 export const SOFT_FINISH_WINDOW_MAX = 12;
 
+export const SUGGEST_FINISH_CLOSING_MESSAGE =
+  "All core topics are covered. Click **Finish interview** when you're ready, or send another message to add more context.";
+
 export type TurnResult = {
   row: InterviewContextRow;
   output: InterviewerOutput;
@@ -368,6 +371,13 @@ function decideNext(
 
   if (isFinalQuestionTurn && !advanceRules.suppressFinishReprompt) {
     sanitized = { ...sanitized, intent: "final_question" };
+  }
+
+  if (sanitized.intent === "suggest_finish") {
+    sanitized = {
+      ...sanitized,
+      assistantMessage: SUGGEST_FINISH_CLOSING_MESSAGE,
+    };
   }
 
   const userEntry: InterviewLogEntry = {

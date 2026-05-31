@@ -35,7 +35,7 @@ The exposed state is narrow:
 
 ## Layout
 
-- Header: progress chip (`InterviewProgressChip`), resume pill when `progress.showResumePill`, finish CTA when `progress.canFinish` or `progress.atTurnCap`.
+- Header: progress chip (`InterviewProgressChip`, fed by `progress.displayTurn` so the first question reads "Turn 1 of 15" and the cap reads "Turn 15 of 15"), finish CTA when `progress.canFinish` or `progress.atTurnCap`.
 - Scrollback (`InterviewChatScrollback`): assistant + user bubbles, thinking indicator while `isSendingTurn`.
 - Inline surfaces (driven by `errorSurface.kind`): retry row, system bubble, missing-topics, blocking cap banner.
 - Composer (`InterviewComposer`): textarea + submit, fed by `composer.*`. Disabled when at hard cap (turn 15).
@@ -56,7 +56,7 @@ The exposed state is narrow:
 
 ## Resume
 
-When the user reopens an in-progress interview, the query refetches `GET /applications/:id/ai-interview` and seeds the cache. The controller captures the first non-zero `currentTurn` as `progress.resumedFromTurn`, which drives the resume pill.
+When the user reopens an in-progress interview, the query refetches `GET /applications/:id/ai-interview` and seeds the cache. The transcript and progress chip pick up wherever the server left off; there is no separate resume indicator (a plain reload mid-session was indistinguishable from a real resume, so the badge was removed).
 
 ## Finish flow
 

@@ -484,7 +484,7 @@ describe("useInterviewController", () => {
     expect(postInterviewComplete).not.toHaveBeenCalled();
   });
 
-  it("resume pill surfaces when initial state currentTurn > 0", async () => {
+  it("displays turn as currentTurn+1 while active and as raw value at the cap", async () => {
     const { queryClient, wrapper } = createWrapper();
     vi.mocked(getInterviewState).mockResolvedValue({
       status: "in_progress",
@@ -505,8 +505,8 @@ describe("useInterviewController", () => {
     );
 
     await waitFor(() => expect(result.current.phase).toBe("active"));
-    expect(result.current.progress.showResumePill).toBe(true);
-    expect(result.current.progress.resumedFromTurn).toBe(4);
+    expect(result.current.progress.currentTurn).toBe(4);
+    expect(result.current.progress.displayTurn).toBe(5);
   });
 
   it("flags atTurnCap when currentTurn reaches the hard cap", async () => {
@@ -531,5 +531,6 @@ describe("useInterviewController", () => {
 
     await waitFor(() => expect(result.current.phase).toBe("active"));
     expect(result.current.progress.atTurnCap).toBe(true);
+    expect(result.current.progress.displayTurn).toBe(15);
   });
 });

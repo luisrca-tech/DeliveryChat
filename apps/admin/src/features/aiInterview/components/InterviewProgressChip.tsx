@@ -6,7 +6,7 @@ import {
 } from "../lib/interviewProgress";
 
 export type InterviewProgressChipProps = {
-  currentTurn: number;
+  displayTurn: number;
 };
 
 const toneClass: Record<ReturnType<typeof progressToneForTurn>, string> = {
@@ -15,8 +15,8 @@ const toneClass: Record<ReturnType<typeof progressToneForTurn>, string> = {
   amber: "bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200",
 };
 
-export function InterviewProgressChip({ currentTurn }: InterviewProgressChipProps) {
-  const tone = progressToneForTurn(currentTurn);
+export function InterviewProgressChip({ displayTurn }: InterviewProgressChipProps) {
+  const tone = progressToneForTurn(displayTurn);
   return (
     <div className="flex flex-col gap-0.5 text-xs">
       <div className="flex items-center gap-2">
@@ -24,7 +24,7 @@ export function InterviewProgressChip({ currentTurn }: InterviewProgressChipProp
           className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${toneClass[tone]}`}
           data-tone={tone}
         >
-          Turn {currentTurn} of {INTERVIEW_MAX_TURNS}
+          Turn {displayTurn} of {INTERVIEW_MAX_TURNS}
         </span>
       </div>
       <span className="text-muted-foreground">

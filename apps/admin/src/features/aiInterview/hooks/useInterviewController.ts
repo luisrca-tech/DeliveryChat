@@ -43,12 +43,11 @@ export type InterviewPhase =
 
 export type InterviewProgress = {
   currentTurn: number;
+  displayTurn: number;
   maxTurns: number;
   tone: ProgressTone;
   atTurnCap: boolean;
   canFinish: boolean;
-  showResumePill: boolean;
-  resumedFromTurn: number | null;
 };
 
 export type InterviewControllerCallbacks = {
@@ -131,7 +130,6 @@ export function useInterviewController(
   const [showConflictNotice, setShowConflictNotice] = useState(false);
 
   const lastFailedMessageRef = useRef<string | null>(null);
-  const resumeTurnRef = useRef<number | null>(null);
 
   const notifyConflict = useCallback(() => {
     toast.error(TURN_CONFLICT_TOAST_COPY);
@@ -193,10 +191,6 @@ export function useInterviewController(
   });
 
   const active = extractActive(data);
-
-  if (resumeTurnRef.current === null && active.currentTurn > 0) {
-    resumeTurnRef.current = active.currentTurn;
-  }
 
   const startInterview = useCallback(() => {
     bootstrap.mutate();
@@ -261,8 +255,9 @@ export function useInterviewController(
     sendInFlight || sendTurn.isSuccess ? false : showConflictNotice;
 
   const atTurnCap = active.currentTurn >= INTERVIEW_MAX_TURNS;
-  const showResumePill =
-    resumeTurnRef.current !== null && resumeTurnRef.current > 0;
+  const displayTurn = atTurnCap
+    ? active.currentTurn
+    : active.currentTurn + 1;
 
   const baseErrorSurface = effectiveSendError ?? finishErrorSurface ?? null;
 
@@ -311,12 +306,11 @@ export function useInterviewController(
     turnLog: active.log,
     progress: {
       currentTurn: active.currentTurn,
+      displayTurn,
       maxTurns: INTERVIEW_MAX_TURNS,
-      tone: progressToneForTurn(active.currentTurn),
+      tone: progressToneForTurn(displayTurn),
       atTurnCap,
       canFinish,
-      showResumePill,
-      resumedFromTurn: resumeTurnRef.current,
     },
     errorSurface,
     showConflictNotice: effectiveConflictNotice,
