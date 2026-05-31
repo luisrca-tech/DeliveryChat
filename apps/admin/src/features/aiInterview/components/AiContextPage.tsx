@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { Navigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { ChevronDown, ChevronRight, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   Card,
@@ -11,11 +11,6 @@ import {
 } from "@repo/ui/components/ui/card";
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import { MarkdownView } from "@repo/ui/components/ui/markdown-view";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@repo/ui/components/ui/collapsible";
 import {
   useInterviewStateQuery,
   useRegenerateSummaryMutation,
@@ -42,7 +37,6 @@ const SUMMARY_FAILED_SURFACE: InterviewErrorSurface = {
 
 export function AiContextPage({ applicationId }: AiContextPageProps) {
   const { data, isLoading, isError } = useInterviewStateQuery(applicationId);
-  const [transcriptOpen, setTranscriptOpen] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [regenerateSurface, setRegenerateSurface] =
     useState<InterviewErrorSurface | null>(null);
@@ -166,46 +160,32 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
         isLoading={regenerate.isPending}
       />
       <Card className="w-full md:w-[22rem] md:shrink-0">
-        <Collapsible open={transcriptOpen} onOpenChange={setTranscriptOpen}>
-          <CardHeader className="pb-3">
-            <CollapsibleTrigger
-              className="flex w-full items-center justify-between gap-2 text-left"
-              data-testid="ai-context-transcript-toggle"
-            >
-              <CardTitle className="text-sm font-medium">
-                Interview transcript
-              </CardTitle>
-              {transcriptOpen ? (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-              )}
-            </CollapsibleTrigger>
-          </CardHeader>
-          <CollapsibleContent>
-            <CardContent className="flex flex-col gap-3">
-              {data.interviewLog.length === 0 ? (
-                <p className="text-xs text-muted-foreground">
-                  No transcript available.
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">
+            Interview transcript
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3">
+          {data.interviewLog.length === 0 ? (
+            <p className="text-xs text-muted-foreground">
+              No transcript available.
+            </p>
+          ) : (
+            data.interviewLog.map((entry, index) => (
+              <div
+                key={`${entry.role}-${index}`}
+                className="flex flex-col gap-1"
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  {entry.role === "assistant" ? "Interviewer" : "You"}
+                </span>
+                <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">
+                  {entry.content}
                 </p>
-              ) : (
-                data.interviewLog.map((entry, index) => (
-                  <div
-                    key={`${entry.role}-${index}`}
-                    className="flex flex-col gap-1"
-                  >
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                      {entry.role === "assistant" ? "Interviewer" : "You"}
-                    </span>
-                    <p className="whitespace-pre-wrap text-xs leading-relaxed text-foreground">
-                      {entry.content}
-                    </p>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </CollapsibleContent>
-        </Collapsible>
+              </div>
+            ))
+          )}
+        </CardContent>
       </Card>
     </div>
   );
