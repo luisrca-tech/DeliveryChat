@@ -1,0 +1,102 @@
+@import "@fontsource-variable/fraunces/wght.css";
+@import "@fontsource-variable/fraunces/wght-italic.css";
+@import "@fontsource-variable/geist/wght.css";
+@import "@fontsource-variable/geist/wght-italic.css";
+
+.interview-theme {
+  --interview-font-display: "Fraunces Variable", "Times New Roman", serif;
+  --interview-font-body: "Geist Variable", system-ui, -apple-system, sans-serif;
+
+  --interview-color-foreground: hsl(222 47% 11%);
+  --interview-color-muted: hsl(215 16% 47%);
+  --interview-color-rule: hsl(214 32% 88%);
+  --interview-color-accent: #3b5bdb;
+  --interview-color-accent-soft: #7aa0ff;
+  --interview-color-amber: #b8742a;
+  --interview-color-amber-soft: #e2a76a;
+  --interview-color-paper: hsl(40 32% 97%);
+
+  --interview-paper-texture: radial-gradient(
+      hsl(40 18% 88% / 0.45) 1px,
+      transparent 1px
+    )
+    0 0 / 18px 18px;
+
+  font-family: var(--interview-font-body);
+  color: var(--interview-color-foreground);
+  background-color: var(--interview-color-paper);
+  background-image: var(--interview-paper-texture);
+  min-height: 100%;
+}
+
+.dark .interview-theme {
+  --interview-color-foreground: hsl(40 32% 94%);
+  --interview-color-muted: hsl(215 14% 65%);
+  --interview-color-rule: hsl(215 16% 28%);
+  --interview-color-accent: #7aa0ff;
+  --interview-color-accent-soft: #3b5bdb;
+  --interview-color-amber: #e2a76a;
+  --interview-color-amber-soft: #b8742a;
+  --interview-color-paper: hsl(222 22% 9%);
+
+  --interview-paper-texture: radial-gradient(
+      hsl(215 16% 22% / 0.55) 1px,
+      transparent 1px
+    )
+    0 0 / 18px 18px;
+}
+
+.interview-display {
+  font-family: var(--interview-font-display);
+  font-feature-settings: "ss01", "ss02";
+}
+
+.interview-italic {
+  font-family: var(--interview-font-display);
+  font-style: italic;
+}
+
+.interview-eyebrow {
+  font-family: var(--interview-font-body);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.interview-textlink {
+  font-family: var(--interview-font-body);
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: var(--interview-color-accent);
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  transition: opacity 120ms ease;
+}
+
+.interview-textlink:hover:not(:disabled) {
+  opacity: 0.75;
+}
+
+.interview-textlink:focus-visible {
+  outline: 2px solid var(--interview-color-accent);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+.interview-textlink:disabled {
+  color: var(--interview-color-muted);
+  cursor: not-allowed;
+}
+
+.interview-textlink--loading {
+  font-family: var(--interview-font-display);
+  font-style: italic;
+  color: var(--interview-color-muted);
+}
