@@ -94,7 +94,7 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
   const inputLocked = progress.atTurnCap;
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-4 p-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-6 xl:max-w-5xl 2xl:max-w-6xl">
       <div className="flex items-start justify-end gap-4">
         <div className="flex items-center gap-3">
           <InterviewProgressChip displayTurn={progress.displayTurn} />

@@ -101,7 +101,7 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
       : null);
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6 md:flex-row md:items-start">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6 md:flex-row md:items-start 2xl:max-w-7xl">
       <Card className="w-full md:flex-1">
         <CardHeader className="flex flex-row items-start justify-between gap-3 space-y-0">
           <div className="flex flex-col gap-1">
