@@ -82,6 +82,7 @@ The "Configure now" link is shown to `admin` / `super_admin` viewers and routes 
 - Frontend chat mechanics: `apps/admin/src/features/aiInterview/docs/chat-mechanics.md`
 - Frontend context view: `apps/admin/src/features/aiInterview/docs/context-view.md`
 - Frontend error mapping: `apps/admin/src/features/aiInterview/docs/error-mapping.md`
+- Frontend editorial design system: `apps/admin/src/features/aiInterview/docs/design.md`
 
 ## Deferred work
 
