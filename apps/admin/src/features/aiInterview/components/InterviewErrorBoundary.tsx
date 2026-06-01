@@ -1,5 +1,5 @@
-import { Button } from "@repo/ui/components/ui/button";
 import type { InterviewErrorSurface } from "../lib/interviewErrorMapper";
+import { InterviewEyebrow } from "./InterviewEyebrow";
 import { InterviewMarginalia } from "./InterviewMarginalia";
 import { InterviewTextLink } from "./InterviewTextLink";
 
@@ -24,16 +24,19 @@ export function InterviewErrorBoundary({
         <div
           role="alert"
           data-testid="interview-summary-error"
-          className="mx-auto flex w-full max-w-2xl flex-col items-start gap-4 p-6"
+          className="mx-auto flex w-full max-w-2xl flex-col items-center gap-6 px-6 py-12 text-center"
         >
-          <h2 className="text-lg font-semibold text-destructive">
+          <InterviewEyebrow>AI Context · Error</InterviewEyebrow>
+          <h2 className="interview-display text-3xl font-medium leading-[1.15] tracking-tight text-[var(--interview-color-foreground)] md:text-4xl">
             {surface.title}
           </h2>
-          <p className="text-sm text-muted-foreground">{surface.detail}</p>
+          <p className="interview-italic max-w-[52ch] text-base leading-relaxed text-[var(--interview-color-muted)] md:text-lg">
+            {surface.detail}
+          </p>
           {onRetrySummary ? (
-            <Button type="button" onClick={onRetrySummary}>
+            <InterviewTextLink onClick={onRetrySummary}>
               {surface.retryLabel}
-            </Button>
+            </InterviewTextLink>
           ) : null}
         </div>
       );

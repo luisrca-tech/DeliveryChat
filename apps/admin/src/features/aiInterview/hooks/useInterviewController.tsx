@@ -66,6 +66,8 @@ export type InterviewComposerBinding = {
   acknowledgeFailure: () => void;
 };
 
+export type LatestTurnGuardrail = "redirect_scope" | "pushback_garbage";
+
 export type InterviewControllerState = {
   phase: InterviewPhase;
   turnLog: InterviewLogEntry[];
@@ -76,6 +78,7 @@ export type InterviewControllerState = {
   isStartingInterview: boolean;
   isCapExceeded: boolean;
   summaryStatus: InterviewSummaryStatus;
+  latestGuardrailAction?: LatestTurnGuardrail;
   composer: InterviewComposerBinding;
   callbacks: InterviewControllerCallbacks;
 };
@@ -132,7 +135,12 @@ export function useInterviewController(
   const lastFailedMessageRef = useRef<string | null>(null);
 
   const notifyConflict = useCallback(() => {
-    toast.error(TURN_CONFLICT_TOAST_COPY);
+    toast.message(
+      <span className="interview-italic text-sm leading-relaxed">
+        {TURN_CONFLICT_TOAST_COPY}
+      </span>,
+      { duration: 5000 },
+    );
     void queryClient.invalidateQueries({
       queryKey: aiInterviewQueryKeys.state(applicationId),
     });
@@ -248,6 +256,13 @@ export function useInterviewController(
   const canFinish =
     sendTurn.data?.canFinish ?? bootstrap.data?.canFinish ?? false;
 
+  const latestGuardrailRaw = sendTurn.data?.turn.guardrailAction;
+  const latestGuardrailAction: LatestTurnGuardrail | undefined =
+    latestGuardrailRaw === "redirect_scope" ||
+    latestGuardrailRaw === "pushback_garbage"
+      ? latestGuardrailRaw
+      : undefined;
+
   const sendInFlight = sendTurn.isPending;
   const effectiveSendError =
     sendInFlight || sendTurn.isSuccess ? null : sendErrorSurface;
@@ -318,6 +333,7 @@ export function useInterviewController(
     isStartingInterview: bootstrap.isPending,
     isCapExceeded,
     summaryStatus: active.summaryStatus,
+    latestGuardrailAction,
     composer,
     callbacks,
   };
