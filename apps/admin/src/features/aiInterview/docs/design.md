@@ -42,7 +42,7 @@ All primitives live in `apps/admin/src/features/aiInterview/components/` and hav
 | `InterviewTextLink`      | Real `<button>` styled as accent text-link. Loading swaps to italic.    | `type="button"` default; arrow is `aria-hidden`; disabled state is muted; `:focus-visible` ring.    |
 | `InterviewQuestionBlock` | Eyebrow + serif display question. Applies eyebrow precedence.           | `<article>` landmark; amber under-rule is decorative.                                               |
 | `InterviewAnswerBlock`   | Indented sans-serif answer with 2px accent left-rule.                   | Plain text block; no interactive elements.                                                          |
-| `InterviewRuler`         | Three-zone editorial progress ruler with large serif numeral.           | `aria-label="Turn N of M"`; numeral is `aria-hidden`; visible duplicate "Turn N of M" caption.      |
+| `InterviewRuler`         | Two-zone editorial progress ruler (opening + suggested) with large serif numeral. | `aria-label="Turn N of M"`; numeral is `aria-hidden`; visible duplicate "Turn N of M" caption.      |
 | `InterviewMarginalia`    | Indented italic note for send errors and conflict-style asides.         | `role="status"` by default, `role="alert"` for errors; configurable via prop.                       |
 
 The existing legacy components (`InterviewChatScrollback`, `InterviewIntroCard`, etc.) are kept for non-editorial code paths but no longer drive the redesigned surfaces.

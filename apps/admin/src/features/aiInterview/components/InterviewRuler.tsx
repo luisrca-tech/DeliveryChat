@@ -23,7 +23,6 @@ const TONE_RULE: Record<ReturnType<typeof progressToneForTurn>, string> = {
 
 const ZONE1_LEN = INTERVIEW_SUGGESTED_MIN - 1; // 1..7
 const ZONE2_LEN = INTERVIEW_SUGGESTED_MAX - INTERVIEW_SUGGESTED_MIN + 1; // 8..12
-const ZONE3_LEN = INTERVIEW_MAX_TURNS - INTERVIEW_SUGGESTED_MAX; // 13..15
 
 function zoneFillFor(displayTurn: number, zoneStart: number, zoneLen: number) {
   if (displayTurn < zoneStart) return 0;
@@ -37,7 +36,6 @@ export function InterviewRuler({ displayTurn }: InterviewRulerProps) {
 
   const zoneFill1 = zoneFillFor(displayTurn, 1, ZONE1_LEN);
   const zoneFill2 = zoneFillFor(displayTurn, INTERVIEW_SUGGESTED_MIN, ZONE2_LEN);
-  const zoneFill3 = zoneFillFor(displayTurn, INTERVIEW_SUGGESTED_MAX + 1, ZONE3_LEN);
 
   return (
     <div
@@ -55,12 +53,10 @@ export function InterviewRuler({ displayTurn }: InterviewRulerProps) {
         <div className="hidden items-end gap-1 md:flex">
           <RulerZone label="OPENING" labelHint="1–7" fill={zoneFill1} toneClass={TONE_RULE.neutral} />
           <RulerZone label="SUGGESTED" labelHint="8–12" fill={zoneFill2} toneClass={TONE_RULE.green} />
-          <RulerZone label="OVERTIME" labelHint="13–15" fill={zoneFill3} toneClass={TONE_RULE.amber} />
         </div>
         <div className="flex items-center gap-1 md:hidden">
           <CompressedZone fill={zoneFill1} toneClass={TONE_RULE.neutral} />
           <CompressedZone fill={zoneFill2} toneClass={TONE_RULE.green} />
-          <CompressedZone fill={zoneFill3} toneClass={TONE_RULE.amber} />
         </div>
         <p className="interview-eyebrow text-[var(--interview-color-muted)]">
           Turn {displayTurn} of {INTERVIEW_MAX_TURNS}
@@ -89,10 +85,10 @@ function RulerZone({
           style={{ width: `${Math.round(fill * 100)}%` }}
         />
       </div>
-      <div className="interview-eyebrow flex justify-between gap-2 text-[var(--interview-color-muted)]">
-        <span>{label}</span>
+      <p className="interview-eyebrow text-[var(--interview-color-muted)]">
+        {label}{" "}
         <span className="opacity-60">{labelHint}</span>
-      </div>
+      </p>
     </div>
   );
 }

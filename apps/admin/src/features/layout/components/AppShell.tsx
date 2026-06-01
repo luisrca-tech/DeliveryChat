@@ -1,5 +1,7 @@
 import { useState, type ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
+import { isEditorialInterviewRoute } from "@/features/aiInterview/lib/isEditorialInterviewRoute";
+import "@/features/aiInterview/styles/interview-theme.css";
 import {
   Settings,
   MessageSquare,
@@ -20,6 +22,8 @@ export function AppShell(props: { children: ReactNode }) {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const { data: appsData } = useApplicationsQuery();
   const firstAppId = appsData?.applications?.[0]?.id;
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isEditorialShell = isEditorialInterviewRoute(pathname);
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -135,10 +139,12 @@ export function AppShell(props: { children: ReactNode }) {
           <UserProfilePopover isSidebarCollapsed={isSidebarCollapsed} />
         </div>
       </aside>
-      <main className="flex-1 min-w-0">
+      <main
+        className={`flex-1 min-w-0 ${isEditorialShell ? "interview-theme min-h-screen" : ""}`}
+      >
         <BillingAlert />
         {firstAppId && <ChatWidgetTest appId={firstAppId} />}
-        <div className="p-6">{children}</div>
+        <div className={isEditorialShell ? "" : "p-6"}>{children}</div>
       </main>
     </div>
   );
