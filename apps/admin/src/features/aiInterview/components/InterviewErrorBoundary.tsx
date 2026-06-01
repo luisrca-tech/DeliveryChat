@@ -1,5 +1,7 @@
 import { Button } from "@repo/ui/components/ui/button";
 import type { InterviewErrorSurface } from "../lib/interviewErrorMapper";
+import { InterviewMarginalia } from "./InterviewMarginalia";
+import { InterviewTextLink } from "./InterviewTextLink";
 
 export type InterviewErrorBoundaryProps = {
   surface: InterviewErrorSurface | null;
@@ -78,26 +80,29 @@ export function InterviewErrorBoundary({
       );
     case "retry_row":
       return (
-        <div
-          role="alert"
-          data-testid="interview-retry-row"
-          data-code={surface.code}
-          className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-900/20 dark:text-amber-200"
-        >
-          <div className="flex flex-col">
-            <span className="font-medium">{surface.title}</span>
-            <span>{surface.detail}</span>
-          </div>
-          {onRetrySend ? (
-            <button
-              type="button"
-              onClick={onRetrySend}
-              disabled={isSending}
-              className="rounded-md border border-amber-300 bg-white px-2 py-1 text-xs font-medium text-amber-900 shadow-sm hover:bg-amber-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100"
-            >
-              {surface.retryLabel}
-            </button>
-          ) : null}
+        <div data-testid="interview-retry-row" data-code={surface.code}>
+          <InterviewMarginalia
+            role="alert"
+            tone="accent"
+            dashed
+            action={
+              onRetrySend ? (
+                <InterviewTextLink
+                  onClick={onRetrySend}
+                  disabled={isSending}
+                  loading={isSending}
+                  loadingLabel="Retrying…"
+                >
+                  {surface.retryLabel}
+                </InterviewTextLink>
+              ) : null
+            }
+          >
+            <span className="not-italic [font-family:var(--interview-font-body)] font-medium text-[var(--interview-color-foreground)]">
+              {surface.title}
+            </span>
+            <span className="block">{surface.detail}</span>
+          </InterviewMarginalia>
         </div>
       );
     case "toast_fallback":

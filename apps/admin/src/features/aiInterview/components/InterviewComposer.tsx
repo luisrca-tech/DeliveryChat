@@ -1,21 +1,44 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Button } from "@repo/ui/components/ui/button";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
+import { InterviewTextLink } from "./InterviewTextLink";
 
 export type InterviewComposerProps = {
   isSending: boolean;
   sendDidFail: boolean;
   onSubmit: (message: string) => void;
   acknowledgeFailure: () => void;
+  capReached?: boolean;
+  maxTurns?: number;
+  onFinish?: () => void;
 };
+
+const DEFAULT_PLACEHOLDER = "Share your answer…";
+const CAP_PLACEHOLDER =
+  "You have reached the turn limit. Finish the interview to generate your AI context.";
+
+function capPlaceholder(maxTurns?: number) {
+  if (!maxTurns) return CAP_PLACEHOLDER;
+  return `You have reached the ${maxTurns}-turn limit. Finish the interview to generate your AI context.`;
+}
 
 export function InterviewComposer({
   isSending,
   sendDidFail,
   onSubmit,
   acknowledgeFailure,
+  capReached = false,
+  maxTurns,
+  onFinish,
 }: InterviewComposerProps) {
   const [draft, setDraft] = useState("");
   const lastSentRef = useRef<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (sendDidFail && lastSentRef.current !== null) {
@@ -25,36 +48,86 @@ export function InterviewComposer({
     }
   }, [sendDidFail, acknowledgeFailure]);
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  useLayoutEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+
+  const submit = () => {
     const message = draft.trim();
-    if (!message || isSending) return;
+    if (!message || isSending || capReached) return;
     lastSentRef.current = draft;
     setDraft("");
     onSubmit(message);
   };
 
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    submit();
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      submit();
+    }
+  };
+
+  const ruleColor = capReached
+    ? "var(--interview-color-muted)"
+    : "var(--interview-color-accent)";
+  const placeholder = capReached
+    ? capPlaceholder(maxTurns)
+    : DEFAULT_PLACEHOLDER;
+  const lockedProps = capReached
+    ? { "data-testid": "interview-input-locked" }
+    : {};
+
   return (
     <form
       onSubmit={handleSubmit}
-      className="flex flex-col gap-2 border-t pt-4"
+      className="flex flex-col gap-3"
+      {...lockedProps}
     >
-      <textarea
-        value={draft}
-        onChange={(event) => setDraft(event.target.value)}
-        placeholder="Type your answer..."
-        rows={3}
-        disabled={isSending}
-        aria-label="Interview reply"
-        className="min-h-[80px] w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-      />
-      <div className="flex justify-end">
-        <Button
-          type="submit"
-          disabled={isSending || draft.trim().length === 0}
-        >
-          {isSending ? "Sending..." : "Send"}
-        </Button>
+      <div
+        style={{ borderLeftColor: ruleColor }}
+        className="border-l-2 pl-5 md:pl-6"
+      >
+        <textarea
+          ref={textareaRef}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={capReached}
+          aria-label="Interview reply"
+          rows={1}
+          className="interview-composer__textarea w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-base leading-relaxed text-[var(--interview-color-foreground)] outline-none placeholder:italic placeholder:text-[var(--interview-color-muted)] placeholder:[font-family:var(--interview-font-display)] disabled:cursor-not-allowed md:text-[1.0625rem]"
+          style={{ fontFamily: "var(--interview-font-body)" }}
+        />
+      </div>
+      <div className="flex items-center justify-between gap-4 pl-5 md:pl-6">
+        <p className="interview-eyebrow text-[var(--interview-color-muted)]">
+          {capReached
+            ? "Interview turn limit reached"
+            : "⏎ to send · ⇧⏎ for new line"}
+        </p>
+        {capReached ? (
+          <InterviewTextLink onClick={onFinish}>
+            Finish interview
+          </InterviewTextLink>
+        ) : (
+          <InterviewTextLink
+            type="submit"
+            loading={isSending}
+            loadingLabel="Sending…"
+            disabled={draft.trim().length === 0}
+          >
+            Send
+          </InterviewTextLink>
+        )}
       </div>
     </form>
   );

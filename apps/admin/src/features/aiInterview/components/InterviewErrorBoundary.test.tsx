@@ -64,9 +64,7 @@ describe("InterviewErrorBoundary", () => {
       />,
     );
 
-    const button = screen.getByRole("button", {
-      name: "Try again",
-    }) as HTMLButtonElement;
+    const button = screen.getByRole("button") as HTMLButtonElement;
     expect(button.disabled).toBe(true);
   });
 

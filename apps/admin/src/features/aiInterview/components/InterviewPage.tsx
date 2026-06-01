@@ -147,20 +147,15 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
         onRetrySend={callbacks.retrySend}
         isSending={isSendingTurn}
       />
-      {isCapExceeded ? null : inputLocked ? (
-        <div
-          data-testid="interview-input-locked"
-          className="rounded-md border border-muted bg-muted/40 px-3 py-2 text-xs text-muted-foreground"
-        >
-          You have reached the {progress.maxTurns}-turn limit. Click
-          “Finish interview” to generate your AI context.
-        </div>
-      ) : (
+      {isCapExceeded ? null : (
         <InterviewComposer
           isSending={composer.isSending}
           sendDidFail={composer.sendDidFail}
           onSubmit={composer.onSubmit}
           acknowledgeFailure={composer.acknowledgeFailure}
+          capReached={inputLocked}
+          maxTurns={progress.maxTurns}
+          onFinish={callbacks.finishInterview}
         />
       )}
       </div>
