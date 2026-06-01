@@ -1,11 +1,12 @@
 import { Navigate } from "@tanstack/react-router";
 import { Button } from "@repo/ui/components/ui/button";
+import "../styles/interview-theme.css";
 import { useInterviewController } from "../hooks/useInterviewController";
 import { InterviewChatScrollback } from "./InterviewChatScrollback";
 import { InterviewComposer } from "./InterviewComposer";
 import { InterviewErrorBoundary } from "./InterviewErrorBoundary";
 import { InterviewIntroCard } from "./InterviewIntroCard";
-import { InterviewProgressChip } from "./InterviewProgressChip";
+import { InterviewRuler } from "./InterviewRuler";
 
 export type InterviewPageProps = {
   applicationId: string;
@@ -94,10 +95,15 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
   const inputLocked = progress.atTurnCap;
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-4 p-6 xl:max-w-5xl 2xl:max-w-6xl">
-      <div className="flex items-start justify-end gap-4">
+    <div className="interview-theme min-h-[100dvh] w-full">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-10 md:py-14 xl:max-w-3xl">
+      <div className="flex items-start justify-between gap-4">
+        {phase === "active" ? (
+          <InterviewRuler displayTurn={progress.displayTurn} />
+        ) : (
+          <div />
+        )}
         <div className="flex items-center gap-3">
-          <InterviewProgressChip displayTurn={progress.displayTurn} />
           {showFinishCta ? (
             <Button
               type="button"
@@ -157,6 +163,7 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
           acknowledgeFailure={composer.acknowledgeFailure}
         />
       )}
+      </div>
     </div>
   );
 }
