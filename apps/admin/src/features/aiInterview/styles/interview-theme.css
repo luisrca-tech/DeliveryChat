@@ -100,3 +100,113 @@
   font-style: italic;
   color: var(--interview-color-muted);
 }
+
+.interview-markdown {
+  font-family: var(--interview-font-body);
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--interview-color-foreground);
+  max-width: 65ch;
+}
+
+.interview-markdown h1,
+.interview-markdown h2,
+.interview-markdown h3,
+.interview-markdown h4 {
+  font-family: var(--interview-font-display);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--interview-color-foreground);
+}
+
+.interview-markdown h1 {
+  font-size: 2rem;
+  line-height: 1.15;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.interview-markdown h1:first-child {
+  margin-top: 0;
+}
+
+.interview-markdown h2 {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.interview-markdown h3 {
+  font-size: 1.2rem;
+  line-height: 1.25;
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.interview-markdown p {
+  margin: 0.85rem 0;
+}
+
+.interview-markdown ul,
+.interview-markdown ol {
+  margin: 0.85rem 0;
+  padding-left: 1.5rem;
+}
+
+.interview-markdown li {
+  margin: 0.35rem 0;
+}
+
+.interview-markdown blockquote {
+  font-family: var(--interview-font-display);
+  font-style: italic;
+  border-left: 2px solid var(--interview-color-accent);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  color: var(--interview-color-foreground);
+}
+
+.interview-markdown a {
+  color: var(--interview-color-accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.interview-markdown hr {
+  border: 0;
+  border-top: 1px solid var(--interview-color-rule);
+  margin: 2rem 0;
+}
+
+.interview-markdown strong {
+  font-weight: 600;
+  color: var(--interview-color-foreground);
+}
+
+.interview-markdown code {
+  font-size: 0.875em;
+  background: transparent;
+  padding: 0;
+  color: var(--interview-color-accent);
+}
+
+@keyframes interview-accent-rule-pulse {
+  0%,
+  100% {
+    transform: scaleX(0.2);
+    opacity: 0.4;
+  }
+  50% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.interview-accent-rule-animated {
+  height: 1px;
+  width: 100%;
+  background: var(--interview-color-accent);
+  transform-origin: left;
+  animation: interview-accent-rule-pulse 1.8s ease-in-out infinite;
+}
