@@ -38,7 +38,7 @@ export type InterviewLogEntry = {
   content: string;
   topicsCoveredThisTurn?: string[];
   garbagePushbackTopics?: string[];
-  intent?: "final_question";
+  intent?: "final_question" | "suggest_finish";
 };
 
 export type SummaryStatus = "none" | "pending" | "ready" | "failed";
@@ -72,8 +72,13 @@ export function computeCoveredTopics(
   log: InterviewLogEntry[],
 ): Set<CoreTopic> {
   const covered = new Set<CoreTopic>();
-  for (const entry of log) {
-    if (entry.role !== "assistant") continue;
+  for (let i = 0; i < log.length; i++) {
+    const entry = log[i];
+    if (entry?.role !== "assistant") continue;
+    const hasUserResponseAfter = log
+      .slice(i + 1)
+      .some((e) => e.role === "user");
+    if (!hasUserResponseAfter) continue;
     const topics = entry.topicsCoveredThisTurn ?? [];
     for (const topic of topics) {
       if (CORE_TOPIC_SET.has(topic)) {

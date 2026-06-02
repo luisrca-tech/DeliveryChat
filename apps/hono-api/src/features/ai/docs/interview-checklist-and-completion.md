@@ -22,20 +22,20 @@ Phase 3 teaches the AI Interview engine when the interview is "done" and exposes
 
 ## Coverage computation
 
-Assistant log entries now persist `topicsCoveredThisTurn` (the keys the LLM reported for that turn). `computeCoveredTopics(interviewLog)` returns the union across all assistant entries:
+Assistant log entries now persist `topicsCoveredThisTurn` (the keys the LLM reported for that turn). `computeCoveredTopics(interviewLog)` returns the union across assistant entries that already have at least one user reply **after** them in the log (a topic is not credited on the question turn alone).
 
 - Unknown topic keys are logged and ignored — they never reject the LLM response.
 - Coverage is recomputed on every turn; no extra column on `applicationAiContext`.
+- The LLM must tag topics based on what the admin answered, not what it plans to ask next.
 
 ## `suggest_finish` handling
 
 When the LLM returns `intent='suggest_finish'`:
 
-1. The server projects the post-turn coverage set (including this turn's reported topics).
-2. If every `CORE_TOPICS` entry is covered → response includes `canFinish: true` and the original `suggest_finish` intent is preserved.
-3. If any topic is missing → the LLM is re-prompted with an explicit list of the missing topics and instructed to ask about one of them. The retry's output replaces the original; the persisted `intent` is `'ask'`; `canFinish` is `false`.
-
-Both LLM calls in the re-prompt path are accounted for in `aiUsageLog` (token counts summed, last `finishReason` reported).
+1. Coverage is evaluated from the persisted log **plus the admin's latest user message** (the reply to the previous question). Topics on the `suggest_finish` turn itself are not used for the checklist.
+2. The assistant message is always replaced with the canned closing line (`SUGGEST_FINISH_CLOSING_MESSAGE`). The engine never injects an extra checklist question after `suggest_finish`.
+3. `canFinish: true` when every `CORE_TOPICS` entry is covered, **or** when the LLM returned `suggest_finish` (the admin may finish even if a tag was missed). The closing assistant entry is persisted with `intent: 'suggest_finish'`.
+4. `POST /complete` accepts the interview when the last assistant entry has `intent: 'suggest_finish'`, even if the strict checklist still has gaps.
 
 ## `POST /complete`
 

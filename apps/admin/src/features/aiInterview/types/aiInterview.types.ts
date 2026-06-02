@@ -7,7 +7,7 @@ export type InterviewLogEntry = {
   content: string;
   topicsCoveredThisTurn?: string[];
   garbagePushbackTopics?: string[];
-  intent?: "final_question";
+  intent?: "final_question" | "suggest_finish";
 };
 
 export type InterviewStateNotStarted = {

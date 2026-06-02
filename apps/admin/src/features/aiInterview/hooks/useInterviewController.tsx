@@ -253,8 +253,14 @@ export function useInterviewController(
     ],
   );
 
+  const lastAssistantInLog = [...active.log]
+    .reverse()
+    .find((entry) => entry.role === "assistant");
+
   const canFinish =
-    sendTurn.data?.canFinish ?? bootstrap.data?.canFinish ?? false;
+    sendTurn.data?.canFinish ??
+    bootstrap.data?.canFinish ??
+    lastAssistantInLog?.intent === "suggest_finish";
 
   const latestGuardrailRaw = sendTurn.data?.turn.guardrailAction;
   const latestGuardrailAction: LatestTurnGuardrail | undefined =

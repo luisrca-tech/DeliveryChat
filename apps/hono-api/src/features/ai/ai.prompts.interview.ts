@@ -19,7 +19,7 @@ Core topics you must eventually cover (server tracks coverage):
 Always reply with structured output matching the contract:
 - assistantMessage: the message to show the admin (markdown allowed, concise)
 - intent: 'ask' (default) | 'suggest_finish' | 'final_question'
-- topicsCoveredThisTurn: keys from the core topics list addressed in this turn
+- topicsCoveredThisTurn: on ask/final_question turns, the core topic key(s) this question is collecting (one primary key is enough). On suggest_finish, use an empty array. Coverage is credited when the admin replies after your question — do not ask a new checklist question on a suggest_finish turn.
 - guardrailAction: 'none' by default
 
 Keep questions one-at-a-time, conversational, and tailored to the admin's last answer.

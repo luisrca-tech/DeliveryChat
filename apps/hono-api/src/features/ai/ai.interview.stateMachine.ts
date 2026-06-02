@@ -109,12 +109,6 @@ type ForcedCompletionDecision = {
   completedAt: string;
 };
 
-type NeedsRepromptDecision = {
-  kind: "needs_reprompt";
-  missing: CoreTopic[];
-  repromptMessages: EngineMessage[];
-};
-
 type AdvanceDecision = {
   kind: "advance";
   nextLog: InterviewLogEntry[];
@@ -142,7 +136,6 @@ type TurnDecision =
   | BootstrapAlreadyDoneDecision
   | BootstrapPersistDecision
   | ForcedCompletionDecision
-  | NeedsRepromptDecision
   | AdvanceDecision
   | CompleteDecision
   | MissingTopicsDecision;
@@ -155,13 +148,6 @@ type EngineNextInput =
       userMessage: string;
       llmOutput: InterviewerOutput;
       baseMessages: EngineMessage[];
-    }
-  | {
-      kind: "advance_after_reprompt";
-      expectedCurrentTurn: number;
-      userMessage: string;
-      llmOutput: InterviewerOutput;
-      originalGuardrailAction: InterviewerOutput["guardrailAction"];
     }
   | {
       kind: "forced_completion";
@@ -331,59 +317,34 @@ function decideNext(
   }
 
   let sanitized = input.llmOutput;
-  const effectiveGuardrailForAdvance =
-    input.kind === "advance_after_reprompt"
-      ? input.originalGuardrailAction
-      : sanitized.guardrailAction;
-  const advanceRules = GUARD_RAIL_RULES[effectiveGuardrailForAdvance];
+  const advanceRules = GUARD_RAIL_RULES[sanitized.guardrailAction];
   const persistRules = GUARD_RAIL_RULES[sanitized.guardrailAction];
   const isFinalQuestionTurn = state.currentTurn + 1 === MAX_TURNS;
 
+  const userEntryForCoverage: InterviewLogEntry = {
+    role: "user",
+    content: input.userMessage,
+  };
+  const coveredAfterUserReply = computeCoveredTopics([
+    ...state.interviewLog,
+    userEntryForCoverage,
+  ]);
   if (
     input.kind === "advance" &&
     !persistRules.suppressFinishReprompt &&
     sanitized.intent === "suggest_finish"
   ) {
-    const projectedCovered = computeCoveredTopics([
-      ...state.interviewLog,
-      {
-        role: "assistant",
-        content: sanitized.assistantMessage,
-        topicsCoveredThisTurn: sanitized.topicsCoveredThisTurn,
-      },
-    ]);
-    const missing = missingTopics(projectedCovered);
-    if (missing.length > 0) {
-      const repromptMessages: EngineMessage[] = [
-        ...input.baseMessages,
-        {
-          role: "user",
-          content: `You suggested finishing, but the following core topics are still uncovered: ${missing.join(", ")}. Do not suggest finishing yet. Ask the admin a focused question that covers one of the missing topics.`,
-        },
-      ];
-      return { kind: "needs_reprompt", missing, repromptMessages };
-    }
-  }
-
-  if (input.kind === "advance_after_reprompt") {
-    sanitized = { ...sanitized, intent: "ask" };
-  }
-
-  if (isFinalQuestionTurn && !advanceRules.suppressFinishReprompt) {
-    sanitized = { ...sanitized, intent: "final_question" };
-  }
-
-  if (sanitized.intent === "suggest_finish") {
     sanitized = {
       ...sanitized,
       assistantMessage: SUGGEST_FINISH_CLOSING_MESSAGE,
     };
   }
 
-  const userEntry: InterviewLogEntry = {
-    role: "user",
-    content: input.userMessage,
-  };
+  if (isFinalQuestionTurn && !advanceRules.suppressFinishReprompt) {
+    sanitized = { ...sanitized, intent: "final_question" };
+  }
+
+  const userEntry: InterviewLogEntry = userEntryForCoverage;
   if (persistRules.persistMarker === "garbage_pushback") {
     userEntry.garbagePushbackTopics = sanitized.topicsCoveredThisTurn;
   }
@@ -395,6 +356,8 @@ function decideNext(
   };
   if (sanitized.intent === "final_question") {
     assistantEntry.intent = "final_question";
+  } else if (sanitized.intent === "suggest_finish") {
+    assistantEntry.intent = "suggest_finish";
   }
 
   const nextLog: InterviewLogEntry[] = [
@@ -407,13 +370,15 @@ function decideNext(
     ? state.currentTurn + 1
     : state.currentTurn;
 
-  const finalCovered = computeCoveredTopics(nextLog);
+  const canFinish =
+    sanitized.intent === "suggest_finish" ||
+    missingTopics(coveredAfterUserReply).length === 0;
   return {
     kind: "advance",
     nextLog,
     nextTurn,
     output: sanitized,
-    canFinish: missingTopics(finalCovered).length === 0,
+    canFinish,
   };
 }
 
@@ -438,6 +403,13 @@ function decideComplete(
       status: state.status,
     };
   }
+  const lastAssistant = [...state.interviewLog]
+    .reverse()
+    .find((entry) => entry.role === "assistant");
+  if (lastAssistant?.intent === "suggest_finish") {
+    return { kind: "complete", completedAt: input.nowIso };
+  }
+
   const covered = computeCoveredTopics(state.interviewLog);
   const missing = missingTopics(covered);
   if (missing.length > 0) {
@@ -712,21 +684,6 @@ async function runLlmTurn(
             llmOutput: sanitizedFirst,
             baseMessages,
           });
-
-      if (next.kind === "needs_reprompt") {
-        const retry = await callInterviewerLlm(provider, next.repromptMessages);
-        totalIn += retry.usage.promptTokens;
-        totalOut += retry.usage.completionTokens;
-        finalFinish = retry.finishReason;
-        const sanitizedRetry = sanitizeOutput(retry.object);
-        next = decideNext(row, {
-          kind: "advance_after_reprompt",
-          expectedCurrentTurn: params.expectedCurrentTurn,
-          userMessage: params.message,
-          llmOutput: sanitizedRetry,
-          originalGuardrailAction: sanitizedFirst.guardrailAction,
-        });
-      }
 
       return {
         result: next,

@@ -1,9 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { AIProviderPort } from "../ai.providerPort.js";
-import type {
-  InterviewContextRow,
-  InterviewerOutput,
-  InterviewLogEntry,
+import {
+  CORE_TOPICS,
+  type InterviewContextRow,
+  type InterviewerOutput,
+  type InterviewLogEntry,
 } from "../ai.interview.schema.js";
 
 vi.mock("../../../env.js", () => ({
@@ -401,7 +402,7 @@ describe("runInterviewTurn — advance", () => {
     expect(userEntry?.garbagePushbackTopics).toEqual(["target_audience"]);
   });
 
-  it("suggest_finish with missing topics triggers a reprompt (second LLM call)", async () => {
+  it("suggest_finish with missing topics uses closing line only (no reprompt question)", async () => {
     resetStore({
       currentTurn: 1,
       interviewLog: [
@@ -410,17 +411,14 @@ describe("runInterviewTurn — advance", () => {
           content: "Q",
           topicsCoveredThisTurn: ["business_description"],
         },
+        { role: "user", content: "prior answer" },
       ],
     });
     const provider = makeProvider([
       out({
-        assistantMessage: "wrap?",
+        assistantMessage: "Want to wrap up?",
         intent: "suggest_finish",
         topicsCoveredThisTurn: [],
-      }),
-      out({
-        assistantMessage: "What about audience?",
-        topicsCoveredThisTurn: ["target_audience"],
       }),
     ]);
 
@@ -433,27 +431,60 @@ describe("runInterviewTurn — advance", () => {
       expectedCurrentTurn: 1,
     });
 
-    expect(result.output.intent).toBe("ask");
-    expect(provider.generateObject).toHaveBeenCalledTimes(2);
+    expect(result.output.intent).toBe("suggest_finish");
+    expect(result.output.assistantMessage).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
+    expect(result.canFinish).toBe(true);
+    expect(provider.generateObject).toHaveBeenCalledTimes(1);
+    const lastAssistant = [...result.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistant?.intent).toBe("suggest_finish");
+  });
+
+  it("suggest_finish after user answers the last checklist question enables finish without another ask", async () => {
+    const log = fullyCoveredLog();
+    resetStore({
+      currentTurn: CORE_TOPICS.length,
+      interviewLog: [
+        ...log,
+        {
+          role: "assistant",
+          content: "Anything else?",
+          topicsCoveredThisTurn: ["prohibited_topics"],
+        },
+      ],
+    });
+    const provider = makeProvider([
+      out({
+        assistantMessage: "All set!",
+        intent: "suggest_finish",
+        topicsCoveredThisTurn: [],
+      }),
+    ]);
+
+    const result = await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "No, that's great! let's finish",
+      expectedCurrentTurn: CORE_TOPICS.length,
+    });
+
+    expect(result.output.intent).toBe("suggest_finish");
+    expect(result.output.assistantMessage).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
+    expect(result.canFinish).toBe(true);
+    expect(provider.generateObject).toHaveBeenCalledTimes(1);
+    const lastAssistant = [...result.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistant?.content).not.toMatch(/additional prohibited/i);
   });
 
   it("suggest_finish with all topics covered overwrites assistantMessage with the canned closing line", async () => {
     resetStore({
-      currentTurn: 7,
-      interviewLog: [
-        {
-          role: "assistant",
-          content: "Q",
-          topicsCoveredThisTurn: [
-            "business_description",
-            "target_audience",
-            "products_services",
-            "preferred_tone",
-            "common_support_scenarios",
-            "prohibited_topics",
-          ],
-        },
-      ],
+      currentTurn: CORE_TOPICS.length,
+      interviewLog: fullyCoveredLog(),
     });
     const llmFollowUpQuestion = "Could you describe the specific target audience?";
     const provider = makeProvider([
@@ -470,10 +501,11 @@ describe("runInterviewTurn — advance", () => {
       tenantId: TENANT,
       userId: USER,
       message: "no, it's fine",
-      expectedCurrentTurn: 7,
+      expectedCurrentTurn: CORE_TOPICS.length,
     });
 
     expect(result.output.intent).toBe("suggest_finish");
+    expect(result.canFinish).toBe(true);
     expect(result.output.assistantMessage).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
     const lastAssistant = [...result.row.interviewLog]
       .reverse()
@@ -553,23 +585,20 @@ describe("runInterviewTurn — advance", () => {
   });
 });
 
-describe("runInterviewComplete", () => {
-  function fullyCoveredLog(): InterviewLogEntry[] {
-    return [
-      {
-        role: "assistant",
-        content: "q",
-        topicsCoveredThisTurn: [
-          "business_description",
-          "target_audience",
-          "products_services",
-          "preferred_tone",
-          "common_support_scenarios",
-          "prohibited_topics",
-        ],
-      },
-    ];
+function fullyCoveredLog(): InterviewLogEntry[] {
+  const log: InterviewLogEntry[] = [];
+  for (const topic of CORE_TOPICS) {
+    log.push({
+      role: "assistant",
+      content: `q-${topic}`,
+      topicsCoveredThisTurn: [topic],
+    });
+    log.push({ role: "user", content: `a-${topic}` });
   }
+  return log;
+}
+
+describe("runInterviewComplete", () => {
 
   it("conflict on null row", async () => {
     resetStore(null);
@@ -600,6 +629,31 @@ describe("runInterviewComplete", () => {
         expectedCurrentTurn: 1,
       }),
     ).rejects.toBeInstanceOf(MissingTopicsError);
+  });
+
+  it("allows complete when last assistant turn is suggest_finish even if checklist has gaps", async () => {
+    resetStore({
+      currentTurn: 2,
+      interviewLog: [
+        {
+          role: "assistant",
+          content: "Q",
+          topicsCoveredThisTurn: ["business_description"],
+        },
+        { role: "user", content: "A" },
+        {
+          role: "assistant",
+          content: SUGGEST_FINISH_CLOSING_MESSAGE,
+          intent: "suggest_finish",
+        },
+      ],
+    });
+    const { row } = await runInterviewComplete({
+      applicationId: APP_ID,
+      userId: USER,
+      expectedCurrentTurn: 2,
+    });
+    expect(row.status).toBe("completed");
   });
 
   it("happy path transitions to completed with summaryStatus=pending", async () => {
