@@ -9,6 +9,9 @@ Paste a brief into the interview as if you were the founder describing the
 product. Compare the resulting questions and summary against the
 **Expected behavior** block at the end of each section.
 
+**Turn-by-turn answer scripts** (mapped to the 6 core topics, including what
+to do after `suggest_finish`): [`ai-interview-test-briefs-answers.md`](./ai-interview-test-briefs-answers.md).
+
 The DeliveryChat brief (the canonical baseline) is covered separately; the
 three briefs below are designed to cover different stress dimensions:
 
@@ -132,12 +135,12 @@ baseline — use it to spot regressions in the SaaS question path.
 
 ## Running the briefs
 
-1. Create a fresh tenant (or reuse a sandbox tenant) per brief — don't reuse
-   context across runs, it pollutes the interviewer's prior.
-2. Paste the brief verbatim as the first user message.
-3. Answer follow-up questions in the same tone as the brief
-   (formal for Hortifruti/FlagPilot, informal pt-BR for ZapZap).
-4. After the interview finishes (or auto-finishes), compare the summary
-   against the **Expected behavior** checklist for that brief.
-5. Log any divergence — missed facts, wrong tone, hard error on ZapZap, or
-   premature finish on Hortifruti — as a follow-up issue.
+1. Create a fresh application per brief — don't reuse context across runs.
+2. Open **AI interview** → **Begin interview** → paste the **first answer**
+   from [`ai-interview-test-briefs-answers.md`](./ai-interview-test-briefs-answers.md)
+   (not the intro screen).
+3. For each follow-up, match the **eyebrow** to the answer block in that doc.
+4. At `suggest_finish`: **Hortifruti** keeps going to turn 15; **FlagPilot**
+   and **ZapZap** finish manually (see answers doc).
+5. Compare the summary against **Expected behavior** below.
+6. Log divergences as follow-up issues.
