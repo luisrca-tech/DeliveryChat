@@ -12,14 +12,18 @@ product. Compare the resulting questions and summary against the
 **Turn-by-turn answer scripts** (mapped to the 6 core topics, including what
 to do after `suggest_finish`): [`ai-interview-test-briefs-answers.md`](./ai-interview-test-briefs-answers.md).
 
+**Chat-simulation brief** (post-interview manual role-play of visitor
+conversations against each brief's `contextSummary`):
+[`ai-interview-chat-simulation-brief.md`](./ai-interview-chat-simulation-brief.md).
+
 The DeliveryChat brief (the canonical baseline) is covered separately; the
 three briefs below are designed to cover different stress dimensions:
 
-| Brief      | Fidelity | Language | Stress dimension                              |
-| ---------- | -------- | -------- | --------------------------------------------- |
-| Hortifruti | High     | English  | Trigger the 15-question cap + auto-finish     |
-| FlagPilot  | Medium   | English  | SaaS-shape consistency vs the DeliveryChat run |
-| ZapZap     | Low      | pt-BR    | Coach a vague user toward enough context      |
+| Brief           | Fidelity | Language | Stress dimension                                          |
+| --------------- | -------- | -------- | --------------------------------------------------------- |
+| Hortifruti      | High     | English  | Trigger the 15-question cap + auto-finish                 |
+| FlagPilot       | Medium   | English  | SaaS-shape consistency vs the DeliveryChat run            |
+| Verbose Founder | High     | English  | Discovery-phase classify-then-act (relevant / irrelevant / duplicate) |
 
 ---
 
@@ -101,35 +105,71 @@ baseline — use it to spot regressions in the SaaS question path.
 
 ---
 
-## 3. ZapZap — Low fidelity / informal (pt-BR)
+## 3. Verbose Founder — High fidelity (EN)
 
-### Pitch
+A near-replay of the original Hortifruti loop bug. Turns 1–7 mirror the
+Hortifruti run; turns 8–~14 send tagged extra-context messages that exercise
+every Discovery-phase classification path (`relevant`, `irrelevant`,
+`duplicate`, including at least one paraphrased duplicate). Each turn's tag
+is the expected `extraContextRelevance` value persisted on the interview
+log entry.
 
-> "tipo, é um app pra eu organizar minhas coisas sabe? tipo umas listas e
-> umas notas. minha namorada também vai usar. acho que pode ter umas
-> notificações também. nome provisório é ZapZap mas talvez eu mude."
+### Pitch (turns 1–7)
 
-### Key facts (intentionally vague)
+Identical to the Hortifruti pitch above. Reuse the Hortifruti **first
+message** and the **per-topic blocks** in the answers companion for turns
+1–7 so that all six core topics are covered before turn 8.
 
-- "Tá no começo, ainda nem tem nada feito direito"
-- "Vai ser de graça acho, ou sei lá talvez eu cobre depois"
-- "Acho que qualquer pessoa pode usar"
-- "Quero que seja bonito e rápido"
+### Discovery-phase script (turns 8–~14)
 
-### Expected behavior
+Each line is one admin message, sent one per turn after `suggest_finish`.
+The bracketed tag is the expected classification — not part of the message
+content.
 
-- Interview should **not auto-finish** and should **not throw a hard error**
-- The AI should ask clarifying questions **in Portuguese** that gently push
-  toward concrete answers:
-  - Who specifically is the user?
-  - What problem does ZapZap solve that Notion / Google Keep / Todoist
-    don't already solve?
-  - What does success look like?
-- Pass criteria: after 4–6 turns of coaching, the user has enough scaffolding
-  to either (a) provide real answers, or (b) realize they don't have a
-  product idea yet
-- If a summary is produced, it should honestly reflect the thin context
-  rather than fabricate facts
+```text
+[relevant] One more prohibited topic: we cannot give nutritional or weight-loss advice tied to specific produce items. Treat that as off-limits.
+```
+
+```text
+[irrelevant] We raised a R$ 4M seed 10 months ago; runway ~14 months at current burn. Monthly subscription churn ~4.2%.
+```
+
+```text
+[relevant] New audience segment: restaurant buyers (chefs, head cooks) in the Moema B2B pilot. They expect invoice-style receipts and bulk-order CSV exports.
+```
+
+```text
+[irrelevant] Team breakdown: 28 people total — 8 eng, 6 ops/logistics, 6 growth, 4 farmer success, 4 G&A. HQ in Vila Olímpia, SP.
+```
+
+```text
+[duplicate] Reminder for the prohibited list: no nutritional or weight-loss advice tied to particular fruits or vegetables. Keep that explicitly out of scope.
+```
+
+```text
+[relevant] Tone constraint: when a delivery is late, lead with empathy and a concrete next step (re-delivery window, refund, credit) before anything else. Never start with policy language.
+```
+
+```text
+[duplicate] On the audience side, don't forget the new restaurant-buyer segment in the Moema pilot — invoice receipts and CSV exports matter to them.
+```
+
+### Expected behavior (per-turn assertions)
+
+For every Discovery turn (8 through last):
+
+1. The assistant message is **not** byte-equal to `SUGGEST_FINISH_CLOSING_MESSAGE` ("All core topics are covered…").
+2. The assistant message contains **no raw markdown asterisks** (`**`) in prose.
+3. The assistant message does **not** name a UI element by label (no "Finish interview", no "click Finish").
+4. The persisted log entry's `extraContextRelevance` matches the bracketed tag for that turn.
+5. Only `[relevant]` turns produce a single follow-up question (`followUpQuestion: true`); `[irrelevant]` and `[duplicate]` turns produce acknowledgement only (`followUpQuestion: false` or absent).
+6. At least one `[duplicate]` turn in the script is a paraphrase (not an exact copy) of an earlier message, exercising non-exact-match detection.
+
+For the run as a whole:
+
+7. The interview completes within the **fifteen-turn cap** (forced completion at turn 15 still works under the new prompt path).
+8. The final `contextSummary` captures **every** `[relevant]` extra (new prohibited topic, restaurant-buyer audience segment, late-delivery tone constraint) and **none** of the `[irrelevant]` ones (no funding, runway, headcount, churn).
+9. `canFinish` remains `true` throughout the Discovery phase.
 
 ---
 
@@ -140,7 +180,8 @@ baseline — use it to spot regressions in the SaaS question path.
    from [`ai-interview-test-briefs-answers.md`](./ai-interview-test-briefs-answers.md)
    (not the intro screen).
 3. For each follow-up, match the **eyebrow** to the answer block in that doc.
-4. At `suggest_finish`: **Hortifruti** keeps going to turn 15; **FlagPilot**
-   and **ZapZap** finish manually (see answers doc).
-5. Compare the summary against **Expected behavior** below.
+4. At `suggest_finish`: **Hortifruti** and **Verbose Founder** keep going to
+   turn 15 (extension / Discovery turns); **FlagPilot** finishes manually
+   (see answers doc).
+5. Compare the summary against **Expected behavior** above.
 6. Log divergences as follow-up issues.

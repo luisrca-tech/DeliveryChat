@@ -36,7 +36,7 @@ When the assistant says all core topics are covered and invites you to finish:
 | ----- | ------ |
 | **Hortifruti** | Ignore **Finish**. Send the **extension messages** below, one per turn, until **Turn 15 of 15** and the interview **auto-completes**. |
 | **FlagPilot** | Click **Finish interview** (or send at most **one** short extra line, then Finish). Do **not** run to turn 15. |
-| **ZapZap** | Prefer **Finish** once `suggest_finish` appears with honest thin context. Optional: one more vague pt-BR line, then Finish. Never aim for turn 15. |
+| **Verbose Founder** | Ignore **Finish**. Send the **Discovery-phase script** (see [appendix](#verbose-founder--discovery-phase-script)) one tagged message per turn until the interview **auto-completes** at turn 15. |
 
 ### Hortifruti — extension turns (paste one per turn after `suggest_finish`)
 
@@ -238,109 +238,106 @@ items on the roadmap this quarter.
 
 ---
 
-## 3. ZapZap — Low fidelity / informal (pt-BR)
+## 3. Verbose Founder — Discovery phase script
 
-**Goal:** Vague → coached clarifications **in Portuguese** → thin honest summary.  
-**Opposite of Hortifruti:** do **not** spam extension turns; **do not** chase turn 15.
+**Goal:** Replay Hortifruti turns 1–7, then send tagged Discovery-phase extras
+covering every classification path until **turn 15 auto-finish**.  
+**Tone:** Same as Hortifruti — professional, concise English.
 
-### First message (reply to opening — stay vague)
+### Turns 1–7: reuse Hortifruti blocks
 
-```text
-tipo, é um app pra eu organizar minhas coisas sabe? tipo umas listas e
-umas notas. minha namorada também vai usar. acho que pode ter umas
-notificações também. nome provisório é ZapZap mas talvez eu mude.
-```
+Paste, in order, the Hortifruti blocks above:
 
-### Phase A — deliberately unhelpful (turns 2–4)
+1. [Hortifruti first message](#first-message-reply-to-opening-question)
+2. Target audience
+3. Products / services
+4. Preferred tone
+5. Common support scenarios
+6. Prohibited topics
 
-Use these while the eyebrow still says **Target Audience**, **Products**, etc.  
-Goal: trigger coaching / refocus, not checklist efficiency.
+Stop when the assistant emits `suggest_finish` (typically turn 7 or 8). Do
+**not** click Finish.
 
-**If asked who the product is for:**
+### Discovery-phase script (one per turn after `suggest_finish`)
 
-```text
-sei lá, qualquer pessoa que quiser né? minha namorada e eu com certeza.
-talvez amigos.
-```
+Send these in order. The bracketed tag is the **expected**
+`extraContextRelevance` on the persisted log entry — do **not** type the
+tag into the chat; paste only the message body.
 
-**If asked what problem it solves / vs Notion, Keep, Todoist:**
-
-```text
-é que os outros são complicados demais pra mim... eu só quero botar lista
-rápido no celular. não sei explicar direito.
-```
-
-**If asked pricing / business model:**
+**Turn 8 — `[relevant]` (new prohibited topic)**
 
 ```text
-vai ser de graça acho, ou sei lá talvez eu cobre depois. nem pensei nisso
-ainda.
+One more prohibited topic: we cannot give nutritional or weight-loss advice
+tied to specific produce items. Treat that as off-limits.
 ```
 
-**If asked tone:**
+**Turn 9 — `[irrelevant]` (operational facts: funding, runway, churn)**
 
 ```text
-quero que seja bonito e rápido. tipo moderno.
+We raised a R$ 4M seed 10 months ago; runway ~14 months at current burn.
+Monthly subscription churn ~4.2%.
 ```
 
-### Phase B — slightly less vague (turns 5–7, still informal)
-
-After 4–6 coaching turns, soften **one topic at a time** (still pt-BR):
-
-**Target audience (improved)**
+**Turn 10 — `[relevant]` (new audience segment)**
 
 ```text
-ok, pensando melhor: eu e minha namorada no dia a dia — listas de mercado,
-coisas pra fazer em casa. não é pra empresa.
+New audience segment: restaurant buyers (chefs, head cooks) in the Moema
+B2B pilot. They expect invoice-style receipts and bulk-order CSV exports.
 ```
 
-**Products (improved)**
+**Turn 11 — `[irrelevant]` (headcount + HQ)**
 
 ```text
-listas compartilhadas, notas rápidas, lembrete/notificação simples. nada de
-planilha nem wiki. só mobile por enquanto, tá no começo, quase nada pronto.
+Team breakdown: 28 people total — 8 eng, 6 ops/logistics, 6 growth,
+4 farmer success, 4 G&A. HQ in Vila Olímpia, SP.
 ```
 
-**Support scenarios (honest thin)**
+**Turn 12 — `[duplicate]` (paraphrase of turn 8's prohibited-topic addition)**
 
 ```text
-se der bug ou perder nota eu falo comigo mesmo hoje rs. no futuro talvez um
-email de suporte, mas não tem nada disso ainda.
+Reminder for the prohibited list: no nutritional or weight-loss advice
+tied to particular fruits or vegetables. Keep that explicitly out of scope.
 ```
 
-**Prohibited / limits (honest thin)**
+**Turn 13 — `[relevant]` (new tone constraint for late deliveries)**
 
 ```text
-não prometer que vai substituir Notion. não inventar recurso que não
-existe. se não sei, falar que ainda não tem.
+Tone constraint: when a delivery is late, lead with empathy and a concrete
+next step (re-delivery window, refund, credit) before anything else. Never
+start with policy language.
 ```
 
-### Phase C — end the run
+**Turn 14 — `[duplicate]` (paraphrase of turn 10's restaurant-buyer segment)**
 
-| When | Action |
-| ---- | ------ |
-| `suggest_finish` with thin context | Click **Finish interview** |
-| Still stuck on same topic after 3+ redirects | Send Phase B block for **that** topic only |
-| Interview feels complete but no Finish yet | Paste once: `acho que é isso por enquanto, ainda tô descobrindo o produto` → then **Finish** |
+```text
+On the audience side, don't forget the new restaurant-buyer segment in the
+Moema pilot — invoice receipts and CSV exports matter to them.
+```
 
-**Do not** use Hortifruti extension paragraphs. **Do not** aim for turn 15.
+Turn 15 is the engine's forced-completion turn — no paste needed; the
+interview auto-finishes.
 
 ### Pass checklist (summary)
 
-- Clarifying questions in **Portuguese**; no hard error.
-- Summary (if any) stays thin — no invented funding, B2B, etc.
-- Manual finish, not cap auto-finish.
+- No turn 8–14 assistant message is byte-equal to `SUGGEST_FINISH_CLOSING_MESSAGE`.
+- No raw `**` asterisks in any Discovery-phase assistant prose.
+- No assistant message names a UI element ("Finish interview", "click Finish").
+- Persisted `extraContextRelevance` on each turn matches the tag above.
+- `[relevant]` turns (8, 10, 13) produce exactly one follow-up question; `[irrelevant]` and `[duplicate]` turns do not.
+- Final `contextSummary` captures the new prohibited topic, restaurant-buyer segment, and late-delivery tone constraint; it does **not** mention funding, runway, churn, headcount, or HQ.
+- Run reaches **turn 15** under the new prompt path and auto-completes.
 
 ---
 
 ## Quick comparison
 
-| | Hortifruti | FlagPilot | ZapZap |
+| | Hortifruti | FlagPilot | Verbose Founder |
 | --- | --- | --- | --- |
-| First reply | Full pitch | Full pitch | Vague pt-BR pitch |
-| Answer style | On-topic EN blocks | On-topic EN blocks | Vague → slightly clearer pt-BR |
-| At `suggest_finish` | Keep sending extensions | **Finish** | **Finish** (thin OK) |
-| Turn 15 auto-finish | **Yes — required** | **No** | **No** |
+| First reply | Full pitch | Full pitch | Full pitch (same as Hortifruti) |
+| Answer style | On-topic EN blocks | On-topic EN blocks | Hortifruti blocks turns 1–7, tagged extras turns 8–14 |
+| At `suggest_finish` | Keep sending extensions | **Finish** | Keep sending Discovery-phase extras |
+| Turn 15 auto-finish | **Yes — required** | **No** | **Yes — required** |
+| Classification asserted? | No | No | **Yes** (`relevant` / `irrelevant` / `duplicate`) |
 
 ---
 
