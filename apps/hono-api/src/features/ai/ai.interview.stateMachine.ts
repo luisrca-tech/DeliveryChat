@@ -36,6 +36,17 @@ export const SOFT_FINISH_WINDOW_MAX = 12;
 export const SUGGEST_FINISH_CLOSING_MESSAGE =
   "All core topics are covered. Click **Finish interview** when you're ready, or send another message to add more context.";
 
+export const DISCOVERY_PHASE_SYSTEM_MESSAGE = `Discovery phase rules (active because every core topic is already covered and you are past the soft-finish-window minimum):
+
+Every new admin message is "extra context". You must classify it and set the optional field 'extraContextRelevance' on your structured output:
+- 'relevant': the extra introduces material that would sharpen the support assistant's config (a new prohibited topic, a new audience segment, a new support scenario, a new tone constraint, a new product detail). When relevant, ask exactly one targeted follow-up question that materially sharpens the support config, and set 'followUpQuestion' to true. Never chain multiple questions in one turn.
+
+Behaviour rules for relevant extras:
+- Author the message yourself; do not fall back to a canned closing line.
+- Never name UI elements by label (do not say "click Finish interview", "press the button", etc.). The Finish button is always visible to the admin; trust the UI.
+- Never emit raw markdown asterisks in the prose; write naturally.
+- Keep the follow-up question concise and tied to what the admin just sent.`;
+
 export type TurnResult = {
   row: InterviewContextRow;
   output: InterviewerOutput;
@@ -205,6 +216,13 @@ function buildAdvanceMessages(
     });
   }
 
+  if (allTopicsCovered && nextTurnNumber > SOFT_FINISH_WINDOW_MIN) {
+    messages.push({
+      role: "system",
+      content: DISCOVERY_PHASE_SYSTEM_MESSAGE,
+    });
+  }
+
   if (nextTurnNumber === MAX_TURNS) {
     messages.push({
       role: "system",
@@ -329,17 +347,6 @@ function decideNext(
     ...state.interviewLog,
     userEntryForCoverage,
   ]);
-  if (
-    input.kind === "advance" &&
-    !persistRules.suppressFinishReprompt &&
-    sanitized.intent === "suggest_finish"
-  ) {
-    sanitized = {
-      ...sanitized,
-      assistantMessage: SUGGEST_FINISH_CLOSING_MESSAGE,
-    };
-  }
-
   if (isFinalQuestionTurn && !advanceRules.suppressFinishReprompt) {
     sanitized = { ...sanitized, intent: "final_question" };
   }
@@ -358,6 +365,12 @@ function decideNext(
     assistantEntry.intent = "final_question";
   } else if (sanitized.intent === "suggest_finish") {
     assistantEntry.intent = "suggest_finish";
+  }
+  if (sanitized.extraContextRelevance !== undefined) {
+    assistantEntry.extraContextRelevance = sanitized.extraContextRelevance;
+  }
+  if (sanitized.followUpQuestion !== undefined) {
+    assistantEntry.followUpQuestion = sanitized.followUpQuestion;
   }
 
   const nextLog: InterviewLogEntry[] = [

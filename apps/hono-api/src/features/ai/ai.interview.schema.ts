@@ -11,6 +11,14 @@ export const CORE_TOPICS = [
 
 export type CoreTopic = (typeof CORE_TOPICS)[number];
 
+export const extraContextRelevanceSchema = z.enum([
+  "relevant",
+  "irrelevant",
+  "duplicate",
+]);
+
+export type ExtraContextRelevance = z.infer<typeof extraContextRelevanceSchema>;
+
 export const interviewerOutputSchema = z.object({
   assistantMessage: z.string().min(1),
   intent: z.enum(["ask", "suggest_finish", "final_question"]),
@@ -22,6 +30,8 @@ export const interviewerOutputSchema = z.object({
     "pushback_garbage",
     "accept_garbage",
   ]),
+  extraContextRelevance: extraContextRelevanceSchema.optional(),
+  followUpQuestion: z.boolean().optional(),
 });
 
 export type InterviewerOutput = z.infer<typeof interviewerOutputSchema>;
@@ -39,6 +49,8 @@ export type InterviewLogEntry = {
   topicsCoveredThisTurn?: string[];
   garbagePushbackTopics?: string[];
   intent?: "final_question" | "suggest_finish";
+  extraContextRelevance?: ExtraContextRelevance;
+  followUpQuestion?: boolean;
 };
 
 export type SummaryStatus = "none" | "pending" | "ready" | "failed";

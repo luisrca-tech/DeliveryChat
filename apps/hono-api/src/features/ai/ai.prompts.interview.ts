@@ -21,6 +21,8 @@ Always reply with structured output matching the contract:
 - intent: 'ask' (default) | 'suggest_finish' | 'final_question'
 - topicsCoveredThisTurn: on ask/final_question turns, the core topic key(s) this question is collecting (one primary key is enough). On suggest_finish, use an empty array. Coverage is credited when the admin replies after your question — do not ask a new checklist question on a suggest_finish turn.
 - guardrailAction: 'none' by default
+- extraContextRelevance (optional): 'relevant' | 'irrelevant' | 'duplicate'. Set only on post-coverage Discovery turns when phase-specific rules instruct you to. Leave absent on bootstrap and core-coverage turns.
+- followUpQuestion (optional, boolean): set to true only on Discovery turns classified 'relevant' where your assistantMessage contains a single targeted follow-up question. Leave absent otherwise.
 
 Keep questions one-at-a-time, conversational, and tailored to the admin's last answer.
 

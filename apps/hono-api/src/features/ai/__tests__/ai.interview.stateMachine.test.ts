@@ -402,7 +402,7 @@ describe("runInterviewTurn — advance", () => {
     expect(userEntry?.garbagePushbackTopics).toEqual(["target_audience"]);
   });
 
-  it("suggest_finish with missing topics uses closing line only (no reprompt question)", async () => {
+  it("suggest_finish preserves the LLM's assistantMessage (no override) and marks log entry intent=suggest_finish", async () => {
     resetStore({
       currentTurn: 1,
       interviewLog: [
@@ -414,9 +414,10 @@ describe("runInterviewTurn — advance", () => {
         { role: "user", content: "prior answer" },
       ],
     });
+    const llmMessage = "Want to wrap up?";
     const provider = makeProvider([
       out({
-        assistantMessage: "Want to wrap up?",
+        assistantMessage: llmMessage,
         intent: "suggest_finish",
         topicsCoveredThisTurn: [],
       }),
@@ -432,56 +433,19 @@ describe("runInterviewTurn — advance", () => {
     });
 
     expect(result.output.intent).toBe("suggest_finish");
-    expect(result.output.assistantMessage).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
-    expect(result.canFinish).toBe(true);
+    expect(result.output.assistantMessage).toBe(llmMessage);
+    expect(result.output.assistantMessage).not.toBe(
+      SUGGEST_FINISH_CLOSING_MESSAGE,
+    );
     expect(provider.generateObject).toHaveBeenCalledTimes(1);
     const lastAssistant = [...result.row.interviewLog]
       .reverse()
       .find((e: InterviewLogEntry) => e.role === "assistant");
     expect(lastAssistant?.intent).toBe("suggest_finish");
+    expect(lastAssistant?.content).toBe(llmMessage);
   });
 
-  it("suggest_finish after user answers the last checklist question enables finish without another ask", async () => {
-    const log = fullyCoveredLog();
-    resetStore({
-      currentTurn: CORE_TOPICS.length,
-      interviewLog: [
-        ...log,
-        {
-          role: "assistant",
-          content: "Anything else?",
-          topicsCoveredThisTurn: ["prohibited_topics"],
-        },
-      ],
-    });
-    const provider = makeProvider([
-      out({
-        assistantMessage: "All set!",
-        intent: "suggest_finish",
-        topicsCoveredThisTurn: [],
-      }),
-    ]);
-
-    const result = await runInterviewTurn({
-      provider,
-      applicationId: APP_ID,
-      tenantId: TENANT,
-      userId: USER,
-      message: "No, that's great! let's finish",
-      expectedCurrentTurn: CORE_TOPICS.length,
-    });
-
-    expect(result.output.intent).toBe("suggest_finish");
-    expect(result.output.assistantMessage).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
-    expect(result.canFinish).toBe(true);
-    expect(provider.generateObject).toHaveBeenCalledTimes(1);
-    const lastAssistant = [...result.row.interviewLog]
-      .reverse()
-      .find((e: InterviewLogEntry) => e.role === "assistant");
-    expect(lastAssistant?.content).not.toMatch(/additional prohibited/i);
-  });
-
-  it("suggest_finish with all topics covered overwrites assistantMessage with the canned closing line", async () => {
+  it("suggest_finish with all topics covered preserves the LLM's assistantMessage", async () => {
     resetStore({
       currentTurn: CORE_TOPICS.length,
       interviewLog: fullyCoveredLog(),
@@ -506,12 +470,14 @@ describe("runInterviewTurn — advance", () => {
 
     expect(result.output.intent).toBe("suggest_finish");
     expect(result.canFinish).toBe(true);
-    expect(result.output.assistantMessage).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
+    expect(result.output.assistantMessage).toBe(llmFollowUpQuestion);
+    expect(result.output.assistantMessage).not.toBe(
+      SUGGEST_FINISH_CLOSING_MESSAGE,
+    );
     const lastAssistant = [...result.row.interviewLog]
       .reverse()
       .find((e: InterviewLogEntry) => e.role === "assistant");
-    expect(lastAssistant?.content).toBe(SUGGEST_FINISH_CLOSING_MESSAGE);
-    expect(lastAssistant?.content).not.toContain(llmFollowUpQuestion);
+    expect(lastAssistant?.content).toBe(llmFollowUpQuestion);
     expect(provider.generateObject).toHaveBeenCalledTimes(1);
   });
 
@@ -817,6 +783,119 @@ describe("runGenerateSummary", () => {
       }),
     ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
     expect(usageLogInserts).toHaveLength(0);
+  });
+});
+
+describe("Discovery phase — relevant classification (Phase 1)", () => {
+  it("turn 8 on Hortifruti-style run preserves the LLM's follow-up question (not the canned closing line) and persists relevant + followUpQuestion=true", async () => {
+    resetStore({
+      currentTurn: 7,
+      interviewLog: fullyCoveredLog(),
+    });
+    const llmFollowUp =
+      "You mentioned a no-medical-advice policy — should the assistant deflect those to a human, or refuse entirely?";
+    const provider = makeProvider([
+      out({
+        assistantMessage: llmFollowUp,
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        extraContextRelevance: "relevant",
+        followUpQuestion: true,
+      }),
+    ]);
+
+    const result = await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message:
+        "Also we never give medical advice — that's an absolute prohibited topic.",
+      expectedCurrentTurn: 7,
+    });
+
+    expect(result.output.assistantMessage).toBe(llmFollowUp);
+    expect(result.output.assistantMessage).not.toBe(
+      SUGGEST_FINISH_CLOSING_MESSAGE,
+    );
+    expect(result.output.extraContextRelevance).toBe("relevant");
+    expect(result.output.followUpQuestion).toBe(true);
+    expect(result.canFinish).toBe(true);
+
+    const lastAssistant = [...result.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistant?.content).toBe(llmFollowUp);
+    expect(lastAssistant?.extraContextRelevance).toBe("relevant");
+    expect(lastAssistant?.followUpQuestion).toBe(true);
+    expect(lastAssistant?.content).not.toMatch(/\*\*/);
+  });
+
+  it("Discovery prompt injection is gated: turns 1–7 do not receive the Discovery system message", async () => {
+    resetStore({
+      currentTurn: 0,
+      interviewLog: [{ role: "assistant", content: "Q0" }],
+    });
+    const provider = makeProvider([
+      out({
+        assistantMessage: "Q1",
+        topicsCoveredThisTurn: ["business_description"],
+      }),
+    ]);
+
+    await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "answer",
+      expectedCurrentTurn: 0,
+    });
+
+    const callArgs = (
+      provider.generateObject as ReturnType<typeof vi.fn>
+    ).mock.calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
+    const systemMessages = callArgs.messages.filter((m) => m.role === "system");
+    const hasDiscoveryInjection = systemMessages.some((m) =>
+      /classify/i.test(m.content) && /relevant/i.test(m.content),
+    );
+    expect(hasDiscoveryInjection).toBe(false);
+  });
+
+  it("Discovery prompt injection appears when allTopicsCovered and nextTurnNumber > SOFT_FINISH_WINDOW_MIN", async () => {
+    resetStore({
+      currentTurn: 8,
+      interviewLog: fullyCoveredLog(),
+    });
+    const provider = makeProvider([
+      out({
+        assistantMessage: "follow-up?",
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        extraContextRelevance: "relevant",
+        followUpQuestion: true,
+      }),
+    ]);
+
+    await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "extra context",
+      expectedCurrentTurn: 8,
+    });
+
+    const callArgs = (
+      provider.generateObject as ReturnType<typeof vi.fn>
+    ).mock.calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
+    const systemMessages = callArgs.messages.filter((m) => m.role === "system");
+    const hasDiscoveryInjection = systemMessages.some(
+      (m) =>
+        /classify/i.test(m.content) &&
+        /relevant/i.test(m.content),
+    );
+    expect(hasDiscoveryInjection).toBe(true);
   });
 });
 
