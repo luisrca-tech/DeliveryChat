@@ -549,6 +549,59 @@ describe("runInterviewTurn — advance", () => {
       finishReason: "forced_cap_completion",
     });
   });
+
+  it("turn-15 forced completion preserves the final assistant message under the Discovery prompt path", async () => {
+    const fullyCovered = fullyCoveredLog();
+    resetStore({
+      currentTurn: 14,
+      interviewLog: [
+        ...fullyCovered,
+        { role: "assistant", content: "Q14 under Discovery" },
+      ],
+    });
+
+    const turn14Provider = makeProvider([
+      out({
+        assistantMessage: "final wrap-up question?",
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        extraContextRelevance: "relevant",
+        followUpQuestion: true,
+      }),
+    ]);
+    const advanceResult = await runInterviewTurn({
+      provider: turn14Provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "[relevant] add a new tone constraint about late deliveries",
+      expectedCurrentTurn: 14,
+    });
+    expect(advanceResult.row.currentTurn).toBe(15);
+    const lastAssistantAfterAdvance = [...advanceResult.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistantAfterAdvance?.intent).toBe("final_question");
+    expect(lastAssistantAfterAdvance?.content).toBe("final wrap-up question?");
+
+    const forcedProvider = makeProvider([]);
+    const forcedResult = await runInterviewTurn({
+      provider: forcedProvider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "final answer from admin",
+      expectedCurrentTurn: 15,
+    });
+
+    expect(forcedResult.row.status).toBe("completed");
+    expect(forcedProvider.generateObject).not.toHaveBeenCalled();
+    const lastAssistantAfterForced = [...forcedResult.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistantAfterForced?.intent).toBe("final_question");
+    expect(lastAssistantAfterForced?.content).toBe("final wrap-up question?");
+  });
 });
 
 function fullyCoveredLog(): InterviewLogEntry[] {

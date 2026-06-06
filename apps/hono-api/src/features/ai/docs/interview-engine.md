@@ -102,7 +102,27 @@ Phase 5 explicitly leaves `contextSummary = null` and `applications.aiEnabled = 
 
 `computeCoveredTopics(log)` returns the union of `topicsCoveredThisTurn` across every assistant entry. Unknown keys are logged and ignored, never rejected. No extra column — coverage is derived on every call.
 
-When the LLM returns `intent='suggest_finish'`, the engine always persists the deterministic closing line (`SUGGEST_FINISH_CLOSING_MESSAGE`) and never runs a second LLM call to ask another checklist question. Checklist gaps surface via `canFinish: false` and `/complete` validation instead.
+When the LLM returns `intent='suggest_finish'`, the assistant message is persisted as-authored by the LLM (the prior hardcoded `SUGGEST_FINISH_CLOSING_MESSAGE` override has been removed). Checklist gaps still surface via `canFinish: false` and `/complete` validation. `SUGGEST_FINISH_CLOSING_MESSAGE` is kept as an exported constant for documentation/regression tests but is no longer written to the log.
+
+## Discovery phase (post-coverage extras)
+
+Once every core topic is covered and the next turn number is past the soft-finish-window minimum (turn > `SOFT_FINISH_WINDOW_MIN`), the engine injects an additional system message (`DISCOVERY_PHASE_SYSTEM_MESSAGE`) alongside the existing soft-finish-window note and any final-question framing. The injection instructs the LLM to:
+
+1. Classify every new admin message into one of three buckets and set the optional structured-output field `extraContextRelevance` accordingly:
+   - `relevant` — material that sharpens the support config (new prohibited topic, audience segment, support scenario, tone constraint, product detail). The LLM must ask exactly one targeted follow-up and set `followUpQuestion = true`.
+   - `irrelevant` — business-operation facts that do not shape end-user support (funding, runway, headcount, MRR, internal roadmap, growth metrics). Brief acknowledgement, no follow-up.
+   - `duplicate` — substantially repeats prior log content, including paraphrased near-duplicates. Acknowledge as duplicate, no follow-up.
+2. Author its own assistant message (no canned closing line).
+3. Never name UI elements ("Finish interview", "press the button" — the Finish button is always visible to the admin and trust the UI).
+4. Avoid raw markdown asterisks in prose.
+
+`extraContextRelevance` and `followUpQuestion` are optional fields on `interviewerOutputSchema` and on the persisted log entry. Rows written before this change remain valid (both fields absent). Classification is mutually exclusive per turn.
+
+`canFinish` is unchanged across Discovery turns — the admin can finish at any point. The Discovery turns simply enrich the eventual `contextSummary`.
+
+### Escalation path (not implemented)
+
+If telemetry shows over-classification as `relevant` (i.e. the LLM treats every extra as worth a follow-up), the planned mitigation is to add a `discoveryFollowUpCount` counter to `applicationAiContext` and cap the number of `followUpQuestion = true` turns per interview. This is documented as a kept-on-shelf option — no migration or counter is in place today.
 
 ## Guard-rail actions
 

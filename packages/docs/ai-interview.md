@@ -73,6 +73,22 @@ The new row appears immediately with status `Not started` via an optimistic cach
 
 The "Configure now" link is shown to `admin` / `super_admin` viewers and routes to that application's interview page.
 
+## Discovery phase (classify-then-act)
+
+Once every core topic is covered and the interview is past the soft-finish-window minimum (turn 8), the interviewer enters a **Discovery phase**: every new admin message is treated as "extra context" and classified into one of three buckets that drives behaviour.
+
+| `extraContextRelevance` | When the LLM picks it                                                                                       | Assistant behaviour                                                              | `followUpQuestion` |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------ |
+| `relevant`              | Extra introduces material that would sharpen the support config (new prohibited topic, audience, tone, etc.) | Ask exactly one targeted follow-up question that materially sharpens the config. | `true`             |
+| `irrelevant`            | Extra is about the business but does not shape end-user support (funding, runway, headcount, MRR, roadmap)   | Brief acknowledgement, no follow-up question.                                    | `false` / absent   |
+| `duplicate`             | Extra substantially repeats prior log content, including paraphrased near-duplicates                         | Acknowledge as duplicate, no follow-up question.                                 | `false` / absent   |
+
+Both `extraContextRelevance` and `followUpQuestion` are optional structured-output fields persisted on the assistant log entry. They are only set on Discovery turns; bootstrap and core-coverage turns leave them absent.
+
+The Finish affordance is **always** driven by the `canFinish` API field (and the always-visible Finish button). The Discovery phase does not flip `canFinish` — the admin can finish whenever they want, and any number of Discovery turns simply enrich the eventual `contextSummary`.
+
+The turn cap (`MAX_TURNS = 15`) and forced completion at the cap are unchanged: a Discovery run that reaches turn 15 transitions to `status='completed'` with the final assistant message preserved.
+
 ## Related docs
 
 - Backend interview engine: `apps/hono-api/src/features/ai/docs/interview-engine.md`

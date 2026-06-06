@@ -50,3 +50,19 @@ Returns formatted application context block or empty string if no summary is pro
 ## File Location
 
 All prompt composition logic lives in `ai.context.ts`. The legacy `buildImprovePrompt()` function has been removed — all callers use `buildSystemPrompt()` with the unified signature.
+
+## Interview prompt injections
+
+The interview engine builds its system prompt from `INTERVIEWER_SYSTEM_PROMPT` (in `ai.prompts.interview.ts`) and stacks **phase-specific system messages** onto the message array in `buildAdvanceMessages(...)`. Each injection is gated by an independent predicate so combinations stay explicit and testable:
+
+| Injection                        | Gate                                                                                       | Purpose                                                                                                  |
+| -------------------------------- | ------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| Turn-budget note                 | every advance turn                                                                         | Tell the LLM the remaining turn budget so it can pace follow-ups.                                        |
+| Soft-finish-window suggestion    | `allTopicsCovered && nextTurn ∈ [SOFT_FINISH_WINDOW_MIN, SOFT_FINISH_WINDOW_MAX]`           | Permit `intent='suggest_finish'` once coverage is complete and we are in the natural wrap-up window.     |
+| `DISCOVERY_PHASE_SYSTEM_MESSAGE` | `allTopicsCovered && nextTurn > SOFT_FINISH_WINDOW_MIN`                                    | Activate the classify-then-act Discovery rules (`relevant` / `irrelevant` / `duplicate`).               |
+| Final-question framing           | `nextTurn === MAX_TURNS`                                                                   | Force `intent='final_question'` and frame the message as the last one. The server also overrides intent. |
+| Push-back marker reminder        | any prior turn left `garbagePushbackTopics` markers                                        | Tell the LLM to use `accept_garbage` if the admin's next attempt is still imperfect on those topics.     |
+
+The base `INTERVIEWER_SYSTEM_PROMPT` only documents that `extraContextRelevance` and `followUpQuestion` are optional fields the LLM may set; the **rules** for when and how to set them live in `DISCOVERY_PHASE_SYSTEM_MESSAGE`. This keeps the base prompt compact and reserves phase-specific instructions to turns where they apply.
+
+The hardcoded `assistantMessage` override on `intent='suggest_finish'` turns has been removed: LLM-authored assistant messages are now authoritative in the Discovery phase. `SUGGEST_FINISH_CLOSING_MESSAGE` is kept as an exported constant for reference but is no longer persisted.
