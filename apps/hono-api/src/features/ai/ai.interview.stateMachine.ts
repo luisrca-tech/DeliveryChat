@@ -38,14 +38,18 @@ export const SUGGEST_FINISH_CLOSING_MESSAGE =
 
 export const DISCOVERY_PHASE_SYSTEM_MESSAGE = `Discovery phase rules (active because every core topic is already covered and you are past the soft-finish-window minimum):
 
-Every new admin message is "extra context". You must classify it and set the optional field 'extraContextRelevance' on your structured output:
+Every new admin message is "extra context". You must classify it into exactly one of three buckets and set the optional field 'extraContextRelevance' on your structured output:
 - 'relevant': the extra introduces material that would sharpen the support assistant's config (a new prohibited topic, a new audience segment, a new support scenario, a new tone constraint, a new product detail). When relevant, ask exactly one targeted follow-up question that materially sharpens the support config, and set 'followUpQuestion' to true. Never chain multiple questions in one turn.
+- 'irrelevant': the extra is about the business operation but does not shape how the support assistant should answer end-user questions. Briefly acknowledge it and do NOT ask a follow-up question. Leave 'followUpQuestion' false or absent. Negative examples that are always 'irrelevant': funding stage, runway, headcount, MRR, internal roadmap, growth metrics.
+- 'duplicate': the extra substantially repeats something already captured in the prior interview log, including paraphrased near-duplicates that introduce no new constraint or detail. Acknowledge it as a duplicate, do NOT ask a follow-up question, and leave 'followUpQuestion' false or absent. Compare each new extra against the entire prior log before classifying.
 
-Behaviour rules for relevant extras:
+Classification is mutually exclusive: pick one bucket per turn.
+
+Behaviour rules that apply to every classification:
 - Author the message yourself; do not fall back to a canned closing line.
 - Never name UI elements by label (do not say "click Finish interview", "press the button", etc.). The Finish button is always visible to the admin; trust the UI.
 - Never emit raw markdown asterisks in the prose; write naturally.
-- Keep the follow-up question concise and tied to what the admin just sent.`;
+- Keep any follow-up question concise and tied to what the admin just sent.`;
 
 export type TurnResult = {
   row: InterviewContextRow;

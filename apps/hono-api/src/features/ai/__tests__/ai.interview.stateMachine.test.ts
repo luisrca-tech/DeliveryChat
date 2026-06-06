@@ -899,6 +899,126 @@ describe("Discovery phase — relevant classification (Phase 1)", () => {
   });
 });
 
+describe("Discovery phase — irrelevant + duplicate classification (Phase 2)", () => {
+  it("post-coverage extra with only operational facts is classified irrelevant, with no follow-up question", async () => {
+    resetStore({
+      currentTurn: 7,
+      interviewLog: fullyCoveredLog(),
+    });
+    const llmAck = "Got it — noted on the operational side.";
+    const provider = makeProvider([
+      out({
+        assistantMessage: llmAck,
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        extraContextRelevance: "irrelevant",
+        followUpQuestion: false,
+      }),
+    ]);
+
+    const result = await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "By the way we have 12 people on staff and around 80k MRR.",
+      expectedCurrentTurn: 7,
+    });
+
+    expect(result.output.extraContextRelevance).toBe("irrelevant");
+    expect(result.output.followUpQuestion).toBe(false);
+    expect(result.output.assistantMessage).toBe(llmAck);
+
+    const lastAssistant = [...result.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistant?.extraContextRelevance).toBe("irrelevant");
+    expect(lastAssistant?.followUpQuestion).toBe(false);
+  });
+
+  it("post-coverage extra that paraphrases prior content is classified duplicate, with no follow-up question", async () => {
+    resetStore({
+      currentTurn: 7,
+      interviewLog: fullyCoveredLog(),
+    });
+    const llmAck = "Thanks — that matches what you already shared earlier.";
+    const provider = makeProvider([
+      out({
+        assistantMessage: llmAck,
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        extraContextRelevance: "duplicate",
+        followUpQuestion: false,
+      }),
+    ]);
+
+    const result = await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message:
+        "Just to repeat — our shoppers are mostly families looking for groceries.",
+      expectedCurrentTurn: 7,
+    });
+
+    expect(result.output.extraContextRelevance).toBe("duplicate");
+    expect(result.output.followUpQuestion).toBe(false);
+    expect(result.output.assistantMessage).toBe(llmAck);
+
+    const lastAssistant = [...result.row.interviewLog]
+      .reverse()
+      .find((e: InterviewLogEntry) => e.role === "assistant");
+    expect(lastAssistant?.extraContextRelevance).toBe("duplicate");
+    expect(lastAssistant?.followUpQuestion).toBe(false);
+  });
+
+  it("Discovery prompt injection documents all three classifications and the negative-example list", async () => {
+    resetStore({
+      currentTurn: 8,
+      interviewLog: fullyCoveredLog(),
+    });
+    const provider = makeProvider([
+      out({
+        assistantMessage: "noted",
+        intent: "ask",
+        topicsCoveredThisTurn: [],
+        extraContextRelevance: "irrelevant",
+        followUpQuestion: false,
+      }),
+    ]);
+
+    await runInterviewTurn({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      message: "extra context",
+      expectedCurrentTurn: 8,
+    });
+
+    const callArgs = (
+      provider.generateObject as ReturnType<typeof vi.fn>
+    ).mock.calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
+    const discoveryMessage = callArgs.messages
+      .filter((m) => m.role === "system")
+      .find(
+        (m) => /classify/i.test(m.content) && /relevant/i.test(m.content),
+      );
+    expect(discoveryMessage).toBeDefined();
+    const content = discoveryMessage!.content;
+    expect(content).toMatch(/'relevant'/);
+    expect(content).toMatch(/'irrelevant'/);
+    expect(content).toMatch(/'duplicate'/);
+    expect(content).toMatch(/funding stage/i);
+    expect(content).toMatch(/runway/i);
+    expect(content).toMatch(/headcount/i);
+    expect(content).toMatch(/MRR/);
+    expect(content).toMatch(/internal roadmap/i);
+    expect(content).toMatch(/growth metrics/i);
+  });
+});
+
 describe("getInterviewContext", () => {
   it("returns null when no row exists", async () => {
     resetStore(null);
