@@ -8,16 +8,17 @@ import {
   SummaryGenerationFailedError,
   TurnConflictError,
 } from "./ai.errors.js";
-import { GUARD_RAIL_RULES } from "./ai.interview.guardRails.js";
 import {
-  computeCoveredTopics,
   CORE_TOPICS,
+  coverageAfterAdminReply,
+  coverageOfLog,
   FORCED_COMPLETION_FINISH_REASON,
   interviewerOutputSchema,
   MAX_TURNS,
   missingTopics,
   type CoreTopic,
   type EngineMessage,
+  type GuardRailAction,
   type InterviewContextRow,
   type InterviewerOutput,
   type InterviewLogEntry,
@@ -28,7 +29,45 @@ import {
 } from "./ai.prompts.interview.js";
 import type { AIProviderPort } from "./ai.providerPort.js";
 import { sanitizeAiMarkdown } from "./ai.sanitize.js";
-import { generateInterviewSummary } from "./ai.summaryGenerator.js";
+import {
+  generateInterviewSummary,
+  persistSummaryFailed,
+  persistSummaryReady,
+} from "./ai.summaryGenerator.js";
+
+type GuardRailRules = {
+  advanceTurn: boolean;
+  persistMarker: "garbage_pushback" | null;
+  suppressFinishReprompt: boolean;
+};
+
+const GUARD_RAIL_RULES: Record<GuardRailAction, GuardRailRules> = {
+  none: {
+    advanceTurn: true,
+    persistMarker: null,
+    suppressFinishReprompt: false,
+  },
+  redirect_scope: {
+    advanceTurn: false,
+    persistMarker: null,
+    suppressFinishReprompt: true,
+  },
+  block_extraction: {
+    advanceTurn: false,
+    persistMarker: null,
+    suppressFinishReprompt: true,
+  },
+  pushback_garbage: {
+    advanceTurn: true,
+    persistMarker: "garbage_pushback",
+    suppressFinishReprompt: false,
+  },
+  accept_garbage: {
+    advanceTurn: true,
+    persistMarker: null,
+    suppressFinishReprompt: false,
+  },
+};
 
 export const SOFT_FINISH_WINDOW_MIN = 8;
 export const SOFT_FINISH_WINDOW_MAX = 12;
@@ -181,6 +220,62 @@ function buildBootstrapMessages(): EngineMessage[] {
   ];
 }
 
+type TurnContext = {
+  log: InterviewLogEntry[];
+  nextTurnNumber: number;
+  allTopicsCovered: boolean;
+  pushbackTopics: string[];
+};
+
+type PhaseRule = {
+  applies: (ctx: TurnContext) => boolean;
+  message: (ctx: TurnContext) => string;
+};
+
+// Declarative phase rules — each rule contributes at most one system message
+// per turn, in declaration order. Adding a phase = adding a row here.
+const PHASE_RULES: PhaseRule[] = [
+  {
+    applies: () => true,
+    message: ({ nextTurnNumber }) => {
+      const remainingAfter = Math.max(0, MAX_TURNS - nextTurnNumber);
+      return `Turn budget: this will be question ${nextTurnNumber} of ${MAX_TURNS}. Remaining after this one: ${remainingAfter}. Pace your follow-ups so every core topic is covered before the cap.`;
+    },
+  },
+  {
+    applies: ({ nextTurnNumber, allTopicsCovered }) =>
+      allTopicsCovered &&
+      nextTurnNumber >= SOFT_FINISH_WINDOW_MIN &&
+      nextTurnNumber <= SOFT_FINISH_WINDOW_MAX,
+    message: ({ nextTurnNumber }) =>
+      `All six core topics are already covered and this is turn ${nextTurnNumber} of ${MAX_TURNS} (inside the 8–12 finish window). It is acceptable to set intent='suggest_finish' for this turn if you have nothing essential left to ask.`,
+  },
+  {
+    applies: ({ allTopicsCovered, nextTurnNumber }) =>
+      allTopicsCovered && nextTurnNumber > SOFT_FINISH_WINDOW_MIN,
+    message: () => DISCOVERY_PHASE_SYSTEM_MESSAGE,
+  },
+  {
+    applies: ({ nextTurnNumber }) => nextTurnNumber === MAX_TURNS,
+    message: () =>
+      `This is the FINAL question (turn ${MAX_TURNS} of ${MAX_TURNS}). You must set intent='final_question' and frame your message as the last one. Cover any remaining core topic in a single concluding question.`,
+  },
+  {
+    applies: ({ pushbackTopics }) => pushbackTopics.length > 0,
+    message: ({ pushbackTopics }) =>
+      `Prior push-back markers exist for topics: ${pushbackTopics.join(", ")}. If the admin's next attempt on any of these topics is still imperfect, set guardrailAction='accept_garbage' and move on so the admin is never blocked.`,
+  },
+];
+
+function collectPushbackTopics(log: InterviewLogEntry[]): string[] {
+  const out = new Set<string>();
+  for (const entry of log) {
+    if (entry.role !== "user") continue;
+    for (const topic of entry.garbagePushbackTopics ?? []) out.add(topic);
+  }
+  return [...out];
+}
+
 function buildAdvanceMessages(
   log: InterviewLogEntry[],
   userMessage: string,
@@ -191,54 +286,18 @@ function buildAdvanceMessages(
     content: entry.content,
   }));
 
-  const pushbackTopics = new Set<string>();
-  for (const entry of log) {
-    if (entry.role !== "user") continue;
-    for (const topic of entry.garbagePushbackTopics ?? []) {
-      pushbackTopics.add(topic);
-    }
-  }
+  const ctx: TurnContext = {
+    log,
+    nextTurnNumber: currentTurn + 1,
+    allTopicsCovered: coverageOfLog(log).size === CORE_TOPICS.length,
+    pushbackTopics: collectPushbackTopics(log),
+  };
 
   const messages: EngineMessage[] = [...history];
-
-  const nextTurnNumber = currentTurn + 1;
-  const remainingAfter = Math.max(0, MAX_TURNS - nextTurnNumber);
-  messages.push({
-    role: "system",
-    content: `Turn budget: this will be question ${nextTurnNumber} of ${MAX_TURNS}. Remaining after this one: ${remainingAfter}. Pace your follow-ups so every core topic is covered before the cap.`,
-  });
-
-  const coveredSoFar = computeCoveredTopics(log);
-  const allTopicsCovered = coveredSoFar.size === CORE_TOPICS.length;
-  const inSoftFinishWindow =
-    nextTurnNumber >= SOFT_FINISH_WINDOW_MIN &&
-    nextTurnNumber <= SOFT_FINISH_WINDOW_MAX;
-  if (inSoftFinishWindow && allTopicsCovered) {
-    messages.push({
-      role: "system",
-      content: `All six core topics are already covered and this is turn ${nextTurnNumber} of ${MAX_TURNS} (inside the 8–12 finish window). It is acceptable to set intent='suggest_finish' for this turn if you have nothing essential left to ask.`,
-    });
-  }
-
-  if (allTopicsCovered && nextTurnNumber > SOFT_FINISH_WINDOW_MIN) {
-    messages.push({
-      role: "system",
-      content: DISCOVERY_PHASE_SYSTEM_MESSAGE,
-    });
-  }
-
-  if (nextTurnNumber === MAX_TURNS) {
-    messages.push({
-      role: "system",
-      content: `This is the FINAL question (turn ${MAX_TURNS} of ${MAX_TURNS}). You must set intent='final_question' and frame your message as the last one. Cover any remaining core topic in a single concluding question.`,
-    });
-  }
-
-  if (pushbackTopics.size > 0) {
-    messages.push({
-      role: "system",
-      content: `Prior push-back markers exist for topics: ${[...pushbackTopics].join(", ")}. If the admin's next attempt on any of these topics is still imperfect, set guardrailAction='accept_garbage' and move on so the admin is never blocked.`,
-    });
+  for (const rule of PHASE_RULES) {
+    if (rule.applies(ctx)) {
+      messages.push({ role: "system", content: rule.message(ctx) });
+    }
   }
   messages.push({ role: "user", content: userMessage });
   return messages;
@@ -257,7 +316,7 @@ function decideNext(
       return { kind: "conflict", currentTurn: 0, status: "not_started" };
     }
     if (state.currentTurn !== 0 || state.interviewLog.length > 0) {
-      const covered = computeCoveredTopics(state.interviewLog);
+      const covered = coverageOfLog(state.interviewLog);
       return {
         kind: "bootstrap_already_done",
         output: {
@@ -276,7 +335,7 @@ function decideNext(
         topicsCoveredThisTurn: input.llmOutput.topicsCoveredThisTurn,
       },
     ];
-    const covered = computeCoveredTopics(nextLog);
+    const covered = coverageOfLog(nextLog);
     return {
       kind: "bootstrap_persist",
       nextLog,
@@ -339,24 +398,23 @@ function decideNext(
   }
 
   let sanitized = input.llmOutput;
-  const advanceRules = GUARD_RAIL_RULES[sanitized.guardrailAction];
-  const persistRules = GUARD_RAIL_RULES[sanitized.guardrailAction];
+  const guardRail = GUARD_RAIL_RULES[sanitized.guardrailAction];
   const isFinalQuestionTurn = state.currentTurn + 1 === MAX_TURNS;
 
   const userEntryForCoverage: InterviewLogEntry = {
     role: "user",
     content: input.userMessage,
   };
-  const coveredAfterUserReply = computeCoveredTopics([
-    ...state.interviewLog,
-    userEntryForCoverage,
-  ]);
-  if (isFinalQuestionTurn && !advanceRules.suppressFinishReprompt) {
+  const coveredAfterUserReply = coverageAfterAdminReply(
+    state.interviewLog,
+    input.userMessage,
+  );
+  if (isFinalQuestionTurn && !guardRail.suppressFinishReprompt) {
     sanitized = { ...sanitized, intent: "final_question" };
   }
 
   const userEntry: InterviewLogEntry = userEntryForCoverage;
-  if (persistRules.persistMarker === "garbage_pushback") {
+  if (guardRail.persistMarker === "garbage_pushback") {
     userEntry.garbagePushbackTopics = sanitized.topicsCoveredThisTurn;
   }
 
@@ -383,7 +441,7 @@ function decideNext(
     assistantEntry,
   ];
 
-  const nextTurn = advanceRules.advanceTurn
+  const nextTurn = guardRail.advanceTurn
     ? state.currentTurn + 1
     : state.currentTurn;
 
@@ -427,7 +485,7 @@ function decideComplete(
     return { kind: "complete", completedAt: input.nowIso };
   }
 
-  const covered = computeCoveredTopics(state.interviewLog);
+  const covered = coverageOfLog(state.interviewLog);
   const missing = missingTopics(covered);
   if (missing.length > 0) {
     return { kind: "missing_topics", missing };
@@ -535,29 +593,6 @@ async function writeMarkCompleted(
     .where(eq(applicationAiContext.id, rowId))
     .returning();
   return updated as InterviewContextRow;
-}
-
-async function writeSummaryReady(
-  executor: DbExecutor,
-  rowId: string,
-  contextSummary: string,
-): Promise<InterviewContextRow> {
-  const [updated] = await executor
-    .update(applicationAiContext)
-    .set({ contextSummary, summaryStatus: "ready" })
-    .where(eq(applicationAiContext.id, rowId))
-    .returning();
-  return updated as InterviewContextRow;
-}
-
-async function writeSummaryFailed(
-  executor: DbExecutor,
-  rowId: string,
-): Promise<void> {
-  await executor
-    .update(applicationAiContext)
-    .set({ summaryStatus: "failed" })
-    .where(eq(applicationAiContext.id, rowId));
 }
 
 export async function getInterviewContext(
@@ -814,7 +849,7 @@ export async function runGenerateSummary(
       interviewLog: row.interviewLog,
     });
   } catch (error) {
-    await writeSummaryFailed(db, row.id);
+    await persistSummaryFailed(db, row.id);
     throw new SummaryGenerationFailedError(
       error instanceof Error ? error.message : "Summary generation failed",
       { cause: error },
@@ -822,7 +857,7 @@ export async function runGenerateSummary(
   }
 
   return db.transaction(async (tx) => {
-    const updated = await writeSummaryReady(tx, row.id, summary);
+    const updated = await persistSummaryReady(tx, row.id, summary);
     await tx
       .update(applications)
       .set({ aiEnabled: true })

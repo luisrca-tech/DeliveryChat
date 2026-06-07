@@ -1,11 +1,8 @@
 import { generateText, generateObject } from "ai";
 import { createGroq } from "@ai-sdk/groq";
 import type { z } from "zod";
-import {
-  AITimeoutError,
-  AIProviderError,
-  AIProviderRateLimitError,
-} from "./ai.errors.js";
+import { AIProviderError } from "./ai.errors.js";
+import { classifyProviderException } from "./ai.errorPolicy.js";
 import type {
   AIProviderObjectRequest,
   AIProviderObjectResponse,
@@ -40,7 +37,7 @@ export class GroqProvider implements AIProviderPort {
         finishReason: result.finishReason,
       };
     } catch (error) {
-      throw mapProviderError(error);
+      throw classifyProviderException(error);
     }
   }
 
@@ -65,30 +62,9 @@ export class GroqProvider implements AIProviderPort {
         finishReason: result.finishReason,
       };
     } catch (error) {
-      throw mapProviderError(error);
+      throw classifyProviderException(error);
     }
   }
-}
-
-function mapProviderError(error: unknown): unknown {
-  if (error instanceof Error && error.name === "AbortError") {
-    return error;
-  }
-  if (
-    error instanceof Error &&
-    (error.message.includes("timeout") || error.message.includes("ETIMEDOUT"))
-  ) {
-    return new AITimeoutError("AI provider timed out", { cause: error });
-  }
-  const statusCode =
-    (error as { statusCode?: number }).statusCode ??
-    (error as { status?: number }).status;
-  if (statusCode === 429) {
-    return new AIProviderRateLimitError("AI provider rate limit exceeded", {
-      cause: error,
-    });
-  }
-  return new AIProviderError("AI provider request failed", { cause: error });
 }
 
 export function createAIProvider(

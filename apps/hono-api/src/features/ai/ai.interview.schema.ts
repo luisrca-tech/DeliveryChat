@@ -106,3 +106,29 @@ export function computeCoveredTopics(
 export function missingTopics(covered: Set<CoreTopic>): CoreTopic[] {
   return CORE_TOPICS.filter((t) => !covered.has(t));
 }
+
+// Coverage perspectives — explicit names for the same underlying computation,
+// chosen by where in the turn lifecycle it is asked.
+//
+// Coverage is credited only to assistant turns that received a user reply
+// afterwards. Each variant differs in what "the log" means at the moment of
+// the question:
+//
+// - coverageOfLog: the log as currently persisted. Use for bootstrap inspection
+//   and final completion validation, where no pending user reply is implied.
+// - coverageAfterAdminReply: the log plus a pending user message that has not
+//   been persisted yet. Use during an in-flight turn to ask "if we accepted
+//   this reply, would the prior assistant question count as covered?".
+export function coverageOfLog(log: InterviewLogEntry[]): Set<CoreTopic> {
+  return computeCoveredTopics(log);
+}
+
+export function coverageAfterAdminReply(
+  log: InterviewLogEntry[],
+  pendingUserMessage: string,
+): Set<CoreTopic> {
+  return computeCoveredTopics([
+    ...log,
+    { role: "user", content: pendingUserMessage },
+  ]);
+}

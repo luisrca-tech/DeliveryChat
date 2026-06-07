@@ -1,12 +1,16 @@
 import { db, type DbExecutor } from "../../db/index.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
 import {
-  AIProviderError,
-  AIProviderRateLimitError,
-  AITimeoutError,
-  AIEmptyResponseError,
   AIContentFilteredError,
+  AIEmptyResponseError,
 } from "./ai.errors.js";
+import {
+  isAbortError,
+  isRetryable,
+  isTerminal,
+  usageStatusFor,
+  type UsageStatus,
+} from "./ai.errorPolicy.js";
 
 export type AiCallAction =
   | "generate"
@@ -14,14 +18,6 @@ export type AiCallAction =
   | "interview"
   | "interview_summary"
   | "interview_forced_completion";
-
-type UsageStatus =
-  | "success"
-  | "provider_error"
-  | "timeout"
-  | "empty"
-  | "content_filtered"
-  | "aborted";
 
 export type AiCallProviderOutcome<TRaw> = {
   result: TRaw;
@@ -44,12 +40,6 @@ export type RunAICallParams<TRaw, TParsed> = {
 
 const MAX_ATTEMPTS = 2;
 const RETRY_DELAY_MS = 1000;
-
-function isRetryable(error: unknown): boolean {
-  if (error instanceof AIProviderRateLimitError) return false;
-  if (error instanceof AIProviderError) return true;
-  return false;
-}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -133,41 +123,31 @@ export async function runAICall<TRaw, TParsed>(
     } catch (error) {
       lastError = error;
 
-      if (
-        error instanceof AIEmptyResponseError ||
-        error instanceof AIContentFilteredError
-      ) {
+      if (isTerminal(error)) {
         throw error;
       }
 
-      if (error instanceof Error && error.name === "AbortError") {
-        await logUsage(executor, {
-          tenantId: params.tenantId,
-          userId: params.userId,
-          action: params.action,
-          conversationId: params.conversationId,
-          model: params.model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: "aborted",
-        });
+      const failedMeta = {
+        tenantId: params.tenantId,
+        userId: params.userId,
+        action: params.action,
+        conversationId: params.conversationId,
+        model: params.model,
+        inputTokens: null,
+        outputTokens: null,
+        latencyMs: Date.now() - startTime,
+        finishReason: null,
+      };
+
+      if (isAbortError(error)) {
+        await logUsage(executor, { ...failedMeta, status: "aborted" });
         throw error;
       }
 
       if (!isRetryable(error) || attempt === MAX_ATTEMPTS - 1) {
         await logUsage(executor, {
-          tenantId: params.tenantId,
-          userId: params.userId,
-          action: params.action,
-          conversationId: params.conversationId,
-          model: params.model,
-          inputTokens: null,
-          outputTokens: null,
-          latencyMs: Date.now() - startTime,
-          finishReason: null,
-          status: error instanceof AITimeoutError ? "timeout" : "provider_error",
+          ...failedMeta,
+          status: usageStatusFor(error),
         });
         throw error;
       }

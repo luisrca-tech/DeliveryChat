@@ -1,10 +1,32 @@
+import { eq } from "drizzle-orm";
 import { db, type DbExecutor } from "../../db/index.js";
+import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { runAICall } from "./ai.callOrchestrator.js";
 import { AIEmptyResponseError, AIProviderError } from "./ai.errors.js";
-import type { InterviewLogEntry } from "./ai.interview.schema.js";
+import type {
+  InterviewContextRow,
+  InterviewLogEntry,
+} from "./ai.interview.schema.js";
 import { INTERVIEW_MODEL } from "./ai.prompts.interview.js";
 import type { AIProviderPort } from "./ai.providerPort.js";
 import { sanitizeAiMarkdown } from "./ai.sanitize.js";
+
+// SUMMARY CONTRACT
+// ----------------
+// This module is the single owner of the contextSummary contract — the markdown
+// string written to applicationAiContext.contextSummary and later injected into
+// the support assistant's system prompt by ai.context.applicationContext().
+//
+// The contract has four pieces; all live in this file so a change to any one
+// surfaces here:
+//   1. Structure  — section headings and ordering, in SUMMARY_SYSTEM_PROMPT
+//   2. Limits     — SUMMARY_MAX_CHARS upper bound on the rendered output
+//   3. Sanitation — parseSummaryResponse (markdown allowlist + non-empty check)
+//   4. Persistence — persistSummaryReady / persistSummaryFailed (summaryStatus transitions)
+//
+// Generation lifecycle (provider call + retries) is generateInterviewSummary.
+// Call-site lifecycle (load row, decide, persist, flip aiEnabled) lives in
+// ai.interview.stateMachine.runGenerateSummary.
 
 export const SUMMARY_MAX_CHARS = 8000;
 
@@ -75,6 +97,29 @@ export function parseSummaryResponse(raw: string): string {
     throw new AIEmptyResponseError("Summary generator returned empty output");
   }
   return sanitized;
+}
+
+export async function persistSummaryReady(
+  executor: DbExecutor,
+  rowId: string,
+  contextSummary: string,
+): Promise<InterviewContextRow> {
+  const [updated] = await executor
+    .update(applicationAiContext)
+    .set({ contextSummary, summaryStatus: "ready" })
+    .where(eq(applicationAiContext.id, rowId))
+    .returning();
+  return updated as InterviewContextRow;
+}
+
+export async function persistSummaryFailed(
+  executor: DbExecutor,
+  rowId: string,
+): Promise<void> {
+  await executor
+    .update(applicationAiContext)
+    .set({ summaryStatus: "failed" })
+    .where(eq(applicationAiContext.id, rowId));
 }
 
 export async function generateInterviewSummary(
