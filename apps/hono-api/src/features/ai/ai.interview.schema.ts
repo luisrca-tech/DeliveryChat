@@ -30,8 +30,8 @@ export const interviewerOutputSchema = z.object({
     "pushback_garbage",
     "accept_garbage",
   ]),
-  extraContextRelevance: extraContextRelevanceSchema.optional(),
-  followUpQuestion: z.boolean().optional(),
+  extraContextRelevance: extraContextRelevanceSchema.nullable(),
+  followUpQuestion: z.boolean().nullable(),
 });
 
 export type InterviewerOutput = z.infer<typeof interviewerOutputSchema>;

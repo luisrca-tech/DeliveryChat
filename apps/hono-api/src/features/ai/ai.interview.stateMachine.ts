@@ -77,10 +77,10 @@ export const SUGGEST_FINISH_CLOSING_MESSAGE =
 
 export const DISCOVERY_PHASE_SYSTEM_MESSAGE = `Discovery phase rules (active because every core topic is already covered and you are past the soft-finish-window minimum):
 
-Every new admin message is "extra context". You must classify it into exactly one of three buckets and set the optional field 'extraContextRelevance' on your structured output:
+Every new admin message is "extra context". You must classify it into exactly one of three buckets and set the field 'extraContextRelevance' on your structured output:
 - 'relevant': the extra introduces material that would sharpen the support assistant's config (a new prohibited topic, a new audience segment, a new support scenario, a new tone constraint, a new product detail). When relevant, ask exactly one targeted follow-up question that materially sharpens the support config, and set 'followUpQuestion' to true. Never chain multiple questions in one turn.
-- 'irrelevant': the extra is about the business operation but does not shape how the support assistant should answer end-user questions. Briefly acknowledge it and do NOT ask a follow-up question. Leave 'followUpQuestion' false or absent. Negative examples that are always 'irrelevant': funding stage, runway, headcount, MRR, internal roadmap, growth metrics.
-- 'duplicate': the extra substantially repeats something already captured in the prior interview log, including paraphrased near-duplicates that introduce no new constraint or detail. Acknowledge it as a duplicate, do NOT ask a follow-up question, and leave 'followUpQuestion' false or absent. Compare each new extra against the entire prior log before classifying.
+- 'irrelevant': the extra is about the business operation but does not shape how the support assistant should answer end-user questions. Briefly acknowledge it and do NOT ask a follow-up question. Set 'followUpQuestion' to false. Negative examples that are always 'irrelevant': funding stage, runway, headcount, MRR, internal roadmap, growth metrics.
+- 'duplicate': the extra substantially repeats something already captured in the prior interview log, including paraphrased near-duplicates that introduce no new constraint or detail. Acknowledge it as a duplicate, do NOT ask a follow-up question, and set 'followUpQuestion' to false. Compare each new extra against the entire prior log before classifying.
 
 Classification is mutually exclusive: pick one bucket per turn.
 
@@ -324,6 +324,8 @@ function decideNext(
           intent: "ask",
           topicsCoveredThisTurn: [],
           guardrailAction: "none",
+          extraContextRelevance: null,
+          followUpQuestion: null,
         },
         canFinish: missingTopics(covered).length === 0,
       };
@@ -370,6 +372,8 @@ function decideNext(
         intent: "final_question",
         topicsCoveredThisTurn: [],
         guardrailAction: "none",
+        extraContextRelevance: null,
+        followUpQuestion: null,
       },
       completedAt: input.nowIso,
     };
@@ -428,10 +432,10 @@ function decideNext(
   } else if (sanitized.intent === "suggest_finish") {
     assistantEntry.intent = "suggest_finish";
   }
-  if (sanitized.extraContextRelevance !== undefined) {
+  if (sanitized.extraContextRelevance != null) {
     assistantEntry.extraContextRelevance = sanitized.extraContextRelevance;
   }
-  if (sanitized.followUpQuestion !== undefined) {
+  if (sanitized.followUpQuestion != null) {
     assistantEntry.followUpQuestion = sanitized.followUpQuestion;
   }
 

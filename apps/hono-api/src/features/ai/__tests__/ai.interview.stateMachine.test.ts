@@ -217,6 +217,8 @@ function out(o: Partial<InterviewerOutput> = {}): InterviewerOutput {
     intent: "ask",
     topicsCoveredThisTurn: [],
     guardrailAction: "none",
+    extraContextRelevance: null,
+    followUpQuestion: null,
     ...o,
   };
 }
