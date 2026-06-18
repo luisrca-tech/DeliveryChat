@@ -103,6 +103,27 @@ export function getWidgetScriptUrl(): string {
   return `${getApiUrl()}/widget.js`;
 }
 
+/**
+ * Canonical public origin of the landing site. Used to build absolute URLs
+ * for SEO/social meta tags (Open Graph, Twitter Card) — crawlers such as
+ * LinkedInBot require absolute URLs and only ever fetch production, so this
+ * is intentionally fixed rather than environment-derived.
+ */
+const SITE_URL_PRODUCTION = "https://www.deliverychat.online";
+
+export function getSiteUrl(): string {
+  return SITE_URL_PRODUCTION;
+}
+
+/**
+ * Resolve a site-relative path to an absolute URL against the canonical origin.
+ * Tolerates paths with or without a leading slash.
+ */
+export function getAbsoluteUrl(path: string): string {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${getSiteUrl()}${normalizedPath}`;
+}
+
 const DOCS_URL_LOCAL = "http://localhost:3003";
 const DOCS_URL_PRODUCTION = "https://docs.deliverychat.online/";
 

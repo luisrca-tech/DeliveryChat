@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { getAdminUrl, getApiUrl, getDocumentationUrl, getWidgetScriptUrl } from "../urls";
+import {
+  getAbsoluteUrl,
+  getAdminUrl,
+  getApiUrl,
+  getDocumentationUrl,
+  getSiteUrl,
+  getWidgetScriptUrl,
+} from "../urls";
 
 const ORIGINAL_LOCATION = window.location;
 
@@ -142,6 +149,30 @@ describe("getApiUrl", () => {
     setProdHostname("localhost");
 
     expect(getApiUrl()).toBe("http://localhost:8000");
+  });
+});
+
+describe("getSiteUrl", () => {
+  it("returns the canonical production origin without a trailing slash", () => {
+    expect(getSiteUrl()).toBe("https://www.deliverychat.online");
+  });
+});
+
+describe("getAbsoluteUrl", () => {
+  it("joins an absolute path onto the canonical origin", () => {
+    expect(getAbsoluteUrl("/og-image.png")).toBe(
+      "https://www.deliverychat.online/og-image.png",
+    );
+  });
+
+  it("tolerates a path without a leading slash", () => {
+    expect(getAbsoluteUrl("og-image.png")).toBe(
+      "https://www.deliverychat.online/og-image.png",
+    );
+  });
+
+  it("returns the bare origin for the root path", () => {
+    expect(getAbsoluteUrl("/")).toBe("https://www.deliverychat.online/");
   });
 });
 

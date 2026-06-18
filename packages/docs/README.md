@@ -41,3 +41,7 @@ Architecture guides, implementation references, and technical decision records f
 ### Rate Limiting
 
 - [Redis Migration (TODO)](rate-limiting/to-do/redis-migration.md) — Migration plan from MemoryStore to Redis-backed rate limiting
+
+### Landing Page
+
+- [SEO & Social Meta](landing-chat-demo/seo-social-meta.md) — Open Graph / Twitter Card tags, OG image, absolute URLs, refreshing link previews on LinkedIn
