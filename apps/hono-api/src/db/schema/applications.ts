@@ -32,6 +32,8 @@ export const applications = createTable(
       .default(sql`'{}'::text[]`),
     description: text("description"),
     aiEnabled: boolean("ai_enabled").notNull().default(false),
+    aiDbEnabled: boolean("ai_db_enabled").notNull().default(false),
+    aiAutoRespond: boolean("ai_auto_respond").notNull().default(false),
     settings: jsonb("settings").default({}).notNull(),
     deletedAt: timestamp("deleted_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),

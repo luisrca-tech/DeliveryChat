@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { timestampString, timestampStringNullable } from "./customTypes";
 import { conversationStatusEnum } from "./enums/conversationStatusEnum";
+import { conversationHandledByEnum } from "./enums/conversationHandledByEnum";
 import { organization } from "./organization";
 import { applications } from "./applications";
 import { user } from "./users";
@@ -18,6 +19,11 @@ export const conversations = createTable(
       onDelete: "set null",
     }),
     status: conversationStatusEnum("status").notNull().default("pending"),
+    handledBy: conversationHandledByEnum("handled_by")
+      .notNull()
+      .default("human"),
+    escalatedAt: timestampStringNullable("escalated_at"),
+    escalationReason: varchar("escalation_reason", { length: 500 }),
     createdBy: text("created_by").references(() => user.id, {
       onDelete: "set null",
     }),

@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { createTable } from "../table";
 import { timestampString, timestampStringNullable } from "./customTypes";
 import { messageTypeEnum } from "./enums/messageTypeEnum";
+import { messageAuthorTypeEnum } from "./enums/messageAuthorTypeEnum";
 import { contentFormatEnum } from "./enums/contentFormatEnum";
 import { conversations } from "./conversations";
 import { user } from "./users";
@@ -18,6 +19,9 @@ export const messages = createTable(
       onDelete: "set null",
     }),
     type: messageTypeEnum("type").notNull().default("text"),
+    authorType: messageAuthorTypeEnum("author_type")
+      .notNull()
+      .default("visitor"),
     content: text("content").notNull(),
     contentFormat: contentFormatEnum("content_format").notNull().default("plain"),
     editedAt: timestampStringNullable("edited_at"),

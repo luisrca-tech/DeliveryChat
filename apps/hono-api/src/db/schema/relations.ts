@@ -8,6 +8,8 @@ import { user } from "./users";
 import { visitorIdentities } from "./visitorIdentities";
 import { aiUsageLog } from "./aiUsageLog";
 import { applicationAiContext } from "./applicationAiContext";
+import { applicationDataSource } from "./applicationDataSource";
+import { applicationDataTool } from "./applicationDataTool";
 
 export const conversationsRelations = relations(
   conversations,
@@ -83,12 +85,20 @@ export const aiUsageLogRelations = relations(aiUsageLog, ({ one }) => ({
   }),
 }));
 
-export const applicationsRelations = relations(applications, ({ one }) => ({
-  aiContext: one(applicationAiContext, {
-    fields: [applications.id],
-    references: [applicationAiContext.applicationId],
+export const applicationsRelations = relations(
+  applications,
+  ({ one, many }) => ({
+    aiContext: one(applicationAiContext, {
+      fields: [applications.id],
+      references: [applicationAiContext.applicationId],
+    }),
+    dataSource: one(applicationDataSource, {
+      fields: [applications.id],
+      references: [applicationDataSource.applicationId],
+    }),
+    dataTools: many(applicationDataTool),
   }),
-}));
+);
 
 export const applicationAiContextRelations = relations(
   applicationAiContext,
@@ -100,6 +110,26 @@ export const applicationAiContextRelations = relations(
     completedByUser: one(user, {
       fields: [applicationAiContext.completedBy],
       references: [user.id],
+    }),
+  }),
+);
+
+export const applicationDataSourceRelations = relations(
+  applicationDataSource,
+  ({ one }) => ({
+    application: one(applications, {
+      fields: [applicationDataSource.applicationId],
+      references: [applications.id],
+    }),
+  }),
+);
+
+export const applicationDataToolRelations = relations(
+  applicationDataTool,
+  ({ one }) => ({
+    application: one(applications, {
+      fields: [applicationDataTool.applicationId],
+      references: [applications.id],
     }),
   }),
 );

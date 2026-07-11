@@ -32,3 +32,10 @@ export * from "./enums/aiActionEnum";
 export * from "./enums/aiContextStatusEnum";
 export * from "./enums/summaryStatusEnum";
 export * from "./enums/aiUsageStatusEnum";
+
+// AI data connection & escalation
+export * from "./applicationDataSource";
+export * from "./applicationDataTool";
+export * from "./enums/dataSourceKindEnum";
+export * from "./enums/conversationHandledByEnum";
+export * from "./enums/messageAuthorTypeEnum";
