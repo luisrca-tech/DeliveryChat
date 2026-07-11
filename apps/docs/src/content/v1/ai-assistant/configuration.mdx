@@ -1,0 +1,112 @@
+# Configuration
+
+Once the AI Assistant add-on is active (see
+[Eligibility & Pricing](/v1/ai-assistant/eligibility-and-pricing)), configure it
+per application from the admin dashboard.
+
+<Callout type="warning" title="Data-connection requires ENTERPRISE custom access">
+  Connecting a live HTTP endpoint or database is gated to ENTERPRISE
+  organizations with custom onboarding. If you're on PREMIUM, or on ENTERPRISE
+  without data-connection access, the tool configuration below won't be
+  available — [contact sales](/contact) to get it enabled.
+</Callout>
+
+<StepByStep
+  title="Setting up the AI Assistant"
+  steps={[
+    {
+      title: "Enable the add-on",
+      content: (
+        <>
+          <p>From Settings → Billing (super_admin only). See <a href="/v1/ai-assistant/eligibility-and-pricing">Eligibility & Pricing</a>.</p>
+        </>
+      )
+    },
+    {
+      title: "Configure a data source",
+      content: (
+        <>
+          <p>Per application, connect exactly one data source: either an HTTP API or a read-only database.</p>
+          <ul>
+            <li><strong>HTTP:</strong> a base URL and an allowed host — the AI can only reach GET endpoints on that host.</li>
+            <li><strong>Read-only SQL:</strong> a connection string for a database user that only has SELECT privileges.</li>
+          </ul>
+        </>
+      )
+    },
+    {
+      title: "Add tools",
+      content: (
+        <>
+          <p>A tool is a named, described capability built on top of the data source — for example, "Look up order status by order ID". The AI chooses which tool to call, and with what arguments, based purely on the tool's <strong>name</strong>, <strong>description</strong>, and <strong>input schema</strong>. Write a specific, unambiguous description — that's the only signal the model has.</p>
+        </>
+      )
+    },
+    {
+      title: "Send a test request",
+      content: (
+        <>
+          <p>Every tool must be tested before it can be enabled. Run a test request with sample parameters and confirm it returns the data you expect.</p>
+        </>
+      )
+    },
+    {
+      title: "Enable the tool",
+      content: (
+        <>
+          <p>Once a tool has passed a test, flip it to enabled. Any later edit to the tool (name, description, schema, or config) resets it back to untested and disabled — it needs a fresh passing test before it can be re-enabled.</p>
+        </>
+      )
+    },
+    {
+      title: "Turn on AI auto-respond",
+      content: (
+        <>
+          <p>Per application, turn on auto-respond so the AI actually answers visitor messages. Until this is on, the assistant stays configured but silent for that application.</p>
+        </>
+      )
+    }
+  ]}
+/>
+
+## The read-only guarantee
+
+The AI Assistant can only ever **read** your data — this is enforced by how
+the tools are built, not by asking the model nicely:
+
+- **HTTP tools are always `GET`.** The method is never configurable and never
+  comes from the model.
+- **SQL tools only run a single, stored `SELECT`.** Any write or schema
+  keyword (`INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, …) is rejected when
+  you save the tool.
+- **The AI never writes the request itself.** It only supplies parameter
+  values (like an order ID or an email) into a query or URL template that you
+  defined. It cannot compose arbitrary SQL or arbitrary URLs.
+
+<Callout type="tip" title="Recommended: a SELECT-only database user">
+  For SQL data sources, connect with a database user that only has `SELECT`
+  privileges on the tables the AI needs. This gives you a second layer of
+  protection beyond the read-only query validation, and keeps the AI's access
+  scoped to exactly what it should see.
+</Callout>
+
+For HTTP sources, `allowedHost` must match the host of your configured base
+URL — the AI can never reach an arbitrary domain, only the one you connected.
+
+## Next steps
+
+<QuickLinks
+  links={[
+    {
+      title: "Escalation & Handoff",
+      href: "/v1/ai-assistant/escalation",
+      description: "What happens when the AI can't answer"
+    },
+    {
+      title: "Security & Privacy",
+      href: "/v1/ai-assistant/security",
+      description: "SSRF protections, encryption, and quota"
+    }
+  ]}
+  columns={2}
+/>

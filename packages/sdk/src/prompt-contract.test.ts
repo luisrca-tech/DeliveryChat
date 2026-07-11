@@ -26,6 +26,7 @@ const SDK_PUBLIC_METHODS = [
   "on",
   "off",
   "getConversation",
+  "requestHuman",
 ] as const;
 
 const WIDGET_GLOBAL_METHODS = [
@@ -41,6 +42,7 @@ const WIDGET_GLOBAL_METHODS = [
   "on",
   "off",
   "getConversation",
+  "requestHuman",
 ] as const;
 
 const SDK_EVENTS = [

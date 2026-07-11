@@ -4,6 +4,8 @@
 
 The AI Assistant helps operators respond to customer conversations faster by generating contextual reply suggestions. It uses a large language model (LLM) to analyze recent conversation history and produce a draft reply that matches the conversation's language and tone.
 
+> **This document covers operator-assist only** (Generate Reply / Improve Message — an operator is still in the loop for every message sent). For the **autonomous** mode, where the AI answers visitors directly and escalates to a human on its own, see [AI Autonomous Assistant](ai-autonomous-assistant.md). The two modes are billed and gated independently (see that doc's billing/gating matrix) and share only the underlying provider plumbing (`aiUsageLog`, quota) and the guard-rail prompt layer described below.
+
 ## Features
 
 ### Generate Reply
