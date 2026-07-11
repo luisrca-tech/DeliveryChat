@@ -212,6 +212,7 @@ async function handleMessageSend(
         senderId: conn.userId,
         content: payload.content,
         contentFormat: (payload.contentFormat ?? "plain") as ContentFormat,
+        authorType: conn.role === "visitor" ? "visitor" : "operator",
       },
       conversationData,
     );

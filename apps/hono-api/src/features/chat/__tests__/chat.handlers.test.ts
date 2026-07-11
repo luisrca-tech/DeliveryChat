@@ -347,7 +347,13 @@ describe("chat.handlers", () => {
       );
 
       expect(mockSendMessage).toHaveBeenCalledWith(
-        { conversationId: convId, senderId: "user-1", content: "Hello!", contentFormat: "plain" },
+        {
+          conversationId: convId,
+          senderId: "user-1",
+          content: "Hello!",
+          contentFormat: "plain",
+          authorType: "operator",
+        },
         convData,
       );
     });

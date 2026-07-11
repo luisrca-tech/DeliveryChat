@@ -208,6 +208,7 @@ function makeProvider(
         finishReason: "stop",
       };
     }) as unknown as AIProviderPort["generateText"],
+    generateWithTools: vi.fn() as unknown as AIProviderPort["generateWithTools"],
   };
 }
 

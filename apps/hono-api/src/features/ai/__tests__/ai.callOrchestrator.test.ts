@@ -37,6 +37,7 @@ class FakeProvider implements AIProviderPort {
   constructor(
     public generateText: AIProviderPort["generateText"] = vi.fn(),
     public generateObject: AIProviderPort["generateObject"] = vi.fn(),
+    public generateWithTools: AIProviderPort["generateWithTools"] = vi.fn(),
   ) {}
 }
 

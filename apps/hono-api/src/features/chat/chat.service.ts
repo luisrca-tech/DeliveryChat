@@ -5,6 +5,10 @@ import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
 import { user } from "../../db/schema/users.js";
 import type { ConversationStatus, ContentFormat, ParticipantRole } from "@repo/types";
+import { maybeTriggerAiTurn } from "../ai-turn/trigger.js";
+
+/** Discriminates who authored a message (mirrors the `message_author_type` enum). */
+export type MessageAuthorType = "visitor" | "operator" | "ai" | "system";
 import {
   broadcastOrganizationEvent,
   broadcastRoomEvent,
@@ -125,14 +129,20 @@ interface CreateConversationInput {
   applicationId?: string;
   subject?: string;
   createdBy?: string;
+  handledBy?: "ai" | "human";
   participants: { userId: string; role: ParticipantRole }[];
 }
 
 interface SendMessageInput {
   conversationId: string;
-  senderId: string;
+  senderId: string | null;
   content: string;
   contentFormat?: ContentFormat;
+  /**
+   * Who authored the message. Defaults to `visitor` for backward-compatibility
+   * with legacy callers. Only `visitor` messages trigger an autonomous AI turn.
+   */
+  authorType?: MessageAuthorType;
   broadcastContext?: {
     senderName: string;
     senderRole: ParticipantRole;
@@ -189,6 +199,7 @@ export async function createConversation(input: CreateConversationInput) {
         organizationId: input.organizationId,
         applicationId: input.applicationId ?? null,
         status: "pending",
+        handledBy: input.handledBy ?? "human",
         createdBy: input.createdBy ?? null,
         subject: input.subject ?? null,
       })
@@ -268,6 +279,7 @@ export async function sendMessage(
   }
 
   const contentFormat = input.contentFormat ?? "plain";
+  const authorType: MessageAuthorType = input.authorType ?? "visitor";
 
   const message = await db.transaction(async (tx) => {
     const [msg] = await tx
@@ -276,6 +288,7 @@ export async function sendMessage(
         id: crypto.randomUUID(),
         conversationId: input.conversationId,
         senderId: input.senderId,
+        authorType,
         content: input.content,
         contentFormat,
       })
@@ -318,6 +331,13 @@ export async function sendMessage(
     } catch (err) {
       console.error("[chat.service] sendMessage room broadcast failed", err);
     }
+  }
+
+  // Only a visitor message can prompt an autonomous AI reply. Fire-and-forget:
+  // the trigger cheaply checks whether the conversation is AI-handled and, if so,
+  // kicks off runAiTurn (which owns its own error handling — never dead air).
+  if (authorType === "visitor") {
+    void maybeTriggerAiTurn(input.conversationId);
   }
 
   return enriched;

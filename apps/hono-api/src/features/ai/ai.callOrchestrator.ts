@@ -17,7 +17,8 @@ export type AiCallAction =
   | "improve"
   | "interview"
   | "interview_summary"
-  | "interview_forced_completion";
+  | "interview_forced_completion"
+  | "autonomous_reply";
 
 export type AiCallProviderOutcome<TRaw> = {
   result: TRaw;

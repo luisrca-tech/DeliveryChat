@@ -14,6 +14,10 @@ vi.mock("../lexicalSerializer.js", () => ({
   serializeLexicalToHtml: vi.fn(() => null),
 }));
 
+vi.mock("../../ai-turn/trigger.js", () => ({
+  maybeTriggerAiTurn: vi.fn(),
+}));
+
 vi.mock("@repo/lexical-utils", () => ({
   serializeLexicalToPlainText: vi.fn((content: string) => content),
 }));

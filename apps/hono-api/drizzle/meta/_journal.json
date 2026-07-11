@@ -225,6 +225,13 @@
       "when": 1783797290848,
       "tag": "0034_add_ai_data_tools_and_escalation",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1783800689236,
+      "tag": "0035_add_autonomous_reply_ai_action",
+      "breakpoints": true
     }
   ]
 }
