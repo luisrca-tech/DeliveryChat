@@ -290,6 +290,26 @@ describe("runAiTurn — no-op guards", () => {
     expect(mockCreateProvider).not.toHaveBeenCalled();
     expect(mockEscalate).not.toHaveBeenCalled();
   });
+
+  // Operator takeover (AC #5): `acceptConversation` flips handledBy→'human',
+  // assignedTo→operator, status→'active' in one race-safe UPDATE (proven in
+  // chat.service.test). After that, a re-triggered turn (e.g. from a still-in-
+  // flight visitor message) must no-op. This holds for BOTH a chat that was
+  // escalated first and a healthy AI chat an operator grabs mid-flow — the same
+  // post-accept state, so one guard covers both.
+  it("no-ops after an operator takeover (post-accept state: human + assigned + active)", async () => {
+    const ctx = eligibleCtx();
+    ctx.conversation.handledBy = "human";
+    ctx.conversation.assignedTo = "operator-1";
+    ctx.conversation.status = "active";
+    mockLoadTurnContext.mockResolvedValue(ctx);
+
+    await runAiTurn("conv-1");
+
+    expect(mockCreateProvider).not.toHaveBeenCalled();
+    expect(mockEscalate).not.toHaveBeenCalled();
+    expect(mockSendMessage).not.toHaveBeenCalled();
+  });
 });
 
 describe("runAiTurn — per-conversation lock", () => {

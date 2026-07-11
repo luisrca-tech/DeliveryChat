@@ -317,6 +317,7 @@ export async function sendMessage(
       contentFormat,
       contentHtml: enriched.contentHtml,
       type: "text",
+      authorType,
       createdAt: enriched.createdAt,
     });
 
@@ -487,6 +488,7 @@ export async function getMessageHistoryForMember(
       senderName: user.name,
       senderRole: conversationParticipants.role,
       type: messages.type,
+      authorType: messages.authorType,
       content: messages.content,
       contentFormat: messages.contentFormat,
       createdAt: messages.createdAt,
@@ -654,6 +656,7 @@ async function broadcastSystemMessage(
       contentFormat: "plain",
       contentHtml: null,
       type: "system",
+      authorType: "system",
       createdAt: msg.createdAt,
     }),
   );
@@ -670,6 +673,13 @@ export async function acceptConversation(
     .set({
       status: "active" as ConversationStatus,
       assignedTo: operatorId,
+      // Taking over stops the AI: any AI-handled conversation flips to human
+      // handling here. This is in the SAME race-safe UPDATE (WHERE assignedTo
+      // IS NULL), so a lost race never half-flips. AI-handled conversations run
+      // as status='pending' throughout (creation and escalation both leave them
+      // pending), so this single guard covers takeover of BOTH an escalated
+      // chat and a still-healthy AI chat.
+      handledBy: "human",
       updatedAt: sql`now()`,
     })
     .where(

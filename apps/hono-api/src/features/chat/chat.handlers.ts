@@ -163,6 +163,7 @@ async function handleRoomJoin(
               contentFormat: (msg.contentFormat ?? "plain") as ContentFormat,
               contentHtml: msg.contentHtml,
               type: msg.type as "text" | "system",
+              authorType: msg.authorType,
               createdAt: msg.createdAt,
             }),
           ),
@@ -258,6 +259,7 @@ async function handleMessageSend(
     contentFormat: (message.contentFormat ?? "plain") as ContentFormat,
     contentHtml: message.contentHtml,
     type: message.type as "text" | "system",
+    authorType: message.authorType,
     createdAt: message.createdAt,
     assignedTo: conversationData.assignedTo,
   });

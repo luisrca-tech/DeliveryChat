@@ -7,4 +7,5 @@ export const aiActionEnum = pgEnum("ai_action", [
   "interview_summary",
   "interview_forced_completion",
   "autonomous_reply",
+  "handoff_summary",
 ]);

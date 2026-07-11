@@ -77,6 +77,7 @@ export async function escalateConversation(input: {
           contentFormat: "plain",
           contentHtml: null,
           type: "system",
+          authorType: "system",
           createdAt: systemMessage.createdAt,
         }),
       );
@@ -111,4 +112,23 @@ export async function escalateConversation(input: {
       err,
     );
   }
+
+  // ── Fire-and-forget operator handoff summary ──
+  // Generated for EVERY escalation (AI-initiated or visitor-requested) so the
+  // operator gets context on takeover. Lazily imported to keep this module's
+  // static graph light, and never awaited — the DB flip above is the source of
+  // truth and must not depend on the summary. `generateHandoffSummary` owns all
+  // its own error handling and never throws.
+  void (async () => {
+    try {
+      const { generateHandoffSummary } = await import("./handoffSummary.js");
+      await generateHandoffSummary(conversation);
+    } catch (err) {
+      console.error(
+        "[ai-turn] handoff summary kickoff failed",
+        conversation.id,
+        err,
+      );
+    }
+  })();
 }

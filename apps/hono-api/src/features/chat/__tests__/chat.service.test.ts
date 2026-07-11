@@ -485,6 +485,44 @@ describe("chat.service", () => {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
+    it("flips handledBy to 'human' in the same race-safe UPDATE (operator takeover stops the AI)", async () => {
+      let capturedSet: Record<string, unknown> | null = null;
+      const updateChain: Record<string, unknown> = {};
+      updateChain.set = vi.fn((v: Record<string, unknown>) => {
+        capturedSet = v;
+        return updateChain;
+      });
+      updateChain.where = vi.fn(() => updateChain);
+      updateChain.returning = vi.fn(() =>
+        Promise.resolve([
+          {
+            id: "conv-1",
+            organizationId: "org-1",
+            status: "active" as const,
+            assignedTo: "operator-1",
+            handledBy: "human",
+            updatedAt: "2026-01-01T00:00:00Z",
+          },
+        ]),
+      );
+      mockUpdate.mockReturnValueOnce(updateChain);
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
+
+      const result = await acceptConversation(
+        "conv-1",
+        "org-1",
+        "operator-1",
+        "Alice",
+      );
+
+      expect(capturedSet).toMatchObject({
+        status: "active",
+        assignedTo: "operator-1",
+        handledBy: "human",
+      });
+      expect(result.handledBy).toBe("human");
+    });
+
     it("broadcasts lifecycle and system message events on success", async () => {
       const updatedRow = {
         id: "conv-1",

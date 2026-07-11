@@ -24,6 +24,7 @@ export const conversations = createTable(
       .default("human"),
     escalatedAt: timestampStringNullable("escalated_at"),
     escalationReason: varchar("escalation_reason", { length: 500 }),
+    handoffSummary: text("handoff_summary"),
     createdBy: text("created_by").references(() => user.id, {
       onDelete: "set null",
     }),

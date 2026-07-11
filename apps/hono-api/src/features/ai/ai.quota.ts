@@ -8,6 +8,11 @@ export const QUOTA_EXCLUDED_ACTIONS = [
   "interview",
   "interview_summary",
   "interview_forced_completion",
+  // A handoff summary is generated for the operator during an escalation. It is
+  // internal plumbing (not a visitor-facing answer), so it must not consume the
+  // tenant's monthly AI quota — otherwise a burst of escalations could exhaust
+  // the cap and block the very AI replies the quota is meant to meter.
+  "handoff_summary",
 ] as const;
 
 type QuotaResult =

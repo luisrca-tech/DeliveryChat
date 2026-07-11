@@ -115,6 +115,71 @@ lands (per the roadmap: HTTP → WS → Redis → BullMQ), `runAiTurn` becomes t
 handler with **zero rework** in the caller, and the in-memory lock becomes a
 Redis lock.
 
+## Two escalation entry points
+
+Escalation to a human is triggered from exactly two places, both funnelling
+through the single `escalateConversation` seam (`escalate.ts`):
+
+1. **AI-initiated (autonomous):** inside `runAiTurn` — knowledge gap, empty
+   answer, turn failure, quota exhaustion, or the pre-LLM human-request regex.
+2. **Visitor-initiated (deterministic "Talk to a human", AC #4):**
+   `POST /conversations/:id/escalate` (`routes/conversations/escalation.ts`).
+   Mirrors the visitor auth of the messaging routes (`requireAuth()` + a
+   participant check for visitors; staff are org-scoped instead). Semantics:
+
+   | Conversation state            | Result                                                    |
+   | ----------------------------- | --------------------------------------------------------- |
+   | AI-handled, open              | `escalateConversation(kind='human_requested')` — identical system message + `conversation:escalated` broadcast + `handledBy` flip as the AI path |
+   | Already human-handled, open   | Idempotent no-op success (already with / queued for a human) |
+   | Closed                        | `409 Conflict`                                            |
+   | Visitor not a participant     | `404 Not Found`                                           |
+
+   Responds with the updated conversation snapshot, like the sibling lifecycle
+   endpoints.
+
+   > **WS variant — deliberately skipped.** Escalation is a rare, single,
+   > deterministic action best modelled as a REST call (the persistent "Talk to
+   > a human" button), matching `accept`/`leave`/`resolve` which are all REST.
+   > The WS channel is reserved for high-frequency messaging (`message:send`).
+   > No `conversation:escalate` client event was added.
+
+## Operator takeover — stopping the AI (AC #5)
+
+An operator takes over an AI-driven chat with the **same `accept` action** used
+for human chats — there is no separate "take over" endpoint.
+
+`acceptConversation` (`chat.service.ts`) now flips `handledBy → 'human'` inside
+the **same race-safe UPDATE** (`WHERE status='pending' AND assignedTo IS NULL`),
+alongside `assignedTo` and `status='active'`. Because AI-handled conversations
+run as **`status='pending'` throughout** — creation leaves them pending, AI turns
+only send messages (never accept), and escalation resets them to pending — this
+one guard covers takeover of **both** an escalated chat **and** a still-healthy
+AI chat an operator grabs mid-flow. A lost race never half-flips.
+
+Once `handledBy='human'`, any re-triggered turn no-ops on the existing guard
+(`handledBy !== 'ai'`), so a visitor message still in flight cannot produce a
+double-reply. Proven by `chat.service.test` (the flip) + `runAiTurn.test` (the
+post-accept no-op).
+
+## Handoff summary — context on takeover (AC #5)
+
+On **every** escalation, `escalateConversation` fires a **non-blocking,
+failure-tolerant** `generateHandoffSummary(conversation)` (`handoffSummary.ts`,
+lazily imported, never awaited). It produces a short operator briefing and
+persists it to the new **`conversations.handoffSummary`** text column.
+
+- **Escalation never fails because the summary failed** — the generator wraps
+  everything in try/catch and never throws; the DB flip is the source of truth.
+- Uses `runAICall(action='handoff_summary')`, a **quota-excluded** action
+  (`QUOTA_EXCLUDED_ACTIONS`) — a handoff briefing must not consume the tenant's
+  monthly AI cap.
+- **No new broadcast event.** The summary is surfaced lazily: the operator opens
+  the conversation and the conversations GET/detail serializer
+  (`getConversationWithParticipants`, a full-row select) returns `handoffSummary`
+  along with `handledBy`, `escalatedAt`, and `escalationReason`. The staff list
+  (`listConversationsForMember`, also a full-row select) carries them too. The
+  visitor list intentionally omits these staff-only fields.
+
 ## Message authorship
 
 `messages.authorType` (`visitor | operator | ai | system`) discriminates the

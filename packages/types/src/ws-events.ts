@@ -14,6 +14,16 @@ export const MessageType = {
 } as const;
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
 
+/** Discriminates who authored a message (mirrors the `message_author_type` enum). */
+export const MessageAuthorType = {
+  VISITOR: "visitor",
+  OPERATOR: "operator",
+  AI: "ai",
+  SYSTEM: "system",
+} as const;
+export type MessageAuthorType =
+  (typeof MessageAuthorType)[keyof typeof MessageAuthorType];
+
 export const ContentFormat = {
   PLAIN: "plain",
   LEXICAL: "lexical",
@@ -126,6 +136,11 @@ export interface MessageNewPayload {
   createdAt: string;
   editedAt?: string | null;
   assignedTo?: string | null;
+  /**
+   * Who authored the message (`visitor | operator | ai | system`). Optional for
+   * backward compatibility; drives the widget's AI-vs-human labels and avatars.
+   */
+  authorType?: MessageAuthorType;
 }
 
 export interface MessageAckPayload {
