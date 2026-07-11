@@ -1,6 +1,13 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Copy, MoreHorizontal, Pencil, Sparkles, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Database,
+  MoreHorizontal,
+  Pencil,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import {
@@ -194,6 +201,15 @@ export function ApplicationListTable({
                         >
                           <Sparkles className="mr-2 h-4 w-4" />
                           {AI_INTERVIEW_ACTION_LABEL[app.aiInterviewStatus]}
+                        </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem asChild className="cursor-pointer">
+                        <Link
+                          to="/applications/$applicationId/data-tools"
+                          params={{ applicationId: app.id }}
+                        >
+                          <Database className="mr-2 h-4 w-4" />
+                          Data tools
                         </Link>
                       </DropdownMenuItem>
                       <DropdownMenuItem
