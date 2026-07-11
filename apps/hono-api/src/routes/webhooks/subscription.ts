@@ -7,12 +7,12 @@ import {
   sendTrialStartedEmail,
 } from "../../lib/email/index.js";
 import { formatDate } from "../../utils/date.js";
-import { extractPlanFromMetadata } from "./utils.js";
+import { extractPlanFromMetadata, findAiAddonItem } from "./utils.js";
 import type { HandlerContext } from "./types.js";
 
 export async function handleSubscriptionCreated(
   subscription: Stripe.Subscription,
-  { tx, emailTasks }: HandlerContext,
+  { tx }: HandlerContext,
 ): Promise<void> {
   const customerId = subscription.customer as string;
 
@@ -48,6 +48,8 @@ export async function handleSubscriptionCreated(
     subscription.metadata as Record<string, string>,
   );
 
+  const createdAiItem = findAiAddonItem(subscription);
+
   await tx
     .update(organization)
     .set({
@@ -55,6 +57,8 @@ export async function handleSubscriptionCreated(
       planStatus: createdPlanStatus,
       ...(createdTrialEndsAt ? { trialEndsAt: createdTrialEndsAt } : {}),
       ...(createdPlan ? { plan: createdPlan } : {}),
+      aiAddonActive: !!createdAiItem,
+      aiAddonSubscriptionItemId: createdAiItem?.id ?? null,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(organization.id, org.id));
@@ -66,7 +70,7 @@ export async function handleSubscriptionCreated(
 
 export async function handleSubscriptionUpdated(
   subscription: Stripe.Subscription,
-  { tx, emailTasks }: HandlerContext,
+  { tx, emailTasks, deferredTasks }: HandlerContext,
 ): Promise<void> {
   const customerId = subscription.customer as string;
 
@@ -156,6 +160,39 @@ export async function handleSubscriptionUpdated(
     subscription.metadata as Record<string, string>,
   );
 
+  // Derive AI add-on entitlement from the subscription items (never set
+  // directly by routes). The add-on is a second item on the subscription.
+  const aiItem = findAiAddonItem(subscription);
+  const resolvedPlan = metadataPlan ?? org.plan;
+  const addonEligible =
+    resolvedPlan === "PREMIUM" || resolvedPlan === "ENTERPRISE";
+
+  let aiAddonActive: boolean;
+  let aiAddonSubscriptionItemId: string | null;
+
+  if (aiItem && !addonEligible) {
+    // Downgrade revocation: the plan is no longer eligible for the add-on but
+    // the item is still on the subscription. Remove it from Stripe after the
+    // transaction commits (this fires a follow-up subscription.updated) and
+    // clear the entitlement immediately here for consistency.
+    aiAddonActive = false;
+    aiAddonSubscriptionItemId = null;
+
+    const itemId = aiItem.id;
+    deferredTasks.push(async () => {
+      await stripe.subscriptionItems.del(itemId, {
+        proration_behavior: "create_prorations",
+      });
+    });
+
+    console.info(
+      `[Webhook] customer.subscription.updated: Revoking AI add-on item ${itemId} for org ${org.id} (resolved plan ${resolvedPlan} not eligible)`,
+    );
+  } else {
+    aiAddonActive = !!aiItem;
+    aiAddonSubscriptionItemId = aiItem?.id ?? null;
+  }
+
   await tx
     .update(organization)
     .set({
@@ -164,6 +201,8 @@ export async function handleSubscriptionUpdated(
       cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
       trialEndsAt,
       ...(metadataPlan ? { plan: metadataPlan } : {}),
+      aiAddonActive,
+      aiAddonSubscriptionItemId,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(organization.id, org.id));
@@ -217,6 +256,8 @@ export async function handleSubscriptionDeleted(
       plan: "FREE",
       planStatus: "canceled",
       stripeSubscriptionId: null,
+      aiAddonActive: false,
+      aiAddonSubscriptionItemId: null,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(organization.id, org.id));

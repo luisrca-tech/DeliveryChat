@@ -14,7 +14,7 @@ import {
 } from "./subscription.js";
 import { handleInvoicePaid, handleInvoicePaymentFailed } from "./invoice.js";
 import { handleCheckoutSessionCompleted } from "./checkout.js";
-import type { EmailTask } from "./types.js";
+import type { EmailTask, DeferredTask } from "./types.js";
 
 export const webhooksRoute = new Hono().post("/stripe", async (c) => {
   try {
@@ -28,10 +28,11 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
     if (!dedupeResult.ok) return dedupeResult.response;
 
     const emailTasks: EmailTask[] = [];
+    const deferredTasks: DeferredTask[] = [];
 
     try {
       await db.transaction(async (tx) => {
-        const ctx = { tx, emailTasks };
+        const ctx = { tx, emailTasks, deferredTasks };
 
         switch (event.type) {
           case "invoice.paid":
@@ -90,6 +91,17 @@ export const webhooksRoute = new Hono().post("/stripe", async (c) => {
         console.error(
           "[Webhook] Failed to send notification email:",
           emailError,
+        );
+      }
+    }
+
+    for (const task of deferredTasks) {
+      try {
+        await task();
+      } catch (deferredError) {
+        console.error(
+          "[Webhook] Failed to run post-commit task:",
+          deferredError,
         );
       }
     }

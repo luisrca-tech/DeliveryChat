@@ -27,6 +27,7 @@ export const env = createEnv({
     STRIPE_BASIC_PRICE_KEY: z.string().min(1),
     STRIPE_PREMIUM_PRICE_KEY: z.string().min(1),
     STRIPE_ENTERPRISE_PRODUCT_KEY: z.string().min(1),
+    STRIPE_AI_ADDON_PRICE_KEY: z.string().min(1),
     STRIPE_AUTOMATIC_TAX_ENABLED: z
       .enum(["true", "false"])
       .optional()
@@ -67,6 +68,7 @@ export const env = createEnv({
     STRIPE_BASIC_PRICE_KEY: process.env.STRIPE_BASIC_PRICE_KEY,
     STRIPE_PREMIUM_PRICE_KEY: process.env.STRIPE_PREMIUM_PRICE_KEY,
     STRIPE_ENTERPRISE_PRODUCT_KEY: process.env.STRIPE_ENTERPRISE_PRODUCT_KEY,
+    STRIPE_AI_ADDON_PRICE_KEY: process.env.STRIPE_AI_ADDON_PRICE_KEY,
     STRIPE_AUTOMATIC_TAX_ENABLED: process.env.STRIPE_AUTOMATIC_TAX_ENABLED,
     WS_TOKEN_SECRET: process.env.WS_TOKEN_SECRET,
     SECRETS_ENCRYPTION_KEY: process.env.SECRETS_ENCRYPTION_KEY,

@@ -28,7 +28,7 @@ const mockDbSelect = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 
-vi.mock("../../db/index.js", () => ({
+vi.mock("../../../db/index.js", () => ({
   db: {
     select: (...args: unknown[]) => mockDbSelect(...args),
     insert: (...args: unknown[]) => mockDbInsert(...args),
@@ -36,20 +36,20 @@ vi.mock("../../db/index.js", () => ({
   },
 }));
 
-vi.mock("../../db/schema/organization.js", () => ({
+vi.mock("../../../db/schema/organization.js", () => ({
   organization: { id: "id" },
 }));
 
-vi.mock("../../db/schema/member.js", () => ({
+vi.mock("../../../db/schema/member.js", () => ({
   member: { organizationId: "organization_id" },
 }));
 
-vi.mock("../../db/schema/users.js", () => ({
+vi.mock("../../../db/schema/users.js", () => ({
   user: { id: "id", email: "email", name: "name" },
 }));
 
 const mockCheckoutSessionsCreate = vi.fn();
-vi.mock("../../lib/stripe.js", () => ({
+vi.mock("../../../lib/stripe.js", () => ({
   stripe: {
     checkout: {
       sessions: {
@@ -63,7 +63,7 @@ vi.mock("../../lib/stripe.js", () => ({
   },
 }));
 
-vi.mock("../../env.js", () => ({
+vi.mock("../../../env.js", () => ({
   env: {
     STRIPE_BASIC_PRICE_KEY: "price_basic",
     STRIPE_PREMIUM_PRICE_KEY: "price_premium",
@@ -71,11 +71,11 @@ vi.mock("../../env.js", () => ({
   },
 }));
 
-vi.mock("../../lib/auth.js", () => ({
+vi.mock("../../../lib/auth.js", () => ({
   getUserAdminUrl: vi.fn().mockResolvedValue("https://admin.test.com"),
 }));
 
-vi.mock("../../lib/email/index.js", () => ({
+vi.mock("../../../lib/email/index.js", () => ({
   sendEnterprisePlanRequestEmail: vi.fn(),
 }));
 
@@ -92,7 +92,7 @@ let mockOrganization = {
   billingEmail: "billing@test.com",
 };
 
-vi.mock("../../lib/middleware/auth.js", () => ({
+vi.mock("../../../lib/middleware/auth.js", () => ({
   requireTenantAuth: () => async (_c: unknown, next: () => Promise<void>) =>
     next(),
   requireRole: () => async (_c: unknown, next: () => Promise<void>) => next(),
@@ -103,18 +103,18 @@ vi.mock("../../lib/middleware/auth.js", () => ({
   }),
 }));
 
-vi.mock("../../lib/middleware/rateLimit.js", () => ({
+vi.mock("../../../lib/middleware/rateLimit.js", () => ({
   createTenantRateLimitMiddleware:
     () => async (_c: unknown, next: () => Promise<void>) =>
       next(),
 }));
 
-vi.mock("../../lib/http.js", async () => {
-  const actual = await vi.importActual("../../lib/http.js");
+vi.mock("../../../lib/http.js", async () => {
+  const actual = await vi.importActual("../../../lib/http.js");
   return actual;
 });
 
-const { billingRoute } = await import("../billing.js");
+const { billingRoute } = await import("../index.js");
 
 const app = new Hono().route("/billing", billingRoute);
 

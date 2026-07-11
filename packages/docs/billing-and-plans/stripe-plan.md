@@ -17,6 +17,8 @@ The `organization` table holds all billing state:
 - `trialEndsAt` — Trial expiration timestamp
 - `billingEmail` — Set to admin's email on org creation
 - `cancelAtPeriodEnd` — Whether the subscription will cancel at period end
+- `aiAddonActive` — Whether the AI add-on is active (derived from webhooks only)
+- `aiAddonSubscriptionItemId` — Stripe subscription item ID of the AI add-on (derived from webhooks only)
 
 The `processedEvents` table provides idempotency — each Stripe webhook event ID is stored to prevent duplicate processing.
 
@@ -54,6 +56,40 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 - Plan sync redundancy: `plan` is synced from `subscription.metadata.plan` in `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `invoice.paid` — if any single event fails, the others recover the plan tier
 - Enforcement: expired trial returns `402 Payment Required`, allowing only `super_admin` recovery routes
 
+## AI Add-on
+
+The AI assistant is sold as a **purchasable add-on**, decoupled from the plan tier. Only **PREMIUM** and **ENTERPRISE** organizations are eligible to buy it. Flat $49/mo, single SKU.
+
+### Item model — a second subscription item, never a second subscription
+
+The add-on is modeled as a **second subscription item on the existing subscription** (Stripe price `STRIPE_AI_ADDON_PRICE_KEY`, `lookup_key = ai_addon_monthly`). This keeps the single-`stripeSubscriptionId` schema, one invoice, Stripe-native proration, and an independent cancel lifecycle. A second subscription would break the `status → planStatus` mapping and the single-subscription assumption.
+
+### Entitlement is derived from webhooks only
+
+`aiAddonActive` / `aiAddonSubscriptionItemId` are **never set directly by any route**. They are derived by scanning `subscription.items.data` in the webhook handlers:
+
+- **`customer.subscription.created`** and **`customer.subscription.updated`** — detect the add-on item by `price.id === STRIPE_AI_ADDON_PRICE_KEY` (fallback `price.lookup_key === "ai_addon_monthly"`). Present → `aiAddonActive = true`, `aiAddonSubscriptionItemId = item.id`. Absent → `false` / `null`. The extra item never disturbs plan resolution (`extractPlanFromMetadata` is unchanged).
+- **`customer.subscription.deleted`** — resets `aiAddonActive = false`, `aiAddonSubscriptionItemId = null` alongside the plan reset.
+
+### Purchase & cancel routes
+
+Both require `super_admin` and go through the standard billing middleware chain. Responses are `{ status: "pending" }` acknowledgements — the entitlement flips only once the resulting Stripe webhook is processed.
+
+- **`POST /v1/billing/ai-addon`** — preconditions: org has `stripeSubscriptionId`; `planStatus ∈ {active, trialing}`; `plan ∈ {PREMIUM, ENTERPRISE}`; add-on not already active. Adds the item via `stripe.subscriptionItems.create` (default proration).
+- **`DELETE /v1/billing/ai-addon`** — requires `aiAddonSubscriptionItemId`; removes it via `stripe.subscriptionItems.del` with `proration_behavior: "create_prorations"`.
+
+### Downgrade revocation
+
+In `customer.subscription.updated`, if the resolved plan is **not** in `{PREMIUM, ENTERPRISE}` (e.g. a downgrade to BASIC) while the add-on item is still present, the handler:
+
+1. clears the entitlement flags immediately (for consistency), and
+2. schedules a **post-commit** Stripe call (`subscriptionItems.del`, same deferred pattern as `emailTasks`) to remove the orphaned item — which itself fires a follow-up `subscription.updated`.
+
+### Feature gates
+
+- **`requireAiAddon()`** — plan ∈ {PREMIUM, ENTERPRISE} **and** `aiAddonActive === true`, else `403 ai_addon_not_active`.
+- **`requireAiDbFeature()`** — the `requireAiAddon` conditions **and** `plan === ENTERPRISE` **and** `tenantRateLimits.isCustom === true` (ENTERPRISE custom), else `403 ai_db_feature_not_available`.
+
 ### Enterprise Hybrid Workflow
 
 Enterprise tier bypasses Stripe Checkout entirely:
@@ -85,7 +121,7 @@ Enterprise tier bypasses Stripe Checkout entirely:
 
 After checkout, the success page polls `GET /v1/billing/status` every 2 seconds until `isReady === true`, then redirects to dashboard. This handles the delay between Stripe webhook delivery and database update ("Zombie Checkout" pattern).
 
-**Status endpoint returns:** `isReady`, `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`
+**Status endpoint returns:** `isReady`, `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`, `aiAddonActive`
 
 ## Environment Variables
 
@@ -96,6 +132,7 @@ After checkout, the success page polls `GET /v1/billing/status` every 2 seconds 
 | `STRIPE_BASIC_PRICE_KEY`        | hono-api | Stripe price ID for Basic              |
 | `STRIPE_PREMIUM_PRICE_KEY`      | hono-api | Stripe price ID for Premium            |
 | `STRIPE_ENTERPRISE_PRODUCT_KEY` | hono-api | Stripe product ID for Enterprise       |
+| `STRIPE_AI_ADDON_PRICE_KEY`     | hono-api | Stripe price ID for the AI add-on       |
 | `STRIPE_AUTOMATIC_TAX_ENABLED`  | hono-api | Enable automatic tax calculation       |
 | `RESEND_EMAIL_TO`               | hono-api | Enterprise contact email destination   |
 | `VITE_RESEND_EMAIL_TO`          | admin    | Enterprise contact email (client-side) |

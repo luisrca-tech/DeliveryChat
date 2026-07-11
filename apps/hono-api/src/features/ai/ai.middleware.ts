@@ -1,9 +1,77 @@
 import type { MiddlewareHandler } from "hono";
+import { eq } from "drizzle-orm";
+import { db } from "../../db/index.js";
+import { tenantRateLimits } from "../../db/schema/tenantRateLimits.js";
 import { getTenantAuth } from "../../lib/middleware/auth.js";
 import { jsonError, HTTP_STATUS } from "../../lib/http.js";
 import { checkAiQuota, QUOTA_EXCLUDED_ACTIONS } from "./ai.quota.js";
 
 export { QUOTA_EXCLUDED_ACTIONS };
+
+const ADDON_ELIGIBLE_PLANS = ["PREMIUM", "ENTERPRISE"] as const;
+
+/**
+ * Gates AI features that require the paid add-on entitlement. Requires both
+ * eligibility (plan ∈ {PREMIUM, ENTERPRISE}) AND entitlement (`aiAddonActive`,
+ * which is derived from Stripe webhooks). Composes after `requireTenantAuth`.
+ */
+export function requireAiAddon(): MiddlewareHandler {
+  return async (c, next) => {
+    const { organization } = getTenantAuth(c);
+
+    const eligible = ADDON_ELIGIBLE_PLANS.includes(
+      organization.plan as (typeof ADDON_ELIGIBLE_PLANS)[number],
+    );
+
+    if (!eligible || !organization.aiAddonActive) {
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        "ai_addon_not_active",
+        "The AI add-on is not active for your organization.",
+      );
+    }
+
+    await next();
+  };
+}
+
+/**
+ * Gates the AI database-connection capability. On top of the add-on
+ * entitlement, this requires ENTERPRISE custom eligibility: plan === ENTERPRISE
+ * AND the org has a custom rate-limit override (`tenantRateLimits.isCustom`).
+ */
+export function requireAiDbFeature(): MiddlewareHandler {
+  return async (c, next) => {
+    const { organization } = getTenantAuth(c);
+
+    if (organization.plan !== "ENTERPRISE" || !organization.aiAddonActive) {
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        "ai_db_feature_not_available",
+        "The AI database connection is only available on ENTERPRISE custom plans with the AI add-on active.",
+      );
+    }
+
+    const [override] = await db
+      .select({ isCustom: tenantRateLimits.isCustom })
+      .from(tenantRateLimits)
+      .where(eq(tenantRateLimits.tenantId, organization.id))
+      .limit(1);
+
+    if (!override?.isCustom) {
+      return jsonError(
+        c,
+        HTTP_STATUS.FORBIDDEN,
+        "ai_db_feature_not_available",
+        "The AI database connection is only available on ENTERPRISE custom plans with the AI add-on active.",
+      );
+    }
+
+    await next();
+  };
+}
 
 type AiFeatureKind = "reply" | "interview";
 
