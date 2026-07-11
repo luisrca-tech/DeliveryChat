@@ -3,7 +3,10 @@ import type {
   ParticipantRole,
   MessageType,
   ContentFormat,
+  MessageAuthorType,
 } from "@repo/types";
+
+export type ConversationHandledBy = "ai" | "human";
 
 export type Conversation = {
   id: string;
@@ -18,6 +21,10 @@ export type Conversation = {
   updatedAt: string;
   unreadCount: number;
   lastMessageId: string | null;
+  handledBy?: ConversationHandledBy;
+  escalatedAt?: string | null;
+  escalationReason?: string | null;
+  handoffSummary?: string | null;
 };
 
 export type ConversationParticipant = {
@@ -47,6 +54,7 @@ export type Message = {
   createdAt: string;
   editedAt?: string | null;
   isDeleted?: boolean;
+  authorType?: MessageAuthorType;
 };
 
 export type ConversationsListResponse = {

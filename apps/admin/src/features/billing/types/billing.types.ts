@@ -14,7 +14,22 @@ export type BillingStatusResponse = {
   cancelAtPeriodEnd: boolean;
   trialEndsAt: string | null;
   role: BillingRole;
+  aiAddonActive: boolean;
   isReady: boolean;
+};
+
+export type AiAddonErrorCode =
+  | "no_active_subscription"
+  | "subscription_not_active"
+  | "plan_not_eligible"
+  | "ai_addon_already_active"
+  | "ai_addon_not_active"
+  | "internal_server_error"
+  | "unknown_error";
+
+export type AiAddonResponse = {
+  status: "pending";
+  message?: string;
 };
 
 export type CheckoutPlan = "basic" | "premium" | "enterprise";

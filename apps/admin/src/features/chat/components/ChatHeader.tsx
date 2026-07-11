@@ -7,6 +7,7 @@ import {
   Pencil,
   Check,
   X,
+  Bot,
 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import { Input } from "@repo/ui/components/ui/input";
@@ -41,6 +42,8 @@ export function ChatHeader({
 }: Props) {
   const statusClass =
     statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
+  const isEscalated = Boolean(conversation.escalatedAt);
+  const isAiHandled = conversation.handledBy === "ai";
   const leaveAction = useConversationAction("leave", currentUserRole);
   const resolveAction = useConversationAction("resolve", currentUserRole);
   const subject = useSubjectEditor(conversation);
@@ -111,7 +114,26 @@ export function ChatHeader({
             )}
           </div>
         )}
+        {isEscalated && conversation.escalationReason && (
+          <p className="text-[11px] text-muted-foreground truncate mt-0.5">
+            {conversation.escalationReason}
+          </p>
+        )}
       </div>
+      {isAiHandled && (
+        <span
+          className="inline-flex items-center gap-0.5 text-[10px] px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700 font-medium shrink-0"
+          title="Handled by AI"
+        >
+          <Bot className="h-3 w-3" />
+          AI
+        </span>
+      )}
+      {isEscalated && (
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium shrink-0">
+          Escalated
+        </span>
+      )}
       <span className={`text-[10px] px-2 py-0.5 rounded-full ${statusClass}`}>
         {conversation.status}
       </span>

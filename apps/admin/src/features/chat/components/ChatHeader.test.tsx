@@ -209,4 +209,45 @@ describe("ChatHeader", () => {
     const pencilButton = container.querySelector(".group button");
     expect(pencilButton).toBeNull();
   });
+
+  it("shows an Escalated badge and the escalation reason when the conversation was escalated", () => {
+    render(
+      <ChatHeader
+        conversation={makeConversation({
+          escalatedAt: new Date().toISOString(),
+          escalationReason: "Visitor asked for a human",
+        })}
+        permissions={makePermissions()}
+        currentUserRole="operator"
+      />,
+    );
+
+    expect(screen.getByText("Escalated")).toBeTruthy();
+    expect(screen.getByText("Visitor asked for a human")).toBeTruthy();
+  });
+
+  it("shows an AI badge when the conversation is currently handled by AI", () => {
+    render(
+      <ChatHeader
+        conversation={makeConversation({ handledBy: "ai" })}
+        permissions={makePermissions()}
+        currentUserRole="operator"
+      />,
+    );
+
+    expect(screen.getByText("AI")).toBeTruthy();
+  });
+
+  it("hides the Escalated and AI badges for a normal, non-escalated human conversation", () => {
+    const { container } = render(
+      <ChatHeader
+        conversation={makeConversation()}
+        permissions={makePermissions()}
+        currentUserRole="operator"
+      />,
+    );
+
+    expect(within(container).queryByText("Escalated")).toBeNull();
+    expect(within(container).queryByText("AI")).toBeNull();
+  });
 });
