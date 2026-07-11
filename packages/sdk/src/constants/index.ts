@@ -39,6 +39,10 @@ export const defaultSettings: WidgetSettings = {
     autoOpen: false,
     autoOpenDelay: 5000,
   },
+  ai: {
+    enabled: false,
+    assistantLabel: "AI Assistant",
+  },
 };
 
 // ── WebSocket ──
@@ -64,5 +68,8 @@ export const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 export const DELETE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000; // 2 days
 export const HOST_ID = "delivery-chat-root";
 export const MAX_MESSAGES = 100;
+
+/** Sentinel `userId` the backend uses for AI-turn typing start/stop broadcasts. */
+export const AI_ASSISTANT_USER_ID = "ai-assistant";
 
 export * from "./icons.js";

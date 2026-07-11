@@ -23,6 +23,10 @@ type State = {
   rateLimited: boolean;
   rateLimitRetryAfter: number | null;
   widgetVisible: boolean;
+  /** True once the visitor has requested (or been escalated to) a human this conversation. */
+  humanRequested: boolean;
+  /** Guards the "You're now chatting with a team member" line to render at most once per conversation. */
+  aiTakeoverAnnounced: boolean;
 };
 
 const listeners: Map<keyof State, Set<Listener<unknown>>> = new Map();
@@ -42,6 +46,8 @@ let state: State = {
   rateLimited: false,
   rateLimitRetryAfter: null,
   widgetVisible: true,
+  humanRequested: false,
+  aiTakeoverAnnounced: false,
 };
 
 export function getState<K extends keyof State>(key: K): State[K] {

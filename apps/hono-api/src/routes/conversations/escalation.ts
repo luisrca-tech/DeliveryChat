@@ -32,17 +32,57 @@ function toTurnConversation(conv: ConversationRow): TurnConversation {
 }
 
 /**
- * Visitor-facing "Talk to a human" escalation — the deterministic escalation
- * trigger (plan §6/§8, AC #4). Mirrors the visitor auth of the messaging routes:
- * `requireAuth()` + a participant check for visitors.
- *
- * Semantics:
- * - closed conversation                → 409 (nothing to escalate).
- * - AI-handled, open                    → run the SAME escalation path the AI
- *   uses (`escalateConversation`, kind `human_requested`): system message +
+ * Core "talk to a human" semantics, shared by the unified-auth endpoint below
+ * and the widget-auth variant in `routes/widget.ts`:
+ * - closed conversation        → `closed` (callers respond 409).
+ * - already human-handled      → `noop` — idempotent success, no duplicate
+ *   escalation (the visitor is already with, or queued for, a human).
+ * - AI-handled, open           → run the SAME escalation path the AI uses
+ *   (`escalateConversation`, kind `human_requested`): system message +
  *   `conversation:escalated` broadcast + `handledBy` flip, all identical.
- * - already human-handled, open         → idempotent no-op success (the visitor
- *   is already with, or queued for, a human).
+ *
+ * Throws `ConversationNotFoundError` if the conversation doesn't exist or
+ * belongs to another org.
+ */
+export async function escalateIfAiHandled(
+  conversationId: string,
+  organizationId: string,
+): Promise<{
+  outcome: "closed" | "noop" | "escalated";
+  conversation: ConversationRow;
+}> {
+  const conv = await getConversationWithParticipants(
+    conversationId,
+    organizationId,
+  );
+
+  if (conv.status === "closed") {
+    return { outcome: "closed", conversation: conv };
+  }
+
+  if (conv.handledBy !== "ai") {
+    return { outcome: "noop", conversation: conv };
+  }
+
+  await escalateConversation({
+    conversation: toTurnConversation(conv),
+    reason: "human_requested",
+    kind: "human_requested",
+  });
+
+  const refreshed = await getConversationWithParticipants(
+    conversationId,
+    organizationId,
+  );
+  return { outcome: "escalated", conversation: refreshed };
+}
+
+/**
+ * "Talk to a human" escalation for unified-auth clients (staff sessions and
+ * API-key visitors) — the deterministic escalation trigger (plan §6/§8, AC #4).
+ * Mirrors the visitor auth of the messaging routes: `requireAuth()` + a
+ * participant check for visitors. Browser-widget visitors use the
+ * widget-authenticated variant in `routes/widget.ts` instead.
  *
  * Responds with the updated conversation snapshot, like sibling lifecycle
  * endpoints.
@@ -74,13 +114,9 @@ export const escalationRoute = new Hono().post(
         organizationId = auth.organization.id;
       }
 
-      // Throws ConversationNotFoundError if it doesn't exist / wrong org.
-      const conv = await getConversationWithParticipants(
-        conversationId,
-        organizationId,
-      );
+      const result = await escalateIfAiHandled(conversationId, organizationId);
 
-      if (conv.status === "closed") {
+      if (result.outcome === "closed") {
         return jsonError(
           c,
           HTTP_STATUS.CONFLICT,
@@ -89,22 +125,7 @@ export const escalationRoute = new Hono().post(
         );
       }
 
-      // Already human-handled → idempotent success, no duplicate escalation.
-      if (conv.handledBy !== "ai") {
-        return c.json({ conversation: conv });
-      }
-
-      await escalateConversation({
-        conversation: toTurnConversation(conv),
-        reason: "human_requested",
-        kind: "human_requested",
-      });
-
-      const refreshed = await getConversationWithParticipants(
-        conversationId,
-        organizationId,
-      );
-      return c.json({ conversation: refreshed });
+      return c.json({ conversation: result.conversation });
     } catch (error) {
       const mapped = mapServiceErrorToResponse(c, error);
       if (mapped) return mapped;

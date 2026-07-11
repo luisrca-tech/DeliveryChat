@@ -47,6 +47,7 @@ describe("MessageRouter", () => {
     setState("isOpen", false);
     setState("rateLimited", false);
     setState("rateLimitRetryAfter", null);
+    setState("aiTakeoverAnnounced", false);
 
     mockMarkServerError = vi.fn<(code: string) => void>();
     mockPipeline = createMockPipeline();
@@ -458,6 +459,178 @@ describe("MessageRouter", () => {
       });
 
       expect(getState("conversationStatus")).toBe("pending");
+    });
+  });
+
+  describe("authorType propagation", () => {
+    it("stores authorType on the message when the payload carries it", () => {
+      setState("conversationId", "conv-1");
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "msg-1",
+          conversationId: "conv-1",
+          senderId: null,
+          senderRole: "operator",
+          content: "I can help with that",
+          createdAt: "2026-01-01T00:00:00Z",
+          authorType: "ai",
+        },
+      });
+
+      expect(getState("messages")[0]).toMatchObject({
+        authorType: "ai",
+        senderId: "",
+      });
+    });
+
+    it("leaves authorType undefined for legacy payloads (backward compat)", () => {
+      setState("conversationId", "conv-1");
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "msg-1",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          senderRole: "operator",
+          content: "Hello",
+          createdAt: "2026-01-01T00:00:00Z",
+        },
+      });
+
+      expect(getState("messages")[0]!.authorType).toBeUndefined();
+    });
+
+    it("propagates authorType through messages:sync", () => {
+      setState("conversationId", "conv-1");
+
+      router.handle({
+        type: "messages:sync",
+        payload: {
+          conversationId: "conv-1",
+          messages: [
+            {
+              id: "msg-1",
+              content: "Hi, I'm the AI assistant",
+              senderId: "",
+              senderRole: "operator",
+              createdAt: "2026-01-01T00:00:00Z",
+              authorType: "ai",
+            },
+          ],
+        },
+      });
+
+      expect(getState("messages")[0]!.authorType).toBe("ai");
+    });
+  });
+
+  describe("takeover moment", () => {
+    it("inserts a one-time system line the first time an operator message follows an AI message", () => {
+      setState("conversationId", "conv-1");
+      setState("messages", [
+        {
+          id: "ai-1",
+          content: "I can help with that",
+          type: "text",
+          senderRole: "operator",
+          senderId: "",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+          authorType: "ai",
+        },
+      ]);
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "op-1",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          senderRole: "operator",
+          content: "Hi, I'm Maria",
+          createdAt: "2026-01-01T00:01:00Z",
+          authorType: "operator",
+        },
+      });
+
+      const messages = getState("messages");
+      expect(messages).toHaveLength(3);
+      expect(messages[1]).toMatchObject({
+        type: "system",
+        content: "You're now chatting with a team member.",
+      });
+      expect(messages[2]!.id).toBe("op-1");
+    });
+
+    it("does not insert the takeover line when there was no prior AI message", () => {
+      setState("conversationId", "conv-1");
+      setState("messages", []);
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "op-1",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          senderRole: "operator",
+          content: "Hi there",
+          createdAt: "2026-01-01T00:01:00Z",
+          authorType: "operator",
+        },
+      });
+
+      const messages = getState("messages");
+      expect(messages).toHaveLength(1);
+      expect(messages[0]!.id).toBe("op-1");
+    });
+
+    it("only announces the takeover once per conversation", () => {
+      setState("conversationId", "conv-1");
+      setState("messages", [
+        {
+          id: "ai-1",
+          content: "AI reply",
+          type: "text",
+          senderRole: "operator",
+          senderId: "",
+          status: "sent",
+          createdAt: "2026-01-01T00:00:00Z",
+          authorType: "ai",
+        },
+      ]);
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "op-1",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          senderRole: "operator",
+          content: "Hi, I'm Maria",
+          createdAt: "2026-01-01T00:01:00Z",
+          authorType: "operator",
+        },
+      });
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "op-2",
+          conversationId: "conv-1",
+          senderId: "op-1",
+          senderRole: "operator",
+          content: "How can I help?",
+          createdAt: "2026-01-01T00:02:00Z",
+          authorType: "operator",
+        },
+      });
+
+      const systemMessages = getState("messages").filter(
+        (m) => m.type === "system",
+      );
+      expect(systemMessages).toHaveLength(1);
     });
   });
 

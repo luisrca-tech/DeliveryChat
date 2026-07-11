@@ -15,12 +15,14 @@ import {
 } from "./MessageList.js";
 import { createInputArea } from "./InputArea.js";
 import { createConnectionIndicator } from "./ConnectionIndicator.js";
+import { createHumanHandoffButton } from "./HumanHandoffButton.js";
 
 type ChatWindowCallbacks = {
   onSend: (text: string) => void;
   onTypingStart: () => void;
   onTypingStop: () => void;
   onClose?: () => void;
+  onRequestHuman?: () => void;
 };
 
 type ChatWindowResult = {
@@ -41,6 +43,9 @@ export function createChatWindow(
 
   const header = createHeader(settings.header, callbacks.onClose);
   const connectionIndicator = createConnectionIndicator();
+  const humanHandoffButton = createHumanHandoffButton(
+    () => callbacks.onRequestHuman?.(),
+  );
   const messageList = createMessageList(messages, bubbleCtx);
   const inputArea = createInputArea({
     onSend: callbacks.onSend,
@@ -53,6 +58,12 @@ export function createChatWindow(
   typingIndicator.hidden = true;
   messageList.appendChild(typingIndicator);
 
+  const headerCloseBtn = header.querySelector(".header-close");
+  if (headerCloseBtn) {
+    header.insertBefore(humanHandoffButton, headerCloseBtn);
+  } else {
+    header.appendChild(humanHandoffButton);
+  }
   header.appendChild(connectionIndicator);
 
   container.appendChild(header);

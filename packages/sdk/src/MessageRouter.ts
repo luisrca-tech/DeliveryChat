@@ -1,8 +1,28 @@
 import { setState, getState } from "./state.js";
-import type { ChatMessage } from "./types/index.js";
+import type { ChatMessage, MessageAuthorType } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
 import { WS_TYPING_TIMEOUT_MS } from "./constants/index.js";
 import type { MessagePipeline } from "./MessagePipeline.js";
+
+/**
+ * Client-side "takeover moment" line (plan §8): rendered once, the first time
+ * an operator message arrives in a conversation that already had an AI
+ * message. The server may later own this line — see docs/system-messages.md.
+ */
+const AI_TAKEOVER_MESSAGE = "You're now chatting with a team member.";
+
+function buildTakeoverSystemMessage(): ChatMessage {
+  return {
+    id: `client-takeover-${crypto.randomUUID()}`,
+    content: AI_TAKEOVER_MESSAGE,
+    type: "system",
+    senderRole: "operator",
+    senderId: "",
+    status: "sent",
+    createdAt: new Date().toISOString(),
+    authorType: "system",
+  };
+}
 
 type MessageRouterOptions = {
   markServerError: (code: string) => void;
@@ -84,11 +104,15 @@ export class MessageRouter {
       type?: string;
       createdAt: string;
       editedAt?: string | null;
+      authorType?: MessageAuthorType;
     };
 
     if (p.conversationId !== getState("conversationId")) return;
 
     const msgType = p.type === "system" ? "system" : "text";
+    // senderId still normalizes null -> "" (system/AI messages have no user
+    // row), but authorType is preserved separately so the widget can still
+    // tell an AI message from a system one.
     const newMsg: ChatMessage = {
       id: p.id,
       content: p.content,
@@ -100,18 +124,31 @@ export class MessageRouter {
       status: "sent",
       createdAt: p.createdAt,
       editedAt: p.editedAt ?? null,
+      authorType: p.authorType,
     };
 
-    let wasDuplicate = false;
-    setState("messages", (prev) => {
-      if (prev.some((m) => m.id === newMsg.id)) {
-        wasDuplicate = true;
-        return prev;
-      }
-      return [...prev, newMsg];
-    });
+    const prevMessages = getState("messages");
+    const wasDuplicate = prevMessages.some((m) => m.id === newMsg.id);
 
     if (!wasDuplicate) {
+      // Takeover moment (plan §8, client-side heuristic): the first operator
+      // message after any AI message gets a one-time system line announcing
+      // the handoff.
+      const announceTakeover =
+        !getState("aiTakeoverAnnounced") &&
+        newMsg.authorType === "operator" &&
+        prevMessages.some((m) => m.authorType === "ai");
+
+      setState("messages", (prev) =>
+        announceTakeover
+          ? [...prev, buildTakeoverSystemMessage(), newMsg]
+          : [...prev, newMsg],
+      );
+
+      if (announceTakeover) {
+        setState("aiTakeoverAnnounced", true);
+      }
+
       this.pipeline.processIncoming(newMsg);
 
       if (p.senderRole !== "visitor" && !getState("isOpen")) {
@@ -190,6 +227,7 @@ export class MessageRouter {
         senderRole: "visitor" | "operator" | "admin";
         createdAt: string;
         editedAt?: string | null;
+        authorType?: MessageAuthorType;
       }>;
     };
 
@@ -208,6 +246,7 @@ export class MessageRouter {
       status: "sent" as const,
       createdAt: m.createdAt,
       editedAt: m.editedAt ?? null,
+      authorType: m.authorType,
     }));
 
     setState("messages", (prev) => {

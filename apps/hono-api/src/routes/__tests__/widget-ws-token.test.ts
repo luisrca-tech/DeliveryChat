@@ -50,6 +50,13 @@ vi.mock("../../features/chat/chat.service.js", () => ({
   createConversation: vi.fn(),
   getUnreadCountForVisitor: vi.fn(),
   markAsRead: vi.fn(),
+  isParticipant: vi.fn(),
+}));
+vi.mock("../conversations/escalation.js", () => ({
+  escalateIfAiHandled: vi.fn(),
+}));
+vi.mock("../../features/chat/error-mapper.js", () => ({
+  mapServiceErrorToResponse: vi.fn(() => null),
 }));
 vi.mock("./../../routes/ws.js", () => ({
   roomManager: { broadcastToOrganization: vi.fn() },
