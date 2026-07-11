@@ -58,7 +58,7 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 
 ## AI Add-on
 
-The AI assistant is sold as a **purchasable add-on**, decoupled from the plan tier. Only **PREMIUM** and **ENTERPRISE** organizations are eligible to buy it. Flat $49/mo, single SKU.
+The AI assistant is sold as a **purchasable add-on**, decoupled from the plan tier. Only **PREMIUM** and **ENTERPRISE** organizations are eligible to buy it. Flat R$ 120/mo (multi-currency Stripe price; US$49 option), single SKU.
 
 ### Item model — a second subscription item, never a second subscription
 
