@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 
+// `ai.middleware` → `entitlement` → `env`; stub env so importing the middleware
+// doesn't require the full validated environment.
+vi.mock("../../../env.js", () => ({
+  env: { STRIPE_AI_ADDON_PRICE_KEY: "price_ai_addon" },
+}));
+
 vi.mock("../../../db/index.js", () => ({
   db: {
     select: vi.fn(),
