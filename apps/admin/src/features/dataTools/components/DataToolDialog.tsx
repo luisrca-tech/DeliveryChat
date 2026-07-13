@@ -355,7 +355,16 @@ export function DataToolDialog({
                 </div>
               )}
 
-              <div className="flex items-center gap-2 pt-1">
+            </div>
+
+            <div className="flex items-center justify-between rounded-md border p-4">
+              <div>
+                <p className="text-sm font-medium">Tool status</p>
+                <p className="text-xs text-muted-foreground">
+                  Only enabled tools are offered to the AI in conversations.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
