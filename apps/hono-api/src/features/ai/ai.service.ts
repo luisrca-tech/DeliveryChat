@@ -166,11 +166,19 @@ export async function generateReply(
 const FOLLOW_UP_DRAFT_INSTRUCTION =
   "[System] Draft the next operator reply that follows on from the conversation above. Keep it concise and return only the message text.";
 
+const OPENING_DRAFT_INSTRUCTION =
+  "[System] The conversation has no messages yet. Draft an opening message the operator can send to greet the visitor and offer help. Keep it concise and return only the message text.";
+
 function anchorOnUserTurn(
   contextMessages: AIProviderMessage[],
 ): AIProviderMessage[] {
+  // Every provider call needs at least one user turn: handing the model an
+  // empty message list throws AI_InvalidPromptError (surfacing as a 502).
   const last = contextMessages[contextMessages.length - 1];
-  if (!last || last.role !== "assistant") return contextMessages;
+  if (!last) {
+    return [{ role: "user", content: OPENING_DRAFT_INSTRUCTION }];
+  }
+  if (last.role !== "assistant") return contextMessages;
   return [
     ...contextMessages,
     { role: "user", content: FOLLOW_UP_DRAFT_INSTRUCTION },

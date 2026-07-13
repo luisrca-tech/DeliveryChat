@@ -42,7 +42,9 @@ export function connectWebSocket(
 export function waitForMessage(
   messages: string[],
   predicate: (parsed: any) => boolean,
-  timeoutMs = 5000,
+  // Every send round-trips through a remote Postgres before it is broadcast, so
+  // under full-suite load 5s was tight enough to flake.
+  timeoutMs = 15000,
 ): Promise<any> {
   return new Promise((resolve, reject) => {
     const startLen = messages.length;
@@ -78,6 +80,48 @@ export function waitForMessage(
 
 export function sendWsEvent(ws: WebSocket, event: object) {
   ws.send(JSON.stringify(event));
+}
+
+/**
+ * Joins a room and waits until the server has actually processed the join.
+ *
+ * The server buffers client events until authentication resolves, then handles
+ * them in order — so a `pong` for a `ping` sent right after `room:join` proves
+ * the join was processed. Sleeping instead is a race: staff auth costs extra DB
+ * round-trips, and their join can land after a message was already broadcast,
+ * making them miss it.
+ */
+export async function joinRoomAndSettle(
+  ws: WebSocket,
+  messages: string[],
+  conversationId: string,
+  timeoutMs = 10000,
+): Promise<void> {
+  const countPongs = () =>
+    messages.filter((raw) => {
+      try {
+        return JSON.parse(raw).type === "pong";
+      } catch {
+        return false;
+      }
+    }).length;
+
+  // A connection may join several rooms, so wait for a NEW pong rather than
+  // any pong — an earlier one would satisfy the barrier immediately.
+  const before = countPongs();
+
+  sendWsEvent(ws, { type: "room:join", payload: { conversationId } });
+  sendWsEvent(ws, { type: "ping" });
+
+  const deadline = Date.now() + timeoutMs;
+  while (countPongs() <= before) {
+    if (Date.now() > deadline) {
+      throw new Error(
+        `Timed out waiting for room:join to settle on conversation ${conversationId}. Received: ${JSON.stringify(messages)}`,
+      );
+    }
+    await sleep(50);
+  }
 }
 
 export async function sleep(ms: number) {

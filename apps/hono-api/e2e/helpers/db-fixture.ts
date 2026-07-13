@@ -18,6 +18,7 @@ import { conversations } from "../../src/db/schema/conversations";
 import { messages } from "../../src/db/schema/messages";
 import { conversationParticipants } from "../../src/db/schema/conversationParticipants";
 import { aiUsageLog } from "../../src/db/schema/aiUsageLog";
+import { signWsToken } from "../../src/lib/security/wsToken";
 import { createHash, createHmac } from "node:crypto";
 
 // Must satisfy the tenant slug regex (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/)
@@ -178,6 +179,14 @@ export async function createConversationInDB(opts: {
   applicationId?: string;
   subject?: string;
   participants: { userId: string; role: "visitor" | "operator" | "admin" }[];
+  /**
+   * The staff member the conversation is assigned to. `validateSendAuthorization`
+   * only lets a non-visitor send when `assignedTo === senderId`, so any flow
+   * where staff sends must set this — it is what `POST /conversations/:id/accept`
+   * does in production.
+   */
+  assignedTo?: string;
+  status?: "pending" | "active" | "closed";
 }): Promise<string> {
   const convId = randomUUID();
   await db.insert(conversations).values({
@@ -185,6 +194,8 @@ export async function createConversationInDB(opts: {
     organizationId: opts.organizationId,
     applicationId: opts.applicationId ?? null,
     subject: opts.subject ?? null,
+    ...(opts.assignedTo ? { assignedTo: opts.assignedTo } : {}),
+    ...(opts.status ? { status: opts.status } : {}),
   });
 
   for (const p of opts.participants) {
@@ -237,9 +248,41 @@ export function signSessionCookie(token: string): string {
 }
 
 /**
+ * Mints the signed WebSocket token a widget visitor connects with
+ * (`/v1/ws?token=...`). This is the same token `POST /widget/ws-token` returns;
+ * signing it here keeps the WS tests independent of the widget REST route.
+ *
+ * The token binds the origin, and `authenticateWebSocket` compares it against
+ * the connection's `Origin` header. The `ws` client sends no Origin, so the
+ * default empty origin is what matches — pass one only if the test sets it.
+ */
+export function signVisitorWsToken(opts: {
+  appId: string;
+  visitorId: string;
+  origin?: string;
+}): string {
+  const secret = process.env.WS_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error(
+      "WS_TOKEN_SECRET is required to sign the E2E WebSocket token. " +
+        "Run via: infisical run --path=/hono-api -- <command>",
+    );
+  }
+  return signWsToken(
+    {
+      appId: opts.appId,
+      visitorId: opts.visitorId,
+      origin: opts.origin ?? "",
+    },
+    secret,
+  );
+}
+
+/**
  * Creates a Better Auth session directly in the DB for E2E testing.
- * Returns the RAW session token (valid as a Bearer token). For a `Cookie:`
- * header, wrap it in {@link signSessionCookie}.
+ * Returns the RAW session token — valid as a Bearer token, and as the
+ * `sessionToken` query param that authenticates a staff WebSocket connection.
+ * For a `Cookie:` header, wrap it in {@link signSessionCookie}.
  */
 export async function createSessionInDB(userId: string): Promise<string> {
   const token = randomUUID();

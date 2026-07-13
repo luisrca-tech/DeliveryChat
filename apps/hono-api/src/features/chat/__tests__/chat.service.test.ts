@@ -789,8 +789,8 @@ describe("chat.service", () => {
         assignedTo: "operator-1",
         organizationId: "org-1",
       };
-      const selectConvChain = chainMock([convData]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+      mockSelect.mockReturnValueOnce(chainMock([convData]));
+      mockSelect.mockReturnValueOnce(chainMock([{ id: "part-1" }]));
 
       const result = await validateSendAuthorization(
         "conv-1",
@@ -800,36 +800,50 @@ describe("chat.service", () => {
       expect(result).toEqual(convData);
     });
 
-    it("rejects operator who is NOT assignedTo the conversation", async () => {
-      const selectConvChain = chainMock([
-        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
-      ]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+    it("rejects operator who is NOT a participant", async () => {
+      mockSelect.mockReturnValueOnce(
+        chainMock([
+          {
+            status: "active",
+            assignedTo: "operator-1",
+            organizationId: "org-1",
+          },
+        ]),
+      );
+      mockSelect.mockReturnValueOnce(chainMock([]));
 
       await expect(
         validateSendAuthorization("conv-1", "operator-2", "operator"),
       ).rejects.toThrow(NotAssignedToConversationError);
     });
 
-    it("rejects admin who is NOT assignedTo the conversation", async () => {
-      const selectConvChain = chainMock([
-        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
-      ]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+    it("rejects admin who is NOT a participant", async () => {
+      mockSelect.mockReturnValueOnce(
+        chainMock([
+          {
+            status: "active",
+            assignedTo: "operator-1",
+            organizationId: "org-1",
+          },
+        ]),
+      );
+      mockSelect.mockReturnValueOnce(chainMock([]));
 
       await expect(
         validateSendAuthorization("conv-1", "admin-1", "admin"),
       ).rejects.toThrow(NotAssignedToConversationError);
     });
 
-    it("allows admin who IS assignedTo and returns conversation data", async () => {
+    // Escalation: an admin joins a conversation assigned to an operator and
+    // replies to the visitor. Participation — not assignment — authorizes them.
+    it("allows admin who is a participant but NOT assignedTo", async () => {
       const convData = {
         status: "active",
-        assignedTo: "admin-1",
+        assignedTo: "operator-1",
         organizationId: "org-1",
       };
-      const selectConvChain = chainMock([convData]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+      mockSelect.mockReturnValueOnce(chainMock([convData]));
+      mockSelect.mockReturnValueOnce(chainMock([{ id: "part-1" }]));
 
       const result = await validateSendAuthorization(
         "conv-1",
@@ -839,15 +853,22 @@ describe("chat.service", () => {
       expect(result).toEqual(convData);
     });
 
-    it("rejects staff sending to a pending conversation (must accept first)", async () => {
-      const selectConvChain = chainMock([
-        { status: "pending", assignedTo: null, organizationId: "org-1" },
-      ]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+    // Internal staff-only conversation: nobody is ever assigned to it.
+    it("allows staff in an unassigned conversation when they are a participant", async () => {
+      const convData = {
+        status: "pending",
+        assignedTo: null,
+        organizationId: "org-1",
+      };
+      mockSelect.mockReturnValueOnce(chainMock([convData]));
+      mockSelect.mockReturnValueOnce(chainMock([{ id: "part-1" }]));
 
-      await expect(
-        validateSendAuthorization("conv-1", "operator-1", "operator"),
-      ).rejects.toThrow(NotAssignedToConversationError);
+      const result = await validateSendAuthorization(
+        "conv-1",
+        "operator-1",
+        "operator",
+      );
+      expect(result).toEqual(convData);
     });
 
     it("throws ConversationNotFoundError for non-existent conversation", async () => {

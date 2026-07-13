@@ -173,6 +173,33 @@ describe("generateReply", () => {
     expect(mockInsert).toHaveBeenCalled();
   });
 
+  it("still sends a user turn when the conversation has no messages", async () => {
+    mockSelect
+      .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
+      .mockReturnValueOnce(chainMock([])) // no messages yet
+      .mockReturnValueOnce(chainMock(AI_ENABLED_NO_SUMMARY));
+    mockInsert.mockReturnValue(mockInsertChain());
+
+    const mockProvider = {
+      generateText: vi.fn().mockResolvedValue({
+        text: "Hi! How can I help?",
+        usage: { promptTokens: 10, completionTokens: 5 },
+        finishReason: "stop",
+      }),
+    };
+    mockCreateAIProvider.mockReturnValue(mockProvider);
+
+    const result = await generateReply(baseInput);
+
+    // An empty message list makes the AI SDK throw AI_InvalidPromptError, so
+    // the call must carry a synthetic opening user turn instead.
+    const sentMessages = mockProvider.generateText.mock.calls[0]?.[0]
+      .messages as { role: string; content: string }[];
+    expect(sentMessages.length).toBeGreaterThan(0);
+    expect(sentMessages.at(-1)?.role).toBe("user");
+    expect(result.text).toBe("Hi! How can I help?");
+  });
+
   it("retries once on transient provider error", async () => {
     mockSelect
       .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))

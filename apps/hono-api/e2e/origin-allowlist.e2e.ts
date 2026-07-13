@@ -23,6 +23,14 @@ test.afterAll(async () => {
   await cleanupTestData(testData);
 });
 
+/**
+ * Origin enforcement lives in `requireWidgetAuth`, so it must be exercised
+ * against a guarded route. `GET /widget/settings/:appId` is deliberately public
+ * — the widget calls it to bootstrap before it has anything else — so it
+ * enforces no origin and cannot prove this behaviour.
+ */
+const guardedWidgetRoute = "/api/v1/widget/conversations";
+
 test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
   test("add origin → widget allowed, remove origin → widget rejected", async ({
     request,
@@ -32,18 +40,20 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
       Authorization: `Bearer ${testData.apiKeyRaw}`,
       "X-App-Id": testData.app.id,
       "X-Visitor-Id": testData.visitorUser.id,
+      "Content-Type": "application/json",
       Origin: allowedOrigin,
     };
 
     // Step 1: Widget request with new origin should fail (not in allow-list yet)
-    const beforeAdd = await request.get("/api/v1/widget/settings", {
+    const beforeAdd = await request.post(guardedWidgetRoute, {
       headers: widgetHeaders,
+      data: { subject: "origin check" },
     });
     expect(beforeAdd.status()).toBe(403);
     const beforeBody = await beforeAdd.json();
     expect(beforeBody.error).toBe("origin_not_allowed");
 
-    // Step 2: Add the origin to the allow-list via PATCH
+    // Step 2: Add the origin to the allow-list
     await db
       .update(applications)
       .set({
@@ -52,10 +62,11 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
       .where(eq(applications.id, testData.app.id));
 
     // Step 3: Widget request with allowed origin should succeed
-    const afterAdd = await request.get("/api/v1/widget/settings", {
+    const afterAdd = await request.post(guardedWidgetRoute, {
       headers: widgetHeaders,
+      data: { subject: "origin check" },
     });
-    expect(afterAdd.status()).toBe(200);
+    expect(afterAdd.status()).toBe(201);
 
     // Step 4: Remove the origin from the allow-list
     await db
@@ -64,8 +75,9 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
       .where(eq(applications.id, testData.app.id));
 
     // Step 5: Widget request should be rejected again
-    const afterRemove = await request.get("/api/v1/widget/settings", {
+    const afterRemove = await request.post(guardedWidgetRoute, {
       headers: widgetHeaders,
+      data: { subject: "origin check" },
     });
     expect(afterRemove.status()).toBe(403);
     const afterBody = await afterRemove.json();
@@ -105,13 +117,15 @@ test.describe("Origin Allow-List: Admin CRUD + Widget Enforcement", () => {
   test("origin_not_allowed error is distinct from other 403s", async ({
     request,
   }) => {
-    const response = await request.get("/api/v1/widget/settings", {
+    const response = await request.post(guardedWidgetRoute, {
       headers: {
         Authorization: `Bearer ${testData.apiKeyRaw}`,
         "X-App-Id": testData.app.id,
         "X-Visitor-Id": testData.visitorUser.id,
+        "Content-Type": "application/json",
         Origin: "https://evil.example.com",
       },
+      data: { subject: "origin check" },
     });
 
     expect(response.status()).toBe(403);

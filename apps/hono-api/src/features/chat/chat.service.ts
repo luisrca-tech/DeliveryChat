@@ -628,15 +628,12 @@ export async function validateSendAuthorization(
     throw new ConversationNotFoundError(conversationId);
   }
 
-  if (senderRole === "visitor") {
-    const participantExists = await isParticipant(conversationId, senderId);
-    if (!participantExists) {
-      throw new NotAssignedToConversationError(conversationId, senderId);
-    }
-    return conversation;
-  }
-
-  if (conversation.assignedTo !== senderId) {
+  // Participation is the authorization boundary for everyone. Requiring staff
+  // to be the assignee would make two supported flows impossible: an internal
+  // staff-only conversation (nobody is assigned) and an admin escalating into a
+  // support conversation already assigned to an operator.
+  const participantExists = await isParticipant(conversationId, senderId);
+  if (!participantExists) {
     throw new NotAssignedToConversationError(conversationId, senderId);
   }
 

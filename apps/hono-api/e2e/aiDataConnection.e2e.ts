@@ -390,6 +390,9 @@ test.describe("Part B — AI-handled conversation lifecycle", () => {
     request,
   }) => {
     test.skip(!serverReachable, "server not reachable");
+    // This is the only test that waits on a real model call; the 30s default
+    // is not enough headroom once the suite runs in parallel.
+    test.setTimeout(90_000);
 
     const conv = await createVisitorConversation(request, "AI handling — turn");
     const conversationId = conv.id as string;
@@ -415,7 +418,9 @@ test.describe("Part B — AI-handled conversation lifecycle", () => {
       if (aiReply) return { kind: "reply" as const };
       if (escalated && systemMsg) return { kind: "escalation" as const };
       return null;
-    }, 15_000);
+      // A real LLM turn (model call + tool loop) can take a while when the
+      // suite runs in parallel, so this waits well past the happy-path latency.
+    }, 45_000);
 
     expect(["reply", "escalation"]).toContain(outcome.kind);
   });
