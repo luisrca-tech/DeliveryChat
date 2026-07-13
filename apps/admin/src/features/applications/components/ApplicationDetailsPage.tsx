@@ -3,6 +3,8 @@ import { Link } from "@tanstack/react-router";
 import {
   ArrowLeft,
   ArrowUpRight,
+  Check,
+  Copy,
   Database,
   Pencil,
   Sparkles,
@@ -179,7 +181,7 @@ export function ApplicationDetailsPage({
               label="Last updated"
               value={formatRelative(application.updatedAt)}
             />
-            <DetailRow label="App ID" value={application.id} mono />
+            <DetailRow label="App ID" value={application.id} mono copyable />
           </CardContent>
         </Card>
       </div>
@@ -307,16 +309,50 @@ function DetailRow({
   label,
   value,
   mono,
+  copyable,
 }: {
   label: string;
   value: string;
   mono?: boolean;
+  copyable?: boolean;
 }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success(`${label} copied to clipboard`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Failed to copy ${label} to clipboard`, error);
+      toast.error(`Failed to copy ${label} to clipboard`);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between gap-4">
       <Label className="text-muted-foreground">{label}</Label>
-      <span className={mono ? "truncate font-mono text-xs" : "truncate"}>
-        {value}
+      <span
+        className={`flex min-w-0 items-center gap-1 ${mono ? "font-mono text-xs" : ""}`}
+      >
+        <span className="truncate">{value}</span>
+        {copyable && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 shrink-0"
+            onClick={handleCopy}
+            aria-label={`Copy ${label}`}
+          >
+            {copied ? (
+              <Check className="h-3.5 w-3.5 text-green-600" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </Button>
+        )}
       </span>
     </div>
   );
