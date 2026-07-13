@@ -28,7 +28,10 @@ Also exported for direct testing / reuse:
 
 - **Read-only by construction.** HTTP tools are always `GET` (the method is
   hard-coded, never read from config or params). SQL tools execute only a stored
-  `SELECT`; a save-time validator (`validateSqlQuery`) rejects any write/DDL.
+  query inside an explicit `BEGIN TRANSACTION READ ONLY` block, so Postgres
+  itself rejects any write at runtime (SQLSTATE 25006). `validateSqlQuery` is a
+  cheap first-line lint that rejects obvious write/DDL, but it is a keyword
+  blocklist, not the guarantee — the READ ONLY transaction is.
 - **The AI never composes the request.** URL paths come from a stored
   `urlTemplate`; SQL comes from a stored `query`. The model only supplies
   primitive parameter values, which are validated and bound safely.
@@ -101,16 +104,27 @@ execution error.
   (`orderedParamNames`). This ordering is deterministic (JS object key insertion
   order, preserved by stored jsonb) and is the documented contract between the
   tool's `inputSchema` and its `$n` placeholders.
-- **Defense in depth.** `validateSqlQuery` runs again at execution time even
-  though the CRUD layer validates at save time. It guarantees a single
-  read-only statement: comments stripped first (defeats comment-smuggled writes),
-  no interior `;` (single statement), must start with `SELECT`, and no
-  word-boundary-matched write/DDL keywords
+- **Read-only GUARANTEE (the executor seam we control).** Every query runs on a
+  dedicated client checked out of the pool, wrapped in
+  `BEGIN TRANSACTION READ ONLY` → `<query>` → `COMMIT`, with `ROLLBACK` on any
+  error and `client.release()` in a `finally` (pg does not auto-close an open
+  transaction on release). A write that reaches the database — e.g. a mutating
+  function or anything the lint filter misses — fails with SQLSTATE 25006
+  ("cannot execute ... in a read-only transaction"). That error is surfaced
+  through the normal `{ ok: false, kind: 'execution', error: 'Query execution
+  failed' }` shape; the driver message (and any SQL) is never leaked to the
+  caller. This holds even if the keyword blocklist misses something.
+- **Lint / first-line filter (`validateSqlQuery`, defense-in-depth).** Runs at
+  save time and again at execution time. It is a keyword blocklist, **not** the
+  read-only guarantee — constructs like CTEs or side-effectful functions can
+  pass it. It cheaply rejects the obvious cases early: comments stripped first
+  (defeats comment-smuggled writes), no interior `;` (single statement), must
+  start with `SELECT`, and no word-boundary-matched write/DDL keywords
   (`insert|update|delete|drop|alter|create|grant|truncate|copy|execute|do|into`).
   Word boundaries keep column names like `created_at` / `updated_at` safe.
   *Known limitation:* a string literal that exactly equals a forbidden keyword
   (e.g. `status = 'delete'`) is falsely rejected — acceptable for an admin-
-  curated, save-time defense-in-depth check.
+  curated, save-time lint check.
 - **Row + size caps.** If the query lacks a `LIMIT`, ` LIMIT 50` is appended
   (`DEFAULT_ROW_LIMIT`). The serialized result is capped at 256 KB.
 - Connection strings are decrypted per call and never logged (raw or decrypted).

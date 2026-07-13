@@ -34,10 +34,13 @@ what makes read-only true **by construction**:
 - **HTTP backing** — hard-coded `GET`, host-allowlisted, DNS-resolved and
   checked against private/reserved IP ranges (SSRF guard), no redirects
   followed, 5s timeout, 256 KB response cap.
-- **SQL backing** — a single stored `SELECT` (write/DDL keywords rejected at
-  save time and again at execution time), positional `$1..$n` params bound
-  from validated inputs, forced `LIMIT` if absent, per-application `pg` pool
-  (max 2 connections, FIFO-evicted beyond 20 pools).
+- **SQL backing** — a single stored query run inside a
+  `BEGIN TRANSACTION READ ONLY` block, so Postgres rejects any write at runtime
+  (SQLSTATE 25006); that transaction, not the keyword lint, is the read-only
+  guarantee. A cheap `validateSqlQuery` keyword filter still rejects obvious
+  write/DDL at save time and again at execution time. Positional `$1..$n` params
+  bound from validated inputs, forced `LIMIT` if absent, per-application `pg`
+  pool (max 2 connections, FIFO-evicted beyond 20 pools).
 - **Errors are returned, never thrown** (`{ ok: false, error, kind }`), so a
   tool failure feeds the escalation policy instead of surfacing as an
   exception or a fabricated answer.

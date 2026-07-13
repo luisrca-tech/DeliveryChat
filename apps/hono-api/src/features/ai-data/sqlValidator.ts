@@ -21,9 +21,15 @@ const FORBIDDEN_KEYWORDS = [
 ];
 
 /**
- * Save-time validator for SQL DataTool queries. Reused by the CRUD layer.
+ * Save-time lint / first-line filter for SQL DataTool queries. Reused by the
+ * CRUD layer and re-run by the SQL executor as cheap defense-in-depth.
  *
- * Guarantees a query is a single read-only `SELECT`:
+ * This is a keyword blocklist, NOT a read-only guarantee: constructs like CTEs
+ * or side-effectful functions can pass it. The read-only GUARANTEE lives in the
+ * executor (`sqlExecutor.ts`), which runs every query inside a
+ * `BEGIN TRANSACTION READ ONLY` block so Postgres rejects writes at runtime.
+ *
+ * As a lint pass it rejects the obvious cases early:
  *  - comments are stripped first (to defeat comment-smuggled statements),
  *  - only one statement (no `;` except a single trailing one),
  *  - must start with `SELECT`,

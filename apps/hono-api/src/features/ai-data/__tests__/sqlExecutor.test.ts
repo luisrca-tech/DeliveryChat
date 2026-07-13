@@ -1,17 +1,39 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { mockQuery, mockEnd, PoolCtor } = vi.hoisted(() => ({
-  mockQuery: vi.fn(),
-  mockEnd: vi.fn().mockResolvedValue(undefined),
-  PoolCtor: vi.fn(),
-}));
+const { mockClientQuery, mockRelease, mockConnect, mockEnd, PoolCtor } =
+  vi.hoisted(() => ({
+    mockClientQuery: vi.fn(),
+    mockRelease: vi.fn(),
+    mockConnect: vi.fn(),
+    mockEnd: vi.fn().mockResolvedValue(undefined),
+    PoolCtor: vi.fn(),
+  }));
 
 vi.mock("pg", () => ({ Pool: PoolCtor }));
 
 function applyPoolImplementation() {
   PoolCtor.mockImplementation(function (this: unknown, config: unknown) {
-    return { config, query: mockQuery, end: mockEnd };
+    return { config, connect: mockConnect, end: mockEnd };
   });
+  mockConnect.mockImplementation(async () => ({
+    query: mockClientQuery,
+    release: mockRelease,
+  }));
+}
+
+/**
+ * The executor runs BEGIN / COMMIT / ROLLBACK plus the data query on the same
+ * client. Only the data query is called with a values array (2 args), so this
+ * isolates the actual query invocation from the transaction control statements.
+ */
+function dataQueryCall(): [string, unknown[]] {
+  const call = mockClientQuery.mock.calls.find((c) => c.length === 2);
+  if (!call) throw new Error("data query was not executed");
+  return call as [string, unknown[]];
+}
+
+function clientQuerySql(): string[] {
+  return mockClientQuery.mock.calls.map((c) => c[0] as string);
 }
 
 vi.mock("../../../lib/crypto/secretBox.js", () => ({
@@ -50,7 +72,9 @@ function input(overrides: {
 beforeEach(async () => {
   await __resetPoolsForTest();
   PoolCtor.mockReset();
-  mockQuery.mockReset();
+  mockClientQuery.mockReset();
+  mockConnect.mockReset();
+  mockRelease.mockReset();
   mockEnd.mockReset();
   mockEnd.mockResolvedValue(undefined);
   applyPoolImplementation();
@@ -58,7 +82,7 @@ beforeEach(async () => {
 
 describe("executeSqlTool", () => {
   it("runs the stored query with positional binds in schema order", async () => {
-    mockQuery.mockResolvedValue({ rows: [{ id: 1, name: "Widget" }] });
+    mockClientQuery.mockResolvedValue({ rows: [{ id: 1, name: "Widget" }] });
 
     const result = await executeSqlTool(
       input({
@@ -72,31 +96,42 @@ describe("executeSqlTool", () => {
     );
 
     expect(result).toEqual({ ok: true, data: [{ id: 1, name: "Widget" }] });
-    const [, values] = mockQuery.mock.calls[0]!;
+    const [, values] = dataQueryCall();
     expect(values).toEqual(["ABC", 2]);
   });
 
+  it("runs the query inside a read-only transaction and commits", async () => {
+    mockClientQuery.mockResolvedValue({ rows: [] });
+
+    await executeSqlTool(input({ query: "SELECT id FROM products WHERE sku = $1" }));
+
+    const sqls = clientQuerySql();
+    expect(sqls[0]).toBe("BEGIN TRANSACTION READ ONLY");
+    expect(sqls[sqls.length - 1]).toBe("COMMIT");
+    expect(mockRelease).toHaveBeenCalledTimes(1);
+  });
+
   it("appends LIMIT 50 when the query has no LIMIT", async () => {
-    mockQuery.mockResolvedValue({ rows: [] });
+    mockClientQuery.mockResolvedValue({ rows: [] });
 
     await executeSqlTool(input({ query: "SELECT * FROM products WHERE sku = $1" }));
 
-    const [queryText] = mockQuery.mock.calls[0]!;
+    const [queryText] = dataQueryCall();
     expect(queryText).toMatch(/LIMIT 50$/);
   });
 
   it("does not append LIMIT when the query already has one", async () => {
-    mockQuery.mockResolvedValue({ rows: [] });
+    mockClientQuery.mockResolvedValue({ rows: [] });
 
     const query = "SELECT * FROM products WHERE sku = $1 LIMIT 10";
     await executeSqlTool(input({ query }));
 
-    const [queryText] = mockQuery.mock.calls[0]!;
+    const [queryText] = dataQueryCall();
     expect(queryText).toBe(query);
   });
 
   it("reuses one pool per application", async () => {
-    mockQuery.mockResolvedValue({ rows: [] });
+    mockClientQuery.mockResolvedValue({ rows: [] });
 
     await executeSqlTool(input({ applicationId: "app-1" }));
     await executeSqlTool(input({ applicationId: "app-1" }));
@@ -105,7 +140,7 @@ describe("executeSqlTool", () => {
   });
 
   it("creates a separate pool per application", async () => {
-    mockQuery.mockResolvedValue({ rows: [] });
+    mockClientQuery.mockResolvedValue({ rows: [] });
 
     await executeSqlTool(input({ applicationId: "app-1" }));
     await executeSqlTool(input({ applicationId: "app-2" }));
@@ -114,7 +149,7 @@ describe("executeSqlTool", () => {
   });
 
   it("configures the pool with statement_timeout, max and decrypted connection string", async () => {
-    mockQuery.mockResolvedValue({ rows: [] });
+    mockClientQuery.mockResolvedValue({ rows: [] });
 
     await executeSqlTool(input({}));
 
@@ -125,7 +160,7 @@ describe("executeSqlTool", () => {
   });
 
   it("evicts the oldest pool beyond the pool cap", async () => {
-    mockQuery.mockResolvedValue({ rows: [] });
+    mockClientQuery.mockResolvedValue({ rows: [] });
 
     for (let i = 0; i < 21; i++) {
       await executeSqlTool(input({ applicationId: `app-${i}` }));
@@ -135,20 +170,48 @@ describe("executeSqlTool", () => {
     expect(mockEnd).toHaveBeenCalledTimes(1); // oldest pool ended
   });
 
-  it("returns an execution error for a stored non-SELECT query (defense in depth)", async () => {
+  it("returns an execution error for a stored non-SELECT query (lint filter)", async () => {
     const result = await executeSqlTool(
       input({ query: "DELETE FROM products WHERE id = $1" }),
     );
 
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.kind).toBe("execution");
-    expect(mockQuery).not.toHaveBeenCalled();
+    expect(mockConnect).not.toHaveBeenCalled();
+    expect(mockClientQuery).not.toHaveBeenCalled();
+  });
+
+  it("maps a read-only transaction violation to an execution error and rolls back", async () => {
+    // Simulates a write that slips past the lint filter (e.g. a mutating
+    // function): Postgres rejects it with SQLSTATE 25006 at runtime.
+    mockClientQuery.mockImplementation(async (sql: string) => {
+      if (/^(BEGIN|COMMIT|ROLLBACK)/i.test(sql)) return { rows: [] };
+      const error = new Error(
+        "cannot execute UPDATE in a read-only transaction",
+      ) as Error & { code?: string };
+      error.code = "25006";
+      throw error;
+    });
+
+    const result = await executeSqlTool(
+      input({ query: "SELECT mutating_fn($1)" }),
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.kind).toBe("execution");
+      // Message must not leak the offending SQL or the driver error text.
+      expect(result.error).toBe("Query execution failed");
+    }
+    expect(clientQuerySql()).toContain("ROLLBACK");
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
   it("returns kind 'timeout' when the statement times out", async () => {
-    mockQuery.mockRejectedValue(
-      new Error("canceling statement due to statement timeout"),
-    );
+    mockClientQuery.mockImplementation(async (sql: string) => {
+      if (/^(BEGIN|COMMIT|ROLLBACK)/i.test(sql)) return { rows: [] };
+      throw new Error("canceling statement due to statement timeout");
+    });
 
     const result = await executeSqlTool(input({}));
 
@@ -157,6 +220,7 @@ describe("executeSqlTool", () => {
       kind: "timeout",
       error: expect.any(String),
     });
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 
   it("returns an execution error when the result exceeds the size cap", async () => {
@@ -164,7 +228,10 @@ describe("executeSqlTool", () => {
       id: i,
       blob: "x".repeat(100),
     }));
-    mockQuery.mockResolvedValue({ rows: bigRows });
+    mockClientQuery.mockImplementation(async (sql: string) => {
+      if (/^(BEGIN|COMMIT|ROLLBACK)/i.test(sql)) return { rows: [] };
+      return { rows: bigRows };
+    });
 
     const result = await executeSqlTool(input({}));
 
@@ -176,7 +243,10 @@ describe("executeSqlTool", () => {
   });
 
   it("returns an execution error when the query fails", async () => {
-    mockQuery.mockRejectedValue(new Error("relation does not exist"));
+    mockClientQuery.mockImplementation(async (sql: string) => {
+      if (/^(BEGIN|COMMIT|ROLLBACK)/i.test(sql)) return { rows: [] };
+      throw new Error("relation does not exist");
+    });
 
     const result = await executeSqlTool(input({}));
 
@@ -185,5 +255,6 @@ describe("executeSqlTool", () => {
       kind: "execution",
       error: expect.any(String),
     });
+    expect(mockRelease).toHaveBeenCalledTimes(1);
   });
 });

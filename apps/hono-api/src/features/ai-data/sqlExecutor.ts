@@ -1,4 +1,4 @@
-import { Pool } from "pg";
+import { Pool, type PoolClient } from "pg";
 import { decryptSecret } from "../../lib/crypto/secretBox.js";
 import { orderedParamNames } from "./toolSchema.js";
 import { hasLimitClause, validateSqlQuery } from "./sqlValidator.js";
@@ -50,9 +50,12 @@ function getPool(applicationId: string, connectionString: string): Pool {
 /**
  * Execute a SQL-backed DataTool.
  *
- * Read-only by construction: only the stored query text is executed, with
- * positional bind params mapped from the validated params in the schema's
- * property order. Errors are RETURNED, never thrown.
+ * Read-only by construction: the stored query runs inside an explicit
+ * `BEGIN TRANSACTION READ ONLY` block, so Postgres itself rejects any write
+ * that slips past the `validateSqlQuery` lint filter (SQLSTATE 25006). Only the
+ * stored query text is executed, with positional bind params mapped from the
+ * validated params in the schema's property order. Errors are RETURNED, never
+ * thrown.
  */
 export async function executeSqlTool(
   input: Pick<ExecuteDataToolInput, "applicationId" | "tool" | "source" | "params">,
@@ -60,7 +63,9 @@ export async function executeSqlTool(
   const sourceConfig = input.source.config as SqlSourceConfig;
   const toolConfig = input.tool.config as SqlToolConfig;
 
-  // Defense-in-depth: re-validate the stored query before running it.
+  // First-line lint: re-run the cheap filter before touching the database. The
+  // read-only GUARANTEE lives below, in the READ ONLY transaction — this only
+  // rejects obvious writes early.
   const validation = validateSqlQuery(toolConfig.query);
   if (!validation.ok) {
     console.error("[ai-data.sql] stored query failed validation", {
@@ -95,22 +100,46 @@ export async function executeSqlTool(
     };
   }
 
+  const pool = getPool(input.applicationId, connectionString);
+
+  let client: PoolClient;
+  try {
+    client = await pool.connect();
+  } catch (error) {
+    // Never log the connection string or values.
+    console.error("[ai-data.sql] failed to acquire a connection", {
+      tool: input.tool.name,
+      error: error instanceof Error ? error.message : undefined,
+    });
+    return { ok: false, kind: "execution", error: "Query execution failed" };
+  }
+
   let rows: unknown[];
   try {
-    const pool = getPool(input.applicationId, connectionString);
-    const result = await pool.query(query, values);
+    // Read-only by construction: even if a write slips past validateSqlQuery,
+    // Postgres rejects it inside this transaction (SQLSTATE 25006).
+    await client.query("BEGIN TRANSACTION READ ONLY");
+    const result = await client.query(query, values);
     rows = result.rows;
+    await client.query("COMMIT");
   } catch (error) {
+    // pg does not auto-close an open transaction on release; roll back so the
+    // connection returns clean. The original error wins over a rollback error.
+    await client.query("ROLLBACK").catch(() => undefined);
     if (isTimeoutError(error)) {
       console.error("[ai-data.sql] query timed out", { tool: input.tool.name });
       return { ok: false, kind: "timeout", error: "Query timed out" };
     }
+    // A read-only violation (SQLSTATE 25006) lands here too and surfaces as a
+    // generic execution failure — the message never leaks the offending SQL.
     // Never log the connection string or values.
     console.error("[ai-data.sql] query execution failed", {
       tool: input.tool.name,
       error: error instanceof Error ? error.message : undefined,
     });
     return { ok: false, kind: "execution", error: "Query execution failed" };
+  } finally {
+    client.release();
   }
 
   // Cap serialized result size.
