@@ -40,9 +40,14 @@ function hostFromUrl(value: string): string | null {
 
 export type DataSourceSectionProps = {
   applicationId: string;
+  /** Called after a successful save — lets the wrapping dialog close. */
+  onSaved?: () => void;
 };
 
-export function DataSourceSection({ applicationId }: DataSourceSectionProps) {
+export function DataSourceSection({
+  applicationId,
+  onSaved,
+}: DataSourceSectionProps) {
   const { data: source, isLoading } = useDataSourceQuery(applicationId);
   const putMutation = usePutDataSourceMutation(applicationId);
 
@@ -130,6 +135,7 @@ export function DataSourceSection({ applicationId }: DataSourceSectionProps) {
         ...(headersPayload !== undefined ? { headers: headersPayload } : {}),
       });
       toast.success("Data source saved");
+      onSaved?.();
     } catch (e) {
       toast.error("Failed to save data source", {
         description: e instanceof Error ? e.message : "Unknown error",
@@ -153,6 +159,7 @@ export function DataSourceSection({ applicationId }: DataSourceSectionProps) {
       });
       sqlForm.reset({ connectionString: "" });
       toast.success("Data source saved");
+      onSaved?.();
     } catch (e) {
       toast.error("Failed to save data source", {
         description: e instanceof Error ? e.message : "Unknown error",

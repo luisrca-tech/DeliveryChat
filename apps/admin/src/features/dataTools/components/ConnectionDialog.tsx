@@ -29,7 +29,10 @@ export function ConnectionDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <DataSourceSection applicationId={applicationId} />
+        <DataSourceSection
+          applicationId={applicationId}
+          onSaved={() => onOpenChange(false)}
+        />
       </DialogContent>
     </Dialog>
   );
