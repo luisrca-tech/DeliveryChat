@@ -170,6 +170,12 @@ export function DataToolDialog({
         enabled,
       });
       setSavedTool(updated);
+      if (enabled) {
+        // Enabling is the terminal step of the create → test → enable flow —
+        // close the dialog so the user lands back on the updated table.
+        toast.success("Tool enabled — the AI can use it now");
+        onOpenChange(false);
+      }
     } catch (e) {
       toast.error("Failed to update tool status", {
         description: e instanceof Error ? e.message : "Unknown error",
