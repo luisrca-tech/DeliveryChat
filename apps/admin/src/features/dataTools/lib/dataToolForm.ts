@@ -105,3 +105,38 @@ export function buildDataToolBody(
 export function canEnableTool(tool: DataTool | null): boolean {
   return Boolean(tool?.lastTestedAt);
 }
+
+/** What a single "Save changes" click must do, in order. */
+export type DataToolSavePlan = {
+  /** Create the tool, or persist edited fields. */
+  saveFields: boolean;
+  /** Apply the pending enabled/disabled switch via the enable endpoint. */
+  applyStatus: boolean;
+  /** A wanted enable could not be applied — the test gate is (or will be) unmet. */
+  blockedEnable: boolean;
+};
+
+/**
+ * Plans a save: field edits are persisted first, and a pending status change
+ * is applied only when the test-before-enable gate still holds. Saving fields
+ * resets `enabled`/`lastTestedAt` server-side, so an enable wanted alongside a
+ * field edit is always blocked until a fresh test succeeds.
+ */
+export function planDataToolSave(input: {
+  savedTool: DataTool | null;
+  fieldsDirty: boolean;
+  enabled: boolean;
+}): DataToolSavePlan {
+  const { savedTool, fieldsDirty, enabled } = input;
+  if (!savedTool) {
+    return { saveFields: true, applyStatus: false, blockedEnable: false };
+  }
+  if (fieldsDirty) {
+    return { saveFields: true, applyStatus: false, blockedEnable: enabled };
+  }
+  if (enabled === savedTool.enabled) {
+    return { saveFields: false, applyStatus: false, blockedEnable: false };
+  }
+  const blocked = enabled && !canEnableTool(savedTool);
+  return { saveFields: false, applyStatus: !blocked, blockedEnable: blocked };
+}

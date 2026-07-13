@@ -8,6 +8,7 @@ import {
   coerceParam,
   coerceParams,
   NAME_REGEX,
+  planDataToolSave,
 } from "./dataToolForm";
 
 const schema: ToolInputSchema = {
@@ -181,6 +182,56 @@ describe("buildDataToolBody", () => {
         config: "SELECT name\nFROM products",
       })?.config,
     ).toEqual({ query: "SELECT name\nFROM products" });
+  });
+});
+
+describe("planDataToolSave", () => {
+  const testedDisabled = {
+    lastTestedAt: "2025-01-01T00:00:00Z",
+    enabled: false,
+  } as DataTool;
+  const testedEnabled = { ...testedDisabled, enabled: true } as DataTool;
+
+  it("creates the tool for a new (unsaved) form", () => {
+    expect(
+      planDataToolSave({ savedTool: null, fieldsDirty: true, enabled: false }),
+    ).toEqual({ saveFields: true, applyStatus: false, blockedEnable: false });
+  });
+
+  it("applies a status-only enable without re-saving fields", () => {
+    expect(
+      planDataToolSave({ savedTool: testedDisabled, fieldsDirty: false, enabled: true }),
+    ).toEqual({ saveFields: false, applyStatus: true, blockedEnable: false });
+  });
+
+  it("applies a status-only disable without re-saving fields", () => {
+    expect(
+      planDataToolSave({ savedTool: testedEnabled, fieldsDirty: false, enabled: false }),
+    ).toEqual({ saveFields: false, applyStatus: true, blockedEnable: false });
+  });
+
+  it("does nothing when neither fields nor status changed", () => {
+    expect(
+      planDataToolSave({ savedTool: testedEnabled, fieldsDirty: false, enabled: true }),
+    ).toEqual({ saveFields: false, applyStatus: false, blockedEnable: false });
+  });
+
+  it("blocks a pending enable when a field edit resets the test gate", () => {
+    // Saving fields resets enabled/lastTestedAt server-side, so a wanted
+    // enable cannot be applied in the same save — it needs a fresh test.
+    expect(
+      planDataToolSave({ savedTool: testedEnabled, fieldsDirty: true, enabled: true }),
+    ).toEqual({ saveFields: true, applyStatus: false, blockedEnable: true });
+  });
+
+  it("blocks enabling an untested tool", () => {
+    expect(
+      planDataToolSave({
+        savedTool: { lastTestedAt: null, enabled: false } as DataTool,
+        fieldsDirty: false,
+        enabled: true,
+      }),
+    ).toEqual({ saveFields: false, applyStatus: false, blockedEnable: true });
   });
 });
 

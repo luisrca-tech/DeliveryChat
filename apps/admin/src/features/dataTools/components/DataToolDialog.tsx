@@ -35,6 +35,7 @@ import {
   canEnableTool,
   canSaveDataTool,
   coerceParams,
+  planDataToolSave,
 } from "../lib/dataToolForm";
 import type {
   DataSourceKind,
@@ -76,10 +77,15 @@ export function DataToolDialog({
   const [savedTool, setSavedTool] = useState<DataTool | null>(tool);
   const [testValues, setTestValues] = useState<Record<string, string>>({});
   const [testResult, setTestResult] = useState<TestDataToolResult | null>(null);
+  // Pending state confirmed only by "Save changes" — the single source of truth.
+  const [enabled, setEnabled] = useState(false);
+  const [fieldsDirty, setFieldsDirty] = useState(false);
 
   useEffect(() => {
     if (!open) return;
     setSavedTool(tool);
+    setEnabled(tool?.enabled ?? false);
+    setFieldsDirty(false);
     setName(tool?.name ?? "");
     setDescription(tool?.description ?? "");
     const rows = tool ? schemaToParamRows(tool.inputSchema) : [];
@@ -121,23 +127,55 @@ export function DataToolDialog({
   const canSave = canSaveDataTool(formInputs);
 
   const handleSave = async () => {
-    const body = buildDataToolBody(formInputs);
-    if (!body) return;
+    const plan = planDataToolSave({ savedTool, fieldsDirty, enabled });
+    let current = savedTool;
 
-    try {
-      const result = savedTool
-        ? await updateMutation.mutateAsync({ toolId: savedTool.id, body })
-        : await createMutation.mutateAsync(body);
-      setSavedTool(result);
-      setTestResult(null);
-      const rows = schemaToParamRows(result.inputSchema);
-      setParamRows(rows);
-      setTestValues(buildParamValues(rows));
-      toast.success(isEdit || savedTool ? "Tool saved" : "Tool created");
-    } catch (e) {
-      toast.error("Failed to save tool", {
-        description: e instanceof Error ? e.message : "Unknown error",
-      });
+    if (plan.saveFields) {
+      const body = buildDataToolBody(formInputs);
+      if (!body) return;
+      try {
+        const result = current
+          ? await updateMutation.mutateAsync({ toolId: current.id, body })
+          : await createMutation.mutateAsync(body);
+        current = result;
+        setSavedTool(result);
+        // The server resets enabled/lastTestedAt on every field edit.
+        setEnabled(result.enabled);
+        setFieldsDirty(false);
+        setTestResult(null);
+        const rows = schemaToParamRows(result.inputSchema);
+        setParamRows(rows);
+        setTestValues(buildParamValues(rows));
+        toast.success(isEdit || savedTool ? "Tool saved" : "Tool created");
+      } catch (e) {
+        toast.error("Failed to save tool", {
+          description: e instanceof Error ? e.message : "Unknown error",
+        });
+        return;
+      }
+    }
+
+    if (plan.applyStatus && current) {
+      try {
+        const updated = await enableMutation.mutateAsync({
+          toolId: current.id,
+          enabled,
+        });
+        setSavedTool(updated);
+        setEnabled(updated.enabled);
+        toast.success(
+          updated.enabled ? "Tool enabled — the AI can use it now" : "Tool disabled",
+        );
+      } catch (e) {
+        toast.error("Failed to update tool status", {
+          description: e instanceof Error ? e.message : "Unknown error",
+        });
+      }
+    }
+
+    if (plan.blockedEnable) {
+      setEnabled(false);
+      toast.info("Status not changed — run a successful test before enabling");
     }
   };
 
@@ -162,29 +200,11 @@ export function DataToolDialog({
     }
   };
 
-  const handleEnableToggle = async (enabled: boolean) => {
-    if (!savedTool) return;
-    try {
-      const updated = await enableMutation.mutateAsync({
-        toolId: savedTool.id,
-        enabled,
-      });
-      setSavedTool(updated);
-      if (enabled) {
-        // Enabling is the terminal step of the create → test → enable flow —
-        // close the dialog so the user lands back on the updated table.
-        toast.success("Tool enabled — the AI can use it now");
-        onOpenChange(false);
-      }
-    } catch (e) {
-      toast.error("Failed to update tool status", {
-        description: e instanceof Error ? e.message : "Unknown error",
-      });
-    }
-  };
-
   const canEnable = canEnableTool(savedTool);
-  const saving = createMutation.isPending || updateMutation.isPending;
+  const saving =
+    createMutation.isPending || updateMutation.isPending || enableMutation.isPending;
+  const statusDirty = savedTool ? enabled !== savedTool.enabled : false;
+  const hasChanges = !savedTool || fieldsDirty || statusDirty;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -210,7 +230,10 @@ export function DataToolDialog({
                 id="tool_name"
                 placeholder="searchProducts"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setFieldsDirty(true);
+                }}
                 className="font-mono"
               />
               <p className="text-xs text-muted-foreground">
@@ -226,7 +249,10 @@ export function DataToolDialog({
                 className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 placeholder="Searches the product catalog by category and returns matching product names, prices, and links."
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setFieldsDirty(true);
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 The AI decides when to use this tool based on this description
@@ -249,7 +275,10 @@ export function DataToolDialog({
                     : "SELECT name, price FROM products WHERE category = $1 LIMIT 20"
                 }
                 value={config}
-                onChange={(e) => setConfig(e.target.value)}
+                onChange={(e) => {
+                  setConfig(e.target.value);
+                  setFieldsDirty(true);
+                }}
               />
               <p className="text-xs text-muted-foreground">
                 {effectiveKind === "http"
@@ -274,10 +303,19 @@ export function DataToolDialog({
                   rows={6}
                   className="w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                   value={rawJsonText}
-                  onChange={(e) => setRawJsonText(e.target.value)}
+                  onChange={(e) => {
+                    setRawJsonText(e.target.value);
+                    setFieldsDirty(true);
+                  }}
                 />
               ) : (
-                <ParamSchemaBuilder rows={paramRows} onChange={setParamRows} />
+                <ParamSchemaBuilder
+                  rows={paramRows}
+                  onChange={(rows) => {
+                    setParamRows(rows);
+                    setFieldsDirty(true);
+                  }}
+                />
               )}
               {rawJsonMode && resolvedSchema === null && (
                 <p className="text-sm text-destructive">Invalid JSON</p>
@@ -362,6 +400,7 @@ export function DataToolDialog({
                 <p className="text-sm font-medium">Tool status</p>
                 <p className="text-xs text-muted-foreground">
                   Only enabled tools are offered to the AI in conversations.
+                  Status changes apply when you save.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -370,9 +409,9 @@ export function DataToolDialog({
                     <TooltipTrigger asChild>
                       <span>
                         <Switch
-                          checked={savedTool?.enabled ?? false}
-                          disabled={!canEnable || enableMutation.isPending}
-                          onCheckedChange={handleEnableToggle}
+                          checked={enabled}
+                          disabled={(!canEnable && !enabled) || saving}
+                          onCheckedChange={setEnabled}
                         />
                       </span>
                     </TooltipTrigger>
@@ -384,7 +423,12 @@ export function DataToolDialog({
                   </Tooltip>
                 </TooltipProvider>
                 <span className="text-sm">
-                  {savedTool?.enabled ? "Enabled" : "Disabled"}
+                  {enabled ? "Enabled" : "Disabled"}
+                  {statusDirty && (
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      (pending save)
+                    </span>
+                  )}
                 </span>
               </div>
             </div>
@@ -395,7 +439,11 @@ export function DataToolDialog({
           <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
             Close
           </Button>
-          <Button type="button" onClick={handleSave} disabled={!canSave || saving}>
+          <Button
+            type="button"
+            onClick={handleSave}
+            disabled={!canSave || saving || !hasChanges}
+          >
             {saving ? "Saving..." : savedTool ? "Save changes" : "Create tool"}
           </Button>
         </DialogFooter>
