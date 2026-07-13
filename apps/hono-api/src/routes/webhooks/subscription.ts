@@ -8,7 +8,11 @@ import {
   sendTrialStartedEmail,
 } from "../../lib/email/index.js";
 import { formatDate } from "../../utils/date.js";
-import { extractPlanFromMetadata, findAiAddonItem, formatMoney } from "./utils.js";
+import { extractPlanFromMetadata, formatMoney } from "./utils.js";
+import {
+  deriveAddonEntitlement,
+  findAiAddonItem,
+} from "../../features/ai/entitlement.js";
 
 /**
  * Builds the admin settings URL for a tenant from its slug, mirroring the
@@ -25,7 +29,7 @@ import type { HandlerContext } from "./types.js";
 
 export async function handleSubscriptionCreated(
   subscription: Stripe.Subscription,
-  { tx }: HandlerContext,
+  { tx, deferredTasks }: HandlerContext,
 ): Promise<void> {
   const customerId = subscription.customer as string;
 
@@ -61,7 +65,26 @@ export async function handleSubscriptionCreated(
     subscription.metadata as Record<string, string>,
   );
 
-  const createdAiItem = findAiAddonItem(subscription);
+  // Derive the AI add-on entitlement through the shared seam so the created
+  // path applies the SAME plan-eligibility guard as the updated path: an add-on
+  // item on an ineligible plan must NOT grant the add-on.
+  const createdResolvedPlan = createdPlan ?? org.plan;
+  const createdEntitlement = deriveAddonEntitlement(
+    subscription,
+    createdResolvedPlan,
+  );
+
+  if (createdEntitlement.revokeItemId) {
+    const itemId = createdEntitlement.revokeItemId;
+    deferredTasks.push(async () => {
+      await stripe.subscriptionItems.del(itemId, {
+        proration_behavior: "create_prorations",
+      });
+    });
+    console.info(
+      `[Webhook] customer.subscription.created: Revoking AI add-on item ${itemId} for org ${org.id} (resolved plan ${createdResolvedPlan} not eligible)`,
+    );
+  }
 
   await tx
     .update(organization)
@@ -70,8 +93,8 @@ export async function handleSubscriptionCreated(
       planStatus: createdPlanStatus,
       ...(createdTrialEndsAt ? { trialEndsAt: createdTrialEndsAt } : {}),
       ...(createdPlan ? { plan: createdPlan } : {}),
-      aiAddonActive: !!createdAiItem,
-      aiAddonSubscriptionItemId: createdAiItem?.id ?? null,
+      aiAddonActive: createdEntitlement.aiAddonActive,
+      aiAddonSubscriptionItemId: createdEntitlement.aiAddonSubscriptionItemId,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(organization.id, org.id));
@@ -173,25 +196,19 @@ export async function handleSubscriptionUpdated(
     subscription.metadata as Record<string, string>,
   );
 
-  // Derive AI add-on entitlement from the subscription items (never set
-  // directly by routes). The add-on is a second item on the subscription.
-  const aiItem = findAiAddonItem(subscription);
+  // Derive AI add-on entitlement from the subscription items through the shared
+  // seam (never set directly by routes). The add-on is a second item on the
+  // subscription; the derivation applies the plan-eligibility guard.
   const resolvedPlan = metadataPlan ?? org.plan;
-  const addonEligible =
-    resolvedPlan === "PREMIUM" || resolvedPlan === "ENTERPRISE";
+  const { aiAddonActive, aiAddonSubscriptionItemId, revokeItemId } =
+    deriveAddonEntitlement(subscription, resolvedPlan);
 
-  let aiAddonActive: boolean;
-  let aiAddonSubscriptionItemId: string | null;
-
-  if (aiItem && !addonEligible) {
+  if (revokeItemId) {
     // Downgrade revocation: the plan is no longer eligible for the add-on but
     // the item is still on the subscription. Remove it from Stripe after the
-    // transaction commits (this fires a follow-up subscription.updated) and
-    // clear the entitlement immediately here for consistency.
-    aiAddonActive = false;
-    aiAddonSubscriptionItemId = null;
-
-    const itemId = aiItem.id;
+    // transaction commits (this fires a follow-up subscription.updated); the
+    // entitlement was already cleared by the derivation for consistency.
+    const itemId = revokeItemId;
     deferredTasks.push(async () => {
       await stripe.subscriptionItems.del(itemId, {
         proration_behavior: "create_prorations",
@@ -201,19 +218,19 @@ export async function handleSubscriptionUpdated(
     console.info(
       `[Webhook] customer.subscription.updated: Revoking AI add-on item ${itemId} for org ${org.id} (resolved plan ${resolvedPlan} not eligible)`,
     );
-  } else {
-    aiAddonActive = !!aiItem;
-    aiAddonSubscriptionItemId = aiItem?.id ?? null;
   }
 
   // Fire the activation email only on the genuine false->true transition (the
   // moment the add-on item first appears and the plan is eligible), never on
   // subsequent updates where the item is merely still present.
   const aiAddonJustActivated = !org.aiAddonActive && aiAddonActive;
-  if (aiAddonJustActivated && billingEmail && aiItem) {
+  const activatedItem = aiAddonJustActivated
+    ? findAiAddonItem(subscription)
+    : null;
+  if (aiAddonJustActivated && billingEmail && activatedItem) {
     const settingsUrl = buildAdminSettingsUrl(org.slug);
-    const amount = formatMoney(aiItem.price?.unit_amount);
-    const currency = aiItem.price?.currency ?? null;
+    const amount = formatMoney(activatedItem.price?.unit_amount);
+    const currency = activatedItem.price?.currency ?? null;
     emailTasks.push(async () => {
       await sendAiAddonActivatedEmail({
         email: billingEmail,
@@ -282,14 +299,20 @@ export async function handleSubscriptionDeleted(
     });
   }
 
+  // The plan drops to FREE, so the shared derivation resolves to "no
+  // entitlement". Any `revokeItemId` is intentionally ignored: the whole
+  // subscription (and its items) is gone, so there is nothing to delete in
+  // Stripe.
+  const deletedEntitlement = deriveAddonEntitlement(subscription, "FREE");
+
   await tx
     .update(organization)
     .set({
       plan: "FREE",
       planStatus: "canceled",
       stripeSubscriptionId: null,
-      aiAddonActive: false,
-      aiAddonSubscriptionItemId: null,
+      aiAddonActive: deletedEntitlement.aiAddonActive,
+      aiAddonSubscriptionItemId: deletedEntitlement.aiAddonSubscriptionItemId,
       updatedAt: new Date().toISOString(),
     })
     .where(eq(organization.id, org.id));

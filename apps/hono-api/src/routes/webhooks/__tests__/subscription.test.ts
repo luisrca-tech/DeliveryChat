@@ -504,26 +504,27 @@ describe("webhooks — AI add-on entitlement derivation", () => {
     expect(sendAiAddonActivatedEmail).not.toHaveBeenCalled();
   });
 
-  it("detects the add-on item by lookup_key fallback", async () => {
-    const org = makeOrg({ plan: "ENTERPRISE", planStatus: "active" });
+  // The created path now shares the SAME derivation as the updated path (via
+  // `deriveAddonEntitlement`), so the item detection / plan-eligibility matrix
+  // is proven exhaustively in `features/ai/__tests__/entitlement.test.ts`.
+  // These two cases only pin the created-handler wiring, including the fixed
+  // bug: an add-on item on an ineligible plan must NOT grant the add-on.
+
+  it("sets aiAddon fields on create when the item is present and the plan is eligible", async () => {
+    const org = makeOrg({ plan: "FREE", planStatus: "trialing" });
     const { txUpdateChain } = setupMocks(org, mockTransaction);
 
-    const event = makeStripeEvent("customer.subscription.updated", {
-      id: "sub_test",
+    const event = makeStripeEvent("customer.subscription.created", {
+      id: "sub_new",
       customer: "cus_test",
       status: "active",
       trial_end: null,
       cancel_at_period_end: false,
-      current_period_end: Math.floor(Date.now() / 1000) + 86400,
-      metadata: { plan: "ENTERPRISE" },
-      items: {
-        data: [
-          {
-            id: "si_addon",
-            price: { id: "price_mismatch", lookup_key: "ai_addon_monthly" },
-          },
-        ],
-      },
+      metadata: { plan: "PREMIUM" },
+      items: makeItems([
+        { id: "si_base", priceId: "price_premium" },
+        { id: "si_addon", priceId: "price_ai_addon" },
+      ]),
     });
     mockConstructEvent.mockReturnValue(event);
 
@@ -534,5 +535,40 @@ describe("webhooks — AI add-on entitlement derivation", () => {
       .calls[0]?.[0];
     expect(setCall.aiAddonActive).toBe(true);
     expect(setCall.aiAddonSubscriptionItemId).toBe("si_addon");
+    expect(mockSubscriptionItemsDel).not.toHaveBeenCalled();
+  });
+
+  it("does NOT grant the add-on on create when the item is present but the plan is ineligible (bug fix)", async () => {
+    const org = makeOrg({ plan: "FREE", planStatus: "trialing" });
+    const { txUpdateChain } = setupMocks(org, mockTransaction);
+    mockSubscriptionItemsDel.mockResolvedValue({});
+
+    const event = makeStripeEvent("customer.subscription.created", {
+      id: "sub_new",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      metadata: { plan: "BASIC" },
+      items: makeItems([
+        { id: "si_base", priceId: "price_basic" },
+        { id: "si_addon", priceId: "price_ai_addon" },
+      ]),
+    });
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    const setCall = (txUpdateChain.set as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0];
+    // Previously this incorrectly set aiAddonActive: true with no plan guard.
+    expect(setCall.aiAddonActive).toBe(false);
+    expect(setCall.aiAddonSubscriptionItemId).toBeNull();
+    // The orphaned Stripe item is revoked post-commit, mirroring a downgrade.
+    expect(mockSubscriptionItemsDel).toHaveBeenCalledWith(
+      "si_addon",
+      expect.objectContaining({ proration_behavior: "create_prorations" }),
+    );
   });
 });

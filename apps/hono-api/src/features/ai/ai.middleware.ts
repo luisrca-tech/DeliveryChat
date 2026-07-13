@@ -2,25 +2,21 @@ import type { MiddlewareHandler } from "hono";
 import { getTenantAuth } from "../../lib/middleware/auth.js";
 import { jsonError, HTTP_STATUS } from "../../lib/http.js";
 import { checkAiQuota, QUOTA_EXCLUDED_ACTIONS } from "./ai.quota.js";
+import { isAddonEntitled } from "./entitlement.js";
 
 export { QUOTA_EXCLUDED_ACTIONS };
 
-const ADDON_ELIGIBLE_PLANS = ["PREMIUM", "ENTERPRISE"] as const;
-
 /**
- * Gates AI features that require the paid add-on entitlement. Requires both
+ * Gates AI features that require the paid add-on entitlement. Delegates the
  * eligibility (plan ∈ {PREMIUM, ENTERPRISE}) AND entitlement (`aiAddonActive`,
- * which is derived from Stripe webhooks). Composes after `requireTenantAuth`.
+ * derived from Stripe webhooks) rule to the shared `isAddonEntitled` seam.
+ * Composes after `requireTenantAuth`.
  */
 export function requireAiAddon(): MiddlewareHandler {
   return async (c, next) => {
     const { organization } = getTenantAuth(c);
 
-    const eligible = ADDON_ELIGIBLE_PLANS.includes(
-      organization.plan as (typeof ADDON_ELIGIBLE_PLANS)[number],
-    );
-
-    if (!eligible || !organization.aiAddonActive) {
+    if (!isAddonEntitled(organization)) {
       return jsonError(
         c,
         HTTP_STATUS.FORBIDDEN,

@@ -7,15 +7,18 @@
  *   3. the application has AI enabled, and
  *   4. the application opted into auto-responding.
  *
- * This is the single source of truth used both when deciding the initial
- * `handledBy` mode at conversation creation and when guarding each AI turn.
+ * Conditions 1–2 (the org half) are delegated to the shared `isAddonEntitled`
+ * seam (`features/ai/entitlement`), so the plan-eligibility rule lives in exactly
+ * one place. This function stays the single source of truth for the full
+ * 4-condition check used both when deciding the initial `handledBy` mode at
+ * conversation creation and when guarding each AI turn.
  */
-export const ADDON_ELIGIBLE_PLANS = ["PREMIUM", "ENTERPRISE"] as const;
+import {
+  isAddonEntitled,
+  type EntitlementOrganization,
+} from "../ai/entitlement.js";
 
-export type EntitlementOrganization = {
-  plan: string;
-  aiAddonActive: boolean;
-};
+export type { EntitlementOrganization };
 
 export type EntitlementApplication = {
   aiEnabled: boolean;
@@ -27,12 +30,8 @@ export function isAiTurnEntitled(input: {
   application: EntitlementApplication;
 }): boolean {
   const { organization, application } = input;
-  const eligiblePlan = ADDON_ELIGIBLE_PLANS.includes(
-    organization.plan as (typeof ADDON_ELIGIBLE_PLANS)[number],
-  );
   return (
-    eligiblePlan &&
-    organization.aiAddonActive &&
+    isAddonEntitled(organization) &&
     application.aiEnabled &&
     application.aiAutoRespond
   );

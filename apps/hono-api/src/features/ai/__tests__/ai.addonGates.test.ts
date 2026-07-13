@@ -7,6 +7,12 @@ vi.mock("../../../db/index.js", () => ({
   db: { select: vi.fn() },
 }));
 
+// `ai.middleware` → `entitlement` → `env`; stub env so importing the middleware
+// doesn't require the full validated environment.
+vi.mock("../../../env.js", () => ({
+  env: { STRIPE_AI_ADDON_PRICE_KEY: "price_ai_addon" },
+}));
+
 vi.mock("../../../lib/middleware/auth.js", () => ({
   getTenantAuth: vi.fn(),
 }));
@@ -37,38 +43,21 @@ function buildApp(middleware: ReturnType<typeof requireAiAddon>) {
 }
 
 // `requireAiAddon` is the single gate for the whole AI feature — including the
-// data-tools routes, which no longer carry an ENTERPRISE-custom distinction.
+// data-tools routes, which no longer carry an ENTERPRISE-custom distinction. It
+// delegates the plan × aiAddonActive rule to `isAddonEntitled` (proven
+// exhaustively in `entitlement.test.ts`), so this suite only asserts the
+// middleware wiring: entitled → pass, not entitled → the 403 error contract.
 describe("requireAiAddon (also gates data-tools)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("allows PREMIUM + add-on active", async () => {
+  it("passes through when the org is entitled", async () => {
     mockGetTenantAuth.mockReturnValue(makeAuth("PREMIUM", true));
     const res = await buildApp(requireAiAddon()).request("/test");
     expect(res.status).toBe(200);
   });
 
-  it("allows ENTERPRISE + add-on active", async () => {
-    mockGetTenantAuth.mockReturnValue(makeAuth("ENTERPRISE", true));
-    const res = await buildApp(requireAiAddon()).request("/test");
-    expect(res.status).toBe(200);
-  });
-
-  it("blocks BASIC even with add-on active", async () => {
-    mockGetTenantAuth.mockReturnValue(makeAuth("BASIC", true));
-    const res = await buildApp(requireAiAddon()).request("/test");
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("ai_addon_not_active");
-  });
-
-  it("blocks PREMIUM when add-on is inactive", async () => {
+  it("returns 403 ai_addon_not_active when the org is not entitled", async () => {
     mockGetTenantAuth.mockReturnValue(makeAuth("PREMIUM", false));
-    const res = await buildApp(requireAiAddon()).request("/test");
-    expect(res.status).toBe(403);
-    expect((await res.json()).error).toBe("ai_addon_not_active");
-  });
-
-  it("blocks ENTERPRISE when add-on is inactive", async () => {
-    mockGetTenantAuth.mockReturnValue(makeAuth("ENTERPRISE", false));
     const res = await buildApp(requireAiAddon()).request("/test");
     expect(res.status).toBe(403);
     expect((await res.json()).error).toBe("ai_addon_not_active");

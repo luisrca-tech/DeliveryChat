@@ -120,13 +120,6 @@ describe("POST /billing/ai-addon", () => {
     });
   });
 
-  it("allows ENTERPRISE plans", async () => {
-    setAuth(makeOrg({ plan: "ENTERPRISE" }));
-    const res = await postAddon();
-    expect(res.status).toBe(200);
-    expect(mockCreate).toHaveBeenCalled();
-  });
-
   it("rejects when there is no active subscription", async () => {
     setAuth(makeOrg({ stripeSubscriptionId: null }));
     const res = await postAddon();

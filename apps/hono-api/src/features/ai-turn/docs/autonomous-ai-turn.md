@@ -94,10 +94,18 @@ Visitor-facing copy (`messages.ts`):
 
 ## Entitlement (`entitlement.ts`)
 
-`isAiTurnEntitled` is the single source of truth used both at conversation
-creation (`resolveInitialHandledBy`) and per turn: plan ∈ {PREMIUM, ENTERPRISE}
-**and** `aiAddonActive` **and** `application.aiEnabled` **and**
-`application.aiAutoRespond`.
+`isAiTurnEntitled` is the single source of truth for the full 4-condition check,
+used both at conversation creation (`resolveInitialHandledBy`) and per turn: plan
+∈ {PREMIUM, ENTERPRISE} **and** `aiAddonActive` **and** `application.aiEnabled`
+**and** `application.aiAutoRespond`.
+
+Its org half (plan eligible **and** `aiAddonActive`) is delegated to the shared
+`isAddonEntitled` seam in **`features/ai/entitlement.ts`** — the one module that
+owns the eligible-plan list and the Stripe add-on derivation. The same seam backs
+`requireAiAddon()` (the AI/data-tools middleware gate), the billing purchase
+gate (`addonEligiblePlan`), and the subscription webhooks
+(`deriveAddonEntitlement`), so the `{PREMIUM, ENTERPRISE}` rule exists in exactly
+one place.
 
 ## Lock semantics (`lock.ts`)
 

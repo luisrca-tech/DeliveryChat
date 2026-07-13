@@ -20,35 +20,6 @@ export function extractPlanFromMetadata(
   return null;
 }
 
-/**
- * Stripe `lookup_key` for the AI add-on price, used as a fallback identifier
- * when the configured price id is not the one present on the subscription item
- * (e.g. environment mismatch).
- */
-export const AI_ADDON_LOOKUP_KEY = "ai_addon_monthly";
-
-/**
- * Finds the AI add-on subscription item on a subscription, if present. The
- * add-on is modeled as a second item on the existing subscription — never a
- * second subscription — so entitlement is derived by scanning the items.
- */
-export function findAiAddonItem(
-  subscription: Stripe.Subscription,
-): Stripe.SubscriptionItem | null {
-  const items = subscription.items?.data ?? [];
-  for (const item of items) {
-    const price = item.price;
-    if (!price) continue;
-    if (
-      price.id === env.STRIPE_AI_ADDON_PRICE_KEY ||
-      price.lookup_key === AI_ADDON_LOOKUP_KEY
-    ) {
-      return item;
-    }
-  }
-  return null;
-}
-
 export function formatMoney(
   amountMinor: number | null | undefined,
 ): string | null {

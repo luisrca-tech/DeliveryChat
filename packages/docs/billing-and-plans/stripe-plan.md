@@ -78,12 +78,27 @@ The AI assistant is sold as a **purchasable add-on**, decoupled from the plan ti
 
 The add-on is modeled as a **second subscription item on the existing subscription** (Stripe price `STRIPE_AI_ADDON_PRICE_KEY`, `lookup_key = ai_addon_monthly`). This keeps the single-`stripeSubscriptionId` schema, one invoice, Stripe-native proration, and an independent cancel lifecycle. A second subscription would break the `status → planStatus` mapping and the single-subscription assumption.
 
+### One entitlement seam — `features/ai/entitlement.ts`
+
+The eligible-plan rule and the webhook derivation live in exactly **one module**, `features/ai/entitlement.ts`, consumed by every layer so the rule cannot drift:
+
+- `ADDON_ELIGIBLE_PLANS` / `addonEligiblePlan(plan)` — the canonical `{PREMIUM, ENTERPRISE}` gate.
+- `isAddonEntitled(org)` — plan eligible **and** `aiAddonActive`. Consumed by `requireAiAddon()` and (via `isAiTurnEntitled`) the per-turn check.
+- `findAiAddonItem(subscription)` — locates the add-on item (`price.id === STRIPE_AI_ADDON_PRICE_KEY`, fallback `price.lookup_key === "ai_addon_monthly"`).
+- `deriveAddonEntitlement(subscription, resolvedPlan)` → `{ aiAddonActive, aiAddonSubscriptionItemId, revokeItemId? }` — the single derivation shared by all three subscription webhook handlers.
+
 ### Entitlement is derived from webhooks only
 
-`aiAddonActive` / `aiAddonSubscriptionItemId` are **never set directly by any route**. They are derived by scanning `subscription.items.data` in the webhook handlers:
+`aiAddonActive` / `aiAddonSubscriptionItemId` are **never set directly by any route**. All three subscription webhook handlers call the same `deriveAddonEntitlement(subscription, resolvedPlan)`:
 
-- **`customer.subscription.created`** and **`customer.subscription.updated`** — detect the add-on item by `price.id === STRIPE_AI_ADDON_PRICE_KEY` (fallback `price.lookup_key === "ai_addon_monthly"`). Present → `aiAddonActive = true`, `aiAddonSubscriptionItemId = item.id`. Absent → `false` / `null`. The extra item never disturbs plan resolution (`extractPlanFromMetadata` is unchanged).
-- **`customer.subscription.deleted`** — resets `aiAddonActive = false`, `aiAddonSubscriptionItemId = null` alongside the plan reset.
+- **Item present + eligible plan** → `aiAddonActive = true`, `aiAddonSubscriptionItemId = item.id`.
+- **Item absent** → `false` / `null`.
+- **Item present + INELIGIBLE plan** → `false` / `null`, plus a `revokeItemId` for post-commit removal (see Downgrade revocation).
+
+The extra item never disturbs plan resolution (`extractPlanFromMetadata` is unchanged).
+
+- **`customer.subscription.created`** and **`customer.subscription.updated`** apply this derivation identically. (Previously `created` set `aiAddonActive = !!item` with **no plan-eligibility guard** — a bug where an add-on item on an ineligible plan wrongly granted the add-on. The shared seam fixes it: `created` now applies the same guard and revokes the orphaned item, exactly like a downgrade.)
+- **`customer.subscription.deleted`** — the plan drops to `FREE`, so the derivation resolves to `false` / `null` alongside the plan reset. Any `revokeItemId` is ignored because the whole subscription (and its items) is already gone.
 
 ### Purchase & cancel routes
 
@@ -94,10 +109,12 @@ Both require `super_admin` and go through the standard billing middleware chain.
 
 ### Downgrade revocation
 
-In `customer.subscription.updated`, if the resolved plan is **not** in `{PREMIUM, ENTERPRISE}` (e.g. a downgrade to BASIC) while the add-on item is still present, the handler:
+When the resolved plan is **not** in `{PREMIUM, ENTERPRISE}` (e.g. a downgrade to BASIC) while the add-on item is still present, `deriveAddonEntitlement` returns a `revokeItemId`, and the handler:
 
 1. clears the entitlement flags immediately (for consistency), and
 2. schedules a **post-commit** Stripe call (`subscriptionItems.del`, same deferred pattern as `emailTasks`) to remove the orphaned item — which itself fires a follow-up `subscription.updated`.
+
+Both `created` and `updated` honour `revokeItemId` this way; `deleted` ignores it (the subscription is gone).
 
 ### Feature gates
 

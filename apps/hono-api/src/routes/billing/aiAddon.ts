@@ -4,8 +4,9 @@ import { env } from "../../env.js";
 import { getTenantAuth, requireRole } from "../../lib/middleware/auth.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../../lib/http.js";
 import { stripe } from "../../lib/stripe.js";
+import { addonEligiblePlan } from "../../features/ai/entitlement.js";
 
-const ADDON_ELIGIBLE_PLANS = ["PREMIUM", "ENTERPRISE"] as const;
+// Purchase-specific: the subscription must be active or trialing to add an item.
 const ADDON_ACTIVE_STATUSES = ["active", "trialing"] as const;
 
 type AddonOrganization = {
@@ -47,11 +48,7 @@ function assertAddonPurchasable(
     );
   }
 
-  if (
-    !ADDON_ELIGIBLE_PLANS.includes(
-      organization.plan as (typeof ADDON_ELIGIBLE_PLANS)[number],
-    )
-  ) {
+  if (!addonEligiblePlan(organization.plan)) {
     return jsonError(
       c,
       HTTP_STATUS.FORBIDDEN,
