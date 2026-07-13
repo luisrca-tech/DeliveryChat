@@ -24,7 +24,7 @@
  *   infisical run --path=/hono-api -- npx playwright test e2e/aiDataConnection.e2e.ts
  */
 import { test, expect, type APIRequestContext } from "@playwright/test";
-import { randomUUID, createHmac } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "../src/db/index";
 import { organization } from "../src/db/schema/organization";
@@ -34,6 +34,7 @@ import {
   provisionTestData,
   cleanupTestData,
   createSessionInDB,
+  signSessionCookie,
   type E2ETestData,
 } from "./helpers/db-fixture";
 
@@ -50,20 +51,6 @@ const HUMAN_REQUESTED_SNIPPET = "connecting you with a team member";
 let data: E2ETestData;
 let adminCookieValue: string;
 let serverReachable = false;
-
-/**
- * Build the Better Auth signed `session_token` cookie value for a DB session
- * token. Better Auth (v1.4) stores the raw token and signs the cookie as
- * `${token}.${base64(HMAC-SHA256(secret, token))}` — verified before the DB
- * lookup, so an unsigned raw token (what `createSessionInDB` returns) is
- * rejected. We reproduce that signature here so the admin session authenticates.
- */
-function signSessionToken(token: string): string {
-  const secret = process.env.BETTER_AUTH_SECRET;
-  if (!secret) throw new Error("BETTER_AUTH_SECRET is required to sign the session cookie");
-  const signature = createHmac("sha256", secret).update(token).digest("base64");
-  return `${token}.${encodeURIComponent(signature)}`;
-}
 
 // ── Header builders ──
 
@@ -212,18 +199,8 @@ test.beforeAll(async () => {
       "This is an e2e test business. It sells widgets and offers standard support.",
   });
 
-  const adminToken = await createSessionInDB(data.adminUser.id);
-  adminCookieValue = signSessionToken(adminToken);
-
-  // DIAGNOSTIC
-  const diag = await fetch(`${BASE_URL}/api/v1/ai/usage`, {
-    headers: {
-      Cookie: `better-auth.session_token=${adminCookieValue}`,
-      "X-Tenant-Slug": data.org.slug,
-    },
-  });
-  console.log(
-    `[DIAG] secret? ${!!process.env.BETTER_AUTH_SECRET} tokenHasDash=${adminToken.includes("-")} fetch /ai/usage -> ${diag.status}`,
+  adminCookieValue = signSessionCookie(
+    await createSessionInDB(data.adminUser.id),
   );
 
   console.log(
@@ -401,7 +378,10 @@ test.describe("Part B — AI-handled conversation lifecycle", () => {
   }) => {
     test.skip(!serverReachable, "server not reachable");
 
-    const conv = await createVisitorConversation(request, "AI handling — create");
+    const conv = await createVisitorConversation(
+      request,
+      "AI handling — create",
+    );
     expect(conv.handledBy).toBe("ai");
     expect(conv.status).toBe("pending");
   });
@@ -556,11 +536,7 @@ test.describe("Part B — AI-handled conversation lifecycle", () => {
     // window is kept tight (5s) and this conversation was human-handled before
     // the message was sent, so `maybeTriggerAiTurn` short-circuits on the
     // handledBy!=='ai' guard — an AI reply here would be a real regression.
-    await sendVisitorMessage(
-      request,
-      conversationId,
-      "Are you still there?",
-    );
+    await sendVisitorMessage(request, conversationId, "Are you still there?");
     await new Promise((r) => setTimeout(r, 5_000));
 
     const messages = await getMessages(request, conversationId);

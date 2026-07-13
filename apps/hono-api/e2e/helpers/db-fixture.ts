@@ -18,9 +18,12 @@ import { conversations } from "../../src/db/schema/conversations";
 import { messages } from "../../src/db/schema/messages";
 import { conversationParticipants } from "../../src/db/schema/conversationParticipants";
 import { aiUsageLog } from "../../src/db/schema/aiUsageLog";
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 
-const E2E_PREFIX = "e2e_test_";
+// Must satisfy the tenant slug regex (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/)
+// in requestContext.ts — an underscore here makes `X-Tenant-Slug` unresolvable
+// and every session-authenticated request 403s with "Tenant subdomain not found".
+const E2E_PREFIX = "e2e-test-";
 
 export interface E2ETestData {
   org: { id: string; slug: string };
@@ -213,8 +216,30 @@ export async function addParticipantInDB(
 }
 
 /**
+ * Signs a raw session token the way Better Auth signs its session cookie, so a
+ * DB-provisioned session authenticates over `Cookie:`.
+ *
+ * Better Auth delegates to better-call's `signCookieValue`, which produces
+ * `encodeURIComponent(`${token}.${base64(HMAC-SHA256(secret, token))}`)`. The
+ * signature is verified BEFORE the DB lookup, so an unsigned raw token yields a
+ * null session (401) even though the row exists.
+ */
+export function signSessionCookie(token: string): string {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "BETTER_AUTH_SECRET is required to sign the E2E session cookie. " +
+        "Run via: infisical run --path=/hono-api -- <command>",
+    );
+  }
+  const signature = createHmac("sha256", secret).update(token).digest("base64");
+  return encodeURIComponent(`${token}.${signature}`);
+}
+
+/**
  * Creates a Better Auth session directly in the DB for E2E testing.
- * Returns the session token to use in Authorization or Cookie headers.
+ * Returns the RAW session token (valid as a Bearer token). For a `Cookie:`
+ * header, wrap it in {@link signSessionCookie}.
  */
 export async function createSessionInDB(userId: string): Promise<string> {
   const token = randomUUID();

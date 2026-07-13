@@ -7,11 +7,17 @@
  * Run with: AI_MODEL=mock://test infisical run --path=/hono-api -- npx playwright test e2e/ai.e2e.ts
  */
 import { test, expect } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { db } from "../src/db/index";
+import { applications } from "../src/db/schema/applications";
+import { applicationAiContext } from "../src/db/schema/applicationAiContext";
 import {
   provisionTestData,
   cleanupTestData,
   createConversationInDB,
   createSessionInDB,
+  signSessionCookie,
   addMessageInDB,
   type E2ETestData,
 } from "./helpers/db-fixture";
@@ -24,7 +30,7 @@ let premiumAdminToken: string;
 
 function authHeaders(token: string, slug: string) {
   return {
-    Cookie: `better-auth.session_token=${token}`,
+    Cookie: `better-auth.session_token=${signSessionCookie(token)}`,
     "X-Tenant-Slug": slug,
     "Content-Type": "application/json",
   };
@@ -39,6 +45,21 @@ test.beforeAll(async () => {
   });
   premiumOperatorToken = await createSessionInDB(premiumData.operatorUser.id);
   premiumAdminToken = await createSessionInDB(premiumData.adminUser.id);
+
+  // The AI routes require the application to have `aiEnabled` AND a completed
+  // AI context; without both, every call is rejected with 403 `ai_not_configured`.
+  await db
+    .update(applications)
+    .set({ aiEnabled: true })
+    .where(eq(applications.id, premiumData.app.id));
+
+  await db.insert(applicationAiContext).values({
+    id: randomUUID(),
+    applicationId: premiumData.app.id,
+    status: "completed",
+    contextSummary:
+      "This is an e2e test business. It sells widgets and offers standard support.",
+  });
 
   console.log(`[AI E2E] Provisioned: org=${premiumData.org.slug} plan=PREMIUM`);
 });
