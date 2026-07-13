@@ -47,12 +47,33 @@ visible" requirement.
   resulting system message and `handledBy` flip render through the normal
   `message:new` flow — no separate handling needed here.
 
+## Single lifecycle seam — `aiConversationLifecycle.ts`
+
+The whole "this conversation is AI-fronted" concept — disclose the bot, announce
+the human takeover once, reset the escalation flags — lives in one module,
+`aiConversationLifecycle.ts` (it absorbed the former `aiDisclosure.ts`). Callers
+refactor to one-liners; the module owns the state seam (`getState`/`setState`)
+internally. Its interface:
+
+- `seedDisclosureIfNeeded(settings)` — seeds the opening disclosure line iff AI
+  is enabled **and** the message list is empty. This single empty-messages guard
+  is used by both `widget.ts` `init()` and `SdkApi.startNewChat()`; previously
+  the two call sites diverged (init guarded on empty messages, startNewChat
+  seeded unconditionally). Unifying on the empty-messages guard makes
+  startNewChat behave like init — it clears messages first, then seeds through
+  the same seam.
+- `onIncomingMessage(msg)` — appends a message and owns the one-time takeover
+  line + its flag.
+- `resetForNewConversation()` — owns **all** escalation flag resets
+  (`humanRequested`, `aiTakeoverAnnounced`), called by both `startNewChat()` and
+  `destroyChat()`.
+
 ## Opening AI disclosure line
 
 When `settings.ai.enabled` is true (server-derived — see
 `apps/hono-api/src/routes/widget.ts`, reusing
 `features/ai-turn/resolveInitialHandledBy.ts`) and no conversation history
-exists yet, `aiDisclosure.ts` seeds a single system-style message:
+exists yet, `seedDisclosureIfNeeded()` seeds a single system-style message:
 
 > "Hi! I'm {tenantName}'s {assistantLabel}. I can help you — or connect you to
 > a person anytime."
@@ -60,19 +81,21 @@ exists yet, `aiDisclosure.ts` seeds a single system-style message:
 `{tenantName}` comes from `settings.header.title`; `{assistantLabel}` from
 `settings.ai.assistantLabel` (default "AI Assistant"). It's seeded client-side
 in `widget.ts` `init()` and again in `SdkApi.startNewChat()` (fresh
-conversation after "Start new chat"), reusing the existing `createSystemRow()`
-rendering path — no new CSS or message-list branch needed.
+conversation after "Start new chat") — both funnel through the same seam,
+reusing the existing `createSystemRow()` rendering path — no new CSS or
+message-list branch needed.
 
 ## Takeover moment
 
 **Client-side heuristic, not a server contract.** The first time an operator
 message (`authorType === "operator"`) arrives in a conversation that already
-had at least one AI message, `MessageRouter.handleMessageNew()` inserts a
-synthetic system message — "You're now chatting with a team member." — right
-before it, guarded by `state.aiTakeoverAnnounced` so it only ever renders once
-per conversation. The server may later own this line (e.g. emit it directly
-as part of the `handledBy` flip); if/when it does, this client-side insertion
-should be removed to avoid a duplicate line.
+had at least one AI message, `onIncomingMessage()` (called from
+`MessageRouter.handleMessageNew()`) inserts a synthetic system message — "You're
+now chatting with a team member." — right before it, guarded by
+`state.aiTakeoverAnnounced` so it only ever renders once per conversation. The
+server may later own this line (e.g. emit it directly as part of the `handledBy`
+flip); if/when it does, this client-side insertion should be removed to avoid a
+duplicate line.
 
 ## Settings shape
 

@@ -634,7 +634,9 @@ describe("SdkApi", () => {
       expect(getState("aiTakeoverAnnounced")).toBe(false);
     });
 
-    it("seeds the AI disclosure line when ai.enabled", async () => {
+    it("funnels disclosure seeding through the AI lifecycle seam", async () => {
+      // Seeding logic itself is covered in aiConversationLifecycle.test.ts;
+      // here we only assert startNewChat wires to it for an AI-enabled tenant.
       const api = getSdkApi();
       await api.initChat({ appId: "app-1" });
       setState("settings", {
@@ -648,19 +650,6 @@ describe("SdkApi", () => {
       expect(messages).toHaveLength(1);
       expect(messages[0]!.type).toBe("system");
       expect(messages[0]!.content).toContain("Acme");
-    });
-
-    it("leaves messages empty when ai.enabled is false", async () => {
-      const api = getSdkApi();
-      await api.initChat({ appId: "app-1" });
-      setState("settings", {
-        header: { title: "Acme", subtitle: "", showLogo: false },
-        ai: { enabled: false },
-      } as never);
-
-      api.startNewChat();
-
-      expect(getState("messages")).toEqual([]);
     });
   });
 

@@ -30,7 +30,7 @@ import {
 } from "./constants/index.js";
 import { getSdkApi } from "./SdkApi.js";
 import { connectEventBridge, disconnectEventBridge } from "./EventBridge.js";
-import { buildAiDisclosureMessage, shouldShowAiDisclosure } from "./aiDisclosure.js";
+import { seedDisclosureIfNeeded } from "./aiConversationLifecycle.js";
 
 import styles from "./styles/main.css?inline";
 
@@ -567,11 +567,10 @@ export async function init(opts: InitOptions): Promise<void> {
   await sdkApi.initChat({ appId: opts.appId });
   connectEventBridge(sdkApi.emitter);
 
-  // Opening AI-disclosure line (plan §8) — only when no history exists yet
-  // (fresh conversation) and the application's AI entitlement is on.
-  if (getState("messages").length === 0 && shouldShowAiDisclosure(settings)) {
-    setState("messages", [buildAiDisclosureMessage(settings)]);
-  }
+  // Opening AI-disclosure line (plan §8) — seeded only when no history exists
+  // yet (fresh conversation) and the application's AI entitlement is on. The
+  // empty-list guard lives inside the lifecycle module.
+  seedDisclosureIfNeeded(settings);
 
   if (opts.headless) {
     sdkApi.markInitialized({ headless: true, appId: opts.appId });

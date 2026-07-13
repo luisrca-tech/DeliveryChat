@@ -9,7 +9,10 @@ import {
   markConversationAsRead,
   escalateConversation,
 } from "./conversation.js";
-import { buildAiDisclosureMessage, shouldShowAiDisclosure } from "./aiDisclosure.js";
+import {
+  seedDisclosureIfNeeded,
+  resetForNewConversation,
+} from "./aiConversationLifecycle.js";
 import {
   connectWS,
   disconnectWS,
@@ -315,17 +318,11 @@ class SdkApi {
     setState("conversationStatus", null);
     setState("typingUser", null);
     setState("unreadCount", 0);
-    setState("humanRequested", false);
-    setState("aiTakeoverAnnounced", false);
+    resetForNewConversation();
     this.lastTypingSent = 0;
 
-    const settings = getState("settings");
-    setState(
-      "messages",
-      settings && shouldShowAiDisclosure(settings)
-        ? [buildAiDisclosureMessage(settings)]
-        : [],
-    );
+    setState("messages", []);
+    seedDisclosureIfNeeded(getState("settings"));
   }
 
   connectEagerly(): void {
@@ -351,8 +348,7 @@ class SdkApi {
     setState("conversationStatus", null);
     setState("messages", []);
     setState("unreadCount", 0);
-    setState("humanRequested", false);
-    setState("aiTakeoverAnnounced", false);
+    resetForNewConversation();
 
     this.lastTypingSent = 0;
     this.chatInitialized = false;

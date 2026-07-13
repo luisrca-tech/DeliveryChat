@@ -1,28 +1,9 @@
 import { setState, getState } from "./state.js";
 import type { ChatMessage, MessageAuthorType } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
+import { onIncomingMessage } from "./aiConversationLifecycle.js";
 import { WS_TYPING_TIMEOUT_MS } from "./constants/index.js";
 import type { MessagePipeline } from "./MessagePipeline.js";
-
-/**
- * Client-side "takeover moment" line (plan §8): rendered once, the first time
- * an operator message arrives in a conversation that already had an AI
- * message. The server may later own this line — see docs/system-messages.md.
- */
-const AI_TAKEOVER_MESSAGE = "You're now chatting with a team member.";
-
-function buildTakeoverSystemMessage(): ChatMessage {
-  return {
-    id: `client-takeover-${crypto.randomUUID()}`,
-    content: AI_TAKEOVER_MESSAGE,
-    type: "system",
-    senderRole: "operator",
-    senderId: "",
-    status: "sent",
-    createdAt: new Date().toISOString(),
-    authorType: "system",
-  };
-}
 
 type MessageRouterOptions = {
   markServerError: (code: string) => void;
@@ -131,23 +112,9 @@ export class MessageRouter {
     const wasDuplicate = prevMessages.some((m) => m.id === newMsg.id);
 
     if (!wasDuplicate) {
-      // Takeover moment (plan §8, client-side heuristic): the first operator
-      // message after any AI message gets a one-time system line announcing
-      // the handoff.
-      const announceTakeover =
-        !getState("aiTakeoverAnnounced") &&
-        newMsg.authorType === "operator" &&
-        prevMessages.some((m) => m.authorType === "ai");
-
-      setState("messages", (prev) =>
-        announceTakeover
-          ? [...prev, buildTakeoverSystemMessage(), newMsg]
-          : [...prev, newMsg],
-      );
-
-      if (announceTakeover) {
-        setState("aiTakeoverAnnounced", true);
-      }
+      // Appending + the one-time takeover line (plan §8) is owned by the AI
+      // conversation lifecycle module.
+      onIncomingMessage(newMsg);
 
       this.pipeline.processIncoming(newMsg);
 
