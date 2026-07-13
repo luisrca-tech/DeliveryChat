@@ -67,21 +67,21 @@ no separate checkout.
   canceled, the add-on turns off automatically.
 </Callout>
 
-## Data-connection: ENTERPRISE custom only
+## Data-connection: included with the add-on
 
 Connecting the AI Assistant to your own **HTTP endpoints or a database**
-(the "data tools" that let it answer with your real data) is an
-**ENTERPRISE-only, custom-onboarding feature** — it is not self-serve, even for
-ENTERPRISE organizations by default.
+(the "data tools" that let it answer with your real data) is **part of the AI
+Assistant add-on** — the same entitlement that unlocks the assistant itself.
 
-- Requires the ENTERPRISE plan **and** the AI Assistant add-on active.
-- Requires a manual onboarding step from our side to flag your organization
-  for custom data-connection access.
-- [Contact our sales team](/contact) to get set up.
+- Requires the AI Assistant add-on active (available on **Premium and
+  Enterprise** plans).
+- SQL data tools additionally require enabling the database connection per
+  application. For SQL sources, grant a **SELECT-only database user** so the
+  assistant can never modify your data.
+- No separate onboarding or custom plan is required.
 
-Without data-connection access, the AI Assistant can still be enabled, but it
-will only be able to answer from context you provide during onboarding — it
-won't have live tools to call.
+Without the add-on, the AI Assistant is unavailable; with it, both the
+assistant and its live data tools are unlocked.
 
 ## Usage quota
 
@@ -94,7 +94,7 @@ plan; ENTERPRISE organizations can have a custom cap configured.
   items={[
     {
       question: "Can I try the AI Assistant without ENTERPRISE?",
-      answer: "Yes — PREMIUM organizations can buy the R$ 120/mo add-on and configure the AI's context and behavior. Live data-connection tools (HTTP/SQL) require ENTERPRISE with custom onboarding."
+      answer: "Yes — PREMIUM organizations can buy the R$ 120/mo add-on and get the full feature, including live data-connection tools (HTTP/SQL). The add-on is the single entitlement for the assistant and its data tools on both Premium and Enterprise."
     },
     {
       question: "What happens if I downgrade below PREMIUM?",

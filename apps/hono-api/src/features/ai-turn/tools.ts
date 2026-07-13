@@ -104,8 +104,8 @@ function buildEscalateTool(turnCtx: TurnEscalationContext): AIProviderTool {
  * backing is permitted:
  *   - HTTP tools require the org add-on entitlement + application AI enabled
  *     (`httpAllowed`).
- *   - SQL tools additionally require ENTERPRISE custom eligibility +
- *     `application.aiDbEnabled` (`sqlAllowed`).
+ *   - SQL tools share the same org add-on entitlement and additionally require
+ *     the per-application `aiDbEnabled` opt-in (`sqlAllowed`).
  */
 export function assembleTools(input: {
   applicationId: string;

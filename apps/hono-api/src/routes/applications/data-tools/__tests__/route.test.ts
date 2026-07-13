@@ -190,10 +190,10 @@ vi.mock("../../../../lib/middleware/auth.js", () => ({
     },
 }));
 
-// Pass-through mock for the AI DB feature gate — its plan/add-on/isCustom
-// matrix is covered by the ai.middleware gate tests (ai.addonGates.test.ts).
+// Pass-through mock for the AI add-on gate — its plan/add-on matrix is covered
+// by the ai.middleware gate tests (ai.addonGates.test.ts).
 vi.mock("../../../../features/ai/ai.middleware.js", () => ({
-  requireAiDbFeature: () => async (_c: unknown, next: () => Promise<void>) => {
+  requireAiAddon: () => async (_c: unknown, next: () => Promise<void>) => {
     await next();
   },
 }));

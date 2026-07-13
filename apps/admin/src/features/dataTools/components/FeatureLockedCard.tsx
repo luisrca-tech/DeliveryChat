@@ -8,7 +8,7 @@ export function FeatureLockedCard() {
         <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-muted">
           <Lock className="h-5 w-5 text-muted-foreground" />
         </div>
-        <CardTitle>Data tools is an Enterprise feature</CardTitle>
+        <CardTitle>Data tools require the AI Assistant add-on</CardTitle>
       </CardHeader>
       <CardContent className="space-y-2 text-sm text-muted-foreground">
         <p>
@@ -17,9 +17,9 @@ export function FeatureLockedCard() {
           questions with real, grounded information.
         </p>
         <p>
-          This capability is available on <strong>ENTERPRISE custom plans</strong>{" "}
-          with the <strong>AI add-on</strong> active. Contact your account team
-          to enable it for this organization.
+          Data tools require the <strong>AI Assistant add-on</strong>. Enable it
+          from <strong>Settings → Billing</strong> (available on Premium and
+          Enterprise plans).
         </p>
       </CardContent>
     </Card>

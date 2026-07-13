@@ -88,9 +88,9 @@ Visitor-facing copy (`messages.ts`):
   escalates.
 - **HTTP tools** require org add-on entitlement + `application.aiEnabled`
   (already verified before the turn runs).
-- **SQL tools** additionally require `plan === ENTERPRISE` +
-  `application.aiDbEnabled` + a `tenantRateLimits.isCustom` row (mirrors
-  `requireAiDbFeature`).
+- **SQL tools** share the **same** org add-on entitlement as HTTP tools and
+  additionally require the per-application `application.aiDbEnabled` opt-in.
+  There is no ENTERPRISE-custom / `tenantRateLimits.isCustom` distinction.
 
 ## Entitlement (`entitlement.ts`)
 

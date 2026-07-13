@@ -7,7 +7,6 @@ import { applications } from "../../db/schema/applications.js";
 import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { applicationDataSource } from "../../db/schema/applicationDataSource.js";
 import { applicationDataTool } from "../../db/schema/applicationDataTool.js";
-import { tenantRateLimits } from "../../db/schema/tenantRateLimits.js";
 import type {
   DataSourceRow,
   DataToolRow,
@@ -193,22 +192,6 @@ export async function loadDataToolset(
     source: source as DataSourceRow,
     tools: tools as TurnToolset["tools"],
   };
-}
-
-/**
- * Whether the tenant has a custom rate-limit override row. Gates SQL-backed
- * tools (ENTERPRISE custom eligibility), mirroring `requireAiDbFeature`.
- */
-export async function loadIsCustomTenant(
-  organizationId: string,
-): Promise<boolean> {
-  const [row] = await db
-    .select({ isCustom: tenantRateLimits.isCustom })
-    .from(tenantRateLimits)
-    .where(eq(tenantRateLimits.tenantId, organizationId))
-    .limit(1);
-
-  return row?.isCustom ?? false;
 }
 
 /** Completed AI business-context summary for the application, if any. */

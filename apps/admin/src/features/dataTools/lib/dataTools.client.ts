@@ -16,8 +16,8 @@ async function parseJson<T>(res: Response): Promise<T> {
 }
 
 /**
- * The AI database-connection feature is gated to ENTERPRISE-custom tenants
- * with the AI add-on active (`requireAiDbFeature` on hono-api). Thrown
+ * Data tools are gated by the AI add-on entitlement (`requireAiAddon` on
+ * hono-api): plan ∈ {PREMIUM, ENTERPRISE} with the AI add-on active. Thrown
  * instead of a generic error so the UI can render a dedicated locked-state
  * card rather than an error toast.
  */
@@ -59,7 +59,7 @@ async function handleError(res: Response): Promise<never> {
 
   if (
     res.status === HTTP_STATUS.FORBIDDEN &&
-    err?.error === "ai_db_feature_not_available"
+    err?.error === "ai_addon_not_active"
   ) {
     throw new DataToolsFeatureLockedError(message);
   }

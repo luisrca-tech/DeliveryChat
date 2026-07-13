@@ -30,7 +30,6 @@ vi.mock("../loadContext.js", () => ({
   loadTurnContext: vi.fn(),
   loadConversationMessages: vi.fn(),
   loadDataToolset: vi.fn(),
-  loadIsCustomTenant: vi.fn(),
   loadContextSummary: vi.fn(),
 }));
 
@@ -60,7 +59,6 @@ const mockExecuteDataTool = aiData.executeDataTool as ReturnType<typeof vi.fn>;
 const mockLoadTurnContext = loadContext.loadTurnContext as ReturnType<typeof vi.fn>;
 const mockLoadMessages = loadContext.loadConversationMessages as ReturnType<typeof vi.fn>;
 const mockLoadToolset = loadContext.loadDataToolset as ReturnType<typeof vi.fn>;
-const mockLoadIsCustom = loadContext.loadIsCustomTenant as ReturnType<typeof vi.fn>;
 const mockLoadSummary = loadContext.loadContextSummary as ReturnType<typeof vi.fn>;
 const mockDbInsert = db.insert as ReturnType<typeof vi.fn>;
 
@@ -118,6 +116,27 @@ const httpToolset = {
   ],
 };
 
+const sqlToolset = {
+  source: {
+    kind: "sql",
+    config: { encryptedConnectionString: "enc:postgres://u:p@host/db" },
+  },
+  tools: [
+    {
+      id: "t-sql",
+      name: "lookupOrder",
+      description: "look up an order by id",
+      backingType: "sql",
+      inputSchema: {
+        type: "object",
+        properties: { id: { type: "string" } },
+        required: ["id"],
+      },
+      config: { query: "SELECT * FROM orders WHERE id = $1" },
+    },
+  ],
+};
+
 function useProvider(): InstanceType<typeof MockProvider> {
   const provider = new MockProvider();
   mockCreateProvider.mockReturnValue(provider);
@@ -129,7 +148,6 @@ beforeEach(() => {
   mockLoadTurnContext.mockResolvedValue(eligibleCtx());
   mockLoadMessages.mockResolvedValue([VISITOR_MSG]);
   mockLoadToolset.mockResolvedValue(null);
-  mockLoadIsCustom.mockResolvedValue(false);
   mockLoadSummary.mockResolvedValue(undefined);
   mockCheckQuota.mockResolvedValue({ allowed: true });
   mockSendMessage.mockResolvedValue(undefined);
@@ -251,6 +269,56 @@ describe("runAiTurn — escalation policy", () => {
     expect(mockCreateProvider).not.toHaveBeenCalled();
     expect(mockEscalate).toHaveBeenCalledWith(
       expect.objectContaining({ kind: "quota_exhausted" }),
+    );
+    expect(mockSendMessage).not.toHaveBeenCalled();
+  });
+});
+
+describe("runAiTurn — SQL tool entitlement (add-on + per-app aiDbEnabled)", () => {
+  it("a PREMIUM org with the add-on + aiDbEnabled gets SQL tools", async () => {
+    const ctx = eligibleCtx();
+    ctx.organization.plan = "PREMIUM";
+    ctx.application.aiDbEnabled = true;
+    mockLoadTurnContext.mockResolvedValue(ctx);
+    mockLoadToolset.mockResolvedValue(sqlToolset);
+    mockExecuteDataTool.mockResolvedValue({ ok: true, data: [{ id: "1" }] });
+
+    const provider = useProvider();
+    provider.queueToolLoop({
+      toolCalls: [{ toolName: "lookupOrder", input: { id: "1" } }],
+      text: "Your order is on its way.",
+    });
+
+    await runAiTurn("conv-1");
+
+    // The SQL tool was registered and executed (no "not registered" throw).
+    expect(mockExecuteDataTool).toHaveBeenCalledTimes(1);
+    expect(mockSendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ content: "Your order is on its way." }),
+    );
+    expect(mockEscalate).not.toHaveBeenCalled();
+  });
+
+  it("withholds SQL tools when aiDbEnabled is false (tool not registered)", async () => {
+    const ctx = eligibleCtx();
+    ctx.organization.plan = "PREMIUM";
+    ctx.application.aiDbEnabled = false;
+    mockLoadTurnContext.mockResolvedValue(ctx);
+    mockLoadToolset.mockResolvedValue(sqlToolset);
+
+    const provider = useProvider();
+    // Scripting the SQL tool would throw inside the provider if it were absent;
+    // runAiTurn converts that into a turn_failed escalation (never dead air).
+    provider.queueToolLoop({
+      toolCalls: [{ toolName: "lookupOrder", input: { id: "1" } }],
+      text: "",
+    });
+
+    await runAiTurn("conv-1");
+
+    expect(mockExecuteDataTool).not.toHaveBeenCalled();
+    expect(mockEscalate).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "turn_failed" }),
     );
     expect(mockSendMessage).not.toHaveBeenCalled();
   });

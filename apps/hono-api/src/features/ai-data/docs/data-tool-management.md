@@ -1,10 +1,10 @@
 # DataSource / DataTool admin management
 
 Admin-facing CRUD for the AI data-connection feature (§4, §5 of
-`plans/ai-database-connection-feature.md`). These endpoints let an ENTERPRISE
-tenant admin configure **one data source per application** and a **catalog of
-read-only tools** on top of it, then test and enable each tool before the
-autonomous AI turn can call it.
+`plans/ai-database-connection-feature.md`). These endpoints let a tenant admin
+with the AI add-on configure **one data source per application** and a
+**catalog of read-only tools** on top of it, then test and enable each tool
+before the autonomous AI turn can call it.
 
 Route folder: `apps/hono-api/src/routes/applications/data-tools/`
 Registered in `src/lib/api.ts` under `/applications` (mirrors `ai-interview`).
@@ -14,9 +14,9 @@ Registered in `src/lib/api.ts` under `/applications` (mirrors `ai-interview`).
 All paths are prefixed with `/applications`. All require `requireTenantAuth` +
 `requireRole("admin")`; writes additionally run `checkBillingStatus`. The
 `applicationId` is verified to belong to the caller's tenant (cross-tenant →
-`404`). A per-org AI-add-on / DB-feature gate (`requireAiDbFeature`, T6) is wired
-by the orchestrator during integration — see the `TODO(orchestrator)` marker in
-`index.ts`.
+`404`). Every route is gated by the AI add-on entitlement (`requireAiAddon`):
+plan ∈ {PREMIUM, ENTERPRISE} **and** `organization.aiAddonActive` — the same
+gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
 
 | Method | Path | Purpose |
 | --- | --- | --- |

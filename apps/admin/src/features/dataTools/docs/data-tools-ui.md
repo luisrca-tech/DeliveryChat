@@ -8,10 +8,10 @@ Design intent: `plans/ai-database-connection-feature.md` §5.
 ## Feature gate
 
 Every endpoint under `/applications/:applicationId/data-source` and
-`/applications/:applicationId/data-tools*` is gated by `requireAiDbFeature()`
-(ENTERPRISE plan + `aiAddonActive` + `tenantRateLimits.isCustom`). A 403 with
-`error: "ai_db_feature_not_available"` is mapped client-side to
-`DataToolsFeatureLockedError` (see `lib/dataTools.client.ts`) and rendered as
+`/applications/:applicationId/data-tools*` is gated by `requireAiAddon()`
+(plan ∈ {PREMIUM, ENTERPRISE} + `aiAddonActive`) — the same gate as the rest of
+the AI feature. A 403 with `error: "ai_addon_not_active"` is mapped client-side
+to `DataToolsFeatureLockedError` (see `lib/dataTools.client.ts`) and rendered as
 `FeatureLockedCard` — a locked-state explainer card, never an error toast.
 `DataToolsPage` treats this as the only "expected" error state; any other
 query error still surfaces the query's default loading/error UI.

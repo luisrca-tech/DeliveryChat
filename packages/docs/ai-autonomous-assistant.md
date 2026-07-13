@@ -95,7 +95,8 @@ webhooks, never set directly by any route. Full billing mechanics:
 | Purchase the add-on | `plan ∈ {PREMIUM, ENTERPRISE}`, `planStatus ∈ {active, trialing}` |
 | Autonomous replies in the widget (`isAiTurnEntitled`) | `plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive` **and** `application.aiEnabled` **and** `application.aiAutoRespond` |
 | HTTP data tools | Org add-on entitlement **and** `application.aiEnabled` |
-| SQL data tools / data-connection config UI (`requireAiDbFeature`) | The above **and** `plan === ENTERPRISE` **and** `application.aiDbEnabled` **and** `tenantRateLimits.isCustom` (ENTERPRISE-custom, manual onboarding) |
+| SQL data tools | Org add-on entitlement **and** `application.aiEnabled` **and** `application.aiDbEnabled` (per-app opt-in) |
+| Data-connection config UI (`requireAiAddon`) | Org add-on entitlement (`plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive`) — same gate as the rest of the AI feature |
 
 A downgrade away from `{PREMIUM, ENTERPRISE}` clears the entitlement flags
 immediately and schedules removal of the orphaned Stripe subscription item.

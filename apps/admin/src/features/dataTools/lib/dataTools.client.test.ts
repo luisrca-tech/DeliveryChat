@@ -61,14 +61,14 @@ describe("dataTools.client", () => {
       await expect(getDataSource("app1")).resolves.toEqual(mockSource);
     });
 
-    it("throws DataToolsFeatureLockedError on 403 ai_db_feature_not_available", async () => {
+    it("throws DataToolsFeatureLockedError on 403 ai_addon_not_active", async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: false,
         status: 403,
         json: () =>
           Promise.resolve({
-            error: "ai_db_feature_not_available",
-            message: "The AI database connection is not available.",
+            error: "ai_addon_not_active",
+            message: "The AI add-on is not active for your organization.",
           }),
       } as Response);
 

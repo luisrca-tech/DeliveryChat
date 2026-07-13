@@ -87,8 +87,7 @@ In `customer.subscription.updated`, if the resolved plan is **not** in `{PREMIUM
 
 ### Feature gates
 
-- **`requireAiAddon()`** — plan ∈ {PREMIUM, ENTERPRISE} **and** `aiAddonActive === true`, else `403 ai_addon_not_active`.
-- **`requireAiDbFeature()`** — the `requireAiAddon` conditions **and** `plan === ENTERPRISE` **and** `tenantRateLimits.isCustom === true` (ENTERPRISE custom), else `403 ai_db_feature_not_available`.
+- **`requireAiAddon()`** — plan ∈ {PREMIUM, ENTERPRISE} **and** `aiAddonActive === true`, else `403 ai_addon_not_active`. This is the single AI gate: it protects the autonomous assistant **and** the data-tools / data-connection routes (both HTTP- and SQL-backed). There is no separate ENTERPRISE-custom gate.
 
 ### Enterprise Hybrid Workflow
 

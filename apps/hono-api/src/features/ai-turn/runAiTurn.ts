@@ -25,7 +25,6 @@ import {
   loadContextSummary,
   loadConversationMessages,
   loadDataToolset,
-  loadIsCustomTenant,
   loadTurnContext,
   type TurnConversation,
   type TurnContext,
@@ -168,15 +167,14 @@ export async function runAiTurn(conversationId: string): Promise<void> {
     // ── Assemble tools (escalate + permitted data tools) ──
     const turnCtx: TurnEscalationContext = { escalation: null };
     const toolset = await loadDataToolset(application.id);
-    const sqlAllowed =
-      organization.plan === "ENTERPRISE" &&
-      application.aiDbEnabled &&
-      (await loadIsCustomTenant(organization.id));
+    // Both HTTP and SQL tools share the org add-on entitlement (already
+    // verified above via `isAiTurnEntitled`). SQL additionally requires the
+    // per-application `aiDbEnabled` opt-in.
     const tools = assembleTools({
       applicationId: application.id,
       toolset,
       httpAllowed: true, // org entitlement already verified above
-      sqlAllowed,
+      sqlAllowed: application.aiDbEnabled,
       turnCtx,
     });
 

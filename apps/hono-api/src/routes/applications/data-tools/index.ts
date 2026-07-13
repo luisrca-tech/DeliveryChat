@@ -6,7 +6,7 @@ import {
   requireTenantAuth,
 } from "../../../lib/middleware/auth.js";
 import { checkBillingStatus } from "../../../lib/middleware/billing.js";
-import { requireAiDbFeature } from "../../../features/ai/ai.middleware.js";
+import { requireAiAddon } from "../../../features/ai/ai.middleware.js";
 import { ERROR_MESSAGES, HTTP_STATUS, jsonError } from "../../../lib/http.js";
 import { encryptSecret } from "../../../lib/crypto/secretBox.js";
 import {
@@ -36,8 +36,9 @@ import {
   upsertDataSource,
 } from "./dataAccess.js";
 
-// All routes are gated by requireAiDbFeature: AI add-on entitlement
-// + ENTERPRISE-custom eligibility (plan + tenantRateLimits.isCustom).
+// All routes are gated by requireAiAddon: the AI add-on entitlement
+// (plan ∈ {PREMIUM, ENTERPRISE} AND organization.aiAddonActive) — the same
+// gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
 
 type HttpSourceConfig = {
   baseUrl: string;
@@ -52,7 +53,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-source",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     async (c) => {
       const applicationId = c.req.param("applicationId");
       const { organization } = getTenantAuth(c);
@@ -72,7 +73,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-source",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     checkBillingStatus(),
     zValidator("json", dataSourceBodySchema),
     async (c) => {
@@ -135,7 +136,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-tools",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     async (c) => {
       const applicationId = c.req.param("applicationId");
       const { organization } = getTenantAuth(c);
@@ -154,7 +155,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-tools",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     checkBillingStatus(),
     zValidator("json", dataToolBodySchema),
     async (c) => {
@@ -210,7 +211,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-tools/:toolId",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     checkBillingStatus(),
     zValidator("json", dataToolBodySchema),
     async (c) => {
@@ -259,7 +260,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-tools/:toolId",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     async (c) => {
       const applicationId = c.req.param("applicationId");
       const toolId = c.req.param("toolId");
@@ -282,7 +283,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-tools/:toolId/test",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     checkBillingStatus(),
     zValidator("json", testRequestBodySchema),
     async (c) => {
@@ -337,7 +338,7 @@ export const dataToolsRoute = new Hono()
     "/:applicationId/data-tools/:toolId/enable",
     requireTenantAuth(),
     requireRole("admin"),
-    requireAiDbFeature(),
+    requireAiAddon(),
     checkBillingStatus(),
     zValidator("json", enableBodySchema),
     async (c) => {
