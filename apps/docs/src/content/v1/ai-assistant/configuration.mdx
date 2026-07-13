@@ -69,6 +69,48 @@ per application from the admin dashboard.
   ]}
 />
 
+## Preparing your endpoints (HTTP sources)
+
+The AI doesn't crawl your website — it calls **API endpoints you expose**. Any
+read-only JSON API works; you don't need to build anything AI-specific. The
+requirements:
+
+- **`GET` only.** Tools never send other methods, so every capability you want
+  the AI to have must be readable via `GET`.
+- **JSON responses.** Tool results are parsed as JSON; plain-text or HTML
+  responses fail the test request.
+- **One host per application.** All tools share the data source's base URL and
+  allowed host. If your data lives behind several services, route them through
+  one API host (a small gateway/proxy is enough).
+- **Parameters go into the URL template you define** — path segments
+  (`/products/{sku}`) or query strings (`/search?q={query}`). The AI only
+  supplies the values; it never composes URLs.
+- **Keep responses small and relevant.** Responses are capped (256 KB) and
+  large payloads dilute answer quality — prefer endpoints that return the
+  handful of fields the AI should quote.
+- If the endpoints require auth, add the API key as a **header on the data
+  source** — it's stored encrypted and never shown again.
+
+**Worked example.** DeliveryChat's own assistant is configured this way — it
+answers pricing and setup questions using our public API:
+
+| Tool | Description (what the model sees) | URL template |
+| --- | --- | --- |
+| `getPlanInfo` | "Get subscription plans with current prices and limits." | `/api/v1/public/plans` |
+| `searchDocs` | "Search the documentation. Returns sections with links." | `/api/v1/public/docs/search?q={query}` |
+| `getDocsPage` | "Fetch one documentation page by slug." | `/api/v1/public/docs/pages/{slug}` |
+
+A typical e-commerce setup looks the same with different nouns: a
+`searchProducts` tool over your catalog endpoint, a `checkAvailability` tool
+over your stock endpoint, an `orderStatus` tool over your order-lookup
+endpoint.
+
+<Callout type="tip" title="Have docs or FAQs instead of an API?">
+  Expose them as a small search endpoint (query in, matching sections + links
+  out) and register it as a tool — that's exactly how DeliveryChat's assistant
+  answers "how do I install the widget?" questions from these very docs.
+</Callout>
+
 ## The read-only guarantee
 
 The AI Assistant can only ever **read** your data — this is enforced by how
