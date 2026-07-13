@@ -14,6 +14,10 @@ export type Application = {
   kind: "production" | "test";
   port: number | null;
   aiInterviewStatus: AiInterviewStatus;
+  // Only populated on the detail endpoint (GET /applications/:id); the list
+  // endpoint's projection does not include these columns.
+  aiAutoRespond?: boolean;
+  aiDbEnabled?: boolean;
 };
 
 export type CreateApplicationRequest =
@@ -37,6 +41,8 @@ export type UpdateApplicationRequest = {
   description?: string;
   settings?: Record<string, unknown>;
   allowedOrigins?: string[];
+  aiAutoRespond?: boolean;
+  aiDbEnabled?: boolean;
 };
 
 export type ApplicationsListResponse = {

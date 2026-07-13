@@ -11,7 +11,6 @@ import { useApplicationQuery } from "../hooks/useApplicationQuery";
 import type { ApplicationsListResponse } from "../types/applications.types";
 import {
   useCreateApplicationMutation,
-  useUpdateApplicationMutation,
   useDeleteApplicationMutation,
 } from "../hooks/useApplicationMutations";
 import {
@@ -24,14 +23,12 @@ import type {
 } from "../types/applications.types";
 import { ApplicationListTable } from "./ApplicationListTable";
 import { CreateApplicationDialog } from "./CreateApplicationDialog";
-import { EditApplicationDialog } from "./EditApplicationDialog";
 import { DeleteApplicationDialog } from "./DeleteApplicationDialog";
 
 export function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createOpen, setCreateOpen] = useState(false);
   const [createdApp, setCreatedApp] = useState<Application | null>(null);
-  const [editApp, setEditApp] = useState<Application | null>(null);
   const [deleteApp, setDeleteApp] = useState<Application | null>(null);
   const queryClient = useQueryClient();
 
@@ -39,7 +36,6 @@ export function ApplicationsPage() {
   const { data: deleteAppDetail } = useApplicationQuery(deleteApp?.id ?? null);
 
   const createMutation = useCreateApplicationMutation();
-  const updateMutation = useUpdateApplicationMutation();
   const deleteMutation = useDeleteApplicationMutation();
 
   const applications = useMemo(
@@ -90,27 +86,6 @@ export function ApplicationsPage() {
     if (!open) setCreatedApp(null);
   }, []);
 
-  const handleUpdate = useCallback(
-    async (body: {
-      name?: string;
-      description?: string;
-      allowedOrigins?: string[];
-    }) => {
-      if (!editApp) return;
-      try {
-        await updateMutation.mutateAsync({ id: editApp.id, body });
-        setEditApp(null);
-        toast.success("Application updated");
-      } catch (e) {
-        toast.error("Failed to update application", {
-          description: e instanceof Error ? e.message : "Unknown error",
-        });
-        throw e;
-      }
-    },
-    [editApp, updateMutation],
-  );
-
   const handleDelete = useCallback(async () => {
     if (!deleteApp) return;
     try {
@@ -147,7 +122,6 @@ export function ApplicationsPage() {
         applications={applications}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        onEdit={setEditApp}
         onDelete={setDeleteApp}
         isLoading={isLoading}
       />
@@ -158,14 +132,6 @@ export function ApplicationsPage() {
         onSubmit={handleCreate}
         submitting={createMutation.isPending}
         createdApplication={createdApp}
-      />
-
-      <EditApplicationDialog
-        open={!!editApp}
-        onOpenChange={(open) => !open && setEditApp(null)}
-        application={editApp}
-        onSubmit={handleUpdate}
-        submitting={updateMutation.isPending}
       />
 
       <DeleteApplicationDialog

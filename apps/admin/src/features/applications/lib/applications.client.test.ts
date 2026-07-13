@@ -174,6 +174,39 @@ describe("applications.client", () => {
       const result = await updateApplication("a1", { name: "Updated App" });
       expect(result.application).toEqual(mockApp);
     });
+
+    it("sends aiAutoRespond and aiDbEnabled in the request body", async () => {
+      const mockApp = {
+        id: "a1",
+        name: "App",
+        domain: "app",
+        description: null,
+        organizationId: "org1",
+        settings: {},
+        deletedAt: null,
+        createdAt: "2025-01-01T00:00:00Z",
+        updatedAt: "2025-01-01T00:00:00Z",
+        aiAutoRespond: true,
+        aiDbEnabled: false,
+      };
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: () => Promise.resolve({ application: mockApp }),
+      } as Response);
+
+      const result = await updateApplication("a1", {
+        aiAutoRespond: true,
+        aiDbEnabled: false,
+      });
+      expect(result.application).toEqual(mockApp);
+      expect(fetch).toHaveBeenCalledWith(
+        "http://test/api/v1/applications/a1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ aiAutoRespond: true, aiDbEnabled: false }),
+        }),
+      );
+    });
   });
 
   describe("deleteApplication", () => {
