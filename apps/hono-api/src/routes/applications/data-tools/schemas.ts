@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { toolInputSchema } from "../../../features/ai-data/toolSchema.js";
 
 /** LLM-facing tool name: must be a valid identifier (starts with a letter). */
 const TOOL_NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9_]*$/;
@@ -47,35 +48,6 @@ export const dataSourceBodySchema = z
   });
 
 export type DataSourceBody = z.infer<typeof dataSourceBodySchema>;
-
-/**
- * Flat JSON Schema for a tool's `inputSchema`. Nested objects/arrays are NOT
- * allowed — the model-facing tools only take scalar arguments (mirrors the
- * executor's `ToolPropertySchema` constraint in features/ai-data).
- */
-const toolPropertySchema = z.object({
-  type: z.enum(["string", "number", "integer", "boolean"]),
-});
-
-export const toolInputSchema = z
-  .object({
-    type: z.literal("object").optional(),
-    properties: z.record(z.string(), toolPropertySchema).default({}),
-    required: z.array(z.string()).optional(),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    const propNames = Object.keys(value.properties);
-    for (const name of value.required ?? []) {
-      if (!propNames.includes(name)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: `required references unknown property "${name}"`,
-          path: ["required"],
-        });
-      }
-    }
-  });
 
 const httpToolConfigSchema = z.object({
   method: z.literal("GET"),

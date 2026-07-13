@@ -35,7 +35,27 @@ Also exported for direct testing / reuse:
 - **Fail closed.** Any guardrail violation returns an error result rather than
   making a best-effort request.
 
-## Parameter validation (`paramValidator.ts`)
+## Tool input schema — one seam (`toolSchema.ts`)
+
+The concept "a stored tool `inputSchema` is a **flat object of scalar params**"
+is consumed four ways that MUST stay in agreement. They all live behind a single
+module, `toolSchema.ts`, so the invariant is defined once instead of re-encoded
+per reader:
+
+- `validateParams` — runtime validation of model-provided params.
+- `orderedParamNames` — the positional order the SQL executor maps to `$1..$n`.
+- `toZod` — the flat Zod object handed to the LLM tool definitions
+  (`features/ai-turn/tools.ts`).
+- `toolInputSchema` — the save-time Zod validator used by the CRUD route
+  (`routes/applications/data-tools/schemas.ts`).
+
+**Ordering invariant (now enforced behind the seam).** The SQL executor binds
+`$1..$n` from `orderedParamNames(inputSchema)` in the schema's `properties` key
+order. That order is deterministic (JS object key insertion order, preserved by
+stored jsonb). The cross-reader property test in `__tests__/toolSchema.test.ts`
+asserts that `toZod`'s keys, the keys `validateParams` accepts, and
+`orderedParamNames`'s order all agree — the check that was impossible while the
+concept lived in three separate files.
 
 No JSON Schema library exists in the workspace and adding one was out of scope,
 so validation is a minimal, purpose-built check. **Constraint (intentional):**

@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import { decryptSecret } from "../../lib/crypto/secretBox.js";
-import { orderedParamNames } from "./paramValidator.js";
+import { orderedParamNames } from "./toolSchema.js";
 import { hasLimitClause, validateSqlQuery } from "./sqlValidator.js";
 import type { DataToolResult, ExecuteDataToolInput } from "./types.js";
 

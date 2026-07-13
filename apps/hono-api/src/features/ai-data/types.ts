@@ -7,25 +7,6 @@ import type { DataToolConfig } from "../../db/schema/applicationDataTool.js";
  */
 export type DataSourceKind = "http" | "sql";
 
-/**
- * Minimal JSON Schema shape supported for tool input validation.
- *
- * Constraint (documented, intentional): tool input schemas are FLAT objects of
- * primitive properties. Nested objects/arrays are NOT supported — the model-
- * facing tools only take scalar arguments. See docs/data-tool-executors.md.
- */
-export type ToolPropertyType = "string" | "number" | "integer" | "boolean";
-
-export interface ToolPropertySchema {
-  type: ToolPropertyType;
-}
-
-export interface ToolInputSchema {
-  type?: "object";
-  properties?: Record<string, ToolPropertySchema>;
-  required?: string[];
-}
-
 /** Row shape (subset) of `applicationDataTool` needed by the executors. */
 export interface DataToolRow {
   name: string;

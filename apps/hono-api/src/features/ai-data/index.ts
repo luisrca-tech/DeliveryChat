@@ -1,20 +1,29 @@
 import { executeHttpTool } from "./httpExecutor.js";
 import { executeSqlTool } from "./sqlExecutor.js";
-import { validateParams } from "./paramValidator.js";
+import { validateParams } from "./toolSchema.js";
 import type { DataToolResult, ExecuteDataToolInput } from "./types.js";
 
 export { executeHttpTool } from "./httpExecutor.js";
 export { executeSqlTool } from "./sqlExecutor.js";
-export { validateParams, orderedParamNames } from "./paramValidator.js";
+export {
+  validateParams,
+  orderedParamNames,
+  toZod,
+  toolInputSchema,
+} from "./toolSchema.js";
 export { validateSqlQuery, hasLimitClause } from "./sqlValidator.js";
 export { isPrivateAddress } from "./ssrfGuard.js";
+export type {
+  ToolInputSchema,
+  ToolPropertySchema,
+  ToolPropertyType,
+} from "./toolSchema.js";
 export type {
   DataToolResult,
   DataToolErrorKind,
   ExecuteDataToolInput,
   DataToolRow,
   DataSourceRow,
-  ToolInputSchema,
 } from "./types.js";
 
 /**

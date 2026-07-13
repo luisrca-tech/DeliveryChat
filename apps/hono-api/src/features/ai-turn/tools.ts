@@ -1,9 +1,7 @@
 import { z } from "zod";
 import { executeDataTool } from "../ai-data/index.js";
-import type {
-  DataToolRow,
-  ToolInputSchema,
-} from "../ai-data/index.js";
+import { toZod } from "../ai-data/toolSchema.js";
+import type { DataToolRow } from "../ai-data/index.js";
 import type { AIProviderTool } from "../ai/ai.providerPort.js";
 import type { TurnToolset } from "./loadContext.js";
 
@@ -14,43 +12,6 @@ export type TurnEscalationContext = {
 
 export const ESCALATE_TOOL_NAME = "escalateToHuman";
 
-/**
- * Build a flat Zod object schema from a stored tool `inputSchema`. Only scalar
- * properties are supported (mirrors the executor's flat-schema contract).
- */
-function jsonSchemaToZod(inputSchema: unknown): z.ZodTypeAny {
-  const schema = (
-    inputSchema && typeof inputSchema === "object" && !Array.isArray(inputSchema)
-      ? inputSchema
-      : {}
-  ) as ToolInputSchema;
-  const properties = schema.properties ?? {};
-  const required = new Set(schema.required ?? []);
-
-  const shape: Record<string, z.ZodTypeAny> = {};
-  for (const [name, prop] of Object.entries(properties)) {
-    let field: z.ZodTypeAny;
-    switch (prop.type) {
-      case "number":
-        field = z.number();
-        break;
-      case "integer":
-        field = z.number().int();
-        break;
-      case "boolean":
-        field = z.boolean();
-        break;
-      case "string":
-      default:
-        field = z.string();
-        break;
-    }
-    shape[name] = required.has(name) ? field : field.optional();
-  }
-
-  return z.object(shape);
-}
-
 function buildDataTool(
   applicationId: string,
   source: TurnToolset["source"],
@@ -58,7 +19,7 @@ function buildDataTool(
 ): AIProviderTool {
   return {
     description: row.description,
-    inputSchema: jsonSchemaToZod(row.inputSchema),
+    inputSchema: toZod(row.inputSchema),
     execute: async (input: Record<string, unknown>) => {
       const result = await executeDataTool({
         applicationId,
