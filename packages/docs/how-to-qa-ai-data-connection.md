@@ -2,7 +2,7 @@
 
 Manual end-to-end verification checklist for the autonomous AI assistant, data tools, escalation, and AI add-on billing shipped on `feature/ai-data-connection`. Check every box as you go; a section passes only when all its boxes are ticked.
 
-> Authored against commit `4fee899` on `feature/ai-data-connection` (base: `development`). Microcopy asserted "verbatim" matches the source files as of delivery. Later commits on this branch (`fdf9a6a` public plans endpoint, `d8c71a6` Application Details page) are **not covered** — they are being developed in a parallel session and need their own QA pass.
+> Authored against commit `0ed6635` on `feature/ai-data-connection` (base: `development`). Microcopy asserted "verbatim" matches the source files as of delivery. Covers the AI feature set plus the Application Details page (`d8c71a6`, `8f4cce1`) and the redesigned Data Tools page (`e732d88`). The public plans/docs endpoints (`fdf9a6a`, `0403d65`) are **not covered** and need their own QA pass.
 
 ## Locked design recap (the rules being verified)
 
@@ -53,19 +53,42 @@ Manual end-to-end verification checklist for the autonomous AI assistant, data t
 - [ ] Downgrade revocation: with the add-on active, downgrade the org to BASIC in Stripe.
     - [ ] Expected after webhook: `ai_addon_active = false`, `ai_addon_subscription_item_id = null`, and the add-on item is removed from the Stripe subscription (deferred `subscriptionItems.del` with prorations).
 
-## 2. Data tools — gating, data source, CRUD, test-before-enable
+## 2. Application Details page
 
-- [ ] With the add-on **inactive**, open an application's row menu in **Applications** → click **"Data tools"**.
+- [ ] In **Applications**, open a row's "..." menu.
+    - [ ] Expected: menu now contains **"Application details"** (Info icon) and **"Delete"** (destructive) — the old Edit entry is gone.
+- [ ] Click **"Application details"** (route `/applications/<id>`).
+    - [ ] Expected: **"Back to Applications"** link; header with the application name, kind pill, and domain; top-right **"Edit"** button.
+    - [ ] Expected: info grid cards **"Details"** (Name / Domain / Description / Kind — `Test` or `Production` / Port for test apps), **"Allowed Domains"** ("Origins permitted to load the widget."; empty state "No allowed domains configured."), **"Metadata"** (Created / Last updated / **App ID**).
+- [ ] Click the copy icon next to App ID (aria-label **"Copy App ID"**).
+    - [ ] Expected: toast **"App ID copied to clipboard"**; icon flips to a green check for ~2s. (Failure path: **"Failed to copy App ID to clipboard"**.)
+- [ ] Click **"Edit"** → the existing edit dialog opens; save a change.
+    - [ ] Expected: toast **"Application updated"** (error: **"Failed to update application"**).
+- [ ] **AI** section — two toggle cards:
+    - [ ] **"AI auto-respond"** — "AI answers new visitor conversations automatically." (maps to `aiAutoRespond`).
+    - [ ] **"AI database tools"** — "Allow SQL-backed data tools for this application." (maps to `aiDbEnabled`).
+    - [ ] With the add-on **inactive**, each card shows the note **"Requires the AI Assistant add-on to take effect."** — the switches remain clickable (informational note, not a gate; the runtime entitlement check is what actually blocks the AI).
+    - [ ] Toggle updates optimistically (no success toast); on API failure it rolls back with toast **"Failed to update AI setting"**.
+    - [ ] As `operator`: the page is not accessible (role gate `admin`+).
+- [ ] **Configuration** section — two link cards:
+    - [ ] AI card titled by interview status: **"Configure AI"** / **"Continue interview"** / **"View AI context"**, description "Guided interview and generated AI context summary for this application."
+    - [ ] **"Data tools"** card ("Connect the AI to your systems and define the read-only capabilities it can use to answer visitors.") → navigates to the Data Tools page.
+
+## 3. Data tools — gating, data source, CRUD, test-before-enable
+
+- [ ] With the add-on **inactive**, open **Application details → Data tools**.
     - [ ] Expected: locked card **"Data tools require the AI Assistant add-on"** with body mentioning **Settings → Billing** and Premium/Enterprise. API: any data-tools endpoint → 403 `ai_addon_not_active` "The AI add-on is not active for your organization."
 - [ ] As `operator` (add-on active): open the page / call the API.
     - [ ] Expected: page renders nothing (role gate `admin`+); API → 403 "Insufficient role". Signed-out API call → 401.
-- [ ] As `admin` with the add-on active: page shows H1 **"Data tools"**, card **"Data source"** with Kind select (**"HTTP API"** / **"SQL database"**).
+- [ ] As `admin` with the add-on active and **no data source yet**: page shows H1 **"Data tools"** and an empty connection card — **"Connect a data source"** / "Add an HTTP API or SQL connection before creating data tools." with a **"Connect a data source"** button; the tools table is hidden entirely.
+- [ ] Click **"Connect a data source"** → dialog **"Data source connection"** ("How the AI reaches your systems. Secrets are write-only — saved values are never shown again.") with the Kind select (**"HTTP API"** / **"SQL database"**).
 - [ ] HTTP source: enter Base URL `https://api.example.com` with a mismatched Allowed host → save is rejected by the API with validation message **"allowedHost must equal the host of baseUrl"**; the UI offers a **"Use api.example.com"** suggestion button, and the help text mentions "this is the SSRF guardrail".
     - [ ] Add a header (placeholders **"Header name"** / **"Header value"**, value field is a password input) → **"Save data source"** → toast **"Data source saved"**.
     - [ ] Re-open: header value shows **"•••• (saved)"** — the actual value is never returned (API response only has `hasHeaders`/`headerNames`). DB: `config.encryptedHeaders` values start with `v1:`.
 - [ ] SQL source: leave connection string blank on first save → client-side pre-flight error **"Connection string is required when creating a SQL data source"** (the API's own 400, if reached directly, says **"connectionString is required when creating a SQL data source"** — camelCase; both exist by design). Save with `postgres://…` → placeholder becomes **"•••• (saved — leave blank to keep current)"**; DB stores `encryptedConnectionString` prefixed `v1:`.
-- [ ] Tools list: with no source, **"New tool"** is disabled with helper "Configure a data source above before adding tools."; empty state "No tools yet. Add one to give the AI a new capability."
-- [ ] Create a tool (dialog **"New data tool"**):
+- [ ] After saving: the connection card shows title **"Connection"** with an uppercase **HTTP**/**SQL** badge, the host (or **"SQL database"**), a **"credentials saved"** line, and an **"Edit connection"** button (reopens the dialog); the **"Data tools"** table section now appears (h2 **"Data tools"**, "Named, read-only capabilities the AI can call at runtime.").
+- [ ] Empty tools state: "No tools yet. Add one to give the AI a new capability."; table headers **Name / Backing / Status / Last tested / Actions**.
+- [ ] Click **"New data tool"** to create a tool (dialog **"New data tool"**):
     - [ ] Name `123bad` → blocked (help: "Must start with a letter; letters, digits, and underscores only."). Description of 9 chars → blocked ("At least 10 characters." / API "description must be at least 10 characters").
     - [ ] Backing mismatch (SQL tool on HTTP source) → 400 `backingType "sql" does not match the data source kind "http"`.
     - [ ] SQL query `DELETE FROM x` → 400 "Query must start with SELECT"; `SELECT 1; SELECT 2` → "Only a single statement is allowed"; `SELECT * INTO t FROM x` → keyword rejection.
@@ -75,12 +98,12 @@ Manual end-to-end verification checklist for the autonomous AI assistant, data t
     - [ ] **"Send test request"** with sample params → success: green JSON block, `last_tested_at` set, list shows "Last tested" relative time (was **"Never"**).
     - [ ] Failing test (e.g. unreachable host) → **HTTP 200** with red block `[<kind>] <error>` — a failed test is a result, not an HTTP error.
     - [ ] Enable the switch → status badge **"Enabled"**. Edit the tool (any field) and save → switch back to **"Disabled"**, "Last tested" back to **"Never"** (edit resets both).
-- [ ] Delete a tool → dialog **"Delete this tool?"** / `"<name>" will no longer be available to the AI. This cannot be undone.` → toast **"Tool deleted"**; DB row is **gone** (hard delete).
+- [ ] Open a tool row's "..." menu (aria-label `Actions for <name>`) → items **"Edit"** and **"Delete"**. Delete → dialog **"Delete this tool?"** / `"<name>" will no longer be available to the AI. This cannot be undone.` → toast **"Tool deleted"**; DB row is **gone** (hard delete).
 - [ ] Executor guardrails (HTTP tool test): URL resolving to a private IP (e.g. base URL pointing at `127.0.0.1` or an internal host) → test fails (SSRF guard); a redirecting endpoint → "Redirect responses are not allowed"; non-JSON response → "Response was not valid JSON".
 
-## 3. Autonomous AI turn (widget)
+## 4. Autonomous AI turn (widget)
 
-Setup: add-on active, application has `aiEnabled=true` and `aiAutoRespond=true` (no admin UI on the covered commits — set via DB/API), at least one enabled tool.
+Setup: add-on active, application has `aiEnabled=true` (via the AI interview / "Configure AI" flow) and **"AI auto-respond"** toggled on in Application Details (§2); at least one enabled tool (SQL tools additionally need **"AI database tools"** toggled on).
 
 - [ ] Open the widget fresh (new visitor).
     - [ ] Expected: opening disclosure system message: `Hi! I'm <header title>'s AI Assistant. I can help you — or connect you to a person anytime.` *(Flag: if the app has no header title the copy degrades to "…I'm our's AI Assistant…" — known grammar bug.)*
@@ -89,10 +112,10 @@ Setup: add-on active, application has `aiEnabled=true` and `aiAutoRespond=true` 
     - [ ] Expected: conversation stays out of the operator queue (`handled_by='ai'`, `status` unchanged, unassigned).
 - [ ] Admin chat view of the same conversation:
     - [ ] Expected: **"AI"** badge (title "Handled by AI") in the header and list item; AI messages labeled **"AI Assistant"** with indigo styling.
-- [ ] Entitlement kill-switch: set `ai_auto_respond=false` (or cancel the add-on) and send another visitor message.
+- [ ] Entitlement kill-switch: turn **"AI auto-respond"** off in Application Details (or cancel the add-on) and send another visitor message.
     - [ ] Expected: no AI reply; conversation is created/continued as a normal human-queue conversation.
 
-## 4. Escalation — all triggers + handoff summary
+## 5. Escalation — all triggers + handoff summary
 
 - [ ] Visitor clicks the header icon button (aria-label **"Talk to a human"**) on an AI conversation.
     - [ ] Expected: system message **"Sure — connecting you with a team member now. You're in the queue; someone will join shortly."**; the button becomes disabled; DB: `handled_by='human'`, `status='pending'`, `escalated_at` set, `escalation_reason='human_requested'`.
@@ -107,7 +130,7 @@ Setup: add-on active, application has `aiEnabled=true` and `aiAutoRespond=true` 
     - [ ] Expected (admin ParticipantPanel): collapsible **"AI handoff summary"** with a ≤ 6-sentence briefing and `Reason: <escalation reason>` (`conversations.handoff_summary` populated asynchronously — may take a few seconds; its failure must never block the escalation itself).
 - [ ] Escalating a **closed** conversation via API → 409 "Conversation is closed". Widget escalate without `X-Visitor-Id` → 400 "X-Visitor-Id header required". Foreign conversation id → 404 "Conversation not found".
 
-## 5. Authorization spot-check matrix
+## 6. Authorization spot-check matrix
 
 - [ ] Signed-out → `GET /billing/status` → **401** `unauthorized`.
 - [ ] `operator` → `GET /applications/:id/data-tools` → **403** "Insufficient role"; `admin` → **200**.
