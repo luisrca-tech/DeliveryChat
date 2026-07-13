@@ -204,22 +204,22 @@ export function DataSourceSection({ applicationId }: DataSourceSectionProps) {
 
           <div className="grid gap-2">
             <Label htmlFor="data_source_allowed_host">Allowed host</Label>
-            <div className="flex gap-2">
-              <Input
-                id="data_source_allowed_host"
-                placeholder="api.example.com"
-                {...httpForm.register("allowedHost")}
-              />
-              {suggestedHost && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleUseSuggestedHost}
-                >
-                  Use {suggestedHost}
-                </Button>
-              )}
-            </div>
+            <Input
+              id="data_source_allowed_host"
+              placeholder="api.example.com"
+              {...httpForm.register("allowedHost")}
+            />
+            {suggestedHost && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="w-fit"
+                onClick={handleUseSuggestedHost}
+              >
+                Use {suggestedHost}
+              </Button>
+            )}
             <p className="text-xs text-muted-foreground">
               Must exactly match the base URL&apos;s host — this is the SSRF
               guardrail: requests can only reach this host.
