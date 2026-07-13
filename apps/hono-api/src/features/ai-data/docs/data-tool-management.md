@@ -74,20 +74,41 @@ gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
 
 ## Dogfooding
 
-DeliveryChat registers **its own** public pricing endpoint
-(`GET /api/v1/public/plans`, see `src/routes/docs/public-plans.md`) as an
-HTTP DataTool on its own tenant, so the widget's AI assistant can answer
-pricing questions from live data instead of a hardcoded blurb in the system
-prompt. Concretely, via this same admin CRUD:
+DeliveryChat registers **its own** public API
+(`GET /api/v1/public/*`, see `src/routes/docs/public-api.md`) as HTTP
+DataTools on its own tenant, so the widget's AI assistant can answer pricing
+**and product/documentation** questions from live data instead of a hardcoded
+blurb in the system prompt. Three tools are registered against one HTTP data
+source, via this same admin CRUD:
 
 1. `PUT /:applicationId/data-source` with `kind: "http"`,
    `baseUrl: "<tunnel-or-public-host>"`, `allowedHost` matching that host.
-2. `POST /:applicationId/data-tools` creating a tool named `getPlanInfo`,
-   `backingType: "http"`, `urlTemplate: "/api/v1/public/plans"`, an empty
-   `inputSchema` (the endpoint takes no params), and a description telling
-   the model it returns plan names, prices, and limits.
+2. `POST /:applicationId/data-tools` — create the three tools:
+   - **`getPlanInfo`** — `backingType: "http"`,
+     `urlTemplate: "/api/v1/public/plans"`, empty `inputSchema` (the endpoint
+     takes no params). Description e.g. _"Returns DeliveryChat's plans with
+     names, monthly prices (BRL/USD) and limits. Call this whenever the
+     visitor asks about pricing, plan tiers, or feature limits."_
+   - **`searchDocs`** — `urlTemplate: "/api/v1/public/docs/search?q={query}"`,
+     `inputSchema: { query: string }`. Description e.g. _"Full-text search over
+     DeliveryChat's documentation (widget install, SDK methods, REST API).
+     Returns matching pages with a title, url and snippet. Use this FIRST to
+     locate the right page for any 'how do I…' question, then fetch it with
+     getDocsPage."_
+   - **`getDocsPage`** — `urlTemplate: "/api/v1/public/docs/pages/{slug}"`,
+     `inputSchema: { slug: string }`. Description e.g. _"Fetches the full text
+     of one documentation page by its slug (from a searchDocs result, e.g.
+     'sdk/methods'). Use this to read the actual instructions/code before
+     answering."_
 3. `POST .../data-tools/:toolId/test` against the live endpoint, then
    `POST .../enable`.
+
+**Tool descriptions drive model behavior.** The model chooses which tool to
+call, and with what arguments, almost entirely from these descriptions — not
+from the endpoint's code. Spell out *when* to call each tool and *how they
+chain* (search → get page), so the assistant grounds answers in a real page
+instead of guessing. This is the same "escalate, never fabricate" guarantee:
+the model only states what a tool actually returned.
 
 **Dev-environment caveat:** the SSRF guard (`ssrfGuard.ts`) rejects any
 `allowedHost` that resolves to a private/loopback address, which blocks

@@ -3,7 +3,7 @@ import { Hono } from "hono";
 
 const mockPricesRetrieve = vi.fn();
 
-vi.mock("../../lib/stripe.js", () => ({
+vi.mock("../../../lib/stripe.js", () => ({
   stripe: {
     prices: {
       retrieve: (...args: unknown[]) => mockPricesRetrieve(...args),
@@ -11,7 +11,7 @@ vi.mock("../../lib/stripe.js", () => ({
   },
 }));
 
-vi.mock("../../env.js", () => ({
+vi.mock("../../../env.js", () => ({
   env: {
     STRIPE_BASIC_PRICE_KEY: "price_basic",
     STRIPE_PREMIUM_PRICE_KEY: "price_premium",
@@ -34,7 +34,7 @@ const premiumPriceFixture = {
 
 async function loadPublicRoute() {
   vi.resetModules();
-  const { publicRoute } = await import("../public.js");
+  const { publicRoute } = await import("../index.js");
   return new Hono().route("/public", publicRoute);
 }
 

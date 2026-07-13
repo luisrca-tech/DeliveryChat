@@ -1,18 +1,15 @@
 import { Hono } from "hono";
-import { stripe } from "../lib/stripe.js";
-import { env } from "../env.js";
+import { stripe } from "../../lib/stripe.js";
+import { env } from "../../env.js";
 import {
   getApiKeyLimitByPlan,
   getMemberLimitByPlan,
   getAiLimitsByPlan,
-} from "../lib/planLimits.js";
-import { createVisitorRateLimitMiddleware } from "../lib/middleware/visitorRateLimit.js";
-import { sharedVisitorRateLimiter } from "../lib/middleware/visitorRateLimitInstance.js";
+} from "../../lib/planLimits.js";
 
 /**
- * Public, unauthenticated marketing endpoint — no tenant resolution, no auth.
- * Dogfooded as an AI DataTool so the widget's AI can answer pricing
- * questions from live data. See docs/public-plans.md and
+ * `GET /public/plans` — public marketing pricing, no auth, no tenant.
+ * Dogfooded as the `getPlanInfo` AI DataTool. See public-api.md and
  * features/ai-data/docs/data-tool-management.md ("Dogfooding").
  */
 
@@ -152,18 +149,13 @@ async function getPlans(): Promise<PlanEntry[]> {
   }
 }
 
-export const publicRoute = new Hono()
-  .use(
-    "/plans",
-    createVisitorRateLimitMiddleware(sharedVisitorRateLimiter),
-  )
-  .get("/plans", async (c) => {
-    const plans = await getPlans();
-    return c.json(
-      { plans },
-      200,
-      {
-        "Cache-Control": "public, max-age=300",
-      },
-    );
-  });
+export const plansRoute = new Hono().get("/plans", async (c) => {
+  const plans = await getPlans();
+  return c.json(
+    { plans },
+    200,
+    {
+      "Cache-Control": "public, max-age=300",
+    },
+  );
+});

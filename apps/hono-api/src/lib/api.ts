@@ -15,7 +15,7 @@ import { invitationsRoute } from "../routes/invitations.js";
 import { aiRoute } from "../routes/ai.js";
 import { aiInterviewRoute } from "../routes/applications/ai-interview/index.js";
 import { dataToolsRoute } from "../routes/applications/data-tools/index.js";
-import { publicRoute } from "../routes/public.js";
+import { publicRoute } from "../routes/public/index.js";
 
 /**
  * Shared Hono instance for API routes

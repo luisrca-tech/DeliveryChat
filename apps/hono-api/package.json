@@ -23,8 +23,8 @@
   ],
   "scripts": {
     "dev": "infisical run --path=/hono-api -- tsx watch src/index.ts",
-    "predev": "cd ../.. && bun run --filter=@repo/emails build",
-    "prebuild": "cd ../.. && bun run --filter=@repo/emails build && bun run --filter=@repo/lexical-utils build && cd apps/widget && bun run build:embed",
+    "predev": "tsx scripts/generate-docs-corpus.ts && cd ../.. && bun run --filter=@repo/emails build",
+    "prebuild": "tsx scripts/generate-docs-corpus.ts && cd ../.. && bun run --filter=@repo/emails build && bun run --filter=@repo/lexical-utils build && cd apps/widget && bun run build:embed",
     "build": "tsc && node scripts/fix-dist-extensions.js && node scripts/copy-widget.js",
     "start": "node --experimental-specifier-resolution=node dist/index.js",
     "lint": "eslint . --max-warnings 0",
