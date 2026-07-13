@@ -45,8 +45,7 @@ vi.mock("../../features/chat/error-mapper.js", () => ({
 }));
 
 vi.mock("../../lib/middleware/widgetAuth.js", () => ({
-  requireWidgetAuth: () => async (_c: any, next: () => Promise<void>) =>
-    next(),
+  requireWidgetAuth: () => async (_c: any, next: () => Promise<void>) => next(),
   getWidgetAuth: () => ({
     application: { id: "app-1" },
     organizationId: "org-1",
@@ -54,7 +53,8 @@ vi.mock("../../lib/middleware/widgetAuth.js", () => ({
 }));
 vi.mock("../../lib/middleware/visitorRateLimit.js", () => ({
   createVisitorRateLimitMiddleware:
-    () => async (_c: any, next: () => Promise<void>) => next(),
+    () => async (_c: any, next: () => Promise<void>) =>
+      next(),
 }));
 vi.mock("../../lib/middleware/visitorRateLimitInstance.js", () => ({
   sharedVisitorRateLimiter: { check: () => ({ allowed: true }) },

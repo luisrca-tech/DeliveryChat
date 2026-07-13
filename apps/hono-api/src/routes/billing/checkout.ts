@@ -30,7 +30,11 @@ export const checkoutRoute = new Hono().post(
         .limit(1);
 
       if (!dbUser) {
-        return jsonError(c, HTTP_STATUS.UNAUTHORIZED, ERROR_MESSAGES.UNAUTHORIZED);
+        return jsonError(
+          c,
+          HTTP_STATUS.UNAUTHORIZED,
+          ERROR_MESSAGES.UNAUTHORIZED,
+        );
       }
 
       const memberCountResult = await db
@@ -60,7 +64,10 @@ export const checkoutRoute = new Hono().post(
           ? env.STRIPE_BASIC_PRICE_KEY
           : env.STRIPE_PREMIUM_PRICE_KEY;
 
-      const adminBaseUrl = await getUserAdminUrl(auth.user.id, c.req.raw.headers);
+      const adminBaseUrl = await getUserAdminUrl(
+        auth.user.id,
+        c.req.raw.headers,
+      );
 
       const isAlreadyTrialing = organization.planStatus === "trialing";
 
@@ -82,7 +89,8 @@ export const checkoutRoute = new Hono().post(
           : { customer_email: dbUser.email }),
       };
 
-      const shouldEnableAutomaticTax = env.STRIPE_AUTOMATIC_TAX_ENABLED === true;
+      const shouldEnableAutomaticTax =
+        env.STRIPE_AUTOMATIC_TAX_ENABLED === true;
 
       let session: Stripe.Response<Stripe.Checkout.Session>;
       try {

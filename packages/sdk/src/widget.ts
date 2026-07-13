@@ -352,13 +352,20 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     humanHandoffBtn.disabled = disabled;
   };
   refreshHumanHandoffButton();
-  const unsubHandoffConv = subscribe("conversationId", refreshHumanHandoffButton);
+  const unsubHandoffConv = subscribe(
+    "conversationId",
+    refreshHumanHandoffButton,
+  );
   const unsubHandoffMessages = subscribe("messages", refreshHumanHandoffButton);
   const unsubHandoffRequested = subscribe(
     "humanRequested",
     refreshHumanHandoffButton,
   );
-  cleanupFns.push(unsubHandoffConv, unsubHandoffMessages, unsubHandoffRequested);
+  cleanupFns.push(
+    unsubHandoffConv,
+    unsubHandoffMessages,
+    unsubHandoffRequested,
+  );
 
   let lastMessageCount = getState("messages").length;
   const renderedMessages = new Map<string, ChatMessage>();
@@ -394,7 +401,14 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
           msg.content !== prev.content ||
           msg.editedAt !== prev.editedAt
         ) {
-          updateMessageContent(listEl, msg.id, msg.content, msg.editedAt, msg.contentFormat, msg.contentHtml);
+          updateMessageContent(
+            listEl,
+            msg.id,
+            msg.content,
+            msg.editedAt,
+            msg.contentFormat,
+            msg.contentHtml,
+          );
         }
       }
       renderedMessages.set(msg.id, msg);
@@ -427,7 +441,14 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
         const msgId = row?.getAttribute("data-id") ?? null;
         if (msgId && msgId !== editingId) {
           const msg = getState("messages").find((m) => m.id === msgId);
-          exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt, msg?.contentFormat, msg?.contentHtml);
+          exitEditMode(
+            listEl,
+            msgId,
+            msg?.content ?? "",
+            msg?.editedAt,
+            msg?.contentFormat,
+            msg?.contentHtml,
+          );
         }
       });
 
@@ -438,7 +459,14 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
           const msgId = row?.getAttribute("data-id") ?? null;
           if (msgId) {
             const msg = getState("messages").find((m) => m.id === msgId);
-            exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt, msg?.contentFormat, msg?.contentHtml);
+            exitEditMode(
+              listEl,
+              msgId,
+              msg?.content ?? "",
+              msg?.editedAt,
+              msg?.contentFormat,
+              msg?.contentHtml,
+            );
           }
         });
         return;

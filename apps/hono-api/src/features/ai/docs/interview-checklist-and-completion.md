@@ -58,7 +58,6 @@ On success, the row is updated with `status='completed'`, `completedBy=<user>`, 
 
 The same optimistic-lock semantics as `/turns` apply: `expectedCurrentTurn` is validated inside the transaction, and a stale value returns 409 without mutating the row.
 
-
 ## Related
 
 - Admin UX: [`packages/docs/ai-interview.md`](../../../../../../packages/docs/ai-interview.md)

@@ -228,11 +228,15 @@ describe("generateReply", () => {
     const mockProvider = {
       generateText: vi
         .fn()
-        .mockRejectedValue(new AIProviderRateLimitError("rate limited by provider")),
+        .mockRejectedValue(
+          new AIProviderRateLimitError("rate limited by provider"),
+        ),
     };
     mockCreateAIProvider.mockReturnValue(mockProvider);
 
-    await expect(generateReply(baseInput)).rejects.toThrow("rate limited by provider");
+    await expect(generateReply(baseInput)).rejects.toThrow(
+      "rate limited by provider",
+    );
     expect(mockProvider.generateText).toHaveBeenCalledTimes(1);
   });
 
@@ -256,9 +260,7 @@ describe("generateReply", () => {
 
     const { AITimeoutError } = await import("../ai.errors.js");
     const mockProvider = {
-      generateText: vi
-        .fn()
-        .mockRejectedValue(new AITimeoutError("timed out")),
+      generateText: vi.fn().mockRejectedValue(new AITimeoutError("timed out")),
     };
     mockCreateAIProvider.mockReturnValue(mockProvider);
 
@@ -331,7 +333,9 @@ describe("generateReply", () => {
     mockCreateAIProvider.mockReturnValue(mockProvider);
 
     const { AIEmptyResponseError } = await import("../ai.errors.js");
-    await expect(generateReply(baseInput)).rejects.toThrow(AIEmptyResponseError);
+    await expect(generateReply(baseInput)).rejects.toThrow(
+      AIEmptyResponseError,
+    );
   });
 
   it("throws AIContentFilteredError when finish reason is content-filter", async () => {
@@ -717,8 +721,19 @@ describe("AI blocking for unconfigured apps", () => {
   it("throws AINotConfiguredError when application has aiEnabled=false", async () => {
     mockSelect
       .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
-      .mockReturnValueOnce(chainMock([{ senderId: "v-1", content: "Hi", contentFormat: "plain", createdAt: "2026-05-25T11:55:00Z" }]))
-      .mockReturnValueOnce(chainMock([{ aiEnabled: false, contextSummary: null }]));
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "v-1",
+            content: "Hi",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
+      .mockReturnValueOnce(
+        chainMock([{ aiEnabled: false, contextSummary: null }]),
+      );
 
     const { AINotConfiguredError } = await import("../ai.errors.js");
     await expect(generateReply(baseInput)).rejects.toThrow(
@@ -729,7 +744,16 @@ describe("AI blocking for unconfigured apps", () => {
   it("throws AINotConfiguredError when application not found in DB", async () => {
     mockSelect
       .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
-      .mockReturnValueOnce(chainMock([{ senderId: "v-1", content: "Hi", contentFormat: "plain", createdAt: "2026-05-25T11:55:00Z" }]))
+      .mockReturnValueOnce(
+        chainMock([
+          {
+            senderId: "v-1",
+            content: "Hi",
+            contentFormat: "plain",
+            createdAt: "2026-05-25T11:55:00Z",
+          },
+        ]),
+      )
       .mockReturnValueOnce(chainMock([]));
 
     const { AINotConfiguredError } = await import("../ai.errors.js");
@@ -751,7 +775,9 @@ describe("AI blocking for unconfigured apps", () => {
     mockSelect
       .mockReturnValueOnce(chainMock(OWNERSHIP_WITH_APP))
       .mockReturnValueOnce(chainMock([]))
-      .mockReturnValueOnce(chainMock([{ aiEnabled: false, contextSummary: null }]));
+      .mockReturnValueOnce(
+        chainMock([{ aiEnabled: false, contextSummary: null }]),
+      );
 
     const { AINotConfiguredError } = await import("../ai.errors.js");
     await expect(
@@ -803,7 +829,9 @@ describe("generateReply with application context", () => {
         ]),
       )
       .mockReturnValueOnce(
-        chainMock([{ aiEnabled: true, contextSummary: "We deliver pizza fast." }]),
+        chainMock([
+          { aiEnabled: true, contextSummary: "We deliver pizza fast." },
+        ]),
       );
     mockInsert.mockReturnValue(mockInsertChain());
 
@@ -835,7 +863,9 @@ describe("generateReply with application context", () => {
           },
         ]),
       )
-      .mockReturnValueOnce(chainMock([{ aiEnabled: true, contextSummary: null }]));
+      .mockReturnValueOnce(
+        chainMock([{ aiEnabled: true, contextSummary: null }]),
+      );
     mockInsert.mockReturnValue(mockInsertChain());
 
     const mockProvider = {

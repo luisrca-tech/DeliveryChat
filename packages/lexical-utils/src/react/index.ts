@@ -13,10 +13,7 @@ export { ClearEditorPlugin } from "./ClearEditorPlugin";
 export { ListKeyboardPlugin } from "./ListKeyboardPlugin";
 export { ExternalSendPlugin, type EditorHandle } from "./ExternalSendPlugin";
 
-export {
-  LexicalEditor,
-  type LexicalEditorProps,
-} from "./LexicalEditor";
+export { LexicalEditor, type LexicalEditorProps } from "./LexicalEditor";
 
 export {
   ToolbarPlugin,

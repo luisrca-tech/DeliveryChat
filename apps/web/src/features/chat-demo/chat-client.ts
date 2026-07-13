@@ -97,9 +97,7 @@ export function createChatClient({
       });
     },
 
-    listConversations(
-      opts?: PaginationOptions,
-    ): Promise<{
+    listConversations(opts?: PaginationOptions): Promise<{
       conversations: Conversation[];
       visitorUserId: string;
       total: number;

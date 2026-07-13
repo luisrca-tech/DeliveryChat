@@ -104,10 +104,7 @@ export function decryptSecret(ciphertext: string): string {
     const decipher = createDecipheriv(ALGORITHM, key, iv) as DecipherGCM;
     decipher.setAuthTag(tag);
 
-    const plaintext = Buffer.concat([
-      decipher.update(data),
-      decipher.final(),
-    ]);
+    const plaintext = Buffer.concat([decipher.update(data), decipher.final()]);
     return plaintext.toString("utf8");
   } catch (error) {
     if (error instanceof DecryptionError) throw error;

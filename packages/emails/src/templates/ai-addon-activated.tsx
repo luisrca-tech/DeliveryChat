@@ -40,7 +40,9 @@ export default function AiAddonActivatedEmail(
       <Text style={{ margin: "0 0 8px 0", color: "#374151" }}>
         Next steps to get the most out of it:
       </Text>
-      <ul style={{ margin: "0 0 18px 0", paddingLeft: "20px", color: "#374151" }}>
+      <ul
+        style={{ margin: "0 0 18px 0", paddingLeft: "20px", color: "#374151" }}
+      >
         <li style={{ marginBottom: "6px" }}>
           Configure the AI context for each application.
         </li>

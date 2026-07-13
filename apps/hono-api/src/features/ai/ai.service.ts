@@ -111,7 +111,10 @@ async function requireApplicationAiContext(
 export async function generateReply(
   input: GenerateReplyInput,
 ): Promise<GenerateReplyResult> {
-  const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
+  const { applicationId } = await verifyConversationOwnership(
+    input.conversationId,
+    input.tenantId,
+  );
   requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;
@@ -225,7 +228,10 @@ const IMPROVE_CONTEXT_LIMIT = 3;
 export async function improveMessage(
   input: ImproveMessageInput,
 ): Promise<ImproveMessageResult> {
-  const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
+  const { applicationId } = await verifyConversationOwnership(
+    input.conversationId,
+    input.tenantId,
+  );
   requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;

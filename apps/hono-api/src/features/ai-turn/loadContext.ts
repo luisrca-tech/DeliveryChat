@@ -7,10 +7,7 @@ import { applications } from "../../db/schema/applications.js";
 import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { applicationDataSource } from "../../db/schema/applicationDataSource.js";
 import { applicationDataTool } from "../../db/schema/applicationDataTool.js";
-import type {
-  DataSourceRow,
-  DataToolRow,
-} from "../ai-data/index.js";
+import type { DataSourceRow, DataToolRow } from "../ai-data/index.js";
 import type { MessageAuthorType } from "../chat/chat.service.js";
 
 export type TurnConversation = {

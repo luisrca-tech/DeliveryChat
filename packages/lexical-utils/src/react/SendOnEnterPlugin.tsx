@@ -1,16 +1,16 @@
 import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import {
-  COMMAND_PRIORITY_HIGH,
-  KEY_ENTER_COMMAND,
-  $getRoot,
-} from "lexical";
+import { COMMAND_PRIORITY_HIGH, KEY_ENTER_COMMAND, $getRoot } from "lexical";
 import { isPlainTextLexicalJson } from "../index";
 import { isSelectionInListItem } from "./listUtils";
 import type { ContentFormat } from "@repo/types";
 
 type Props = {
-  onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
+  onSend: (
+    content: string,
+    isEmpty: boolean,
+    contentFormat: ContentFormat,
+  ) => void;
 };
 
 export function SendOnEnterPlugin({ onSend }: Props) {

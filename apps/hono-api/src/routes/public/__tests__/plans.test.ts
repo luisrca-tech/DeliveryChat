@@ -65,9 +65,7 @@ describe("GET /public/plans", () => {
       usd: { amount: 1900, formatted: "$19/month" },
     });
 
-    const premium = body.plans.find(
-      (p: { id: string }) => p.id === "PREMIUM",
-    );
+    const premium = body.plans.find((p: { id: string }) => p.id === "PREMIUM");
     expect(premium.prices).toEqual({
       brl: { amount: 19000, formatted: "R$ 190/month" },
       usd: { amount: 3900, formatted: "$39/month" },
@@ -153,9 +151,7 @@ describe("GET /public/plans", () => {
     const body = await res.json();
 
     const basic = body.plans.find((p: { id: string }) => p.id === "BASIC");
-    const premium = body.plans.find(
-      (p: { id: string }) => p.id === "PREMIUM",
-    );
+    const premium = body.plans.find((p: { id: string }) => p.id === "PREMIUM");
     expect(basic.prices).toBeNull();
     expect(premium.prices).toBeNull();
     expect(consoleErrorSpy).toHaveBeenCalled();

@@ -19,13 +19,20 @@ vi.mock("../../../env.js", () => ({
 let mockAuthContext: unknown = null;
 
 vi.mock("../../../lib/middleware/auth.js", () => ({
-  requireTenantAuth: () => async (c: { set: (k: string, v: unknown) => void }, next: () => Promise<void>) => {
-    if (!mockAuthContext) {
-      return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401 });
-    }
-    c.set("auth", mockAuthContext);
-    await next();
-  },
+  requireTenantAuth:
+    () =>
+    async (
+      c: { set: (k: string, v: unknown) => void },
+      next: () => Promise<void>,
+    ) => {
+      if (!mockAuthContext) {
+        return new Response(JSON.stringify({ error: "unauthorized" }), {
+          status: 401,
+        });
+      }
+      c.set("auth", mockAuthContext);
+      await next();
+    },
   getTenantAuth: (c: { get: (k: string) => unknown }) => c.get("auth"),
   requireRole: () => async (_c: unknown, next: () => Promise<void>) => {
     await next();
@@ -45,9 +52,10 @@ vi.mock("../ai.middleware.js", async (importOriginal) => {
     requireAiFeature: () => async (_c: unknown, next: () => Promise<void>) => {
       await next();
     },
-    createAiRateLimitMiddleware: () => async (_c: unknown, next: () => Promise<void>) => {
-      await next();
-    },
+    createAiRateLimitMiddleware:
+      () => async (_c: unknown, next: () => Promise<void>) => {
+        await next();
+      },
   };
 });
 
@@ -67,7 +75,12 @@ function createMemberAuth(plan = "PREMIUM") {
     session: {},
     user: { id: "user-1", name: "Test Operator" },
     organization: { id: "org-1", plan, name: "Test Org" },
-    membership: { id: "m-1", role: "operator", userId: "user-1", organizationId: "org-1" },
+    membership: {
+      id: "m-1",
+      role: "operator",
+      userId: "user-1",
+      organizationId: "org-1",
+    },
   };
 }
 
@@ -84,7 +97,9 @@ describe("POST /ai/generate-reply", () => {
     const res = await app.request("/ai/generate-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
     });
 
     expect(res.status).toBe(200);
@@ -110,7 +125,9 @@ describe("POST /ai/generate-reply", () => {
     const res = await app.request("/ai/generate-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
     });
 
     expect(res.status).toBe(401);
@@ -124,7 +141,9 @@ describe("POST /ai/generate-reply", () => {
     const res = await app.request("/ai/generate-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
     });
 
     expect(res.status).toBe(422);
@@ -140,7 +159,9 @@ describe("POST /ai/generate-reply", () => {
     const res = await app.request("/ai/generate-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
     });
 
     expect(res.status).toBe(504);
@@ -156,7 +177,9 @@ describe("POST /ai/generate-reply", () => {
     const res = await app.request("/ai/generate-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
     });
 
     expect(res.status).toBe(502);
@@ -172,7 +195,9 @@ describe("POST /ai/generate-reply", () => {
     const res = await app.request("/ai/generate-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
     });
 
     expect(res.status).toBe(422);
@@ -187,7 +212,9 @@ describe("POST /ai/generate-reply", () => {
     const res = await app.request("/ai/generate-reply", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ conversationId: "00000000-0000-0000-0000-000000000001" }),
+      body: JSON.stringify({
+        conversationId: "00000000-0000-0000-0000-000000000001",
+      }),
     });
 
     expect(res.status).toBe(500);

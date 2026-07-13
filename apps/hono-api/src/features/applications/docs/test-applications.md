@@ -18,10 +18,10 @@ tenant admin can iterate against `http://localhost:<port>` without polluting
 the production-domain namespace and without granting test keys access to
 real customer traffic.
 
-| Kind         | Origin source of truth          | Uniqueness scope                 | Key environment |
-| ------------ | ------------------------------- | -------------------------------- | --------------- |
-| `production` | `domain` (e.g. `acme.com`)      | Globally unique per active row   | `dk_live_`      |
-| `test`       | `localhost` + declared `port`   | Unique per tenant per active row | `dk_test_`      |
+| Kind         | Origin source of truth        | Uniqueness scope                 | Key environment |
+| ------------ | ----------------------------- | -------------------------------- | --------------- |
+| `production` | `domain` (e.g. `acme.com`)    | Globally unique per active row   | `dk_live_`      |
+| `test`       | `localhost` + declared `port` | Unique per tenant per active row | `dk_test_`      |
 
 `kind` and `port` are **immutable after creation**. Flipping a kind would
 silently change the allowed-origin model, invalidate API keys, and break
@@ -42,7 +42,7 @@ Constraints:
 
 - `applications_kind_port_domain_check` — CHECK ensuring
   `(kind='test' AND port IS NOT NULL AND domain='localhost') OR
-  (kind='production' AND port IS NULL)`. Blocks raw-SQL inserts of malformed
+(kind='production' AND port IS NULL)`. Blocks raw-SQL inserts of malformed
   rows.
 - `applications_production_domain_unique` — partial unique index on `domain`
   where `kind='production' AND deleted_at IS NULL`. Replaces the previous

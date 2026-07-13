@@ -50,9 +50,14 @@ function buildLimits(plan: PlanId) {
   };
 }
 
-function formatMoney(amountCents: number, currency: "brl" | "usd"): MoneyAmount {
+function formatMoney(
+  amountCents: number,
+  currency: "brl" | "usd",
+): MoneyAmount {
   const value = amountCents / 100;
-  const displayValue = Number.isInteger(value) ? String(value) : value.toFixed(2);
+  const displayValue = Number.isInteger(value)
+    ? String(value)
+    : value.toFixed(2);
   const prefix = currency === "brl" ? "R$ " : "$";
   return { amount: amountCents, formatted: `${prefix}${displayValue}/month` };
 }
@@ -151,11 +156,7 @@ async function getPlans(): Promise<PlanEntry[]> {
 
 export const plansRoute = new Hono().get("/plans", async (c) => {
   const plans = await getPlans();
-  return c.json(
-    { plans },
-    200,
-    {
-      "Cache-Control": "public, max-age=300",
-    },
-  );
+  return c.json({ plans }, 200, {
+    "Cache-Control": "public, max-age=300",
+  });
 });

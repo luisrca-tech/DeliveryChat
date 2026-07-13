@@ -131,7 +131,6 @@ The interview engine recognizes the natural completion window:
   the existing missing-topics reprompt logic continues to govern premature
   finish suggestions.
 
-
 ## Related
 
 - Admin UX: [`packages/docs/ai-interview.md`](../../../../../../packages/docs/ai-interview.md)

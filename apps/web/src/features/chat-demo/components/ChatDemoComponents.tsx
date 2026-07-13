@@ -421,29 +421,27 @@ export function MessageThreadPanel({
                           msg.pending && "opacity-60",
                         )}
                       >
-                        {isLexical ? (
-                          (() => {
-                            const html =
-                              msg.contentHtml ??
-                              serializeLexicalJsonToHtml(msg.content);
-                            if (html) {
-                              return (
-                                <div
-                                  className={cn(
-                                    "rich-text-content",
-                                    isVisitor
-                                      ? "rich-text-content--self"
-                                      : "rich-text-content--other",
-                                  )}
-                                  dangerouslySetInnerHTML={{ __html: html }}
-                                />
-                              );
-                            }
-                            return msg.content;
-                          })()
-                        ) : (
-                          msg.content
-                        )}
+                        {isLexical
+                          ? (() => {
+                              const html =
+                                msg.contentHtml ??
+                                serializeLexicalJsonToHtml(msg.content);
+                              if (html) {
+                                return (
+                                  <div
+                                    className={cn(
+                                      "rich-text-content",
+                                      isVisitor
+                                        ? "rich-text-content--self"
+                                        : "rich-text-content--other",
+                                    )}
+                                    dangerouslySetInnerHTML={{ __html: html }}
+                                  />
+                                );
+                              }
+                              return msg.content;
+                            })()
+                          : msg.content}
                         {msg.editedAt && (
                           <span className="ml-1 text-[9px] opacity-60">
                             (edited)

@@ -15,7 +15,11 @@ import {
   MessageEditWindowExpiredError,
   type ConversationData,
 } from "./chat.service.js";
-import type { ContentFormat, MessageNewPayload, WSServerEvent } from "@repo/types";
+import type {
+  ContentFormat,
+  MessageNewPayload,
+  WSServerEvent,
+} from "@repo/types";
 import {
   buildMessageNewEvent,
   buildMessageEditedEvent,
@@ -183,7 +187,12 @@ function handleRoomLeave(
 
 async function handleMessageSend(
   conn: WSConnection,
-  payload: { conversationId: string; content: string; contentFormat?: string; clientMessageId: string },
+  payload: {
+    conversationId: string;
+    content: string;
+    contentFormat?: string;
+    clientMessageId: string;
+  },
   roomManager: IRoomManager,
 ) {
   let conversationData: ConversationData;
@@ -273,7 +282,12 @@ async function handleMessageSend(
 
 async function handleMessageEdit(
   conn: WSConnection,
-  payload: { conversationId: string; messageId: string; content: string; contentFormat?: string },
+  payload: {
+    conversationId: string;
+    messageId: string;
+    content: string;
+    contentFormat?: string;
+  },
   roomManager: IRoomManager,
 ) {
   try {

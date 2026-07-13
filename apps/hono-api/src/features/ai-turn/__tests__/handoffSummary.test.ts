@@ -58,8 +58,20 @@ const CONVERSATION = {
 };
 
 const MESSAGES = [
-  { authorType: "visitor", senderId: "v1", content: "Do you ship to Brazil?", contentFormat: "plain", createdAt: "2026-07-10T00:00:00.000Z" },
-  { authorType: "ai", senderId: null, content: "Let me check.", contentFormat: "plain", createdAt: "2026-07-10T00:00:01.000Z" },
+  {
+    authorType: "visitor",
+    senderId: "v1",
+    content: "Do you ship to Brazil?",
+    contentFormat: "plain",
+    createdAt: "2026-07-10T00:00:00.000Z",
+  },
+  {
+    authorType: "ai",
+    senderId: null,
+    content: "Let me check.",
+    contentFormat: "plain",
+    createdAt: "2026-07-10T00:00:01.000Z",
+  },
 ];
 
 function providerReturning(text: string) {
@@ -80,7 +92,9 @@ beforeEach(() => {
 describe("generateHandoffSummary", () => {
   it("generates and persists a summary onto the conversation", async () => {
     mockLoadMessages.mockResolvedValue(MESSAGES);
-    const provider = providerReturning("Visitor asks about shipping to Brazil.");
+    const provider = providerReturning(
+      "Visitor asks about shipping to Brazil.",
+    );
     mockCreateProvider.mockReturnValue(provider);
 
     await generateHandoffSummary(CONVERSATION);

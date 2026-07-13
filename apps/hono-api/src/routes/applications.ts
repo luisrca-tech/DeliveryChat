@@ -84,12 +84,10 @@ export const applicationsRoute = new Hono()
           .limit(limit)
           .offset(offset);
 
-        const applicationsResult = rows.map(
-          ({ aiContextStatus, ...app }) => ({
-            ...app,
-            aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
-          }),
-        );
+        const applicationsResult = rows.map(({ aiContextStatus, ...app }) => ({
+          ...app,
+          aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
+        }));
 
         return c.json({ applications: applicationsResult, limit, offset });
       }
@@ -124,12 +122,10 @@ export const applicationsRoute = new Hono()
         .limit(limit)
         .offset(offset);
 
-      const applicationsResult = result.map(
-        ({ aiContextStatus, ...app }) => ({
-          ...app,
-          aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
-        }),
-      );
+      const applicationsResult = result.map(({ aiContextStatus, ...app }) => ({
+        ...app,
+        aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
+      }));
 
       return c.json({
         applications: applicationsResult,

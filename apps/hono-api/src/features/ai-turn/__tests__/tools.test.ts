@@ -39,7 +39,10 @@ function sqlTool(name: string) {
 
 function toolset(tools: TurnToolset["tools"]): TurnToolset {
   return {
-    source: { kind: "http", config: { baseUrl: "https://x", allowedHost: "x" } },
+    source: {
+      kind: "http",
+      config: { baseUrl: "https://x", allowedHost: "x" },
+    },
     tools,
   };
 }

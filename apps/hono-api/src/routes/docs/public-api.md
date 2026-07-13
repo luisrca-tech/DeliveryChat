@@ -39,7 +39,12 @@ Two consumers:
       "id": "FREE",
       "name": "Free",
       "prices": null,
-      "limits": { "apiKeys": 3, "members": 3, "aiAssistant": false, "aiMonthlyCap": 0 }
+      "limits": {
+        "apiKeys": 3,
+        "members": 3,
+        "aiAssistant": false,
+        "aiMonthlyCap": 0
+      }
     },
     {
       "id": "BASIC",
@@ -48,14 +53,24 @@ Two consumers:
         "brl": { "amount": 9000, "formatted": "R$ 90/month" },
         "usd": { "amount": 1900, "formatted": "$19/month" }
       },
-      "limits": { "apiKeys": 5, "members": 6, "aiAssistant": false, "aiMonthlyCap": 0 }
+      "limits": {
+        "apiKeys": 5,
+        "members": 6,
+        "aiAssistant": false,
+        "aiMonthlyCap": 0
+      }
     },
     { "id": "PREMIUM", "...": "same shape as BASIC" },
     {
       "id": "ENTERPRISE",
       "name": "Enterprise",
       "prices": "custom",
-      "limits": { "apiKeys": 1000, "members": 1000, "aiAssistant": true, "aiMonthlyCap": 3000 }
+      "limits": {
+        "apiKeys": 1000,
+        "members": 1000,
+        "aiAssistant": true,
+        "aiMonthlyCap": 3000
+      }
     }
   ]
 }

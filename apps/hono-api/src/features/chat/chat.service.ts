@@ -4,7 +4,11 @@ import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
 import { user } from "../../db/schema/users.js";
-import type { ConversationStatus, ContentFormat, ParticipantRole } from "@repo/types";
+import type {
+  ConversationStatus,
+  ContentFormat,
+  ParticipantRole,
+} from "@repo/types";
 import { maybeTriggerAiTurn } from "../ai-turn/trigger.js";
 
 /** Discriminates who authored a message (mirrors the `message_author_type` enum). */
@@ -180,7 +184,8 @@ interface AddParticipantInput {
 export function enrichMessage<
   T extends { content: string; contentFormat?: ContentFormat | null },
 >(message: T): T & { contentHtml: string | null; contentPlainText: string } {
-  const format: ContentFormat = (message.contentFormat ?? "plain") as ContentFormat;
+  const format: ContentFormat = (message.contentFormat ??
+    "plain") as ContentFormat;
   return {
     ...message,
     contentHtml: serializeLexicalToHtml(message.content, format),

@@ -57,11 +57,11 @@ Admins and super admins can view AI usage logs at Settings > AI Usage.
 
 ## Plan Availability
 
-| Feature        | FREE | BASIC | PREMIUM | ENTERPRISE |
-|---------------|------|-------|---------|------------|
-| Generate Reply | No   | No    | Yes     | Yes        |
-| Improve Message| No   | No    | Yes     | Yes        |
-| Monthly Cap    | —    | —     | 3,000   | Custom     |
+| Feature         | FREE | BASIC | PREMIUM | ENTERPRISE |
+| --------------- | ---- | ----- | ------- | ---------- |
+| Generate Reply  | No   | No    | Yes     | Yes        |
+| Improve Message | No   | No    | Yes     | Yes        |
+| Monthly Cap     | —    | —     | 3,000   | Custom     |
 
 ENTERPRISE tenants can have custom monthly caps configured via tenant rate limit overrides.
 
@@ -104,15 +104,15 @@ AI responses use a restricted Markdown subset instead of plain text, HTML, or Le
 
 ### Allowed Syntax
 
-| Construct | Syntax | Example |
-|-----------|--------|---------|
-| Bold | `**text**` | `**Important:** Your order is ready` |
-| Heading H1 | `# Heading` | `# Order Status` |
-| Heading H2 | `## Heading` | `## Tracking Details` |
-| Heading H3 | `### Heading` | `### Next Steps` |
-| Bullet list | `- item` or `* item` | `- Check your email` |
-| Numbered list | `1. item` | `1. Open the tracking link` |
-| Paragraphs | Plain text separated by blank lines | Standard paragraphs |
+| Construct     | Syntax                              | Example                              |
+| ------------- | ----------------------------------- | ------------------------------------ |
+| Bold          | `**text**`                          | `**Important:** Your order is ready` |
+| Heading H1    | `# Heading`                         | `# Order Status`                     |
+| Heading H2    | `## Heading`                        | `## Tracking Details`                |
+| Heading H3    | `### Heading`                       | `### Next Steps`                     |
+| Bullet list   | `- item` or `* item`                | `- Check your email`                 |
+| Numbered list | `1. item`                           | `1. Open the tracking link`          |
+| Paragraphs    | Plain text separated by blank lines | Standard paragraphs                  |
 
 ### Excluded from AI Output
 

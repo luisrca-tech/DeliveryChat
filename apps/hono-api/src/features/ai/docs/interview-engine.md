@@ -188,7 +188,6 @@ Every interview LLM call writes to `aiUsageLog` with `action='interview'`. This 
 - `stop` / provider-native reasons — normal turn.
 - `forced_cap_completion` — Phase 5 forced completion at the hard cap.
 
-
 ## Related
 
 - Admin UX: [`packages/docs/ai-interview.md`](../../../../../../packages/docs/ai-interview.md)

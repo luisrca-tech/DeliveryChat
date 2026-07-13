@@ -53,9 +53,12 @@ const httpToolConfigSchema = z.object({
   method: z.literal("GET"),
   // URLs are single-line: whitespace (a common paste artifact from the admin
   // textarea) would silently produce a broken request at call time.
-  urlTemplate: z.string().min(1).refine((v) => !/\s/.test(v), {
-    message: "urlTemplate must not contain whitespace",
-  }),
+  urlTemplate: z
+    .string()
+    .min(1)
+    .refine((v) => !/\s/.test(v), {
+      message: "urlTemplate must not contain whitespace",
+    }),
 });
 
 const sqlToolConfigSchema = z.object({

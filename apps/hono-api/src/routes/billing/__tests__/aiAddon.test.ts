@@ -25,9 +25,7 @@ vi.mock("../../../lib/middleware/auth.js", () => ({
         admin: 2,
         super_admin: 3,
       };
-      if (
-        (rank[currentAuth.membership.role] ?? 0) < (rank[minRole] ?? 0)
-      ) {
+      if ((rank[currentAuth.membership.role] ?? 0) < (rank[minRole] ?? 0)) {
         return c.json(
           { error: "forbidden", message: "Insufficient role" },
           403,

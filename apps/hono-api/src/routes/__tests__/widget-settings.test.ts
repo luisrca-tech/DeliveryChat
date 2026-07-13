@@ -41,13 +41,13 @@ vi.mock("../../features/chat/visitor.service.js", () => ({
   resolveOrCreateVisitor: vi.fn(),
 }));
 vi.mock("../../lib/middleware/widgetAuth.js", () => ({
-  requireWidgetAuth: () => async (_c: any, next: () => Promise<void>) =>
-    next(),
+  requireWidgetAuth: () => async (_c: any, next: () => Promise<void>) => next(),
   getWidgetAuth: () => null,
 }));
 vi.mock("../../lib/middleware/visitorRateLimit.js", () => ({
   createVisitorRateLimitMiddleware:
-    () => async (_c: any, next: () => Promise<void>) => next(),
+    () => async (_c: any, next: () => Promise<void>) =>
+      next(),
 }));
 vi.mock("../../lib/middleware/visitorRateLimitInstance.js", () => ({
   sharedVisitorRateLimiter: { check: () => ({ allowed: true }) },

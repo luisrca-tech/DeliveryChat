@@ -3,12 +3,18 @@ import { readFileSync } from "fs";
 import { resolve } from "path";
 
 const SDK_PROMPT = readFileSync(
-  resolve(__dirname, "../../../apps/docs/src/features/CopyPrompt/constants/SdkPrompt.ts"),
+  resolve(
+    __dirname,
+    "../../../apps/docs/src/features/CopyPrompt/constants/SdkPrompt.ts",
+  ),
   "utf-8",
 );
 
 const EMBED_PROMPT = readFileSync(
-  resolve(__dirname, "../../../apps/docs/src/features/CopyPrompt/constants/EmbedPrompt.ts"),
+  resolve(
+    __dirname,
+    "../../../apps/docs/src/features/CopyPrompt/constants/EmbedPrompt.ts",
+  ),
   "utf-8",
 );
 

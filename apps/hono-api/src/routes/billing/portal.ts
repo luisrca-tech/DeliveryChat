@@ -54,7 +54,10 @@ export const portalRoute = new Hono().post(
           .where(eq(organizationTable.id, organization.id));
       }
 
-      const adminBaseUrl = await getUserAdminUrl(auth.user.id, c.req.raw.headers);
+      const adminBaseUrl = await getUserAdminUrl(
+        auth.user.id,
+        c.req.raw.headers,
+      );
 
       const session = await stripe.billingPortal.sessions.create({
         customer: stripeCustomerId,

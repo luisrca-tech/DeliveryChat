@@ -7,7 +7,12 @@ import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
 import { LexicalErrorBoundary } from "@lexical/react/LexicalErrorBoundary";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $getRoot, $createParagraphNode, $createTextNode, type LexicalEditor } from "lexical";
+import {
+  $getRoot,
+  $createParagraphNode,
+  $createTextNode,
+  type LexicalEditor,
+} from "lexical";
 import { ClearEditorPlugin } from "../ClearEditorPlugin";
 
 afterEach(() => {
@@ -18,7 +23,9 @@ function getEditorConfig() {
   return {
     namespace: "test",
     nodes: [],
-    onError: (error: Error) => { throw error; },
+    onError: (error: Error) => {
+      throw error;
+    },
   };
 }
 
@@ -74,7 +81,9 @@ describe("ClearEditorPlugin", () => {
   it("assigns a clear function to clearRef", () => {
     let harness!: Harness;
 
-    renderWithEditor((h) => { harness = h; });
+    renderWithEditor((h) => {
+      harness = h;
+    });
 
     expect(harness.clearRef.current).toBeTypeOf("function");
   });
@@ -82,7 +91,9 @@ describe("ClearEditorPlugin", () => {
   it("clears editor content when clearRef is invoked", async () => {
     let harness!: Harness;
 
-    renderWithEditor((h) => { harness = h; });
+    renderWithEditor((h) => {
+      harness = h;
+    });
 
     expect(getContent(harness.editor)).toBe("hello world");
 

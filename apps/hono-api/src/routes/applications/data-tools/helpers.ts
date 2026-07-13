@@ -97,10 +97,16 @@ export function truncateTestData(
     serialized = JSON.stringify(data) ?? "null";
   } catch {
     // Non-serializable (circular, BigInt, …) — return a safe string preview.
-    return { dataPreview: String(data).slice(0, TEST_RESPONSE_BYTE_CAP), truncated: true };
+    return {
+      dataPreview: String(data).slice(0, TEST_RESPONSE_BYTE_CAP),
+      truncated: true,
+    };
   }
   if (serialized.length > TEST_RESPONSE_BYTE_CAP) {
-    return { dataPreview: serialized.slice(0, TEST_RESPONSE_BYTE_CAP), truncated: true };
+    return {
+      dataPreview: serialized.slice(0, TEST_RESPONSE_BYTE_CAP),
+      truncated: true,
+    };
   }
   return { data, truncated: false };
 }

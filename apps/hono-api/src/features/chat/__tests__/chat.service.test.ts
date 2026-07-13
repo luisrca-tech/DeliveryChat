@@ -2126,7 +2126,8 @@ describe("chat.service", () => {
     it("serializes lexical content to HTML and plain text", () => {
       const lexicalMessage = {
         ...baseMessage,
-        content: '{"root":{"children":[{"type":"paragraph","children":[{"text":"Rich text"}]}]}}',
+        content:
+          '{"root":{"children":[{"type":"paragraph","children":[{"text":"Rich text"}]}]}}',
         contentFormat: "lexical" as const,
       };
 
@@ -2151,8 +2152,14 @@ describe("chat.service", () => {
 
       enrichMessage(lexicalMessage);
 
-      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith('{"root":{}}', "lexical");
-      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith('{"root":{}}', "lexical");
+      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith(
+        '{"root":{}}',
+        "lexical",
+      );
+      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith(
+        '{"root":{}}',
+        "lexical",
+      );
     });
 
     it("defaults contentFormat to plain when undefined", () => {
@@ -2166,8 +2173,14 @@ describe("chat.service", () => {
 
       const result = enrichMessage(noFormatMessage);
 
-      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith("Hello world", "plain");
-      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith("Hello world", "plain");
+      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith(
+        "Hello world",
+        "plain",
+      );
+      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith(
+        "Hello world",
+        "plain",
+      );
       expect(result.contentPlainText).toBe("Hello world");
     });
 

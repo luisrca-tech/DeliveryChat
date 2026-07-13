@@ -55,15 +55,15 @@ Raw Lexical JSON is never sent to the LLM.
 
 Both system and improve prompts instruct the model to use only a restricted Markdown subset:
 
-| Construct | Syntax |
-|-----------|--------|
-| Bold | `**text**` |
-| Heading H1 | `# Heading` |
-| Heading H2 | `## Heading` |
-| Heading H3 | `### Heading` |
-| Bullet list | `- item` or `* item` |
-| Numbered list | `1. item` |
-| Paragraphs | Plain text separated by blank lines |
+| Construct     | Syntax                              |
+| ------------- | ----------------------------------- |
+| Bold          | `**text**`                          |
+| Heading H1    | `# Heading`                         |
+| Heading H2    | `## Heading`                        |
+| Heading H3    | `### Heading`                       |
+| Bullet list   | `- item` or `* item`                |
+| Numbered list | `1. item`                           |
+| Paragraphs    | Plain text separated by blank lines |
 
 **Excluded from AI output:** links, images, code blocks, inline code, italic, underline, blockquotes, HTML tags, tables, H4+.
 
@@ -74,7 +74,7 @@ The improve prompt additionally instructs the model to preserve the draft's stru
 After every successful provider response, `sanitizeAiMarkdown()` is applied before returning `{ text }`:
 
 - Strips HTML tags (including script/style content)
-- Removes fenced code blocks (`` ``` ``) but keeps inner text
+- Removes fenced code blocks (` ``` `) but keeps inner text
 - Strips inline code backticks
 - Converts link syntax `[text](url)` to just `text`
 - Preserves all allowed Markdown constructs
@@ -83,16 +83,16 @@ The API response shape remains `{ text: string }` — no breaking changes. The `
 
 ## Error Handling
 
-| Error | HTTP Code | Error Code |
-|-------|-----------|------------|
-| Timeout | 504 | `ai_timeout` |
-| Provider rate limit | 503 | `ai_provider_busy` |
-| Provider unavailable | 502 | `ai_provider_unavailable` |
-| Empty response | 422 | `ai_empty_response` |
-| Content filtered | 422 | `ai_content_filtered` |
-| Monthly cap exceeded | 403 | `ai_monthly_cap_exceeded` |
-| Feature not available | 403 | `ai_feature_not_available` |
-| AI rate limit | 429 | `ai_rate_limit_exceeded` |
+| Error                 | HTTP Code | Error Code                 |
+| --------------------- | --------- | -------------------------- |
+| Timeout               | 504       | `ai_timeout`               |
+| Provider rate limit   | 503       | `ai_provider_busy`         |
+| Provider unavailable  | 502       | `ai_provider_unavailable`  |
+| Empty response        | 422       | `ai_empty_response`        |
+| Content filtered      | 422       | `ai_content_filtered`      |
+| Monthly cap exceeded  | 403       | `ai_monthly_cap_exceeded`  |
+| Feature not available | 403       | `ai_feature_not_available` |
+| AI rate limit         | 429       | `ai_rate_limit_exceeded`   |
 
 ## Retry Policy
 
@@ -104,12 +104,12 @@ Every call that reaches the provider logs one `aiUsageLog` row. Only `success`, 
 
 ## Plan Gating
 
-| Plan | AI Enabled | Monthly Cap |
-|------|-----------|-------------|
-| FREE | No | 0 |
-| BASIC | No | 0 |
-| PREMIUM | Yes | 3,000 |
-| ENTERPRISE | Yes | 3,000 (overridable via `tenantRateLimits.aiMonthlyCapOverride`) |
+| Plan       | AI Enabled | Monthly Cap                                                     |
+| ---------- | ---------- | --------------------------------------------------------------- |
+| FREE       | No         | 0                                                               |
+| BASIC      | No         | 0                                                               |
+| PREMIUM    | Yes        | 3,000                                                           |
+| ENTERPRISE | Yes        | 3,000 (overridable via `tenantRateLimits.aiMonthlyCapOverride`) |
 
 ## E2E Tests
 

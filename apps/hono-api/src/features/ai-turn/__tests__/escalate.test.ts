@@ -7,7 +7,10 @@ vi.mock("../../../db/index.js", () => ({
 vi.mock("../../chat/broadcasting.service.js", () => ({
   broadcastRoomEvent: vi.fn(),
   broadcastStaffEvent: vi.fn(),
-  buildMessageNewEvent: vi.fn((p: unknown) => ({ type: "message:new", payload: p })),
+  buildMessageNewEvent: vi.fn((p: unknown) => ({
+    type: "message:new",
+    payload: p,
+  })),
   buildConversationEscalatedEvent: vi.fn((p: unknown) => ({
     type: "conversation:escalated",
     payload: p,
@@ -17,15 +20,17 @@ vi.mock("../../chat/broadcasting.service.js", () => ({
 const { db } = await import("../../../db/index.js");
 const broadcasting = await import("../../chat/broadcasting.service.js");
 const { escalateConversation } = await import("../escalate.js");
-const {
-  ESCALATION_KNOWLEDGE_GAP_MESSAGE,
-  ESCALATION_HUMAN_REQUESTED_MESSAGE,
-} = await import("../messages.js");
+const { ESCALATION_KNOWLEDGE_GAP_MESSAGE, ESCALATION_HUMAN_REQUESTED_MESSAGE } =
+  await import("../messages.js");
 
 const mockUpdate = db.update as ReturnType<typeof vi.fn>;
 const mockInsert = db.insert as ReturnType<typeof vi.fn>;
-const mockBroadcastRoom = broadcasting.broadcastRoomEvent as ReturnType<typeof vi.fn>;
-const mockBroadcastStaff = broadcasting.broadcastStaffEvent as ReturnType<typeof vi.fn>;
+const mockBroadcastRoom = broadcasting.broadcastRoomEvent as ReturnType<
+  typeof vi.fn
+>;
+const mockBroadcastStaff = broadcasting.broadcastStaffEvent as ReturnType<
+  typeof vi.fn
+>;
 
 let capturedSet: Record<string, unknown> | null = null;
 let capturedInsertValues: Record<string, unknown> | null = null;
@@ -54,7 +59,11 @@ function setupDb() {
   });
   insertChain.returning = vi.fn(() =>
     Promise.resolve([
-      { id: "msg-1", content: capturedInsertValues?.content, createdAt: "2026-07-11T00:00:01.000Z" },
+      {
+        id: "msg-1",
+        content: capturedInsertValues?.content,
+        createdAt: "2026-07-11T00:00:01.000Z",
+      },
     ]),
   );
   mockInsert.mockReturnValue(insertChain);

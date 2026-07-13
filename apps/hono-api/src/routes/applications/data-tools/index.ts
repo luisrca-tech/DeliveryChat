@@ -13,16 +13,18 @@ import {
   executeDataTool,
   validateSqlQuery,
 } from "../../../features/ai-data/index.js";
-import type {
-  DataSourceConfig,
-} from "../../../db/schema/applicationDataSource.js";
+import type { DataSourceConfig } from "../../../db/schema/applicationDataSource.js";
 import {
   dataSourceBodySchema,
   dataToolBodySchema,
   enableBodySchema,
   testRequestBodySchema,
 } from "./schemas.js";
-import { redactDataSource, serializeDataTool, truncateTestData } from "./helpers.js";
+import {
+  redactDataSource,
+  serializeDataTool,
+  truncateTestData,
+} from "./helpers.js";
 import {
   createDataTool,
   deleteDataTool,
@@ -168,7 +170,10 @@ export const dataToolsRoute = new Hono()
         return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
       }
 
-      const gate = await ensureToolMatchesSource(applicationId, body.backingType);
+      const gate = await ensureToolMatchesSource(
+        applicationId,
+        body.backingType,
+      );
       if (!gate.ok) return jsonError(c, gate.status, gate.error, gate.message);
 
       if (body.backingType === "sql") {
@@ -225,7 +230,10 @@ export const dataToolsRoute = new Hono()
         return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
       }
 
-      const gate = await ensureToolMatchesSource(applicationId, body.backingType);
+      const gate = await ensureToolMatchesSource(
+        applicationId,
+        body.backingType,
+      );
       if (!gate.ok) return jsonError(c, gate.status, gate.error, gate.message);
 
       if (body.backingType === "sql") {
@@ -392,8 +400,7 @@ async function ensureToolMatchesSource(
   applicationId: string,
   backingType: "http" | "sql",
 ): Promise<
-  | { ok: true }
-  | { ok: false; status: 400; error: string; message: string }
+  { ok: true } | { ok: false; status: 400; error: string; message: string }
 > {
   const source = await getDataSource(applicationId);
   if (!source) {

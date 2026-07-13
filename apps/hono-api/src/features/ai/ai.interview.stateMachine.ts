@@ -133,7 +133,9 @@ export class InterviewReadPort {
   }
 }
 
-export function createInterviewReadPort(executor: DbExecutor): InterviewReadPort {
+export function createInterviewReadPort(
+  executor: DbExecutor,
+): InterviewReadPort {
   return new InterviewReadPort(executor);
 }
 

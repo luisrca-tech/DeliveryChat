@@ -46,8 +46,10 @@ function makeProvider(text: string) {
   const generateObject = vi.fn();
   const provider: AIProviderPort = {
     generateText: generateText as unknown as AIProviderPort["generateText"],
-    generateObject: generateObject as unknown as AIProviderPort["generateObject"],
-    generateWithTools: vi.fn() as unknown as AIProviderPort["generateWithTools"],
+    generateObject:
+      generateObject as unknown as AIProviderPort["generateObject"],
+    generateWithTools:
+      vi.fn() as unknown as AIProviderPort["generateWithTools"],
   };
   return { provider, generateText };
 }

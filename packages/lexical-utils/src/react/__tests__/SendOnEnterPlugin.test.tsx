@@ -26,7 +26,9 @@ function getEditorConfig() {
   return {
     namespace: "test",
     nodes: [ListNode, ListItemNode],
-    onError: (error: Error) => { throw error; },
+    onError: (error: Error) => {
+      throw error;
+    },
   };
 }
 
@@ -59,7 +61,11 @@ function SetupEditor({
 }
 
 function renderWithEditor(
-  onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void,
+  onSend: (
+    content: string,
+    isEmpty: boolean,
+    contentFormat: ContentFormat,
+  ) => void,
   text = "hello",
 ) {
   let editorRef: LexicalEditor;
@@ -71,7 +77,12 @@ function renderWithEditor(
         placeholder={null}
         ErrorBoundary={LexicalErrorBoundary}
       />
-      <SetupEditor text={text} onEditor={(e) => { editorRef = e; }} />
+      <SetupEditor
+        text={text}
+        onEditor={(e) => {
+          editorRef = e;
+        }}
+      />
       <SendOnEnterPlugin onSend={onSend} />
     </LexicalComposer>,
   );
@@ -79,7 +90,10 @@ function renderWithEditor(
   return editorRef!;
 }
 
-function dispatchEnter(editor: LexicalEditor, modifiers: Partial<KeyboardEvent> = {}) {
+function dispatchEnter(
+  editor: LexicalEditor,
+  modifiers: Partial<KeyboardEvent> = {},
+) {
   act(() => {
     editor.dispatchCommand(KEY_ENTER_COMMAND, {
       preventDefault: vi.fn(),

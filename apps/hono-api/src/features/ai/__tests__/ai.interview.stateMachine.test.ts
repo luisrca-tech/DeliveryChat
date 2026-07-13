@@ -32,7 +32,12 @@ vi.mock("../../../db/schema/applicationAiContext.js", () => ({
 }));
 
 vi.mock("../../../db/schema/applications.js", () => ({
-  applications: { __table: "applications", id: "id", aiEnabled: "aiEnabled", name: "name" },
+  applications: {
+    __table: "applications",
+    id: "id",
+    aiEnabled: "aiEnabled",
+    name: "name",
+  },
 }));
 
 vi.mock("../../../db/schema/aiUsageLog.js", () => ({
@@ -40,13 +45,15 @@ vi.mock("../../../db/schema/aiUsageLog.js", () => ({
 }));
 
 vi.mock("drizzle-orm", async () => {
-  const actual = await vi.importActual<typeof import("drizzle-orm")>(
-    "drizzle-orm",
-  );
+  const actual =
+    await vi.importActual<typeof import("drizzle-orm")>("drizzle-orm");
   return { ...actual, eq: (col: string, val: unknown) => ({ col, val }) };
 });
 
-type ContextStore = { row: InterviewContextRow | null; applicationName: string | null };
+type ContextStore = {
+  row: InterviewContextRow | null;
+  applicationName: string | null;
+};
 const store: ContextStore = { row: null, applicationName: null };
 const usageLogInserts: Array<Record<string, unknown>> = [];
 const applicationUpdates: Array<Record<string, unknown>> = [];
@@ -208,7 +215,8 @@ function makeProvider(
         finishReason: "stop",
       };
     }) as unknown as AIProviderPort["generateText"],
-    generateWithTools: vi.fn() as unknown as AIProviderPort["generateWithTools"],
+    generateWithTools:
+      vi.fn() as unknown as AIProviderPort["generateWithTools"],
   };
 }
 
@@ -278,7 +286,10 @@ describe("runInterviewTurn — bootstrap", () => {
     expect(result.row.interviewLog[0]?.content).toBe("Welcome!");
     expect(result.canFinish).toBe(false);
     expect(usageLogInserts).toHaveLength(1);
-    expect(usageLogInserts[0]).toMatchObject({ action: "interview", status: "success" });
+    expect(usageLogInserts[0]).toMatchObject({
+      action: "interview",
+      status: "success",
+    });
   });
 
   it("bootstrap on already-bootstrapped row returns the existing first content", async () => {
@@ -309,7 +320,10 @@ describe("runInterviewTurn — advance", () => {
       interviewLog: [{ role: "assistant", content: "Q0" }],
     });
     const provider = makeProvider([
-      out({ assistantMessage: "Q1", topicsCoveredThisTurn: ["business_description"] }),
+      out({
+        assistantMessage: "Q1",
+        topicsCoveredThisTurn: ["business_description"],
+      }),
     ]);
 
     const result = await runInterviewTurn({
@@ -360,9 +374,7 @@ describe("runInterviewTurn — advance", () => {
       currentTurn: 2,
       interviewLog: [{ role: "assistant", content: "Q" }],
     });
-    const provider = makeProvider([
-      out({ guardrailAction: "redirect_scope" }),
-    ]);
+    const provider = makeProvider([out({ guardrailAction: "redirect_scope" })]);
 
     const result = await runInterviewTurn({
       provider,
@@ -453,7 +465,8 @@ describe("runInterviewTurn — advance", () => {
       currentTurn: CORE_TOPICS.length,
       interviewLog: fullyCoveredLog(),
     });
-    const llmFollowUpQuestion = "Could you describe the specific target audience?";
+    const llmFollowUpQuestion =
+      "Could you describe the specific target audience?";
     const provider = makeProvider([
       out({
         assistantMessage: llmFollowUpQuestion,
@@ -529,7 +542,9 @@ describe("runInterviewTurn — advance", () => {
   it("forced completion at turn cap: no LLM call, status=completed, logs forced_cap_completion", async () => {
     resetStore({
       currentTurn: MAX_TURNS,
-      interviewLog: [{ role: "assistant", content: "Q15", intent: "final_question" }],
+      interviewLog: [
+        { role: "assistant", content: "Q15", intent: "final_question" },
+      ],
     });
     const provider = makeProvider([]); // no LLM expected
 
@@ -621,7 +636,6 @@ function fullyCoveredLog(): InterviewLogEntry[] {
 }
 
 describe("runInterviewComplete", () => {
-
   it("conflict on null row", async () => {
     resetStore(null);
     await expect(
@@ -908,12 +922,11 @@ describe("Discovery phase — relevant classification (Phase 1)", () => {
       expectedCurrentTurn: 0,
     });
 
-    const callArgs = (
-      provider.generateObject as ReturnType<typeof vi.fn>
-    ).mock.calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
+    const callArgs = (provider.generateObject as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
     const systemMessages = callArgs.messages.filter((m) => m.role === "system");
-    const hasDiscoveryInjection = systemMessages.some((m) =>
-      /classify/i.test(m.content) && /relevant/i.test(m.content),
+    const hasDiscoveryInjection = systemMessages.some(
+      (m) => /classify/i.test(m.content) && /relevant/i.test(m.content),
     );
     expect(hasDiscoveryInjection).toBe(false);
   });
@@ -942,14 +955,11 @@ describe("Discovery phase — relevant classification (Phase 1)", () => {
       expectedCurrentTurn: 8,
     });
 
-    const callArgs = (
-      provider.generateObject as ReturnType<typeof vi.fn>
-    ).mock.calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
+    const callArgs = (provider.generateObject as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
     const systemMessages = callArgs.messages.filter((m) => m.role === "system");
     const hasDiscoveryInjection = systemMessages.some(
-      (m) =>
-        /classify/i.test(m.content) &&
-        /relevant/i.test(m.content),
+      (m) => /classify/i.test(m.content) && /relevant/i.test(m.content),
     );
     expect(hasDiscoveryInjection).toBe(true);
   });
@@ -1053,14 +1063,11 @@ describe("Discovery phase — irrelevant + duplicate classification (Phase 2)", 
       expectedCurrentTurn: 8,
     });
 
-    const callArgs = (
-      provider.generateObject as ReturnType<typeof vi.fn>
-    ).mock.calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
+    const callArgs = (provider.generateObject as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0] as { messages: Array<{ role: string; content: string }> };
     const discoveryMessage = callArgs.messages
       .filter((m) => m.role === "system")
-      .find(
-        (m) => /classify/i.test(m.content) && /relevant/i.test(m.content),
-      );
+      .find((m) => /classify/i.test(m.content) && /relevant/i.test(m.content));
     expect(discoveryMessage).toBeDefined();
     const content = discoveryMessage!.content;
     expect(content).toMatch(/'relevant'/);

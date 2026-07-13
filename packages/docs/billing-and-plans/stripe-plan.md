@@ -60,11 +60,11 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 
 All Stripe prices (Basic, Premium, AI add-on) carry `currency_options`, so a single price ID bills in either BRL (default) or USD:
 
-| Plan     | BRL (default) | USD    |
-| -------- | ------------- | ------ |
-| Basic    | R$ 90         | US$ 19 |
-| Premium  | R$ 240        | US$ 49 |
-| AI add-on| R$ 120        | US$ 24 |
+| Plan      | BRL (default) | USD    |
+| --------- | ------------- | ------ |
+| Basic     | R$ 90         | US$ 19 |
+| Premium   | R$ 240        | US$ 49 |
+| AI add-on | R$ 120        | US$ 24 |
 
 - `POST /v1/billing/checkout` accepts an optional `currency: "brl" | "usd"` (default `"brl"`), forwarded as the `currency` param to `stripe.checkout.sessions.create`, which selects the matching currency option. The onboarding plan cards expose a BRL/USD toggle.
 - A customer's currency is **locked by their first subscription**. Later items — notably the AI add-on — automatically follow the subscription's currency, so the add-on route sends no currency of its own.
@@ -162,7 +162,7 @@ After checkout, the success page polls `GET /v1/billing/status` every 2 seconds 
 | `STRIPE_BASIC_PRICE_KEY`        | hono-api | Stripe price ID for Basic              |
 | `STRIPE_PREMIUM_PRICE_KEY`      | hono-api | Stripe price ID for Premium            |
 | `STRIPE_ENTERPRISE_PRODUCT_KEY` | hono-api | Stripe product ID for Enterprise       |
-| `STRIPE_AI_ADDON_PRICE_KEY`     | hono-api | Stripe price ID for the AI add-on       |
+| `STRIPE_AI_ADDON_PRICE_KEY`     | hono-api | Stripe price ID for the AI add-on      |
 | `STRIPE_AUTOMATIC_TAX_ENABLED`  | hono-api | Enable automatic tax calculation       |
 | `RESEND_EMAIL_TO`               | hono-api | Enterprise contact email destination   |
 | `VITE_RESEND_EMAIL_TO`          | admin    | Enterprise contact email (client-side) |

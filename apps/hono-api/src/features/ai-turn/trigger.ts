@@ -11,7 +11,9 @@ import { conversations } from "../../db/schema/conversations.js";
  * avoid a load-time cycle (it imports `sendMessage` to persist the AI reply) and
  * owns all further error handling — the `.catch` here is belt-and-braces.
  */
-export async function maybeTriggerAiTurn(conversationId: string): Promise<void> {
+export async function maybeTriggerAiTurn(
+  conversationId: string,
+): Promise<void> {
   try {
     const [row] = await db
       .select({
@@ -34,7 +36,11 @@ export async function maybeTriggerAiTurn(conversationId: string): Promise<void> 
 
     const { runAiTurn } = await import("./runAiTurn.js");
     void runAiTurn(conversationId).catch((err) => {
-      console.error("[ai-turn] runAiTurn rejected unexpectedly", conversationId, err);
+      console.error(
+        "[ai-turn] runAiTurn rejected unexpectedly",
+        conversationId,
+        err,
+      );
     });
   } catch (err) {
     console.error("[ai-turn] maybeTriggerAiTurn failed", conversationId, err);

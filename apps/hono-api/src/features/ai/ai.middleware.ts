@@ -36,12 +36,18 @@ export function requireAiFeature(
 ): MiddlewareHandler {
   return async (c, next) => {
     const auth = getTenantAuth(c);
-    const result = await checkAiQuota(auth.organization.id, auth.organization.plan);
+    const result = await checkAiQuota(
+      auth.organization.id,
+      auth.organization.plan,
+    );
 
     if (!result.allowed) {
       // Interview calls are excluded from the monthly cap; only the
       // plan-availability gate applies.
-      if (feature === "interview" && result.reason === "ai_monthly_cap_exceeded") {
+      if (
+        feature === "interview" &&
+        result.reason === "ai_monthly_cap_exceeded"
+      ) {
         await next();
         return;
       }

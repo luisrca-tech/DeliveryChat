@@ -73,9 +73,9 @@ describe("sanitizeAiMarkdown", () => {
     });
 
     it("strips inline link references", () => {
-      expect(
-        sanitizeAiMarkdown("Check [this link](http://foo.com) out"),
-      ).toBe("Check this link out");
+      expect(sanitizeAiMarkdown("Check [this link](http://foo.com) out")).toBe(
+        "Check this link out",
+      );
     });
 
     it("strips inline code backticks", () => {

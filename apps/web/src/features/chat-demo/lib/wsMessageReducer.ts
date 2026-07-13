@@ -147,8 +147,14 @@ export function wsMessageReducer(
     }
 
     case "message:edited": {
-      const { messageId, conversationId, content, contentFormat, contentHtml, editedAt } =
-        event.payload as unknown as MessageEditedPayload;
+      const {
+        messageId,
+        conversationId,
+        content,
+        contentFormat,
+        contentHtml,
+        editedAt,
+      } = event.payload as unknown as MessageEditedPayload;
       if (conversationId !== selectedConversationId) return none;
       return {
         state: {

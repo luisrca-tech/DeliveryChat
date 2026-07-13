@@ -33,14 +33,23 @@ function chainMock(result: unknown) {
   return chain;
 }
 
-const { requireAiFeature, createAiRateLimitMiddleware, QUOTA_EXCLUDED_ACTIONS } = await import("../ai.middleware.js");
+const {
+  requireAiFeature,
+  createAiRateLimitMiddleware,
+  QUOTA_EXCLUDED_ACTIONS,
+} = await import("../ai.middleware.js");
 const { InMemoryRateLimitStore } = await import("../ai.rateLimit.js");
 
 function createMemberAuth(plan: string, organizationId = "org-1") {
   return {
     type: "member" as const,
     organization: { id: organizationId, plan, name: "Test Org" },
-    membership: { role: "operator", userId: "user-1", id: "m-1", organizationId },
+    membership: {
+      role: "operator",
+      userId: "user-1",
+      id: "m-1",
+      organizationId,
+    },
     user: { id: "user-1", name: "Test User" },
     session: {},
   };

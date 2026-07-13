@@ -158,7 +158,8 @@ export class MessageRouter {
               ...msg,
               content: p.content,
               contentFormat: p.contentFormat ?? msg.contentFormat,
-              contentHtml: p.contentHtml !== undefined ? p.contentHtml : msg.contentHtml,
+              contentHtml:
+                p.contentHtml !== undefined ? p.contentHtml : msg.contentHtml,
               editedAt: p.editedAt,
             }
           : msg,

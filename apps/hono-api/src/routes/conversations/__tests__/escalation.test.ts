@@ -89,7 +89,10 @@ describe("POST /conversations/:id/escalate", () => {
     mockGetConversationWithParticipants
       .mockResolvedValueOnce(aiConversation())
       .mockResolvedValueOnce(
-        aiConversation({ handledBy: "human", escalationReason: "human_requested" }),
+        aiConversation({
+          handledBy: "human",
+          escalationReason: "human_requested",
+        }),
       );
 
     const res = await post();
@@ -97,7 +100,10 @@ describe("POST /conversations/:id/escalate", () => {
     expect(res.status).toBe(200);
     expect(mockEscalateConversation).toHaveBeenCalledTimes(1);
     expect(mockEscalateConversation).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "human_requested", reason: "human_requested" }),
+      expect.objectContaining({
+        kind: "human_requested",
+        reason: "human_requested",
+      }),
     );
     const body = (await res.json()) as { conversation: { handledBy: string } };
     expect(body.conversation.handledBy).toBe("human");

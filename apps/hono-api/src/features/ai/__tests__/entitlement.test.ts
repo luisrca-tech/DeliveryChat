@@ -71,7 +71,11 @@ describe("findAiAddonItem", () => {
 
   it("finds the item by lookup_key fallback when the price id mismatches", () => {
     const sub = makeSubscription([
-      { id: "si_addon", priceId: "price_mismatch", lookupKey: AI_ADDON_LOOKUP_KEY },
+      {
+        id: "si_addon",
+        priceId: "price_mismatch",
+        lookupKey: AI_ADDON_LOOKUP_KEY,
+      },
     ]);
     expect(findAiAddonItem(sub)?.id).toBe("si_addon");
   });

@@ -94,7 +94,9 @@ describe("AICallOrchestrator.runAICall", () => {
   it("returns parsed value on success and writes a usage-log row", async () => {
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
-    const provider = new FakeProvider(vi.fn().mockResolvedValue(textResponse()));
+    const provider = new FakeProvider(
+      vi.fn().mockResolvedValue(textResponse()),
+    );
 
     const result = await callTextRun(provider, (raw) => ({
       text: raw.toUpperCase(),
@@ -114,9 +116,11 @@ describe("AICallOrchestrator.runAICall", () => {
 
   it("sanitises markdown via parse (caller-supplied)", async () => {
     const provider = new FakeProvider(
-      vi.fn().mockResolvedValue(
-        textResponse({ text: "Try this:\n```js\nconsole.log('hi')\n```" }),
-      ),
+      vi
+        .fn()
+        .mockResolvedValue(
+          textResponse({ text: "Try this:\n```js\nconsole.log('hi')\n```" }),
+        ),
     );
 
     const result = await callTextRun(provider, (raw) => ({
@@ -175,7 +179,9 @@ describe("AICallOrchestrator.runAICall", () => {
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
     const provider = new FakeProvider(
-      vi.fn().mockResolvedValue(textResponse({ finishReason: "content-filter" })),
+      vi
+        .fn()
+        .mockResolvedValue(textResponse({ finishReason: "content-filter" })),
     );
 
     await expect(callTextRun(provider, (r) => r)).rejects.toThrow(
@@ -240,7 +246,9 @@ describe("AICallOrchestrator.runAICall", () => {
   it("uses caller's tx instead of opening its own", async () => {
     const txInsertChain = mockInsertChain();
     const tx = { insert: vi.fn().mockReturnValue(txInsertChain) };
-    const provider = new FakeProvider(vi.fn().mockResolvedValue(textResponse()));
+    const provider = new FakeProvider(
+      vi.fn().mockResolvedValue(textResponse()),
+    );
 
     await callTextRun(provider, (r) => r, { tx: tx as unknown as DbExecutor });
 
@@ -252,7 +260,9 @@ describe("AICallOrchestrator.runAICall", () => {
     mockInsert.mockImplementation(() => {
       throw new Error("DB down");
     });
-    const provider = new FakeProvider(vi.fn().mockResolvedValue(textResponse()));
+    const provider = new FakeProvider(
+      vi.fn().mockResolvedValue(textResponse()),
+    );
 
     const result = await callTextRun(provider, (raw) => ({ text: raw }));
     expect(result).toEqual({ text: "hello world" });
@@ -276,7 +286,9 @@ describe("AICallOrchestrator.runAICall", () => {
           systemPrompt: "sys",
           messages: [{ role: "user", content: "hi" }],
           model: BASE.model,
-          schema: {} as unknown as Parameters<typeof provider.generateObject>[0]["schema"],
+          schema: {} as unknown as Parameters<
+            typeof provider.generateObject
+          >[0]["schema"],
         } as AIProviderObjectRequest<never>);
         return {
           result: r.object,

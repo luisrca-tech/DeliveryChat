@@ -43,8 +43,8 @@ export function createChatWindow(
 
   const header = createHeader(settings.header, callbacks.onClose);
   const connectionIndicator = createConnectionIndicator();
-  const humanHandoffButton = createHumanHandoffButton(
-    () => callbacks.onRequestHuman?.(),
+  const humanHandoffButton = createHumanHandoffButton(() =>
+    callbacks.onRequestHuman?.(),
   );
   const messageList = createMessageList(messages, bubbleCtx);
   const inputArea = createInputArea({

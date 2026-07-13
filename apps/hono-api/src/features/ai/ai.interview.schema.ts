@@ -80,9 +80,7 @@ export const FORCED_COMPLETION_FINISH_REASON = "forced_cap_completion";
 
 const CORE_TOPIC_SET = new Set<string>(CORE_TOPICS);
 
-export function computeCoveredTopics(
-  log: InterviewLogEntry[],
-): Set<CoreTopic> {
+export function computeCoveredTopics(log: InterviewLogEntry[]): Set<CoreTopic> {
   const covered = new Set<CoreTopic>();
   for (let i = 0; i < log.length; i++) {
     const entry = log[i];

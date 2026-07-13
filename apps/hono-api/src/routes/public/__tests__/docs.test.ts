@@ -154,9 +154,7 @@ describe("GET /public/docs/search", () => {
   });
 
   it("returns empty results when nothing matches", async () => {
-    const res = await app().request(
-      "/public/docs/search?q=zzzznotpresentzzzz",
-    );
+    const res = await app().request("/public/docs/search?q=zzzznotpresentzzzz");
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.results).toEqual([]);
@@ -178,7 +176,9 @@ describe("real generated corpus (search over the shipped docs)", () => {
   it("finds a widget term in the real corpus", async () => {
     // Uses the default (generated) corpus, not the synthetic one.
     const realApp = new Hono().route("/public", createDocsRoute());
-    const res = await realApp.request("/public/docs/search?q=DeliveryChat.init");
+    const res = await realApp.request(
+      "/public/docs/search?q=DeliveryChat.init",
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.results.length).toBeGreaterThanOrEqual(1);

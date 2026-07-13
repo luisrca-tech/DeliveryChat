@@ -17,7 +17,10 @@ export const QUOTA_EXCLUDED_ACTIONS = [
 
 type QuotaResult =
   | { allowed: true }
-  | { allowed: false; reason: "ai_feature_not_available" | "ai_monthly_cap_exceeded" };
+  | {
+      allowed: false;
+      reason: "ai_feature_not_available" | "ai_monthly_cap_exceeded";
+    };
 
 function getMonthStart(): Date {
   const now = new Date();

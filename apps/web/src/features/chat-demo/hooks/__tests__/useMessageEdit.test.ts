@@ -86,16 +86,14 @@ describe("useMessageEdit", () => {
   it("calls onReplace and clears state on successful save", async () => {
     const updatedAt = new Date().toISOString();
     const client = makeClient({
-      editMessage: vi
-        .fn()
-        .mockResolvedValue({
-          message: {
-            content: "Updated",
-            editedAt: updatedAt,
-            contentFormat: "plain",
-            contentHtml: null,
-          },
-        }),
+      editMessage: vi.fn().mockResolvedValue({
+        message: {
+          content: "Updated",
+          editedAt: updatedAt,
+          contentFormat: "plain",
+          contentHtml: null,
+        },
+      }),
     });
     const msg = makeMessage();
     const { result } = renderHook(() =>
@@ -193,11 +191,9 @@ describe("useMessageEdit", () => {
   it("allows edit when message is just within the 15-minute window", async () => {
     const updatedAt = new Date().toISOString();
     const client = makeClient({
-      editMessage: vi
-        .fn()
-        .mockResolvedValue({
-          message: { content: "New", editedAt: updatedAt },
-        }),
+      editMessage: vi.fn().mockResolvedValue({
+        message: { content: "New", editedAt: updatedAt },
+      }),
     });
     const recentMessage = makeMessage({
       createdAt: new Date(Date.now() - EDIT_WINDOW_MS + 5000).toISOString(),

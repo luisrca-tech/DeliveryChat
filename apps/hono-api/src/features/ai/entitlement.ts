@@ -36,7 +36,9 @@ export type EntitlementOrganization = {
  * (`aiAddonActive`, derived from Stripe). This is the org half consumed by both
  * the AI middleware and the per-turn entitlement check.
  */
-export function isAddonEntitled(organization: EntitlementOrganization): boolean {
+export function isAddonEntitled(
+  organization: EntitlementOrganization,
+): boolean {
   return addonEligiblePlan(organization.plan) && organization.aiAddonActive;
 }
 

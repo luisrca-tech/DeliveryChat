@@ -13,11 +13,16 @@ function makeCtx(): BubbleContext {
 
 describe("ChatWindow — human handoff button", () => {
   it("renders the human-handoff button in the header, hidden by default", () => {
-    const { el } = createChatWindow(defaultSettings, [], {
-      onSend: () => {},
-      onTypingStart: () => {},
-      onTypingStop: () => {},
-    }, makeCtx());
+    const { el } = createChatWindow(
+      defaultSettings,
+      [],
+      {
+        onSend: () => {},
+        onTypingStart: () => {},
+        onTypingStop: () => {},
+      },
+      makeCtx(),
+    );
 
     const btn = el.querySelector(".human-handoff-btn") as HTMLButtonElement;
     expect(btn).not.toBeNull();

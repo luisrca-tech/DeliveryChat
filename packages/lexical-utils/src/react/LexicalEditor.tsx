@@ -138,9 +138,7 @@ function ComposeEditor({
                 onBlur={onTypingStop}
               />
             }
-            placeholder={
-              <div className={placeholderClass}>{placeholder}</div>
-            }
+            placeholder={<div className={placeholderClass}>{placeholder}</div>}
             ErrorBoundary={LexicalErrorBoundary}
           />
         </div>

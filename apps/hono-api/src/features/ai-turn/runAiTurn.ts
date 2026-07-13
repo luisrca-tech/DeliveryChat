@@ -78,7 +78,11 @@ function startAiTyping(conversation: TurnConversation): void {
       }),
     );
   } catch (err) {
-    console.error("[ai-turn] typing:start broadcast failed", conversation.id, err);
+    console.error(
+      "[ai-turn] typing:start broadcast failed",
+      conversation.id,
+      err,
+    );
   }
 }
 
@@ -92,7 +96,11 @@ function stopAiTyping(conversation: TurnConversation): void {
       }),
     );
   } catch (err) {
-    console.error("[ai-turn] typing:stop broadcast failed", conversation.id, err);
+    console.error(
+      "[ai-turn] typing:stop broadcast failed",
+      conversation.id,
+      err,
+    );
   }
 }
 
@@ -124,11 +132,17 @@ export async function runAiTurn(conversationId: string): Promise<void> {
       conversation.assignedTo !== null ||
       conversation.status === "closed"
     ) {
-      console.debug("[ai-turn] skipped: not an AI-handled live turn", conversationId);
+      console.debug(
+        "[ai-turn] skipped: not an AI-handled live turn",
+        conversationId,
+      );
       return;
     }
     if (!isAiTurnEntitled({ organization, application })) {
-      console.debug("[ai-turn] skipped: org/application not entitled", conversationId);
+      console.debug(
+        "[ai-turn] skipped: org/application not entitled",
+        conversationId,
+      );
       return;
     }
 
@@ -193,7 +207,10 @@ export async function runAiTurn(conversationId: string): Promise<void> {
     // ── Run the tool loop through the shared orchestrator (usage logged) ──
     let result: AIProviderToolsResponse;
     try {
-      result = await runAICall<AIProviderToolsResponse, AIProviderToolsResponse>({
+      result = await runAICall<
+        AIProviderToolsResponse,
+        AIProviderToolsResponse
+      >({
         action: "autonomous_reply",
         tenantId: organization.id,
         userId: usageUserId,

@@ -13,7 +13,7 @@
 ## Query Parameters
 
 | Parameter  | Type   | Default | Description                              |
-|------------|--------|---------|------------------------------------------|
+| ---------- | ------ | ------- | ---------------------------------------- |
 | `limit`    | number | 20      | Results per page (1–100)                 |
 | `offset`   | number | 0       | Pagination offset                        |
 | `action`   | string | —       | Filter by action: `generate`, `improve`  |

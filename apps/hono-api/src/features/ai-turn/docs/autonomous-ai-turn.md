@@ -12,14 +12,14 @@ half of the "AI Database Connection & Human Escalation" feature (plan §6–§7)
 A turn ends in an escalation-to-human whenever ANY of these hold — there is never
 dead air:
 
-| Trigger                                   | How it's detected                                              | Kind             |
-| ----------------------------------------- | ------------------------------------------------------------- | ---------------- |
-| AI lacks the knowledge to answer          | Model calls `escalateToHuman({ reason })`                      | `knowledge_gap`  |
-| A tool returns empty / error / no data    | Grounding rule → model calls `escalateToHuman`                 | `knowledge_gap`  |
-| Model produces no usable final text       | Empty final text with no tool escalation → reason `no_answer` | `knowledge_gap`  |
-| Visitor asks for a human                  | Deterministic regex on the latest visitor message (pre-LLM)   | `human_requested`|
-| The turn fails                            | LLM error / tool executor error / timeout / step budget spent | `turn_failed`    |
-| Monthly AI quota exhausted                | `checkAiQuota` denies before the LLM call                     | `quota_exhausted`|
+| Trigger                                | How it's detected                                             | Kind              |
+| -------------------------------------- | ------------------------------------------------------------- | ----------------- |
+| AI lacks the knowledge to answer       | Model calls `escalateToHuman({ reason })`                     | `knowledge_gap`   |
+| A tool returns empty / error / no data | Grounding rule → model calls `escalateToHuman`                | `knowledge_gap`   |
+| Model produces no usable final text    | Empty final text with no tool escalation → reason `no_answer` | `knowledge_gap`   |
+| Visitor asks for a human               | Deterministic regex on the latest visitor message (pre-LLM)   | `human_requested` |
+| The turn fails                         | LLM error / tool executor error / timeout / step budget spent | `turn_failed`     |
+| Monthly AI quota exhausted             | `checkAiQuota` denies before the LLM call                     | `quota_exhausted` |
 
 Grounding + the explicit `escalateToHuman` tool jointly force the auto-flip: the
 model may only state facts returned by a tool in this conversation, so its only
@@ -135,12 +135,12 @@ through the single `escalateConversation` seam (`escalate.ts`):
    Mirrors the visitor auth of the messaging routes (`requireAuth()` + a
    participant check for visitors; staff are org-scoped instead). Semantics:
 
-   | Conversation state            | Result                                                    |
-   | ----------------------------- | --------------------------------------------------------- |
-   | AI-handled, open              | `escalateConversation(kind='human_requested')` — identical system message + `conversation:escalated` broadcast + `handledBy` flip as the AI path |
-   | Already human-handled, open   | Idempotent no-op success (already with / queued for a human) |
-   | Closed                        | `409 Conflict`                                            |
-   | Visitor not a participant     | `404 Not Found`                                           |
+   | Conversation state          | Result                                                                                                                                           |
+   | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+   | AI-handled, open            | `escalateConversation(kind='human_requested')` — identical system message + `conversation:escalated` broadcast + `handledBy` flip as the AI path |
+   | Already human-handled, open | Idempotent no-op success (already with / queued for a human)                                                                                     |
+   | Closed                      | `409 Conflict`                                                                                                                                   |
+   | Visitor not a participant   | `404 Not Found`                                                                                                                                  |
 
    Responds with the updated conversation snapshot, like the sibling lifecycle
    endpoints.

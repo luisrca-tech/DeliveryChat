@@ -49,7 +49,7 @@ export function useConversationList({
         setConversations(convs);
         captureVisitorId(vid);
       })
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoadingConvs(false));
   }, [client, captureVisitorId]);
 

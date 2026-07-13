@@ -53,9 +53,7 @@ export async function createApplication(
 ): Promise<typeof applications.$inferSelect> {
   const id = crypto.randomUUID();
   const allowedOrigins =
-    input.kind === "test"
-      ? [`localhost:${input.port}`]
-      : [input.domain];
+    input.kind === "test" ? [`localhost:${input.port}`] : [input.domain];
 
   try {
     const [row] = await db

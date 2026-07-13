@@ -100,10 +100,7 @@ export const aiAddonRoute = new Hono()
       const preview = await stripe.invoices.createPreview({
         subscription: subscription.id,
         subscription_details: {
-          items: [
-            ...existingItems,
-            { price: env.STRIPE_AI_ADDON_PRICE_KEY },
-          ],
+          items: [...existingItems, { price: env.STRIPE_AI_ADDON_PRICE_KEY }],
           proration_behavior: "create_prorations",
         },
       });
@@ -116,9 +113,12 @@ export const aiAddonRoute = new Hono()
 
       // Recurring amount = the add-on price's unit amount in the subscription's
       // currency (the price is multi-currency).
-      const price = await stripe.prices.retrieve(env.STRIPE_AI_ADDON_PRICE_KEY, {
-        expand: ["currency_options"],
-      });
+      const price = await stripe.prices.retrieve(
+        env.STRIPE_AI_ADDON_PRICE_KEY,
+        {
+          expand: ["currency_options"],
+        },
+      );
       const recurringAmount =
         price.currency_options?.[currency]?.unit_amount ??
         (price.currency === currency ? price.unit_amount : null) ??

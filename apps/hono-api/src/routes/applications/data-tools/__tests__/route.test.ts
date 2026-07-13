@@ -25,9 +25,10 @@ vi.mock("../../../../lib/crypto/secretBox.js", () => ({
 // --- ai-data: keep validateSqlQuery real (pure), mock executeDataTool. ---
 const mockExecuteDataTool = vi.fn();
 vi.mock("../../../../features/ai-data/index.js", async (importActual) => {
-  const actual = await importActual<
-    typeof import("../../../../features/ai-data/index.js")
-  >();
+  const actual =
+    await importActual<
+      typeof import("../../../../features/ai-data/index.js")
+    >();
   return {
     ...actual,
     executeDataTool: (...args: unknown[]) => mockExecuteDataTool(...args),
@@ -63,7 +64,10 @@ const toolStore = new Map<string, ToolRow>();
 const NOW = "2026-07-11T00:00:00.000Z";
 
 vi.mock("../dataAccess.js", () => ({
-  findOwnedApplication: async (applicationId: string, organizationId: string) =>
+  findOwnedApplication: async (
+    applicationId: string,
+    organizationId: string,
+  ) =>
     applicationId !== OTHER_APP_ID && organizationId === ORG_ID
       ? { id: applicationId }
       : null,
@@ -93,7 +97,12 @@ vi.mock("../dataAccess.js", () => ({
     const row = toolStore.get(toolId);
     return row && row.applicationId === applicationId ? row : null;
   },
-  createDataTool: async (input: Omit<ToolRow, "id" | "enabled" | "lastTestedAt" | "createdAt" | "updatedAt">) => {
+  createDataTool: async (
+    input: Omit<
+      ToolRow,
+      "id" | "enabled" | "lastTestedAt" | "createdAt" | "updatedAt"
+    >,
+  ) => {
     const row: ToolRow = {
       ...input,
       id: TOOL_ID,
@@ -143,7 +152,11 @@ vi.mock("../dataAccess.js", () => ({
     toolStore.set(toolId, updated);
     return updated;
   },
-  setToolEnabled: async (toolId: string, applicationId: string, enabled: boolean) => {
+  setToolEnabled: async (
+    toolId: string,
+    applicationId: string,
+    enabled: boolean,
+  ) => {
     const row = toolStore.get(toolId);
     if (!row || row.applicationId !== applicationId) return null;
     const updated = { ...row, enabled };
@@ -153,13 +166,16 @@ vi.mock("../dataAccess.js", () => ({
 }));
 
 // --- Middleware mocks (mirror the ai-interview sibling test). ---
-let mockAuthContext:
-  | null
-  | {
-      user: { id: string; name: string };
-      organization: { id: string; plan: string; name: string };
-      membership: { id: string; role: string; userId: string; organizationId: string };
-    } = null;
+let mockAuthContext: null | {
+  user: { id: string; name: string };
+  organization: { id: string; plan: string; name: string };
+  membership: {
+    id: string;
+    role: string;
+    userId: string;
+    organizationId: string;
+  };
+} = null;
 
 vi.mock("../../../../lib/middleware/auth.js", () => ({
   requireTenantAuth:
@@ -181,10 +197,16 @@ vi.mock("../../../../lib/middleware/auth.js", () => ({
     (minRole: "operator" | "admin" | "super_admin") =>
     async (c: { get: (k: string) => unknown }, next: () => Promise<void>) => {
       const auth = c.get("auth") as { membership: { role: string } } | null;
-      const rank: Record<string, number> = { operator: 1, admin: 2, super_admin: 3 };
+      const rank: Record<string, number> = {
+        operator: 1,
+        admin: 2,
+        super_admin: 3,
+      };
       const current = rank[auth?.membership.role ?? ""] ?? 0;
       if (current < (rank[minRole] ?? 0)) {
-        return new Response(JSON.stringify({ error: "forbidden" }), { status: 403 });
+        return new Response(JSON.stringify({ error: "forbidden" }), {
+          status: 403,
+        });
       }
       await next();
     },
@@ -202,7 +224,9 @@ let billingAllowed = true;
 vi.mock("../../../../lib/middleware/billing.js", () => ({
   checkBillingStatus: () => async (_c: unknown, next: () => Promise<void>) => {
     if (!billingAllowed) {
-      return new Response(JSON.stringify({ error: "billing" }), { status: 402 });
+      return new Response(JSON.stringify({ error: "billing" }), {
+        status: 402,
+      });
     }
     await next();
   },
@@ -214,13 +238,23 @@ function adminAuth() {
   return {
     user: { id: USER_ID, name: "Admin" },
     organization: { id: ORG_ID, plan: "ENTERPRISE", name: "Test Org" },
-    membership: { id: "m-1", role: "admin", userId: USER_ID, organizationId: ORG_ID },
+    membership: {
+      id: "m-1",
+      role: "admin",
+      userId: USER_ID,
+      organizationId: ORG_ID,
+    },
   };
 }
 function operatorAuth() {
   return {
     ...adminAuth(),
-    membership: { id: "m-1", role: "operator", userId: USER_ID, organizationId: ORG_ID },
+    membership: {
+      id: "m-1",
+      role: "operator",
+      userId: USER_ID,
+      organizationId: ORG_ID,
+    },
   };
 }
 function buildApp() {
@@ -243,7 +277,10 @@ function seedHttpSource() {
     id: "src-1",
     applicationId: APP_ID,
     kind: "http",
-    config: { baseUrl: "https://api.example.com", allowedHost: "api.example.com" },
+    config: {
+      baseUrl: "https://api.example.com",
+      allowedHost: "api.example.com",
+    },
     enabled: true,
     createdAt: NOW,
     updatedAt: NOW,
@@ -255,7 +292,11 @@ function seedTool(overrides: Partial<ToolRow> = {}) {
     applicationId: APP_ID,
     name: "checkStock",
     description: "Look up live stock for a product SKU.",
-    inputSchema: { type: "object", properties: { sku: { type: "string" } }, required: ["sku"] },
+    inputSchema: {
+      type: "object",
+      properties: { sku: { type: "string" } },
+      required: ["sku"],
+    },
     backingType: "sql",
     config: { query: "SELECT qty FROM stock WHERE sku = $1" },
     enabled: false,
@@ -307,7 +348,11 @@ describe("GET /:applicationId/data-source", () => {
     seedSqlSource();
     const res = await req(`/${APP_ID}/data-source`);
     const body = await res.json();
-    expect(body).toMatchObject({ kind: "sql", enabled: true, hasConnectionString: true });
+    expect(body).toMatchObject({
+      kind: "sql",
+      enabled: true,
+      hasConnectionString: true,
+    });
     const raw = JSON.stringify(body);
     expect(raw).not.toContain("postgres://");
     expect(raw).not.toContain("enc:");
@@ -323,7 +368,11 @@ describe("PUT /:applicationId/data-source — secrets never returned", () => {
     });
     expect(putRes.status).toBe(200);
     const putBody = await putRes.json();
-    expect(putBody).toMatchObject({ kind: "sql", enabled: true, hasConnectionString: true });
+    expect(putBody).toMatchObject({
+      kind: "sql",
+      enabled: true,
+      hasConnectionString: true,
+    });
 
     // Stored value is encrypted, not plaintext.
     expect(sourceStore.get(APP_ID)?.config).toEqual({
@@ -335,7 +384,9 @@ describe("PUT /:applicationId/data-source — secrets never returned", () => {
     expect(putRaw).not.toContain(connectionString);
     expect(putRaw).not.toContain("enc:");
 
-    const getRaw = JSON.stringify(await (await req(`/${APP_ID}/data-source`)).json());
+    const getRaw = JSON.stringify(
+      await (await req(`/${APP_ID}/data-source`)).json(),
+    );
     expect(getRaw).not.toContain(connectionString);
     expect(getRaw).not.toContain("pass");
   });
@@ -400,7 +451,10 @@ describe("POST /:applicationId/data-tools — create", () => {
     const res = await req(`/${APP_ID}/data-tools`, "POST", {
       name: "checkStock",
       description: "Look up live stock for a SKU.",
-      inputSchema: { properties: { sku: { type: "string" } }, required: ["sku"] },
+      inputSchema: {
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
       backingType: "sql",
       config: { query: "SELECT qty FROM stock WHERE sku = $1" },
     });
@@ -442,7 +496,10 @@ describe("POST /:applicationId/data-tools — create", () => {
       description: "Searches the product catalog.",
       inputSchema: { properties: { category: { type: "string" } } },
       backingType: "http",
-      config: { method: "GET", urlTemplate: "/products?category={category}\n&sort=asc" },
+      config: {
+        method: "GET",
+        urlTemplate: "/products?category={category}\n&sort=asc",
+      },
     });
     expect(res.status).toBe(400);
   });
@@ -516,7 +573,10 @@ describe("PUT /:applicationId/data-tools/:toolId — resets enabled + lastTested
     const res = await req(`/${APP_ID}/data-tools/${TOOL_ID}`, "PUT", {
       name: "checkStock",
       description: "Updated description here.",
-      inputSchema: { properties: { sku: { type: "string" } }, required: ["sku"] },
+      inputSchema: {
+        properties: { sku: { type: "string" } },
+        required: ["sku"],
+      },
       backingType: "sql",
       config: { query: "SELECT qty, name FROM stock WHERE sku = $1" },
     });
@@ -588,7 +648,10 @@ describe("POST /:applicationId/data-tools/:toolId/test", () => {
   it("truncates large data payloads", async () => {
     seedSqlSource();
     seedTool();
-    mockExecuteDataTool.mockResolvedValue({ ok: true, data: "x".repeat(20000) });
+    mockExecuteDataTool.mockResolvedValue({
+      ok: true,
+      data: "x".repeat(20000),
+    });
     const res = await req(`/${APP_ID}/data-tools/${TOOL_ID}/test`, "POST", {
       params: {},
     });
@@ -624,12 +687,17 @@ describe("POST /:applicationId/data-tools/:toolId/enable — test gates enable",
     seedTool({ lastTestedAt: null });
     // enabling first fails
     expect(
-      (await req(`/${APP_ID}/data-tools/${TOOL_ID}/enable`, "POST", { enabled: true }))
-        .status,
+      (
+        await req(`/${APP_ID}/data-tools/${TOOL_ID}/enable`, "POST", {
+          enabled: true,
+        })
+      ).status,
     ).toBe(400);
     // run a successful test
     mockExecuteDataTool.mockResolvedValue({ ok: true, data: [] });
-    await req(`/${APP_ID}/data-tools/${TOOL_ID}/test`, "POST", { params: { sku: "A" } });
+    await req(`/${APP_ID}/data-tools/${TOOL_ID}/test`, "POST", {
+      params: { sku: "A" },
+    });
     // now enabling succeeds
     const res = await req(`/${APP_ID}/data-tools/${TOOL_ID}/enable`, "POST", {
       enabled: true,
@@ -654,18 +722,22 @@ describe("tenant isolation", () => {
     expect((await req(`/${OTHER_APP_ID}/data-source`)).status).toBe(404);
     expect((await req(`/${OTHER_APP_ID}/data-tools`)).status).toBe(404);
     expect(
-      (await req(`/${OTHER_APP_ID}/data-tools`, "POST", {
-        name: "x",
-        description: "Long enough description.",
-        inputSchema: { properties: {} },
-        backingType: "sql",
-        config: { query: "SELECT 1" },
-      })).status,
+      (
+        await req(`/${OTHER_APP_ID}/data-tools`, "POST", {
+          name: "x",
+          description: "Long enough description.",
+          inputSchema: { properties: {} },
+          backingType: "sql",
+          config: { query: "SELECT 1" },
+        })
+      ).status,
     ).toBe(404);
     expect(
-      (await req(`/${OTHER_APP_ID}/data-tools/${TOOL_ID}/enable`, "POST", {
-        enabled: false,
-      })).status,
+      (
+        await req(`/${OTHER_APP_ID}/data-tools/${TOOL_ID}/enable`, "POST", {
+          enabled: false,
+        })
+      ).status,
     ).toBe(404);
   });
 });

@@ -66,14 +66,14 @@ diagram and lock/entitlement/quota details:
 
 ## Escalation policy
 
-| Trigger | How it's detected | Kind |
-| --- | --- | --- |
-| AI lacks the knowledge to answer | Model calls `escalateToHuman({ reason })` | `knowledge_gap` |
-| A tool returns empty / error / no data | Grounding rule → model calls `escalateToHuman` | `knowledge_gap` |
-| Model produces no usable final text | Empty final text, no tool escalation → reason `no_answer` | `knowledge_gap` |
-| Visitor asks for a human | Deterministic regex on the latest visitor message (pre-LLM), or the widget's persistent "Talk to a human" button / SDK `requestHuman()` | `human_requested` |
-| The turn fails | LLM error / tool executor error / timeout / step budget spent | `turn_failed` |
-| Monthly AI quota exhausted | `checkAiQuota` denies before the LLM call | `quota_exhausted` |
+| Trigger                                | How it's detected                                                                                                                       | Kind              |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------- |
+| AI lacks the knowledge to answer       | Model calls `escalateToHuman({ reason })`                                                                                               | `knowledge_gap`   |
+| A tool returns empty / error / no data | Grounding rule → model calls `escalateToHuman`                                                                                          | `knowledge_gap`   |
+| Model produces no usable final text    | Empty final text, no tool escalation → reason `no_answer`                                                                               | `knowledge_gap`   |
+| Visitor asks for a human               | Deterministic regex on the latest visitor message (pre-LLM), or the widget's persistent "Talk to a human" button / SDK `requestHuman()` | `human_requested` |
+| The turn fails                         | LLM error / tool executor error / timeout / step budget spent                                                                           | `turn_failed`     |
+| Monthly AI quota exhausted             | `checkAiQuota` denies before the LLM call                                                                                               | `quota_exhausted` |
 
 Escalation flips the conversation back to `handledBy='human'`, `status='pending'`,
 `assignedTo=null`, persists a visitor-facing system message, broadcasts
@@ -93,13 +93,13 @@ subscription). Entitlement (`aiAddonActive`) is derived only from Stripe
 webhooks, never set directly by any route. Full billing mechanics:
 `packages/docs/billing-and-plans/stripe-plan.md` ("AI Add-on" section).
 
-| Capability | Requires |
-| --- | --- |
-| Purchase the add-on | `plan ∈ {PREMIUM, ENTERPRISE}`, `planStatus ∈ {active, trialing}` |
+| Capability                                            | Requires                                                                                                                   |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Purchase the add-on                                   | `plan ∈ {PREMIUM, ENTERPRISE}`, `planStatus ∈ {active, trialing}`                                                          |
 | Autonomous replies in the widget (`isAiTurnEntitled`) | `plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive` **and** `application.aiEnabled` **and** `application.aiAutoRespond` |
-| HTTP data tools | Org add-on entitlement **and** `application.aiEnabled` |
-| SQL data tools | Org add-on entitlement **and** `application.aiEnabled` **and** `application.aiDbEnabled` (per-app opt-in) |
-| Data-connection config UI (`requireAiAddon`) | Org add-on entitlement (`plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive`) — same gate as the rest of the AI feature |
+| HTTP data tools                                       | Org add-on entitlement **and** `application.aiEnabled`                                                                     |
+| SQL data tools                                        | Org add-on entitlement **and** `application.aiEnabled` **and** `application.aiDbEnabled` (per-app opt-in)                  |
+| Data-connection config UI (`requireAiAddon`)          | Org add-on entitlement (`plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive`) — same gate as the rest of the AI feature  |
 
 A downgrade away from `{PREMIUM, ENTERPRISE}` clears the entitlement flags
 immediately and schedules removal of the orphaned Stripe subscription item.
@@ -110,7 +110,7 @@ Any secret a `DataSource` needs — HTTP headers or a SQL connection string — 
 encrypted at rest with **AES-256-GCM** (`secretBox.encryptSecret` /
 `decryptSecret`) before storage. Secrets are decrypted only in-memory, per
 request; admin API responses never return them (only booleans like
-`hasHeaders` / `hasConnectionString`, and header *names* for HTTP); and
+`hasHeaders` / `hasConnectionString`, and header _names_ for HTTP); and
 decrypted values are never logged.
 
 ## Message authorship & widget UX

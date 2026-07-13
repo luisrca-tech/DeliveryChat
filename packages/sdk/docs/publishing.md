@@ -70,7 +70,7 @@ The `files` field in `package.json` restricts the published package to `dist/` o
 
 ### Version History
 
-| Version | Status     | Notes                                             |
-| ------- | ---------- | ------------------------------------------------- |
-| `1.0.0` | **stable** | First stable release with publish safety net      |
-| `0.1.0` | deprecated | Placeholder release — use `1.0.0` or later        |
+| Version | Status     | Notes                                        |
+| ------- | ---------- | -------------------------------------------- |
+| `1.0.0` | **stable** | First stable release with publish safety net |
+| `0.1.0` | deprecated | Placeholder release — use `1.0.0` or later   |

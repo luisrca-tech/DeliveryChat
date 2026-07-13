@@ -20,7 +20,8 @@ let mockAuthContext: unknown = null;
 let mockRoleMinimum = "admin";
 
 vi.mock("../../../lib/middleware/auth.js", () => ({
-  requireTenantAuth: () =>
+  requireTenantAuth:
+    () =>
     async (
       c: { set: (k: string, v: unknown) => void },
       next: () => Promise<void>,
@@ -40,7 +41,10 @@ vi.mock("../../../lib/middleware/auth.js", () => ({
       admin: 2,
       super_admin: 3,
     };
-    return async (c: { get: (k: string) => unknown }, next: () => Promise<void>) => {
+    return async (
+      c: { get: (k: string) => unknown },
+      next: () => Promise<void>,
+    ) => {
       const auth = c.get("auth") as { membership: { role: string } };
       const current = rank[auth.membership.role] ?? 0;
       const required = rank[minRole] ?? 0;
@@ -56,19 +60,17 @@ vi.mock("../../../lib/middleware/auth.js", () => ({
 }));
 
 vi.mock("../../../lib/middleware/billing.js", () => ({
-  checkBillingStatus: () =>
-    async (_c: unknown, next: () => Promise<void>) => {
-      await next();
-    },
+  checkBillingStatus: () => async (_c: unknown, next: () => Promise<void>) => {
+    await next();
+  },
 }));
 
 vi.mock("../ai.middleware.js", () => ({
-  requireAiFeature: () =>
-    async (_c: unknown, next: () => Promise<void>) => {
-      await next();
-    },
-  createAiRateLimitMiddleware: () =>
-    async (_c: unknown, next: () => Promise<void>) => {
+  requireAiFeature: () => async (_c: unknown, next: () => Promise<void>) => {
+    await next();
+  },
+  createAiRateLimitMiddleware:
+    () => async (_c: unknown, next: () => Promise<void>) => {
       await next();
     },
 }));

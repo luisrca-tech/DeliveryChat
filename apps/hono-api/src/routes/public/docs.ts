@@ -100,9 +100,7 @@ export function createDocsRoute(corpus: DocEntry[] = defaultCorpus) {
       // phrase. An exact-phrase hit still ranks first.
       const phrase = q.toLowerCase();
       const tokens = [
-        ...new Set(
-          phrase.split(/[^a-z0-9.]+/).filter((t) => t.length >= 2),
-        ),
+        ...new Set(phrase.split(/[^a-z0-9.]+/).filter((t) => t.length >= 2)),
       ];
 
       const scored: {

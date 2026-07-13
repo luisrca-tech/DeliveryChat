@@ -1,7 +1,4 @@
-import type {
-  CoreTopic,
-  InterviewContextRow,
-} from "./ai.interview.schema.js";
+import type { CoreTopic, InterviewContextRow } from "./ai.interview.schema.js";
 
 export class AIProviderError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {

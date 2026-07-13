@@ -65,13 +65,9 @@ export const widgetRoute = new Hono()
       },
     };
 
-    return c.json(
-      { settings: settingsWithAi },
-      200,
-      {
-        "Cache-Control": "public, max-age=300",
-      },
-    );
+    return c.json({ settings: settingsWithAi }, 200, {
+      "Cache-Control": "public, max-age=300",
+    });
   })
 
   .post("/ws-token", requireWidgetAuth(), async (c) => {

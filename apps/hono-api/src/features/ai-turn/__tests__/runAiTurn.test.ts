@@ -18,8 +18,14 @@ vi.mock("../../ai/ai.quota.js", () => ({ checkAiQuota: vi.fn() }));
 
 vi.mock("../../chat/broadcasting.service.js", () => ({
   broadcastRoomEvent: vi.fn(),
-  buildTypingStartEvent: vi.fn((p: unknown) => ({ type: "typing:start", payload: p })),
-  buildTypingStopEvent: vi.fn((p: unknown) => ({ type: "typing:stop", payload: p })),
+  buildTypingStartEvent: vi.fn((p: unknown) => ({
+    type: "typing:start",
+    payload: p,
+  })),
+  buildTypingStopEvent: vi.fn((p: unknown) => ({
+    type: "typing:stop",
+    payload: p,
+  })),
 }));
 
 vi.mock("../../chat/chat.service.js", () => ({ sendMessage: vi.fn() }));
@@ -54,12 +60,20 @@ const { runAiTurn } = await import("../runAiTurn.js");
 const mockCreateProvider = createAIProvider as ReturnType<typeof vi.fn>;
 const mockCheckQuota = checkAiQuota as ReturnType<typeof vi.fn>;
 const mockSendMessage = chatService.sendMessage as ReturnType<typeof vi.fn>;
-const mockEscalate = escalateMod.escalateConversation as ReturnType<typeof vi.fn>;
+const mockEscalate = escalateMod.escalateConversation as ReturnType<
+  typeof vi.fn
+>;
 const mockExecuteDataTool = aiData.executeDataTool as ReturnType<typeof vi.fn>;
-const mockLoadTurnContext = loadContext.loadTurnContext as ReturnType<typeof vi.fn>;
-const mockLoadMessages = loadContext.loadConversationMessages as ReturnType<typeof vi.fn>;
+const mockLoadTurnContext = loadContext.loadTurnContext as ReturnType<
+  typeof vi.fn
+>;
+const mockLoadMessages = loadContext.loadConversationMessages as ReturnType<
+  typeof vi.fn
+>;
 const mockLoadToolset = loadContext.loadDataToolset as ReturnType<typeof vi.fn>;
-const mockLoadSummary = loadContext.loadContextSummary as ReturnType<typeof vi.fn>;
+const mockLoadSummary = loadContext.loadContextSummary as ReturnType<
+  typeof vi.fn
+>;
 const mockDbInsert = db.insert as ReturnType<typeof vi.fn>;
 
 function eligibleCtx() {
@@ -185,7 +199,10 @@ describe("runAiTurn — escalation policy", () => {
     provider.queueToolLoop({
       toolCalls: [
         { toolName: "checkStock", input: { sku: "X" } },
-        { toolName: ESCALATE_TOOL_NAME, input: { reason: "no stock data returned" } },
+        {
+          toolName: ESCALATE_TOOL_NAME,
+          input: { reason: "no stock data returned" },
+        },
       ],
       text: "",
     });
@@ -204,7 +221,9 @@ describe("runAiTurn — escalation policy", () => {
   it("model calls escalateToHuman directly → knowledge_gap escalation", async () => {
     const provider = useProvider();
     provider.queueToolLoop({
-      toolCalls: [{ toolName: ESCALATE_TOOL_NAME, input: { reason: "out of scope" } }],
+      toolCalls: [
+        { toolName: ESCALATE_TOOL_NAME, input: { reason: "out of scope" } },
+      ],
       text: "",
     });
 
@@ -253,7 +272,10 @@ describe("runAiTurn — escalation policy", () => {
 
     expect(mockCreateProvider).not.toHaveBeenCalled();
     expect(mockEscalate).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "human_requested", reason: "human_requested" }),
+      expect.objectContaining({
+        kind: "human_requested",
+        reason: "human_requested",
+      }),
     );
     expect(mockSendMessage).not.toHaveBeenCalled();
   });

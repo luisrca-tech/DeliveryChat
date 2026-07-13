@@ -4,28 +4,28 @@
 
 The AI feature is split into focused modules, each with a single responsibility:
 
-| Module | Responsibility |
-|--------|---------------|
-| `ai.callOrchestrator.ts` | **Sole** writer to `aiUsageLog`. Owns retry policy, request execution, response parsing/sanitisation hook, content-filter detection, error classification, and best-effort usage logging. Single typed entry point: `runAICall<TRaw, TParsed>(params)`. Joins the caller's transaction when `tx` is passed. |
-| `ai.providerPort.ts` | `AIProviderPort` interface + request/response types. Defines the boundary tests inject against. No SDK imports. |
-| `ai.groqProvider.ts` | `GroqProvider` (Groq SDK) + `createAIProvider(model, apiKey)` factory. The only file that imports `@ai-sdk/groq`. |
-| `ai.mockProvider.ts` | `MockProvider` (in-memory fake) for tests and `mock://*` models. |
-| `ai.interview.engine.ts` | Pure `InterviewTurnEngine` — `next` / `complete` returning `TurnDecision` |
-| `ai.interview.guardRails.ts` | Guard-rail strategy table |
-| `ai.interview.repository.ts` | `applicationAiContext` reads/writes and optimistic-lock check |
-| `ai.interview.schema.ts` | `interviewerOutputSchema`, `CORE_TOPICS`, `MAX_TURNS` |
-| `ai.interview.service.ts` | Interview orchestration (transaction + orchestrator + engine + repo) |
-| `ai.summaryGenerator.ts` | Interview-summary LLM call (delegates to orchestrator with `action: "interview_summary"`) |
-| `ai.prompts.interview.ts` | Interview system prompt and model constant |
-| `ai.quota.ts` | Monthly quota check (plan limits + tenant overrides + usage counting). `QUOTA_EXCLUDED_ACTIONS` skips `interview`, `interview_summary`, and `interview_forced_completion`. |
-| `ai.rateLimit.ts` | Per-tenant sliding window rate limiting with pluggable store interface |
-| `ai.service.ts` | Business logic orchestration for `generate` / `improve` (ownership, messages, context, delegation to orchestrator) |
-| `ai.context.ts` | Prompt composition (guard rails, action instructions, application context) |
-| `ai.middleware.ts` | Thin HTTP middleware wrappers for quota and rate limiting |
-| `ai.errors.ts` | Domain-specific error types |
-| `ai.errorMapper.ts` | Error → HTTP response mapping |
-| `ai.sanitize.ts` | Markdown output sanitization |
-| `ai.schemas.ts` | Zod validation schemas |
+| Module                       | Responsibility                                                                                                                                                                                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ai.callOrchestrator.ts`     | **Sole** writer to `aiUsageLog`. Owns retry policy, request execution, response parsing/sanitisation hook, content-filter detection, error classification, and best-effort usage logging. Single typed entry point: `runAICall<TRaw, TParsed>(params)`. Joins the caller's transaction when `tx` is passed. |
+| `ai.providerPort.ts`         | `AIProviderPort` interface + request/response types. Defines the boundary tests inject against. No SDK imports.                                                                                                                                                                                             |
+| `ai.groqProvider.ts`         | `GroqProvider` (Groq SDK) + `createAIProvider(model, apiKey)` factory. The only file that imports `@ai-sdk/groq`.                                                                                                                                                                                           |
+| `ai.mockProvider.ts`         | `MockProvider` (in-memory fake) for tests and `mock://*` models.                                                                                                                                                                                                                                            |
+| `ai.interview.engine.ts`     | Pure `InterviewTurnEngine` — `next` / `complete` returning `TurnDecision`                                                                                                                                                                                                                                   |
+| `ai.interview.guardRails.ts` | Guard-rail strategy table                                                                                                                                                                                                                                                                                   |
+| `ai.interview.repository.ts` | `applicationAiContext` reads/writes and optimistic-lock check                                                                                                                                                                                                                                               |
+| `ai.interview.schema.ts`     | `interviewerOutputSchema`, `CORE_TOPICS`, `MAX_TURNS`                                                                                                                                                                                                                                                       |
+| `ai.interview.service.ts`    | Interview orchestration (transaction + orchestrator + engine + repo)                                                                                                                                                                                                                                        |
+| `ai.summaryGenerator.ts`     | Interview-summary LLM call (delegates to orchestrator with `action: "interview_summary"`)                                                                                                                                                                                                                   |
+| `ai.prompts.interview.ts`    | Interview system prompt and model constant                                                                                                                                                                                                                                                                  |
+| `ai.quota.ts`                | Monthly quota check (plan limits + tenant overrides + usage counting). `QUOTA_EXCLUDED_ACTIONS` skips `interview`, `interview_summary`, and `interview_forced_completion`.                                                                                                                                  |
+| `ai.rateLimit.ts`            | Per-tenant sliding window rate limiting with pluggable store interface                                                                                                                                                                                                                                      |
+| `ai.service.ts`              | Business logic orchestration for `generate` / `improve` (ownership, messages, context, delegation to orchestrator)                                                                                                                                                                                          |
+| `ai.context.ts`              | Prompt composition (guard rails, action instructions, application context)                                                                                                                                                                                                                                  |
+| `ai.middleware.ts`           | Thin HTTP middleware wrappers for quota and rate limiting                                                                                                                                                                                                                                                   |
+| `ai.errors.ts`               | Domain-specific error types                                                                                                                                                                                                                                                                                 |
+| `ai.errorMapper.ts`          | Error → HTTP response mapping                                                                                                                                                                                                                                                                               |
+| `ai.sanitize.ts`             | Markdown output sanitization                                                                                                                                                                                                                                                                                |
+| `ai.schemas.ts`              | Zod validation schemas                                                                                                                                                                                                                                                                                      |
 
 ## Data Flow
 

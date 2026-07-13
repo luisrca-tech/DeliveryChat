@@ -43,7 +43,7 @@ export const DATA_HONESTY_RULES = [
   "Do not invent facts, prices, policies, or deadlines.",
   "If you do not know the answer, say so clearly.",
   "Never fabricate order numbers, tracking codes, or account details.",
-  "Never confirm, deny, or repeat back unverified personal data (account details, billing history, order status). Use acknowledgment language instead: \"I'll look into that for you.\"",
+  'Never confirm, deny, or repeat back unverified personal data (account details, billing history, order status). Use acknowledgment language instead: "I\'ll look into that for you."',
 ] as const;
 
 export const AUTHORITY_RULES = [

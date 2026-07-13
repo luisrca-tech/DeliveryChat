@@ -9,8 +9,6 @@ export function isLexicalMessage(msg: MessageLike): boolean {
   return msg.content.trimStart().startsWith('{"root"');
 }
 
-export function resolveContentFormat(
-  msg: MessageLike,
-): "plain" | "lexical" {
+export function resolveContentFormat(msg: MessageLike): "plain" | "lexical" {
   return isLexicalMessage(msg) ? "lexical" : "plain";
 }
