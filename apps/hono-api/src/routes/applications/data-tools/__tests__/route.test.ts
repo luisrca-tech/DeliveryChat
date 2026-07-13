@@ -238,6 +238,17 @@ function seedSqlSource() {
     updatedAt: NOW,
   });
 }
+function seedHttpSource() {
+  sourceStore.set(APP_ID, {
+    id: "src-1",
+    applicationId: APP_ID,
+    kind: "http",
+    config: { baseUrl: "https://api.example.com", allowedHost: "api.example.com" },
+    enabled: true,
+    createdAt: NOW,
+    updatedAt: NOW,
+  });
+}
 function seedTool(overrides: Partial<ToolRow> = {}) {
   toolStore.set(TOOL_ID, {
     id: TOOL_ID,
@@ -420,6 +431,18 @@ describe("POST /:applicationId/data-tools — create", () => {
       inputSchema: { properties: {} },
       backingType: "sql",
       config: { query: "SELECT 1" },
+    });
+    expect(res.status).toBe(400);
+  });
+
+  it("rejects an http urlTemplate containing whitespace with 400", async () => {
+    seedHttpSource();
+    const res = await req(`/${APP_ID}/data-tools`, "POST", {
+      name: "searchProducts",
+      description: "Searches the product catalog.",
+      inputSchema: { properties: { category: { type: "string" } } },
+      backingType: "http",
+      config: { method: "GET", urlTemplate: "/products?category={category}\n&sort=asc" },
     });
     expect(res.status).toBe(400);
   });

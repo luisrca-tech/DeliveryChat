@@ -87,7 +87,9 @@ export function buildDataToolBody(
     ? {
         ...base,
         backingType: "http",
-        config: { method: "GET", urlTemplate: config.trim() },
+        // URLs are single-line; strip line breaks pasted into the config
+        // textarea. Remaining whitespace is rejected by the backend schema.
+        config: { method: "GET", urlTemplate: config.trim().replace(/[\r\n]+/g, "") },
       }
     : {
         ...base,

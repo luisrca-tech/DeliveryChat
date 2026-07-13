@@ -159,6 +159,29 @@ describe("buildDataToolBody", () => {
     expect(buildDataToolBody({ ...validHttpInputs, resolvedSchema: null })).toBeNull();
     expect(buildDataToolBody({ ...validHttpInputs, effectiveKind: null })).toBeNull();
   });
+
+  it("strips line breaks pasted into an HTTP URL template", () => {
+    // URLs are single-line; the config textarea accepts pasted newlines.
+    expect(
+      buildDataToolBody({
+        ...validHttpInputs,
+        config: "/products?category={category}\n&sort={sort}\r\n",
+      })?.config,
+    ).toEqual({
+      method: "GET",
+      urlTemplate: "/products?category={category}&sort={sort}",
+    });
+  });
+
+  it("keeps line breaks in SQL queries", () => {
+    expect(
+      buildDataToolBody({
+        ...validHttpInputs,
+        effectiveKind: "sql",
+        config: "SELECT name\nFROM products",
+      })?.config,
+    ).toEqual({ query: "SELECT name\nFROM products" });
+  });
 });
 
 describe("canEnableTool", () => {

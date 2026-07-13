@@ -51,7 +51,11 @@ export type DataSourceBody = z.infer<typeof dataSourceBodySchema>;
 
 const httpToolConfigSchema = z.object({
   method: z.literal("GET"),
-  urlTemplate: z.string().min(1),
+  // URLs are single-line: whitespace (a common paste artifact from the admin
+  // textarea) would silently produce a broken request at call time.
+  urlTemplate: z.string().min(1).refine((v) => !/\s/.test(v), {
+    message: "urlTemplate must not contain whitespace",
+  }),
 });
 
 const sqlToolConfigSchema = z.object({
