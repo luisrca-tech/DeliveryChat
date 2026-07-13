@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { MoreHorizontal, Pencil, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@repo/ui/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -17,15 +23,15 @@ import { useDeleteDataToolMutation } from "../hooks/useDataToolMutations";
 import { DataToolDialog } from "./DataToolDialog";
 import type { DataSourceKind, DataTool } from "../types/dataTools.types";
 
-export type DataToolsSectionProps = {
+export type DataToolsTableProps = {
   applicationId: string;
   sourceKind: DataSourceKind | null;
 };
 
-export function DataToolsSection({
+export function DataToolsTable({
   applicationId,
   sourceKind,
-}: DataToolsSectionProps) {
+}: DataToolsTableProps) {
   const { data: tools, isLoading } = useDataToolsQuery(applicationId);
   const deleteMutation = useDeleteDataToolMutation(applicationId);
 
@@ -67,15 +73,9 @@ export function DataToolsSection({
         </div>
         <Button onClick={openCreate} disabled={!sourceKind}>
           <Plus className="mr-2 h-4 w-4" />
-          New tool
+          New data tool
         </Button>
       </div>
-
-      {!sourceKind && (
-        <p className="text-sm text-muted-foreground">
-          Configure a data source above before adding tools.
-        </p>
-      )}
 
       {isLoading ? (
         <div className="h-24 animate-pulse rounded-md bg-muted" />
@@ -94,23 +94,19 @@ export function DataToolsSection({
                 <TableHead>Backing</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last tested</TableHead>
-                <TableHead className="w-24 text-right">Actions</TableHead>
+                <TableHead className="w-16 text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tools.map((tool) => (
-                <TableRow
-                  key={tool.id}
-                  className="cursor-pointer"
-                  onClick={() => openEdit(tool)}
-                >
+                <TableRow key={tool.id}>
                   <TableCell className="font-medium">
                     <div className="font-mono text-sm">{tool.name}</div>
                     <div className="max-w-md truncate text-xs text-muted-foreground">
                       {tool.description}
                     </div>
                   </TableCell>
-                  <TableCell className="uppercase text-xs">
+                  <TableCell className="text-xs uppercase">
                     {tool.backingType}
                   </TableCell>
                   <TableCell>
@@ -129,18 +125,34 @@ export function DataToolsSection({
                       ? formatRelative(tool.lastTestedAt)
                       : "Never"}
                   </TableCell>
-                  <TableCell
-                    className="text-right"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Delete ${tool.name}`}
-                      onClick={() => setDeletingTool(tool)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Actions for ${tool.name}`}
+                        >
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={() => openEdit(tool)}
+                          className="cursor-pointer"
+                        >
+                          <Pencil className="mr-2 h-4 w-4" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setDeletingTool(tool)}
+                          className="cursor-pointer text-destructive focus:text-destructive"
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </TableCell>
                 </TableRow>
               ))}

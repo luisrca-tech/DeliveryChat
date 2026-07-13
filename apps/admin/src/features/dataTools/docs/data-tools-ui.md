@@ -81,6 +81,37 @@ alongside the existing "AI Interview" / "View AI context" action — the same
 per-application action-menu pattern, not a separate settings index page
 (there isn't one for `ai-context` either).
 
+## Page layout
+
+The page mirrors the applications-list pattern (`ApplicationsPage` +
+`ApplicationListTable`): a compact summary above a table, with a dialog for
+create/edit and a `ConfirmDialog` for delete.
+
+- **`ConnectionCard`** — a compact card above the table showing the source
+  kind badge (`HTTP`/`SQL`), the host (parsed from `baseUrl`, HTTP) or
+  `"SQL database"` (SQL), and a credentials-status line (`"credentials
+  saved"` vs. `"no … saved"`, derived from `hasHeaders` /
+  `hasConnectionString` — never the secret itself). An **"Edit connection"**
+  button opens `ConnectionDialog`. When no source exists yet, the card
+  instead renders a `"Connect a data source"` empty state with a button that
+  opens the same dialog.
+- **`ConnectionDialog`** — a `Dialog` wrapping `DataSourceSection`'s form
+  unchanged (kind select, HTTP/SQL fields, write-only secrets). Previously
+  this form rendered inline inside its own `Card`; it now renders bare inside
+  the dialog's `DialogContent`, since the dialog chrome replaces the card.
+- **`DataToolsTable`** — the tools table (replaces the old
+  `DataToolsSection` list). Header row has the section title/description on
+  the left and a **"+ New data tool"** button on the right (disabled until a
+  data source exists). Each row has an "..." (`DropdownMenu`) actions column
+  with **Edit** (opens `DataToolDialog` for that tool) and **Delete** (opens
+  the existing `ConfirmDialog`) — same pattern as `ApplicationListTable`'s
+  row actions, replacing the old direct trash-icon button and
+  click-row-to-edit affordance.
+- `DataToolsPage` renders `ConnectionCard` always (once past the
+  loading/locked branches), and `DataToolsTable` only when a data source
+  exists — the backend already requires a source before creating tools, so
+  the table is hidden rather than shown-and-disabled when there is none.
+
 ## Files
 
 - `types/dataTools.types.ts` — response/request shapes mirrored from
@@ -93,8 +124,12 @@ per-application action-menu pattern, not a separate settings index page
   use the `hc<APIType>` RPC client for feature calls).
 - `hooks/` — TanStack Query v5 hooks per endpoint; no `useEffect` fetching.
 - `components/DataToolsPage.tsx` — composition root + the feature-gate branch.
-- `components/DataSourceSection.tsx` — HTTP/SQL source form.
-- `components/DataToolsSection.tsx` — tool list/table + delete confirm.
+- `components/ConnectionCard.tsx` — compact connection summary + empty state.
+- `components/ConnectionDialog.tsx` — dialog wrapping `DataSourceSection`.
+- `components/DataSourceSection.tsx` — HTTP/SQL source form (no longer
+  self-carded; rendered inside `ConnectionDialog`).
+- `components/DataToolsTable.tsx` — tool table + row actions + delete
+  confirm.
 - `components/DataToolDialog.tsx` — create/edit + test panel + enable toggle.
 - `components/ParamSchemaBuilder.tsx` — guided param builder, pure
   `paramRowsToSchema` / `schemaToParamRows` helpers (unit tested).
@@ -141,7 +176,8 @@ null-vs-set `lastTestedAt` enable gate).
   edge cases.
 
 No component-level tests were added for `DataToolDialog` / `DataSourceSection`
-/ `DataToolsSection` (no existing precedent in this codebase for testing a
-dialog this shape — `AiContextPage`/`InterviewComposer` etc. are similarly
-untested at the component level); `check-types` and `eslint` are the
-verification gates for those, per the existing convention.
+/ `ConnectionCard` / `ConnectionDialog` / `DataToolsTable` (no existing
+precedent in this codebase for testing a dialog or table this shape —
+`AiContextPage`/`InterviewComposer` etc. are similarly untested at the
+component level); `check-types` and `eslint` are the verification gates for
+those, per the existing convention.

@@ -5,7 +5,6 @@ import { z } from "zod";
 import { Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@repo/ui/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
 import { Input } from "@repo/ui/components/ui/input";
 import { Label } from "@repo/ui/components/ui/label";
 import {
@@ -82,7 +81,10 @@ export function DataSourceSection({ applicationId }: DataSourceSectionProps) {
   });
 
   const baseUrlValue = httpForm.watch("baseUrl");
-  const suggestedHost = useMemo(() => hostFromUrl(baseUrlValue), [baseUrlValue]);
+  const suggestedHost = useMemo(
+    () => hostFromUrl(baseUrlValue),
+    [baseUrlValue],
+  );
 
   const handleUseSuggestedHost = () => {
     if (suggestedHost) httpForm.setValue("allowedHost", suggestedHost);
@@ -139,7 +141,8 @@ export function DataSourceSection({ applicationId }: DataSourceSectionProps) {
     const trimmed = values.connectionString?.trim();
     if (!trimmed && source?.kind !== "sql") {
       sqlForm.setError("connectionString", {
-        message: "Connection string is required when creating a SQL data source",
+        message:
+          "Connection string is required when creating a SQL data source",
       });
       return;
     }
@@ -158,177 +161,166 @@ export function DataSourceSection({ applicationId }: DataSourceSectionProps) {
   });
 
   if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <div className="h-24 animate-pulse rounded-md bg-muted" />
-        </CardContent>
-      </Card>
-    );
+    return <div className="h-24 animate-pulse rounded-md bg-muted" />;
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Data source</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Configure how the AI reaches your systems. Choose HTTP for a REST API
-          or SQL for a direct, read-only database connection.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="grid gap-2 max-w-xs">
-          <Label htmlFor="data_source_kind">Kind</Label>
-          <Select
-            value={kind}
-            onValueChange={(value) => setKind(value as DataSourceKind)}
-          >
-            <SelectTrigger id="data_source_kind">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="http">HTTP API</SelectItem>
-              <SelectItem value="sql">SQL database</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Configure how the AI reaches your systems. Choose HTTP for a REST API or
+        SQL for a direct, read-only database connection.
+      </p>
+      <div className="grid gap-2 max-w-xs">
+        <Label htmlFor="data_source_kind">Kind</Label>
+        <Select
+          value={kind}
+          onValueChange={(value) => setKind(value as DataSourceKind)}
+        >
+          <SelectTrigger id="data_source_kind">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="http">HTTP API</SelectItem>
+            <SelectItem value="sql">SQL database</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-        {kind === "http" ? (
-          <form onSubmit={submitHttp} className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="data_source_base_url">Base URL</Label>
+      {kind === "http" ? (
+        <form onSubmit={submitHttp} className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="data_source_base_url">Base URL</Label>
+            <Input
+              id="data_source_base_url"
+              placeholder="https://api.example.com"
+              {...httpForm.register("baseUrl")}
+            />
+            {httpForm.formState.errors.baseUrl && (
+              <p className="text-sm text-destructive">
+                {httpForm.formState.errors.baseUrl.message}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="data_source_allowed_host">Allowed host</Label>
+            <div className="flex gap-2">
               <Input
-                id="data_source_base_url"
-                placeholder="https://api.example.com"
-                {...httpForm.register("baseUrl")}
+                id="data_source_allowed_host"
+                placeholder="api.example.com"
+                {...httpForm.register("allowedHost")}
               />
-              {httpForm.formState.errors.baseUrl && (
-                <p className="text-sm text-destructive">
-                  {httpForm.formState.errors.baseUrl.message}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label htmlFor="data_source_allowed_host">Allowed host</Label>
-              <div className="flex gap-2">
-                <Input
-                  id="data_source_allowed_host"
-                  placeholder="api.example.com"
-                  {...httpForm.register("allowedHost")}
-                />
-                {suggestedHost && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleUseSuggestedHost}
-                  >
-                    Use {suggestedHost}
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Must exactly match the base URL&apos;s host — this is the SSRF
-                guardrail: requests can only reach this host.
-              </p>
-              {httpForm.formState.errors.allowedHost && (
-                <p className="text-sm text-destructive">
-                  {httpForm.formState.errors.allowedHost.message}
-                </p>
-              )}
-            </div>
-
-            <div className="grid gap-2">
-              <Label>Headers (optional)</Label>
-              <p className="text-xs text-muted-foreground">
-                Sent with every request, e.g. an API key. Values are write-only
-                — saved values are never shown again.
-              </p>
-              {headers.length > 0 && (
-                <div className="space-y-2">
-                  {headers.map((header) => (
-                    <div
-                      key={header.name}
-                      className="flex items-center gap-2 rounded-md border px-3 py-2"
-                    >
-                      <code className="text-xs font-mono">{header.name}</code>
-                      <span className="flex-1 text-xs text-muted-foreground">
-                        {header.isExisting
-                          ? "•••• (saved)"
-                          : "•••• (will be saved)"}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-7 w-7"
-                        aria-label={`Remove header ${header.name}`}
-                        onClick={() => handleRemoveHeader(header.name)}
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Header name"
-                  value={newHeaderName}
-                  onChange={(e) => setNewHeaderName(e.target.value)}
-                  className="max-w-[200px] font-mono text-sm"
-                />
-                <Input
-                  placeholder="Header value"
-                  type="password"
-                  value={newHeaderValue}
-                  onChange={(e) => setNewHeaderValue(e.target.value)}
-                  className="font-mono text-sm"
-                />
-                <Button type="button" variant="outline" onClick={handleAddHeader}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add
+              {suggestedHost && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleUseSuggestedHost}
+                >
+                  Use {suggestedHost}
                 </Button>
-              </div>
-            </div>
-
-            <Button type="submit" disabled={putMutation.isPending}>
-              {putMutation.isPending ? "Saving..." : "Save data source"}
-            </Button>
-          </form>
-        ) : (
-          <form onSubmit={submitSql} className="space-y-4">
-            <div className="grid gap-2">
-              <Label htmlFor="data_source_connection_string">
-                Connection string
-              </Label>
-              <Input
-                id="data_source_connection_string"
-                type="password"
-                placeholder={
-                  source?.kind === "sql" && source.hasConnectionString
-                    ? "•••• (saved — leave blank to keep current)"
-                    : "postgres://user:password@host:5432/db"
-                }
-                {...sqlForm.register("connectionString")}
-              />
-              <p className="text-xs text-muted-foreground">
-                Write-only. Leave blank to keep the currently saved connection
-                string. Must be a read-only credential.
-              </p>
-              {sqlForm.formState.errors.connectionString && (
-                <p className="text-sm text-destructive">
-                  {sqlForm.formState.errors.connectionString.message}
-                </p>
               )}
             </div>
+            <p className="text-xs text-muted-foreground">
+              Must exactly match the base URL&apos;s host — this is the SSRF
+              guardrail: requests can only reach this host.
+            </p>
+            {httpForm.formState.errors.allowedHost && (
+              <p className="text-sm text-destructive">
+                {httpForm.formState.errors.allowedHost.message}
+              </p>
+            )}
+          </div>
 
-            <Button type="submit" disabled={putMutation.isPending}>
-              {putMutation.isPending ? "Saving..." : "Save data source"}
-            </Button>
-          </form>
-        )}
-      </CardContent>
-    </Card>
+          <div className="grid gap-2">
+            <Label>Headers (optional)</Label>
+            <p className="text-xs text-muted-foreground">
+              Sent with every request, e.g. an API key. Values are write-only —
+              saved values are never shown again.
+            </p>
+            {headers.length > 0 && (
+              <div className="space-y-2">
+                {headers.map((header) => (
+                  <div
+                    key={header.name}
+                    className="flex items-center gap-2 rounded-md border px-3 py-2"
+                  >
+                    <code className="text-xs font-mono">{header.name}</code>
+                    <span className="flex-1 text-xs text-muted-foreground">
+                      {header.isExisting
+                        ? "•••• (saved)"
+                        : "•••• (will be saved)"}
+                    </span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      aria-label={`Remove header ${header.name}`}
+                      onClick={() => handleRemoveHeader(header.name)}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Header name"
+                value={newHeaderName}
+                onChange={(e) => setNewHeaderName(e.target.value)}
+                className="max-w-[200px] font-mono text-sm"
+              />
+              <Input
+                placeholder="Header value"
+                type="password"
+                value={newHeaderValue}
+                onChange={(e) => setNewHeaderValue(e.target.value)}
+                className="font-mono text-sm"
+              />
+              <Button type="button" variant="outline" onClick={handleAddHeader}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add
+              </Button>
+            </div>
+          </div>
+
+          <Button type="submit" disabled={putMutation.isPending}>
+            {putMutation.isPending ? "Saving..." : "Save data source"}
+          </Button>
+        </form>
+      ) : (
+        <form onSubmit={submitSql} className="space-y-4">
+          <div className="grid gap-2">
+            <Label htmlFor="data_source_connection_string">
+              Connection string
+            </Label>
+            <Input
+              id="data_source_connection_string"
+              type="password"
+              placeholder={
+                source?.kind === "sql" && source.hasConnectionString
+                  ? "•••• (saved — leave blank to keep current)"
+                  : "postgres://user:password@host:5432/db"
+              }
+              {...sqlForm.register("connectionString")}
+            />
+            <p className="text-xs text-muted-foreground">
+              Write-only. Leave blank to keep the currently saved connection
+              string. Must be a read-only credential.
+            </p>
+            {sqlForm.formState.errors.connectionString && (
+              <p className="text-sm text-destructive">
+                {sqlForm.formState.errors.connectionString.message}
+              </p>
+            )}
+          </div>
+
+          <Button type="submit" disabled={putMutation.isPending}>
+            {putMutation.isPending ? "Saving..." : "Save data source"}
+          </Button>
+        </form>
+      )}
+    </div>
   );
 }

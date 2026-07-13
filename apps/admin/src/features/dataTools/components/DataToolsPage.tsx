@@ -2,8 +2,8 @@ import { Database } from "lucide-react";
 import { useApplicationQuery } from "@/features/applications/hooks/useApplicationQuery";
 import { useDataSourceQuery } from "../hooks/useDataSourceQuery";
 import { DataToolsFeatureLockedError } from "../lib/dataTools.client";
-import { DataSourceSection } from "./DataSourceSection";
-import { DataToolsSection } from "./DataToolsSection";
+import { ConnectionCard } from "./ConnectionCard";
+import { DataToolsTable } from "./DataToolsTable";
 import { FeatureLockedCard } from "./FeatureLockedCard";
 
 export type DataToolsPageProps = {
@@ -34,11 +34,13 @@ export function DataToolsPage({ applicationId }: DataToolsPageProps) {
         <div className="h-32 animate-pulse rounded-md bg-muted" />
       ) : (
         <div className="space-y-8">
-          <DataSourceSection applicationId={applicationId} />
-          <DataToolsSection
-            applicationId={applicationId}
-            sourceKind={source?.kind ?? null}
-          />
+          <ConnectionCard applicationId={applicationId} />
+          {source && (
+            <DataToolsTable
+              applicationId={applicationId}
+              sourceKind={source.kind}
+            />
+          )}
         </div>
       )}
     </div>
