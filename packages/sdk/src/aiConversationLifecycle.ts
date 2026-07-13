@@ -101,3 +101,35 @@ export function resetForNewConversation(): void {
   setState("humanRequested", false);
   setState("aiTakeoverAnnounced", false);
 }
+
+/** State slices the "Talk to a human" offer rule depends on. */
+export type HandoffOfferInput = {
+  conversationId: string | null;
+  messages: ChatMessage[];
+  humanRequested: boolean;
+};
+
+/** Derived visibility/disabled state for the "Talk to a human" button. */
+export type HandoffOffer = {
+  hidden: boolean;
+  disabled: boolean;
+};
+
+/**
+ * Derives the "Talk to a human" button's `{ hidden, disabled }` state (plan §8,
+ * AC #4) from conversation + escalation state. Pure — no DOM, no `getState` — so
+ * the escalation-offer invariant is testable directly.
+ *
+ * - Hidden until a conversation exists (`conversationId` is null).
+ * - Disabled once already escalated (`humanRequested`) or once an operator
+ *   message has arrived — either signal means the visitor is already with, or
+ *   queued for, a human.
+ */
+export function handoffOffer(input: HandoffOfferInput): HandoffOffer {
+  return {
+    hidden: !input.conversationId,
+    disabled:
+      input.humanRequested ||
+      input.messages.some((m) => m.authorType === "operator"),
+  };
+}

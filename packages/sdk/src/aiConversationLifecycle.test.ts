@@ -3,6 +3,7 @@ import {
   seedDisclosureIfNeeded,
   onIncomingMessage,
   resetForNewConversation,
+  handoffOffer,
 } from "./aiConversationLifecycle.js";
 import { getState, setState } from "./state.js";
 import type { ChatMessage, WidgetSettings } from "./types/index.js";
@@ -147,6 +148,58 @@ describe("aiConversationLifecycle", () => {
 
       expect(getState("humanRequested")).toBe(false);
       expect(getState("aiTakeoverAnnounced")).toBe(false);
+    });
+  });
+
+  describe("handoffOffer — 'Talk to a human' button rule", () => {
+    it("hides the button while no conversation exists", () => {
+      expect(
+        handoffOffer({
+          conversationId: null,
+          messages: [],
+          humanRequested: false,
+        }),
+      ).toEqual({ hidden: true, disabled: false });
+    });
+
+    it("shows and enables the button once a conversation exists with no operator message and no request", () => {
+      expect(
+        handoffOffer({
+          conversationId: "conv-1",
+          messages: [aiMessage()],
+          humanRequested: false,
+        }),
+      ).toEqual({ hidden: false, disabled: false });
+    });
+
+    it("disables the button once a human has been requested", () => {
+      expect(
+        handoffOffer({
+          conversationId: "conv-1",
+          messages: [aiMessage()],
+          humanRequested: true,
+        }),
+      ).toEqual({ hidden: false, disabled: true });
+    });
+
+    it("disables the button once any operator message has arrived", () => {
+      expect(
+        handoffOffer({
+          conversationId: "conv-1",
+          messages: [aiMessage(), operatorMessage()],
+          humanRequested: false,
+        }),
+      ).toEqual({ hidden: false, disabled: true });
+    });
+
+    it("stays hidden even when disabling signals are present but no conversation exists", () => {
+      expect(
+        handoffOffer({
+          conversationId: null,
+          messages: [operatorMessage()],
+          humanRequested: true,
+        }),
+      ).toEqual({ hidden: true, disabled: true });
     });
   });
 });

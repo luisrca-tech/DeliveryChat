@@ -36,10 +36,22 @@ requires. A slim banner between the list and input was considered but rejected:
 it would scroll out of view with the message list, defeating the "always
 visible" requirement.
 
+`HumanHandoffButton.ts` is a thin renderer (icon, `aria-label`/`title` "Talk to
+a human", hidden by default); its visibility/disabled state is derived, not
+owned, by the component. The rule lives in one pure selector, `handoffOffer()`
+in `aiConversationLifecycle.ts`, so the escalation-offer invariant is unit-tested
+directly instead of only through the `widget.ts` subscription wiring:
+
 - Hidden when no conversation exists yet (`conversationId` is null).
 - Disabled once already escalated (`state.humanRequested`) or once an operator
   message has arrived (`messages.some(m => m.authorType === "operator")`) —
   either signal means the visitor is already with, or queued for, a human.
+
+`widget.ts` keeps its three subscriptions (`conversationId`, `messages`,
+`humanRequested`) but now just feeds those slices to `handoffOffer(...)` and
+applies the returned `{ hidden, disabled }` to the button — the derivation moved
+out of the DOM callback.
+
 - Click calls `SdkApi.requestHuman()` → `escalateConversation()`
   (`conversation.ts`), which `POST`s `/api/v1/conversations/:id/escalate`
   using the same `X-App-Id` / `X-Visitor-Id` header convention as every other
@@ -67,6 +79,10 @@ internally. Its interface:
 - `resetForNewConversation()` — owns **all** escalation flag resets
   (`humanRequested`, `aiTakeoverAnnounced`), called by both `startNewChat()` and
   `destroyChat()`.
+- `handoffOffer({ conversationId, messages, humanRequested })` — pure selector
+  returning the "Talk to a human" button's `{ hidden, disabled }` state. Unlike
+  the other functions it takes explicit slices instead of reaching into
+  `getState`, keeping the offer rule DOM-free and directly testable.
 
 ## Opening AI disclosure line
 

@@ -30,7 +30,10 @@ import {
 } from "./constants/index.js";
 import { getSdkApi } from "./SdkApi.js";
 import { connectEventBridge, disconnectEventBridge } from "./EventBridge.js";
-import { seedDisclosureIfNeeded } from "./aiConversationLifecycle.js";
+import {
+  seedDisclosureIfNeeded,
+  handoffOffer,
+} from "./aiConversationLifecycle.js";
 
 import styles from "./styles/main.css?inline";
 
@@ -340,11 +343,13 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   ) as HTMLButtonElement | null;
   const refreshHumanHandoffButton = (): void => {
     if (!humanHandoffBtn) return;
-    const hasConversation = Boolean(getState("conversationId"));
-    humanHandoffBtn.hidden = !hasConversation;
-    humanHandoffBtn.disabled =
-      getState("humanRequested") ||
-      getState("messages").some((m) => m.authorType === "operator");
+    const { hidden, disabled } = handoffOffer({
+      conversationId: getState("conversationId"),
+      messages: getState("messages"),
+      humanRequested: getState("humanRequested"),
+    });
+    humanHandoffBtn.hidden = hidden;
+    humanHandoffBtn.disabled = disabled;
   };
   refreshHumanHandoffButton();
   const unsubHandoffConv = subscribe("conversationId", refreshHumanHandoffButton);
