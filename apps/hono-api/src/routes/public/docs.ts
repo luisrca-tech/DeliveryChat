@@ -95,31 +95,60 @@ export function createDocsRoute(corpus: DocEntry[] = defaultCorpus) {
         );
       }
 
-      const needle = q.toLowerCase();
-      const results: {
+      // Token-based matching: natural-language queries ("install widget")
+      // must match pages containing the words anywhere, not only the exact
+      // phrase. An exact-phrase hit still ranks first.
+      const phrase = q.toLowerCase();
+      const tokens = [
+        ...new Set(
+          phrase.split(/[^a-z0-9.]+/).filter((t) => t.length >= 2),
+        ),
+      ];
+
+      const scored: {
         slug: string;
         title: string;
         url: string;
         snippet: string;
+        score: number;
       }[] = [];
 
       for (const entry of corpus) {
         const haystack = entry.content.toLowerCase();
-        let matchIndex = haystack.indexOf(needle);
-        if (matchIndex === -1 && entry.title.toLowerCase().includes(needle)) {
-          // Title matched but body did not — anchor the snippet at the start.
-          matchIndex = 0;
-        }
-        if (matchIndex === -1) continue;
+        const titleHaystack = entry.title.toLowerCase();
 
-        results.push({
+        let score = 0;
+        let snippetIndex = -1;
+
+        if (haystack.includes(phrase)) {
+          // Exact phrase beats any token combination.
+          score += tokens.length * 10;
+          snippetIndex = haystack.indexOf(phrase);
+        }
+
+        for (const token of tokens) {
+          const inContent = haystack.indexOf(token);
+          if (inContent !== -1) {
+            score += 1;
+            if (snippetIndex === -1) snippetIndex = inContent;
+          }
+          if (titleHaystack.includes(token)) score += 2;
+        }
+
+        if (score === 0) continue;
+        scored.push({
           slug: entry.slug,
           title: entry.title,
           url: urlForSlug(entry.slug),
-          snippet: buildSnippet(entry.content, matchIndex),
+          snippet: buildSnippet(entry.content, Math.max(snippetIndex, 0)),
+          score,
         });
-        if (results.length >= MAX_SEARCH_RESULTS) break;
       }
+
+      scored.sort((a, b) => b.score - a.score);
+      const results = scored
+        .slice(0, MAX_SEARCH_RESULTS)
+        .map(({ score: _score, ...rest }) => rest);
 
       return c.json({ results });
     })

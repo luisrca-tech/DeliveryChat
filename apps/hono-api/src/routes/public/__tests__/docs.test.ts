@@ -109,6 +109,38 @@ describe("GET /public/docs/search", () => {
     expect(first.snippet.toLowerCase()).toContain("destroy");
   });
 
+  it("matches natural multi-word queries whose exact phrase never appears", async () => {
+    const res = await app().request(
+      `/public/docs/search?q=${encodeURIComponent("install widget")}`,
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.results.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("ranks an exact-phrase match above token-only matches", async () => {
+    const corpus: DocEntry[] = [
+      {
+        slug: "tokens-only",
+        title: "Tokens Only",
+        content: "the widget is here and the install steps are there",
+      },
+      {
+        slug: "exact-phrase",
+        title: "Exact Phrase",
+        content: "how to install widget in one step",
+      },
+    ];
+    const res = await app(corpus).request(
+      `/public/docs/search?q=${encodeURIComponent("install widget")}`,
+    );
+    const body = await res.json();
+    expect(body.results.map((r: { slug: string }) => r.slug)).toEqual([
+      "exact-phrase",
+      "tokens-only",
+    ]);
+  });
+
   it("returns 400 when q is shorter than 2 chars", async () => {
     const res = await app().request("/public/docs/search?q=a");
     expect(res.status).toBe(400);
