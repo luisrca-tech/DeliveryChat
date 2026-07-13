@@ -30,10 +30,15 @@ import {
   schemaToParamRows,
   type ParamRow,
 } from "./ParamSchemaBuilder";
+import {
+  buildDataToolBody,
+  canEnableTool,
+  canSaveDataTool,
+  coerceParams,
+} from "../lib/dataToolForm";
 import type {
   DataSourceKind,
   DataTool,
-  DataToolBody,
   TestDataToolResult,
 } from "../types/dataTools.types";
 
@@ -45,19 +50,8 @@ export type DataToolDialogProps = {
   tool: DataTool | null;
 };
 
-const NAME_REGEX = /^[a-zA-Z][a-zA-Z0-9_]*$/;
-
 function buildParamValues(rows: ParamRow[]): Record<string, string> {
   return Object.fromEntries(rows.map((row) => [row.name, ""]));
-}
-
-function coerceParam(row: ParamRow, raw: string): unknown {
-  if (row.type === "boolean") return raw === "true";
-  if (row.type === "number" || row.type === "integer") {
-    const n = Number(raw);
-    return Number.isNaN(n) ? raw : n;
-  }
-  return raw;
 }
 
 export function DataToolDialog({
@@ -116,41 +110,18 @@ export function DataToolDialog({
     return paramRowsToSchema(paramRows);
   }, [rawJsonMode, rawJsonText, paramRows]);
 
-  const buildBody = (): DataToolBody | null => {
-    if (!effectiveKind) return null;
-    if (!name.trim() || !NAME_REGEX.test(name.trim())) return null;
-    if (description.trim().length < 10) return null;
-    if (!config.trim()) return null;
-    if (!resolvedSchema) return null;
-
-    const base = {
-      name: name.trim(),
-      description: description.trim(),
-      inputSchema: resolvedSchema,
-    };
-
-    return effectiveKind === "http"
-      ? {
-          ...base,
-          backingType: "http",
-          config: { method: "GET", urlTemplate: config.trim() },
-        }
-      : {
-          ...base,
-          backingType: "sql",
-          config: { query: config.trim() },
-        };
+  const formInputs = {
+    effectiveKind,
+    name,
+    description,
+    config,
+    resolvedSchema,
   };
 
-  const canSave =
-    Boolean(effectiveKind) &&
-    NAME_REGEX.test(name.trim()) &&
-    description.trim().length >= 10 &&
-    config.trim().length > 0 &&
-    resolvedSchema !== null;
+  const canSave = canSaveDataTool(formInputs);
 
   const handleSave = async () => {
-    const body = buildBody();
+    const body = buildDataToolBody(formInputs);
     if (!body) return;
 
     try {
@@ -172,9 +143,7 @@ export function DataToolDialog({
 
   const handleTest = async () => {
     if (!savedTool) return;
-    const params = Object.fromEntries(
-      paramRows.map((row) => [row.name, coerceParam(row, testValues[row.name] ?? "")]),
-    );
+    const params = coerceParams(paramRows, testValues);
     try {
       const result = await testMutation.mutateAsync({
         toolId: savedTool.id,
@@ -208,7 +177,7 @@ export function DataToolDialog({
     }
   };
 
-  const canEnable = Boolean(savedTool?.lastTestedAt);
+  const canEnable = canEnableTool(savedTool);
   const saving = createMutation.isPending || updateMutation.isPending;
 
   return (

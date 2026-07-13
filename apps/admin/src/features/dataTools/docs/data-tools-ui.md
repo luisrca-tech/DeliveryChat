@@ -99,6 +99,34 @@ per-application action-menu pattern, not a separate settings index page
 - `components/ParamSchemaBuilder.tsx` — guided param builder, pure
   `paramRowsToSchema` / `schemaToParamRows` helpers (unit tested).
 - `components/FeatureLockedCard.tsx` — locked-state card.
+- `lib/dataToolForm.ts` — pure form logic extracted from `DataToolDialog`
+  (see below); the dialog now only wires state to these functions.
+
+## Extracted form seam (`lib/dataToolForm.ts`)
+
+The validation, coercion, payload-shaping, and enable-gate rules used to be
+inlined in `DataToolDialog`. They now live in `lib/dataToolForm.ts` as pure,
+unit-tested functions so each rule can be verified without rendering the
+dialog. The dialog keeps only wiring/state:
+
+- `NAME_REGEX` / `MIN_DESCRIPTION_LENGTH` — the name pattern (leading letter,
+  then letters/digits/underscores) and the 10-character description floor,
+  mirrored by the backend zod schema.
+- `canSaveDataTool(inputs)` — the save precondition predicate (kind set, valid
+  name, description ≥ 10 chars, non-empty config, resolved schema).
+- `buildDataToolBody(inputs)` — the create/update payload, discriminated on the
+  backing kind, or `null` when a precondition is unmet (same gate as
+  `canSaveDataTool`). Trims name/description/config.
+- `coerceParam(row, raw)` / `coerceParams(rows, values)` — coerce raw string
+  test-inputs into their declared JSON types. Numbers that fail to parse fall
+  back to the raw string (the backend then reports the validation error);
+  booleans are strict `"true"` vs. anything-else.
+- `canEnableTool(tool)` — the security-relevant test-before-enable gate
+  (`Boolean(tool?.lastTestedAt)`).
+
+Covered by `lib/dataToolForm.test.ts` (name-regex edges, the 9-vs-10 char
+description boundary, the coercion table, both backing-type payloads, and the
+null-vs-set `lastTestedAt` enable gate).
 
 ## Testing
 
