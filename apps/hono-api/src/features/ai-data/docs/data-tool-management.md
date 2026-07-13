@@ -71,3 +71,29 @@ gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
 - `helpers.ts` — pure redaction / truncation.
 - `dataAccess.ts` — Drizzle queries (mocked in tests).
 - `__tests__/route.test.ts` — TDD coverage of every rule above.
+
+## Dogfooding
+
+DeliveryChat registers **its own** public pricing endpoint
+(`GET /api/v1/public/plans`, see `src/routes/docs/public-plans.md`) as an
+HTTP DataTool on its own tenant, so the widget's AI assistant can answer
+pricing questions from live data instead of a hardcoded blurb in the system
+prompt. Concretely, via this same admin CRUD:
+
+1. `PUT /:applicationId/data-source` with `kind: "http"`,
+   `baseUrl: "<tunnel-or-public-host>"`, `allowedHost` matching that host.
+2. `POST /:applicationId/data-tools` creating a tool named `getPlanInfo`,
+   `backingType: "http"`, `urlTemplate: "/api/v1/public/plans"`, an empty
+   `inputSchema` (the endpoint takes no params), and a description telling
+   the model it returns plan names, prices, and limits.
+3. `POST .../data-tools/:toolId/test` against the live endpoint, then
+   `POST .../enable`.
+
+**Dev-environment caveat:** the SSRF guard (`ssrfGuard.ts`) rejects any
+`allowedHost` that resolves to a private/loopback address, which blocks
+`localhost` — the same restriction that protects tenants from pointing tools
+at internal infrastructure applies to us too. In local development, expose
+`hono-api` through a public tunnel (e.g. ngrok/Cloudflare Tunnel) and use the
+tunnel's public host as `baseUrl`/`allowedHost` instead of `localhost:8000`.
+In staging/production the tool's `baseUrl` is the real public API host, so
+this only matters for local dogfooding.
