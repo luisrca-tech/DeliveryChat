@@ -1,5 +1,6 @@
 import * as React from "react";
 import {
+  AiAddonActivatedEmail,
   EnterprisePlanRequestEmail,
   InvoiceReceiptEmail,
   PaymentFailedEmail,
@@ -95,6 +96,25 @@ export async function sendSubscriptionCanceledEmail(params: {
       effectiveAt: params.effectiveAt,
       cancelAtPeriodEnd: params.cancelAtPeriodEnd,
       organizationName: params.organizationName,
+    }),
+  });
+}
+
+export async function sendAiAddonActivatedEmail(params: {
+  email: string;
+  amount?: string | null;
+  currency?: string | null;
+  organizationName?: string;
+  settingsUrl: string;
+}): Promise<void> {
+  await sendEmail({
+    to: params.email,
+    subject: "AI Assistant add-on is now active",
+    template: React.createElement(AiAddonActivatedEmail, {
+      amount: params.amount ?? null,
+      currency: params.currency ?? null,
+      organizationName: params.organizationName,
+      settingsUrl: params.settingsUrl,
     }),
   });
 }

@@ -17,5 +17,6 @@ export {
   sendPaymentFailedEmail,
   sendSubscriptionCanceledEmail,
   sendInvoiceReceiptEmail,
+  sendAiAddonActivatedEmail,
   type SendEnterprisePlanRequestEmailParams,
 } from "./billing.js";

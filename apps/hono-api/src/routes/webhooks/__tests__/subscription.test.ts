@@ -69,7 +69,14 @@ vi.mock("../../../lib/email/index.js", () => ({
   sendPlanUpgradedEmail: vi.fn(),
   sendSubscriptionCanceledEmail: vi.fn(),
   sendTrialStartedEmail: vi.fn(),
+  sendAiAddonActivatedEmail: vi.fn(),
 }));
+
+const { sendAiAddonActivatedEmail } = (await import(
+  "../../../lib/email/index.js"
+)) as unknown as {
+  sendAiAddonActivatedEmail: ReturnType<typeof vi.fn>;
+};
 
 vi.mock("../../../utils/date.js", () => ({
   formatDate: (d: Date) => d.toISOString(),
@@ -390,6 +397,111 @@ describe("webhooks — AI add-on entitlement derivation", () => {
       .calls[0]?.[0];
     expect(setCall.aiAddonActive).toBe(false);
     expect(setCall.aiAddonSubscriptionItemId).toBeNull();
+  });
+
+  it("queues the activation email exactly once on the false→true transition", async () => {
+    const org = makeOrg({
+      plan: "PREMIUM",
+      planStatus: "active",
+      aiAddonActive: false,
+    });
+    setupMocks(org, mockTransaction);
+
+    const event = makeStripeEvent("customer.subscription.updated", {
+      id: "sub_test",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+      metadata: { plan: "PREMIUM" },
+      items: {
+        data: [
+          { id: "si_base", price: { id: "price_premium", lookup_key: null } },
+          {
+            id: "si_addon",
+            price: {
+              id: "price_ai_addon",
+              lookup_key: null,
+              unit_amount: 12000,
+              currency: "brl",
+            },
+          },
+        ],
+      },
+    });
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    expect(sendAiAddonActivatedEmail).toHaveBeenCalledTimes(1);
+    expect(sendAiAddonActivatedEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "billing@test.com",
+        amount: "120.00",
+        currency: "brl",
+        organizationName: "Test Org",
+        settingsUrl: expect.stringContaining("/settings/billing"),
+      }),
+    );
+  });
+
+  it("does NOT queue the activation email when the add-on was already active", async () => {
+    const org = makeOrg({
+      plan: "PREMIUM",
+      planStatus: "active",
+      aiAddonActive: true,
+      aiAddonSubscriptionItemId: "si_addon",
+    });
+    setupMocks(org, mockTransaction);
+
+    const event = makeStripeEvent("customer.subscription.updated", {
+      id: "sub_test",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+      metadata: { plan: "PREMIUM" },
+      items: makeItems([
+        { id: "si_base", priceId: "price_premium" },
+        { id: "si_addon", priceId: "price_ai_addon" },
+      ]),
+    });
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    expect(sendAiAddonActivatedEmail).not.toHaveBeenCalled();
+  });
+
+  it("does NOT queue the activation email when the add-on item is removed", async () => {
+    const org = makeOrg({
+      plan: "PREMIUM",
+      planStatus: "active",
+      aiAddonActive: true,
+      aiAddonSubscriptionItemId: "si_addon",
+    });
+    setupMocks(org, mockTransaction);
+
+    const event = makeStripeEvent("customer.subscription.updated", {
+      id: "sub_test",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+      metadata: { plan: "PREMIUM" },
+      items: makeItems([{ id: "si_base", priceId: "price_premium" }]),
+    });
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    expect(sendAiAddonActivatedEmail).not.toHaveBeenCalled();
   });
 
   it("detects the add-on item by lookup_key fallback", async () => {

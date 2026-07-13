@@ -3,11 +3,24 @@ import { eq } from "drizzle-orm";
 import { organization } from "../../db/schema/organization.js";
 import { stripe } from "../../lib/stripe.js";
 import {
+  sendAiAddonActivatedEmail,
   sendSubscriptionCanceledEmail,
   sendTrialStartedEmail,
 } from "../../lib/email/index.js";
 import { formatDate } from "../../utils/date.js";
-import { extractPlanFromMetadata, findAiAddonItem } from "./utils.js";
+import { extractPlanFromMetadata, findAiAddonItem, formatMoney } from "./utils.js";
+
+/**
+ * Builds the admin settings URL for a tenant from its slug, mirroring the
+ * host convention used when sending organization invitation emails.
+ */
+function buildAdminSettingsUrl(orgSlug: string): string {
+  const isDev = process.env.NODE_ENV !== "production";
+  const adminHost = isDev
+    ? `http://${orgSlug}.localhost:3000`
+    : `https://${orgSlug}.deliverychat.online`;
+  return `${adminHost}/settings/billing`;
+}
 import type { HandlerContext } from "./types.js";
 
 export async function handleSubscriptionCreated(
@@ -191,6 +204,25 @@ export async function handleSubscriptionUpdated(
   } else {
     aiAddonActive = !!aiItem;
     aiAddonSubscriptionItemId = aiItem?.id ?? null;
+  }
+
+  // Fire the activation email only on the genuine false->true transition (the
+  // moment the add-on item first appears and the plan is eligible), never on
+  // subsequent updates where the item is merely still present.
+  const aiAddonJustActivated = !org.aiAddonActive && aiAddonActive;
+  if (aiAddonJustActivated && billingEmail && aiItem) {
+    const settingsUrl = buildAdminSettingsUrl(org.slug);
+    const amount = formatMoney(aiItem.price?.unit_amount);
+    const currency = aiItem.price?.currency ?? null;
+    emailTasks.push(async () => {
+      await sendAiAddonActivatedEmail({
+        email: billingEmail,
+        amount,
+        currency,
+        organizationName: org.name,
+        settingsUrl,
+      });
+    });
   }
 
   await tx

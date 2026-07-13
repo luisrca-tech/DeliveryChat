@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@repo/ui/components/ui/card";
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
+import { AiAddonPurchaseDialog } from "./AiAddonPurchaseDialog";
 import { useBillingStatusQuery } from "../hooks/useBillingStatus";
 import { useCreatePortalSessionMutation } from "../hooks/useBillingPortal";
 import {
@@ -50,6 +51,7 @@ export function BillingSettingsPage() {
     "enable" | "cancel" | null
   >(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isPurchaseDialogOpen, setIsPurchaseDialogOpen] = useState(false);
 
   const trialDaysLeft = useMemo(() => {
     if (!status?.trialEndsAt) return null;
@@ -86,6 +88,7 @@ export function BillingSettingsPage() {
     try {
       await enableAddon.mutateAsync();
       setPendingAddonAction("enable");
+      setIsPurchaseDialogOpen(false);
       toast.success("AI add-on purchase started", {
         description: "It will activate once payment is confirmed.",
       });
@@ -215,7 +218,7 @@ export function BillingSettingsPage() {
               </>
             ) : isSuperAdmin ? (
               <Button
-                onClick={handleEnableAddon}
+                onClick={() => setIsPurchaseDialogOpen(true)}
                 disabled={enableAddon.isPending || isAddonPendingEnable}
               >
                 {isAddonPendingEnable ? "Enabling..." : "Enable add-on"}
@@ -228,6 +231,13 @@ export function BillingSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      <AiAddonPurchaseDialog
+        open={isPurchaseDialogOpen}
+        onOpenChange={setIsPurchaseDialogOpen}
+        onConfirm={handleEnableAddon}
+        isConfirming={enableAddon.isPending}
+      />
 
       <ConfirmDialog
         open={isCancelDialogOpen}

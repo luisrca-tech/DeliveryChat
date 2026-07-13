@@ -2,6 +2,7 @@ import { getApiBaseUrl } from "@/lib/urls";
 import { getTenantHeaders } from "@/lib/tenantHeaders";
 import type {
   AiAddonErrorCode,
+  AiAddonPreviewResponse,
   AiAddonResponse,
   BillingStatusResponse,
   CheckoutRequest,
@@ -87,6 +88,14 @@ export async function createCheckout(
     );
   }
   return await parseJson<CheckoutResponse>(res);
+}
+
+export async function getAiAddonPreview(): Promise<AiAddonPreviewResponse> {
+  const res = await fetch(`${getApiBaseUrl()}/billing/ai-addon/preview`, {
+    headers: getTenantHeaders(),
+  });
+  if (!res.ok) return parseAiAddonError(res);
+  return await parseJson<AiAddonPreviewResponse>(res);
 }
 
 export async function enableAiAddon(): Promise<AiAddonResponse> {

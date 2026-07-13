@@ -32,6 +32,16 @@ export type AiAddonResponse = {
   message?: string;
 };
 
+export type AiAddonPreviewResponse = {
+  currency: string;
+  /** Prorated amount charged immediately, in minor units. */
+  prorationAmount: number;
+  /** Recurring monthly amount, in minor units. */
+  recurringAmount: number;
+  /** ISO date of the first full recurring charge. */
+  nextBillingDate: string;
+};
+
 export type CheckoutPlan = "basic" | "premium" | "enterprise";
 
 export type EnterpriseRequestDetails = {

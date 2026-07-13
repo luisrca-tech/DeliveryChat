@@ -25,6 +25,9 @@ export type { SubscriptionCanceledEmailProps } from "./templates/types/subscript
 export { default as InvoiceReceiptEmail } from "./templates/invoice-receipt";
 export type { InvoiceReceiptEmailProps } from "./templates/types/invoice-receipt";
 
+export { default as AiAddonActivatedEmail } from "./templates/ai-addon-activated";
+export type { AiAddonActivatedEmailProps } from "./templates/types/ai-addon-activated";
+
 export { default as EmailVerifiedWelcomeEmail } from "./templates/email-verified-welcome";
 export type { EmailVerifiedWelcomeEmailProps } from "./templates/types/email-verified-welcome";
 

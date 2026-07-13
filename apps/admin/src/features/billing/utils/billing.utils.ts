@@ -44,6 +44,23 @@ export function getBillingBannerDismissKey(input: {
   return null;
 }
 
+/**
+ * Formats a monetary amount given in minor units (e.g. cents/centavos) and a
+ * 3-letter ISO currency code into a localized currency string. Falls back to a
+ * plain decimal when the currency is not recognized by Intl.
+ */
+export function formatMoney(minorUnits: number, currency: string): string {
+  const major = minorUnits / 100;
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency: currency.toUpperCase(),
+    }).format(major);
+  } catch {
+    return `${major.toFixed(2)} ${currency.toUpperCase()}`;
+  }
+}
+
 export const BILLING_ALERT_DISMISS_STORAGE_PREFIX =
   "delivery_chat_billing_alert_dismissed";
 

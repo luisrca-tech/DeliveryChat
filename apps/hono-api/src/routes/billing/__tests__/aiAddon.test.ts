@@ -43,11 +43,23 @@ vi.mock("../../../env.js", () => ({
 
 const mockCreate = vi.fn();
 const mockDel = vi.fn();
+const mockSubRetrieve = vi.fn();
+const mockCreatePreview = vi.fn();
+const mockPriceRetrieve = vi.fn();
 vi.mock("../../../lib/stripe.js", () => ({
   stripe: {
     subscriptionItems: {
       create: (...args: unknown[]) => mockCreate(...args),
       del: (...args: unknown[]) => mockDel(...args),
+    },
+    subscriptions: {
+      retrieve: (...args: unknown[]) => mockSubRetrieve(...args),
+    },
+    invoices: {
+      createPreview: (...args: unknown[]) => mockCreatePreview(...args),
+    },
+    prices: {
+      retrieve: (...args: unknown[]) => mockPriceRetrieve(...args),
     },
   },
 }));
@@ -82,6 +94,9 @@ function postAddon() {
 }
 function deleteAddon() {
   return app.request("/billing/ai-addon", { method: "DELETE" });
+}
+function previewAddon() {
+  return app.request("/billing/ai-addon/preview", { method: "GET" });
 }
 
 describe("POST /billing/ai-addon", () => {
@@ -149,6 +164,117 @@ describe("POST /billing/ai-addon", () => {
     const res = await postAddon();
     expect(res.status).toBe(403);
     expect(mockCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /billing/ai-addon/preview", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // current_period_end = 2026-03-07T00:00:00Z
+    const periodEnd = Math.floor(Date.UTC(2026, 2, 7) / 1000);
+    mockSubRetrieve.mockResolvedValue({
+      id: "sub_123",
+      currency: "brl",
+      current_period_end: periodEnd,
+      items: { data: [{ id: "si_plan" }] },
+    });
+    mockCreatePreview.mockResolvedValue({
+      currency: "brl",
+      lines: {
+        data: [
+          { proration: true, amount: 8000 },
+          { proration: true, amount: -1000 },
+          { proration: false, amount: 12000 },
+        ],
+      },
+    });
+    mockPriceRetrieve.mockResolvedValue({
+      currency: "usd",
+      unit_amount: 4900,
+      currency_options: { brl: { unit_amount: 12000 } },
+    });
+  });
+
+  it("returns the proration, recurring amount, currency and next billing date", async () => {
+    setAuth(makeOrg());
+
+    const res = await previewAddon();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+
+    expect(body.currency).toBe("brl");
+    // 8000 - 1000 (only proration=true lines)
+    expect(body.prorationAmount).toBe(7000);
+    // add-on price unit_amount for the subscription currency (brl)
+    expect(body.recurringAmount).toBe(12000);
+    expect(body.nextBillingDate).toBe("2026-03-07T00:00:00.000Z");
+
+    expect(mockCreatePreview).toHaveBeenCalledWith({
+      subscription: "sub_123",
+      subscription_details: {
+        items: [{ id: "si_plan" }, { price: "price_ai_addon" }],
+        proration_behavior: "create_prorations",
+      },
+    });
+  });
+
+  it("falls back to the base unit_amount when no currency option matches", async () => {
+    setAuth(makeOrg());
+    mockSubRetrieve.mockResolvedValue({
+      id: "sub_123",
+      currency: "eur",
+      current_period_end: Math.floor(Date.UTC(2026, 2, 7) / 1000),
+      items: { data: [{ id: "si_plan" }] },
+    });
+    mockPriceRetrieve.mockResolvedValue({
+      currency: "usd",
+      unit_amount: 4900,
+      currency_options: { brl: { unit_amount: 12000 } },
+    });
+
+    const res = await previewAddon();
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.recurringAmount).toBe(4900);
+  });
+
+  it("rejects when there is no active subscription", async () => {
+    setAuth(makeOrg({ stripeSubscriptionId: null }));
+    const res = await previewAddon();
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe("no_active_subscription");
+    expect(mockCreatePreview).not.toHaveBeenCalled();
+  });
+
+  it("rejects when the plan status is not active/trialing", async () => {
+    setAuth(makeOrg({ planStatus: "canceled" }));
+    const res = await previewAddon();
+    expect(res.status).toBe(402);
+    expect((await res.json()).error).toBe("subscription_not_active");
+    expect(mockCreatePreview).not.toHaveBeenCalled();
+  });
+
+  it("rejects when the plan is not eligible", async () => {
+    setAuth(makeOrg({ plan: "BASIC" }));
+    const res = await previewAddon();
+    expect(res.status).toBe(403);
+    expect((await res.json()).error).toBe("plan_not_eligible");
+    expect(mockCreatePreview).not.toHaveBeenCalled();
+  });
+
+  it("rejects when the add-on is already active", async () => {
+    setAuth(makeOrg({ aiAddonActive: true }));
+    const res = await previewAddon();
+    expect(res.status).toBe(409);
+    expect((await res.json()).error).toBe("ai_addon_already_active");
+    expect(mockCreatePreview).not.toHaveBeenCalled();
+  });
+
+  it("rejects a non-super_admin role", async () => {
+    setAuth(makeOrg(), "operator");
+    const res = await previewAddon();
+    expect(res.status).toBe(403);
+    expect(mockCreatePreview).not.toHaveBeenCalled();
   });
 });
 
