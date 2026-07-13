@@ -333,6 +333,7 @@
         "@repo/eslint-config": "*",
         "@repo/typescript-config": "*",
         "@types/node": "^22.15.3",
+        "eslint": "^9.39.1",
         "jsdom": "^28.1.0",
         "typescript": "^5.9.2",
         "vite": "^8.0.13",

@@ -175,9 +175,11 @@ describe("cross-reader property agreement", () => {
     expect(order).toEqual(["alpha", "bravo", "charlie", "delta"]);
 
     // toZod exposes exactly the same keys, in the same declared order.
-    const zodShape = (toZod(multi) as unknown as {
-      shape: Record<string, unknown>;
-    }).shape;
+    const zodShape = (
+      toZod(multi) as unknown as {
+        shape: Record<string, unknown>;
+      }
+    ).shape;
     expect(Object.keys(zodShape)).toEqual(order);
 
     // A fully-populated params object is accepted, and validateParams echoes it

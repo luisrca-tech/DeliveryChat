@@ -58,7 +58,10 @@ function getPool(applicationId: string, connectionString: string): Pool {
  * thrown.
  */
 export async function executeSqlTool(
-  input: Pick<ExecuteDataToolInput, "applicationId" | "tool" | "source" | "params">,
+  input: Pick<
+    ExecuteDataToolInput,
+    "applicationId" | "tool" | "source" | "params"
+  >,
 ): Promise<DataToolResult> {
   const sourceConfig = input.source.config as SqlSourceConfig;
   const toolConfig = input.tool.config as SqlToolConfig;

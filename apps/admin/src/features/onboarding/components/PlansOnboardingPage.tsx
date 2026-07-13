@@ -128,9 +128,7 @@ export function PlansOnboardingPage() {
                   {plan.name}
                 </CardTitle>
                 <CardDescription>{plan.description}</CardDescription>
-                <div className="text-4xl font-bold">
-                  {plan.price[currency]}
-                </div>
+                <div className="text-4xl font-bold">{plan.price[currency]}</div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <ul className="space-y-3">

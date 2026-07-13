@@ -169,7 +169,9 @@ function DataToolDialogBody({
         setSavedTool(updated);
         setEnabled(updated.enabled);
         toast.success(
-          updated.enabled ? "Tool enabled — the AI can use it now" : "Tool disabled",
+          updated.enabled
+            ? "Tool enabled — the AI can use it now"
+            : "Tool disabled",
         );
       } catch (e) {
         toast.error("Failed to update tool status", {
@@ -207,18 +209,22 @@ function DataToolDialogBody({
 
   const canEnable = canEnableTool(savedTool);
   const saving =
-    createMutation.isPending || updateMutation.isPending || enableMutation.isPending;
+    createMutation.isPending ||
+    updateMutation.isPending ||
+    enableMutation.isPending;
   const statusDirty = savedTool ? enabled !== savedTool.enabled : false;
   const hasChanges = !savedTool || isDirty || statusDirty;
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{savedTool ? "Edit data tool" : "New data tool"}</DialogTitle>
+        <DialogTitle>
+          {savedTool ? "Edit data tool" : "New data tool"}
+        </DialogTitle>
         <DialogDescription>
           The AI decides when to call this tool based only on its name,
-          description, and parameters — write them as if briefing a new
-          teammate who has never seen your system.
+          description, and parameters — write them as if briefing a new teammate
+          who has never seen your system.
         </DialogDescription>
       </DialogHeader>
 
@@ -251,9 +257,9 @@ function DataToolDialogBody({
               {...register("description")}
             />
             <p className="text-xs text-muted-foreground">
-              The AI decides when to use this tool based on this description
-              — be specific: what it returns, when it applies, and any
-              limits. At least 10 characters.
+              The AI decides when to use this tool based on this description —
+              be specific: what it returns, when it applies, and any limits. At
+              least 10 characters.
             </p>
           </div>
 
@@ -309,7 +315,9 @@ function DataToolDialogBody({
               />
             )}
             {rawJsonMode && errors.rawJsonText && (
-              <p className="text-sm text-destructive">{errors.rawJsonText.message}</p>
+              <p className="text-sm text-destructive">
+                {errors.rawJsonText.message}
+              </p>
             )}
           </div>
 
@@ -383,7 +391,6 @@ function DataToolDialogBody({
                 )}
               </div>
             )}
-
           </div>
 
           <div className="flex items-center justify-between rounded-md border p-4">
@@ -427,7 +434,11 @@ function DataToolDialogBody({
       )}
 
       <DialogFooter>
-        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+        >
           Close
         </Button>
         <Button

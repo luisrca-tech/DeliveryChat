@@ -35,13 +35,19 @@ function hashApiKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
 }
 
-export async function provisionTestData(
-  opts?: {
-    plan?: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
-    planStatus?: "active" | "trialing" | "past_due" | "canceled" | "unpaid" | "incomplete" | "paused" | null;
-    orgStatus?: "ACTIVE" | "PENDING_VERIFICATION" | "EXPIRED" | "DELETED";
-  },
-): Promise<E2ETestData> {
+export async function provisionTestData(opts?: {
+  plan?: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
+  planStatus?:
+    | "active"
+    | "trialing"
+    | "past_due"
+    | "canceled"
+    | "unpaid"
+    | "incomplete"
+    | "paused"
+    | null;
+  orgStatus?: "ACTIVE" | "PENDING_VERIFICATION" | "EXPIRED" | "DELETED";
+}): Promise<E2ETestData> {
   const testId = randomUUID().slice(0, 8);
   const orgSlug = `${E2E_PREFIX}${testId}`;
 
@@ -253,17 +259,13 @@ export async function cleanupTestData(data: E2ETestData) {
   ];
 
   // Delete in reverse dependency order
-  await db
-    .delete(aiUsageLog)
-    .where(eq(aiUsageLog.tenantId, data.org.id));
+  await db.delete(aiUsageLog).where(eq(aiUsageLog.tenantId, data.org.id));
 
   await db
     .delete(conversationParticipants)
     .where(inArray(conversationParticipants.userId, userIds));
 
-  await db
-    .delete(messages)
-    .where(inArray(messages.senderId, userIds));
+  await db.delete(messages).where(inArray(messages.senderId, userIds));
 
   await db
     .delete(conversations)
@@ -273,9 +275,7 @@ export async function cleanupTestData(data: E2ETestData) {
 
   await db.delete(member).where(eq(member.organizationId, data.org.id));
 
-  await db
-    .delete(session)
-    .where(inArray(session.userId, userIds));
+  await db.delete(session).where(inArray(session.userId, userIds));
 
   await db
     .delete(applications)

@@ -9,10 +9,7 @@ export function usePutDataSourceMutation(applicationId: string) {
   return useMutation({
     mutationFn: (body: DataSourceBody) => putDataSource(applicationId, body),
     onSuccess: (data) => {
-      queryClient.setQueryData(
-        dataSourceQueryKeys.detail(applicationId),
-        data,
-      );
+      queryClient.setQueryData(dataSourceQueryKeys.detail(applicationId), data);
     },
   });
 }

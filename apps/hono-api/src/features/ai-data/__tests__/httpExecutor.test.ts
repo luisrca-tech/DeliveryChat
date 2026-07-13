@@ -145,12 +145,14 @@ describe("executeHttpTool", () => {
   });
 
   it("rejects an oversize response via content-length", async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      jsonResponse(
-        { big: true },
-        { headers: { "content-length": String(300 * 1024) } },
-      ),
-    );
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse(
+          { big: true },
+          { headers: { "content-length": String(300 * 1024) } },
+        ),
+      );
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await executeHttpTool(baseInput({}));
@@ -185,7 +187,10 @@ describe("executeHttpTool", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const result = await executeHttpTool(
-      baseInput({ urlTemplate: "/products/{sku}/{missing}", params: { sku: "X" } }),
+      baseInput({
+        urlTemplate: "/products/{sku}/{missing}",
+        params: { sku: "X" },
+      }),
     );
 
     expect(result.ok).toBe(false);

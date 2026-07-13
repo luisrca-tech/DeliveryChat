@@ -126,10 +126,7 @@ function stripMdx(raw: string): string {
   text = text.replace(/<\/?[A-Z][A-Za-z0-9]*\b[^>]*\/?>/g, "");
 
   // Restore fenced code blocks.
-  text = text.replace(
-    /@@FENCE(\d+)@@/g,
-    (_, i) => fences[Number(i)] ?? "",
-  );
+  text = text.replace(/@@FENCE(\d+)@@/g, (_, i) => fences[Number(i)] ?? "");
 
   // Collapse excess blank lines left behind by removed tags.
   text = text.replace(/\n{3,}/g, "\n\n");

@@ -37,14 +37,10 @@ test.beforeAll(async () => {
     plan: "PREMIUM",
     planStatus: "active",
   });
-  premiumOperatorToken = await createSessionInDB(
-    premiumData.operatorUser.id,
-  );
+  premiumOperatorToken = await createSessionInDB(premiumData.operatorUser.id);
   premiumAdminToken = await createSessionInDB(premiumData.adminUser.id);
 
-  console.log(
-    `[AI E2E] Provisioned: org=${premiumData.org.slug} plan=PREMIUM`,
-  );
+  console.log(`[AI E2E] Provisioned: org=${premiumData.org.slug} plan=PREMIUM`);
 });
 
 test.afterAll(async () => {
@@ -156,9 +152,7 @@ test.describe("POST /ai/improve-message", () => {
     const conversationId = await createConversationInDB({
       organizationId: premiumData.org.id,
       applicationId: premiumData.app.id,
-      participants: [
-        { userId: premiumData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: premiumData.operatorUser.id, role: "operator" }],
     });
 
     const draft = "a".repeat(4000);
@@ -176,9 +170,7 @@ test.describe("POST /ai/improve-message", () => {
     const conversationId = await createConversationInDB({
       organizationId: premiumData.org.id,
       applicationId: premiumData.app.id,
-      participants: [
-        { userId: premiumData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: premiumData.operatorUser.id, role: "operator" }],
     });
 
     const draft = "a".repeat(4001);
@@ -194,9 +186,7 @@ test.describe("POST /ai/improve-message", () => {
     const conversationId = await createConversationInDB({
       organizationId: premiumData.org.id,
       applicationId: premiumData.app.id,
-      participants: [
-        { userId: premiumData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: premiumData.operatorUser.id, role: "operator" }],
     });
 
     const response = await request.post("/api/v1/ai/improve-message", {
@@ -217,9 +207,7 @@ test.describe("AI plan gating", () => {
   test.beforeAll(async () => {
     freeData = await provisionTestData({ plan: "FREE", planStatus: "active" });
     freeOperatorToken = await createSessionInDB(freeData.operatorUser.id);
-    console.log(
-      `[AI E2E] Provisioned FREE org: ${freeData.org.slug}`,
-    );
+    console.log(`[AI E2E] Provisioned FREE org: ${freeData.org.slug}`);
   });
 
   test.afterAll(async () => {
@@ -233,9 +221,7 @@ test.describe("AI plan gating", () => {
     const conversationId = await createConversationInDB({
       organizationId: freeData.org.id,
       applicationId: freeData.app.id,
-      participants: [
-        { userId: freeData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: freeData.operatorUser.id, role: "operator" }],
     });
 
     const response = await request.post("/api/v1/ai/generate-reply", {
@@ -254,9 +240,7 @@ test.describe("AI plan gating", () => {
     const conversationId = await createConversationInDB({
       organizationId: freeData.org.id,
       applicationId: freeData.app.id,
-      participants: [
-        { userId: freeData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: freeData.operatorUser.id, role: "operator" }],
     });
 
     const response = await request.post("/api/v1/ai/improve-message", {
@@ -284,9 +268,7 @@ test.describe("AI billing gating", () => {
     canceledOperatorToken = await createSessionInDB(
       canceledData.operatorUser.id,
     );
-    console.log(
-      `[AI E2E] Provisioned canceled org: ${canceledData.org.slug}`,
-    );
+    console.log(`[AI E2E] Provisioned canceled org: ${canceledData.org.slug}`);
   });
 
   test.afterAll(async () => {
@@ -368,12 +350,9 @@ test.describe("GET /ai/usage", () => {
   });
 
   test("supports action filter", async ({ request }) => {
-    const response = await request.get(
-      "/api/v1/ai/usage?action=generate",
-      {
-        headers: authHeaders(premiumAdminToken, premiumData.org.slug),
-      },
-    );
+    const response = await request.get("/api/v1/ai/usage?action=generate", {
+      headers: authHeaders(premiumAdminToken, premiumData.org.slug),
+    });
 
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -383,12 +362,9 @@ test.describe("GET /ai/usage", () => {
   });
 
   test("supports status filter", async ({ request }) => {
-    const response = await request.get(
-      "/api/v1/ai/usage?status=success",
-      {
-        headers: authHeaders(premiumAdminToken, premiumData.org.slug),
-      },
-    );
+    const response = await request.get("/api/v1/ai/usage?status=success", {
+      headers: authHeaders(premiumAdminToken, premiumData.org.slug),
+    });
 
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -398,12 +374,9 @@ test.describe("GET /ai/usage", () => {
   });
 
   test("supports pagination", async ({ request }) => {
-    const response = await request.get(
-      "/api/v1/ai/usage?limit=1&offset=0",
-      {
-        headers: authHeaders(premiumAdminToken, premiumData.org.slug),
-      },
-    );
+    const response = await request.get("/api/v1/ai/usage?limit=1&offset=0", {
+      headers: authHeaders(premiumAdminToken, premiumData.org.slug),
+    });
 
     expect(response.status()).toBe(200);
     const body = await response.json();

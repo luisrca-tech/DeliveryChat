@@ -71,9 +71,7 @@ export function validateSqlQuery(query: string): SqlValidationResult {
 
 function stripComments(query: string): string {
   // Remove block comments /* ... */ then line comments -- ... to end of line.
-  return query
-    .replace(/\/\*[\s\S]*?\*\//g, " ")
-    .replace(/--[^\n]*/g, " ");
+  return query.replace(/\/\*[\s\S]*?\*\//g, " ").replace(/--[^\n]*/g, " ");
 }
 
 /** Whether the query already declares a LIMIT (ignoring comments). */

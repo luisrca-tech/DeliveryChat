@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { cn } from "@repo/ui/lib/utils";
-import { InterviewEyebrow, type InterviewEyebrowVariant } from "./InterviewEyebrow";
+import {
+  InterviewEyebrow,
+  type InterviewEyebrowVariant,
+} from "./InterviewEyebrow";
 
 export type InterviewQuestionGuardrailAction =
   | "redirect_scope"

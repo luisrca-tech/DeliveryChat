@@ -56,7 +56,9 @@ function seed(queryClient: QueryClient, state: InterviewState) {
   vi.mocked(getInterviewState).mockResolvedValue(state);
 }
 
-function turnOk(overrides: Partial<InterviewTurnResponse> = {}): InterviewTurnResponse {
+function turnOk(
+  overrides: Partial<InterviewTurnResponse> = {},
+): InterviewTurnResponse {
   return {
     status: "in_progress",
     currentTurn: 2,
@@ -139,9 +141,7 @@ describe("useInterviewController", () => {
 
     act(() => result.current.callbacks.sendTurn("msg"));
 
-    await waitFor(() =>
-      expect(result.current.progress.canFinish).toBe(true),
-    );
+    await waitFor(() => expect(result.current.progress.canFinish).toBe(true));
     expect(result.current.turnLog.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -213,9 +213,7 @@ describe("useInterviewController", () => {
 
     act(() => result.current.callbacks.retrySend());
 
-    await waitFor(() =>
-      expect(postInterviewTurn).toHaveBeenCalledTimes(2),
-    );
+    await waitFor(() => expect(postInterviewTurn).toHaveBeenCalledTimes(2));
     expect(postInterviewTurn).toHaveBeenLastCalledWith(APPLICATION_ID, {
       message: "retry me",
       expectedCurrentTurn: 2,
@@ -242,14 +240,10 @@ describe("useInterviewController", () => {
     await waitFor(() => expect(result.current.phase).toBe("active"));
 
     act(() => result.current.callbacks.sendTurn("stale"));
-    await waitFor(() =>
-      expect(result.current.showConflictNotice).toBe(true),
-    );
+    await waitFor(() => expect(result.current.showConflictNotice).toBe(true));
 
     act(() => result.current.callbacks.sendTurn("fresh"));
-    await waitFor(() =>
-      expect(result.current.showConflictNotice).toBe(false),
-    );
+    await waitFor(() => expect(result.current.showConflictNotice).toBe(false));
   });
 
   it("maps content-filtered responses to a system_bubble surface (no retry row)", async () => {

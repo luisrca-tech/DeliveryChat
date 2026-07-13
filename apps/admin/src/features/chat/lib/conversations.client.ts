@@ -92,9 +92,7 @@ export async function getMessages(
   return parseJson<MessagesListResponse>(res);
 }
 
-export async function acceptConversation(
-  id: string,
-): Promise<{
+export async function acceptConversation(id: string): Promise<{
   conversation: { id: string; status: string; assignedTo: string };
 }> {
   const res = await fetch(`${base()}/conversations/${id}/accept`, {

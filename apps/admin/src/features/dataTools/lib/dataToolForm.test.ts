@@ -87,7 +87,9 @@ describe("coerceParams", () => {
   });
 
   it("defaults a missing value to an empty string before coercion", () => {
-    const rows: ParamRow[] = [{ name: "category", type: "string", required: true }];
+    const rows: ParamRow[] = [
+      { name: "category", type: "string", required: true },
+    ];
     expect(coerceParams(rows, {})).toEqual({ category: "" });
   });
 });
@@ -107,30 +109,35 @@ describe("dataToolFormSchema", () => {
   });
 
   it("rejects an invalid name", () => {
-    expect(dataToolFormSchema.safeParse({ ...validForm, name: "1bad" }).success).toBe(
-      false,
-    );
+    expect(
+      dataToolFormSchema.safeParse({ ...validForm, name: "1bad" }).success,
+    ).toBe(false);
   });
 
   it("enforces the 10-character description boundary", () => {
     expect(
-      dataToolFormSchema.safeParse({ ...validForm, description: "123456789" }).success,
+      dataToolFormSchema.safeParse({ ...validForm, description: "123456789" })
+        .success,
     ).toBe(false);
     expect(
-      dataToolFormSchema.safeParse({ ...validForm, description: "1234567890" }).success,
+      dataToolFormSchema.safeParse({ ...validForm, description: "1234567890" })
+        .success,
     ).toBe(true);
   });
 
   it("rejects a blank config", () => {
-    expect(dataToolFormSchema.safeParse({ ...validForm, config: "   " }).success).toBe(
-      false,
-    );
+    expect(
+      dataToolFormSchema.safeParse({ ...validForm, config: "   " }).success,
+    ).toBe(false);
   });
 
   it("rejects unparseable raw JSON only in raw mode", () => {
     const broken = { ...validForm, rawJsonText: "{oops" };
     expect(dataToolFormSchema.safeParse(broken).success).toBe(true);
-    const result = dataToolFormSchema.safeParse({ ...broken, rawJsonMode: true });
+    const result = dataToolFormSchema.safeParse({
+      ...broken,
+      rawJsonMode: true,
+    });
     expect(result.success).toBe(false);
     if (!result.success) {
       expect(result.error.issues[0]?.path).toEqual(["rawJsonText"]);
@@ -200,10 +207,18 @@ describe("resolveToolSchema", () => {
 
   it("parses raw JSON in raw mode, returning null when unparseable", () => {
     expect(
-      resolveToolSchema({ rawJsonMode: true, rawJsonText: '{"properties":{}}', paramRows: [] }),
+      resolveToolSchema({
+        rawJsonMode: true,
+        rawJsonText: '{"properties":{}}',
+        paramRows: [],
+      }),
     ).toEqual({ properties: {} });
     expect(
-      resolveToolSchema({ rawJsonMode: true, rawJsonText: "{oops", paramRows: [] }),
+      resolveToolSchema({
+        rawJsonMode: true,
+        rawJsonText: "{oops",
+        paramRows: [],
+      }),
     ).toBeNull();
   });
 });
@@ -243,9 +258,15 @@ describe("buildDataToolBody", () => {
   });
 
   it("returns null when a precondition is unmet", () => {
-    expect(buildDataToolBody({ ...validHttpInputs, description: "short" })).toBeNull();
-    expect(buildDataToolBody({ ...validHttpInputs, resolvedSchema: null })).toBeNull();
-    expect(buildDataToolBody({ ...validHttpInputs, effectiveKind: null })).toBeNull();
+    expect(
+      buildDataToolBody({ ...validHttpInputs, description: "short" }),
+    ).toBeNull();
+    expect(
+      buildDataToolBody({ ...validHttpInputs, resolvedSchema: null }),
+    ).toBeNull();
+    expect(
+      buildDataToolBody({ ...validHttpInputs, effectiveKind: null }),
+    ).toBeNull();
   });
 
   it("strips line breaks pasted into an HTTP URL template", () => {
@@ -287,19 +308,31 @@ describe("planDataToolSave", () => {
 
   it("applies a status-only enable without re-saving fields", () => {
     expect(
-      planDataToolSave({ savedTool: testedDisabled, fieldsDirty: false, enabled: true }),
+      planDataToolSave({
+        savedTool: testedDisabled,
+        fieldsDirty: false,
+        enabled: true,
+      }),
     ).toEqual({ saveFields: false, applyStatus: true, blockedEnable: false });
   });
 
   it("applies a status-only disable without re-saving fields", () => {
     expect(
-      planDataToolSave({ savedTool: testedEnabled, fieldsDirty: false, enabled: false }),
+      planDataToolSave({
+        savedTool: testedEnabled,
+        fieldsDirty: false,
+        enabled: false,
+      }),
     ).toEqual({ saveFields: false, applyStatus: true, blockedEnable: false });
   });
 
   it("does nothing when neither fields nor status changed", () => {
     expect(
-      planDataToolSave({ savedTool: testedEnabled, fieldsDirty: false, enabled: true }),
+      planDataToolSave({
+        savedTool: testedEnabled,
+        fieldsDirty: false,
+        enabled: true,
+      }),
     ).toEqual({ saveFields: false, applyStatus: false, blockedEnable: false });
   });
 
@@ -307,7 +340,11 @@ describe("planDataToolSave", () => {
     // Saving fields resets enabled/lastTestedAt server-side, so a wanted
     // enable cannot be applied in the same save — it needs a fresh test.
     expect(
-      planDataToolSave({ savedTool: testedEnabled, fieldsDirty: true, enabled: true }),
+      planDataToolSave({
+        savedTool: testedEnabled,
+        fieldsDirty: true,
+        enabled: true,
+      }),
     ).toEqual({ saveFields: true, applyStatus: false, blockedEnable: true });
   });
 

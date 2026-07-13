@@ -6,8 +6,7 @@ export type AiInterviewStatusCellProps = {
 };
 
 const STATUS_PILL_CLASS: Record<AiInterviewStatus, string> = {
-  not_started:
-    "bg-muted text-muted-foreground border border-border/60",
+  not_started: "bg-muted text-muted-foreground border border-border/60",
   in_progress: "bg-amber-100 text-amber-900 border border-amber-200",
   completed: "bg-emerald-100 text-emerald-900 border border-emerald-200",
 };

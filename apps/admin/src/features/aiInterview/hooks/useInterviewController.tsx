@@ -276,9 +276,7 @@ export function useInterviewController(
     sendInFlight || sendTurn.isSuccess ? false : showConflictNotice;
 
   const atTurnCap = active.currentTurn >= INTERVIEW_MAX_TURNS;
-  const displayTurn = atTurnCap
-    ? active.currentTurn
-    : active.currentTurn + 1;
+  const displayTurn = atTurnCap ? active.currentTurn : active.currentTurn + 1;
 
   const baseErrorSurface = effectiveSendError ?? finishErrorSurface ?? null;
 

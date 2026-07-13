@@ -1,1 +1,5 @@
-export { CopyPrompt, SdkCopyPrompt, EmbedCopyPrompt } from "../features/CopyPrompt";
+export {
+  CopyPrompt,
+  SdkCopyPrompt,
+  EmbedCopyPrompt,
+} from "../features/CopyPrompt";

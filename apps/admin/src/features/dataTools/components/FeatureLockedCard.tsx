@@ -1,5 +1,10 @@
 import { Lock } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 
 export function FeatureLockedCard() {
   return (
@@ -13,8 +18,8 @@ export function FeatureLockedCard() {
       <CardContent className="space-y-2 text-sm text-muted-foreground">
         <p>
           Data tools let your AI assistant read live data from your own systems
-          (HTTP APIs or a read-only SQL connection) to answer visitor
-          questions with real, grounded information.
+          (HTTP APIs or a read-only SQL connection) to answer visitor questions
+          with real, grounded information.
         </p>
         <p>
           Data tools require the <strong>AI Assistant add-on</strong>. Enable it

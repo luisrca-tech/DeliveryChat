@@ -138,7 +138,8 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
     );
   }
 
-  const showFinishCta = (progress.canFinish || progress.atTurnCap) && !isCapExceeded;
+  const showFinishCta =
+    (progress.canFinish || progress.atTurnCap) && !isCapExceeded;
   const inputLocked = progress.atTurnCap;
 
   const lastEntry = turnLog[turnLog.length - 1];

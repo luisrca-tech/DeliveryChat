@@ -46,8 +46,9 @@ export function useToggleApplicationAiSettingMutation(id: string) {
   const detailKey = applicationsQueryKeys.detail(id);
 
   return useMutation({
-    mutationFn: (body: Pick<UpdateApplicationRequest, "aiAutoRespond" | "aiDbEnabled">) =>
-      updateApplication(id, body),
+    mutationFn: (
+      body: Pick<UpdateApplicationRequest, "aiAutoRespond" | "aiDbEnabled">,
+    ) => updateApplication(id, body),
     onMutate: async (body) => {
       await queryClient.cancelQueries({ queryKey: detailKey });
       const previous =

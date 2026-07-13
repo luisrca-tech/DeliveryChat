@@ -135,7 +135,9 @@ export function ApplicationDetailsPage({
             {application.kind === "test" && (
               <DetailRow
                 label="Port"
-                value={application.port != null ? String(application.port) : "—"}
+                value={
+                  application.port != null ? String(application.port) : "—"
+                }
               />
             )}
           </CardContent>

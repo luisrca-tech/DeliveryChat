@@ -112,7 +112,7 @@ execution error.
   function or anything the lint filter misses — fails with SQLSTATE 25006
   ("cannot execute ... in a read-only transaction"). That error is surfaced
   through the normal `{ ok: false, kind: 'execution', error: 'Query execution
-  failed' }` shape; the driver message (and any SQL) is never leaked to the
+failed' }` shape; the driver message (and any SQL) is never leaked to the
   caller. This holds even if the keyword blocklist misses something.
 - **Lint / first-line filter (`validateSqlQuery`, defense-in-depth).** Runs at
   save time and again at execution time. It is a keyword blocklist, **not** the
@@ -122,7 +122,7 @@ execution error.
   start with `SELECT`, and no word-boundary-matched write/DDL keywords
   (`insert|update|delete|drop|alter|create|grant|truncate|copy|execute|do|into`).
   Word boundaries keep column names like `created_at` / `updated_at` safe.
-  *Known limitation:* a string literal that exactly equals a forbidden keyword
+  _Known limitation:_ a string literal that exactly equals a forbidden keyword
   (e.g. `status = 'delete'`) is falsely rejected — acceptable for an admin-
   curated, save-time lint check.
 - **Row + size caps.** If the query lacks a `LIMIT`, ` LIMIT 50` is appended

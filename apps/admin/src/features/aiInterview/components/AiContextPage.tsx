@@ -30,8 +30,7 @@ const SUMMARY_FAILED_SURFACE: InterviewErrorSurface = {
   kind: "full_page_error",
   code: "summary_generation_failed",
   title: "The previous summary generation failed.",
-  detail:
-    "Regenerate the summary from your interview transcript to recover.",
+  detail: "Regenerate the summary from your interview transcript to recover.",
   retryLabel: "Regenerate summary",
 };
 
@@ -144,8 +143,7 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
 
   const completer = data.completedByName ?? "an admin";
   const completedAtLabel = formatCompletedAt(data.completedAt);
-  const applicationName =
-    applicationDetail?.application.name ?? "Application";
+  const applicationName = applicationDetail?.application.name ?? "Application";
   const turnCount = transcriptPairs.length;
 
   const activeSurface =
@@ -159,9 +157,7 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-10 md:py-14">
         <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
           <div className="flex flex-col gap-3">
-            <InterviewEyebrow>
-              AI Context · {applicationName}
-            </InterviewEyebrow>
+            <InterviewEyebrow>AI Context · {applicationName}</InterviewEyebrow>
             <h1 className="interview-display text-3xl font-medium leading-[1.1] tracking-tight text-[var(--interview-color-foreground)] md:text-5xl">
               Your assistant's brief
             </h1>

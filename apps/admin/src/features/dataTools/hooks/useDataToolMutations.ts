@@ -75,13 +75,8 @@ export function useSetDataToolEnabledMutation(applicationId: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      toolId,
-      enabled,
-    }: {
-      toolId: string;
-      enabled: boolean;
-    }) => setDataToolEnabled(applicationId, toolId, enabled),
+    mutationFn: ({ toolId, enabled }: { toolId: string; enabled: boolean }) =>
+      setDataToolEnabled(applicationId, toolId, enabled),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: dataToolsQueryKeys.list(applicationId),

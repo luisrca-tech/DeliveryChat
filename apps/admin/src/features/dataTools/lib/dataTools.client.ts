@@ -77,9 +77,12 @@ async function handleError(res: Response): Promise<never> {
 export async function getDataSource(
   applicationId: string,
 ): Promise<RedactedDataSource | null> {
-  const res = await fetch(`${base()}/applications/${applicationId}/data-source`, {
-    headers: getTenantHeaders({ json: true }),
-  });
+  const res = await fetch(
+    `${base()}/applications/${applicationId}/data-source`,
+    {
+      headers: getTenantHeaders({ json: true }),
+    },
+  );
   if (!res.ok) throw await handleError(res);
   return parseJson<RedactedDataSource | null>(res);
 }
@@ -88,11 +91,14 @@ export async function putDataSource(
   applicationId: string,
   body: DataSourceBody,
 ): Promise<RedactedDataSource> {
-  const res = await fetch(`${base()}/applications/${applicationId}/data-source`, {
-    method: "PUT",
-    headers: getTenantHeaders({ json: true }),
-    body: JSON.stringify(body),
-  });
+  const res = await fetch(
+    `${base()}/applications/${applicationId}/data-source`,
+    {
+      method: "PUT",
+      headers: getTenantHeaders({ json: true }),
+      body: JSON.stringify(body),
+    },
+  );
   if (!res.ok) throw await handleError(res);
   return parseJson<RedactedDataSource>(res);
 }
@@ -100,9 +106,12 @@ export async function putDataSource(
 export async function listDataTools(
   applicationId: string,
 ): Promise<DataTool[]> {
-  const res = await fetch(`${base()}/applications/${applicationId}/data-tools`, {
-    headers: getTenantHeaders({ json: true }),
-  });
+  const res = await fetch(
+    `${base()}/applications/${applicationId}/data-tools`,
+    {
+      headers: getTenantHeaders({ json: true }),
+    },
+  );
   if (!res.ok) throw await handleError(res);
   return parseJson<DataTool[]>(res);
 }
@@ -111,11 +120,14 @@ export async function createDataTool(
   applicationId: string,
   body: DataToolBody,
 ): Promise<DataTool> {
-  const res = await fetch(`${base()}/applications/${applicationId}/data-tools`, {
-    method: "POST",
-    headers: getTenantHeaders({ json: true }),
-    body: JSON.stringify(body),
-  });
+  const res = await fetch(
+    `${base()}/applications/${applicationId}/data-tools`,
+    {
+      method: "POST",
+      headers: getTenantHeaders({ json: true }),
+      body: JSON.stringify(body),
+    },
+  );
   if (!res.ok) throw await handleError(res);
   return parseJson<DataTool>(res);
 }

@@ -30,8 +30,7 @@ export function useImproveMessage({ onSuccess }: UseImproveMessageOptions) {
       abortControllerRef.current = null;
       if (error instanceof DOMException && error.name === "AbortError") return;
 
-      const code =
-        error instanceof AiApiError ? error.code : "unknown_error";
+      const code = error instanceof AiApiError ? error.code : "unknown_error";
       const retryAfter =
         error instanceof AiApiError ? error.retryAfter : undefined;
       const serverMessage =

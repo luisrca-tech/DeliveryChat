@@ -80,7 +80,11 @@ export async function executeHttpTool(
     }
   } catch (error) {
     logError("DNS resolution failed", input.tool.name, error);
-    return { ok: false, kind: "execution", error: "Host could not be resolved" };
+    return {
+      ok: false,
+      kind: "execution",
+      error: "Host could not be resolved",
+    };
   }
 
   // Decrypt configured headers per request. Never log decrypted values.

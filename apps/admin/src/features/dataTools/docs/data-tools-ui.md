@@ -25,8 +25,8 @@ them — only booleans/derived metadata (`hasHeaders`, `headerNames`,
 and write-only**:
 
 - HTTP headers: `DataSourceSection` renders each existing header name with a
-  placeholder ("•••• (saved)") and no way to view its value. Only *new or
-  removed* header names cause the `headers` field to be sent on save;
+  placeholder ("•••• (saved)") and no way to view its value. Only _new or
+  removed_ header names cause the `headers` field to be sent on save;
   otherwise it is omitted so the backend preserves the previously encrypted
   values.
 - SQL connection string: rendered as a password-style input. Leaving it blank
@@ -90,7 +90,7 @@ create/edit and a `ConfirmDialog` for delete.
 - **`ConnectionCard`** — a compact card above the table showing the source
   kind badge (`HTTP`/`SQL`), the host (parsed from `baseUrl`, HTTP) or
   `"SQL database"` (SQL), and a credentials-status line (`"credentials
-  saved"` vs. `"no … saved"`, derived from `hasHeaders` /
+saved"` vs. `"no … saved"`, derived from `hasHeaders` /
   `hasConnectionString` — never the secret itself). An **"Edit connection"**
   button opens `ConnectionDialog`. When no source exists yet, the card
   instead renders a `"Connect a data source"` empty state with a button that
@@ -173,7 +173,7 @@ The dialog uses React Hook Form (`useForm` + `zodResolver`, matching
 `DataSourceSection`): `formState.isDirty` drives the save plan,
 `formState.isValid` gates the save button, and the dialog body remounts on
 every open (Radix unmounts closed content), so there is no reset effect. The
-Enabled switch is deliberately *not* a form field — it is pending
+Enabled switch is deliberately _not_ a form field — it is pending
 server-workflow state applied only on save via the enable endpoint.
 
 Covered by `lib/dataToolForm.test.ts` (name-regex edges, the 9-vs-10 char

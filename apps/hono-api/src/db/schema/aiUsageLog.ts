@@ -19,10 +19,9 @@ export const aiUsageLog = createTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     action: aiActionEnum("action").notNull(),
-    conversationId: uuid("conversation_id").references(
-      () => conversations.id,
-      { onDelete: "set null" },
-    ),
+    conversationId: uuid("conversation_id").references(() => conversations.id, {
+      onDelete: "set null",
+    }),
     model: varchar("model", { length: 255 }).notNull(),
     inputTokens: integer("input_tokens"),
     outputTokens: integer("output_tokens"),

@@ -85,15 +85,21 @@ export function AiAddonPurchaseDialog({
             <p className="text-sm text-foreground">
               You&apos;ll be charged a prorated{" "}
               <strong>
-                {formatMoney(preview.data.prorationAmount, preview.data.currency)}
+                {formatMoney(
+                  preview.data.prorationAmount,
+                  preview.data.currency,
+                )}
               </strong>{" "}
               now, then{" "}
               <strong>
-                {formatMoney(preview.data.recurringAmount, preview.data.currency)}
+                {formatMoney(
+                  preview.data.recurringAmount,
+                  preview.data.currency,
+                )}
                 /month
               </strong>{" "}
-              starting {formatBillingDate(preview.data.nextBillingDate)}, on your
-              organization&apos;s payment method.
+              starting {formatBillingDate(preview.data.nextBillingDate)}, on
+              your organization&apos;s payment method.
             </p>
           ) : null}
 

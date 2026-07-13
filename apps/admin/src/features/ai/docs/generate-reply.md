@@ -67,7 +67,7 @@ Both AI buttons are disabled while either action is in-flight. This prevents con
 ## Plan Gating
 
 | Plan       | AI Button Visible |
-|------------|-------------------|
+| ---------- | ----------------- |
 | FREE       | No (hidden)       |
 | BASIC      | No (hidden)       |
 | PREMIUM    | Yes               |
@@ -79,8 +79,8 @@ The button is completely hidden (not just disabled) for FREE/BASIC plans. This u
 
 Each backend error code maps to a specific user-friendly toast message:
 
-| Error Code                 | Toast Message                                    |
-|---------------------------|--------------------------------------------------|
+| Error Code                | Toast Message                                    |
+| ------------------------- | ------------------------------------------------ |
 | `ai_timeout`              | "AI took too long to respond..."                 |
 | `ai_provider_busy`        | "AI is temporarily busy..."                      |
 | `ai_provider_unavailable` | "AI service is currently unavailable..."         |

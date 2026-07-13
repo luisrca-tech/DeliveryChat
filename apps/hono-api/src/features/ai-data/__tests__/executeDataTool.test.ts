@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("../httpExecutor.js", () => ({
-  executeHttpTool: vi.fn().mockResolvedValue({ ok: true, data: { http: true } }),
+  executeHttpTool: vi
+    .fn()
+    .mockResolvedValue({ ok: true, data: { http: true } }),
 }));
 
 vi.mock("../sqlExecutor.js", () => ({
@@ -15,7 +17,10 @@ const { executeDataTool } = await import("../index.js");
 const mockHttp = executeHttpTool as unknown as ReturnType<typeof vi.fn>;
 const mockSql = executeSqlTool as unknown as ReturnType<typeof vi.fn>;
 
-function makeInput(backingType: "http" | "sql", params: Record<string, unknown>) {
+function makeInput(
+  backingType: "http" | "sql",
+  params: Record<string, unknown>,
+) {
   return {
     applicationId: "app-1",
     tool: {

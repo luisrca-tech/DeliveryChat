@@ -52,7 +52,11 @@ export function MessageInput({
     setIsAiSuggestion(true);
   }, []);
 
-  const { generate, cancel: cancelGenerate, isGenerating } = useGenerateReply({
+  const {
+    generate,
+    cancel: cancelGenerate,
+    isGenerating,
+  } = useGenerateReply({
     onSuccess: handleGenerateSuccess,
   });
 
@@ -61,7 +65,11 @@ export function MessageInput({
     setImproveState("review");
   }, []);
 
-  const { improve, cancel: cancelImprove, isImproving } = useImproveMessage({
+  const {
+    improve,
+    cancel: cancelImprove,
+    isImproving,
+  } = useImproveMessage({
     onSuccess: handleImproveSuccess,
   });
 
@@ -132,9 +140,17 @@ export function MessageInput({
   }, [improve, conversationId]);
 
   const canGenerate =
-    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && !editorHasContent;
+    aiAvailable &&
+    !aiInFlight &&
+    !disabled &&
+    improveState === "idle" &&
+    !editorHasContent;
   const canImprove =
-    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && editorHasContent;
+    aiAvailable &&
+    !aiInFlight &&
+    !disabled &&
+    improveState === "idle" &&
+    editorHasContent;
 
   const aiToolbarProps = useMemo(
     () =>

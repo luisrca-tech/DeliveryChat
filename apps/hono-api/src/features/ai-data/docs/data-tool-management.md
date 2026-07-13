@@ -18,16 +18,16 @@ All paths are prefixed with `/applications`. All require `requireTenantAuth` +
 plan ∈ {PREMIUM, ENTERPRISE} **and** `organization.aiAddonActive` — the same
 gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
 
-| Method | Path | Purpose |
-| --- | --- | --- |
-| `GET` | `/:applicationId/data-source` | Redacted source config, or `null`. |
-| `PUT` | `/:applicationId/data-source` | Upsert the source (secrets encrypted). |
-| `GET` | `/:applicationId/data-tools` | List tools (no secrets in tool config). |
-| `POST` | `/:applicationId/data-tools` | Create a tool (always `enabled: false`). |
-| `PUT` | `/:applicationId/data-tools/:toolId` | Update a tool (resets test/enable). |
-| `DELETE` | `/:applicationId/data-tools/:toolId` | Hard-delete a tool. |
-| `POST` | `/:applicationId/data-tools/:toolId/test` | Run the tool against the live source. |
-| `POST` | `/:applicationId/data-tools/:toolId/enable` | Enable/disable (enable gated on a passing test). |
+| Method   | Path                                        | Purpose                                          |
+| -------- | ------------------------------------------- | ------------------------------------------------ |
+| `GET`    | `/:applicationId/data-source`               | Redacted source config, or `null`.               |
+| `PUT`    | `/:applicationId/data-source`               | Upsert the source (secrets encrypted).           |
+| `GET`    | `/:applicationId/data-tools`                | List tools (no secrets in tool config).          |
+| `POST`   | `/:applicationId/data-tools`                | Create a tool (always `enabled: false`).         |
+| `PUT`    | `/:applicationId/data-tools/:toolId`        | Update a tool (resets test/enable).              |
+| `DELETE` | `/:applicationId/data-tools/:toolId`        | Hard-delete a tool.                              |
+| `POST`   | `/:applicationId/data-tools/:toolId/test`   | Run the tool against the live source.            |
+| `POST`   | `/:applicationId/data-tools/:toolId/enable` | Enable/disable (enable gated on a passing test). |
 
 ## Business rules
 
@@ -35,7 +35,7 @@ gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
   connection string (`sql`) are encrypted with `secretBox.encryptSecret` before
   storage and are **never** included in any response. `GET`/`PUT` return only
   non-secret config plus booleans (`hasConnectionString`, `hasHeaders`) and, for
-  HTTP, the header *names*. On update, if the client omits the secret the
+  HTTP, the header _names_. On update, if the client omits the secret the
   existing encrypted value is preserved (write-only semantics).
 - **allowedHost must equal the host of `baseUrl`** for HTTP sources (SSRF
   guardrail, validated at save time; enforced again by the executor at runtime).
@@ -44,7 +44,7 @@ gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
 - **SQL queries validated at save time** via `validateSqlQuery` — single
   read-only `SELECT`, no write/DDL keywords. Invalid queries are rejected `400`.
 - **`inputSchema` is a flat object of primitives** (`string | number | integer |
-  boolean`). Nested objects/arrays are rejected — the model-facing tools take
+boolean`). Nested objects/arrays are rejected — the model-facing tools take
   scalar args only. `required` must reference declared properties.
 - **Test-before-enable.** A tool is created `enabled: false`. `POST .../enable`
   with `enabled: true` requires a non-null `lastTestedAt`, otherwise `400`
@@ -60,9 +60,9 @@ gate as the rest of the AI feature, for both HTTP- and SQL-backed tools.
 ## Redaction shapes
 
 - **HTTP source →** `{ kind: "http", enabled, baseUrl, allowedHost, hasHeaders,
-  headerNames, createdAt, updatedAt }`
+headerNames, createdAt, updatedAt }`
 - **SQL source →** `{ kind: "sql", enabled, hasConnectionString, createdAt,
-  updatedAt }`
+updatedAt }`
 
 ## Files
 
@@ -105,8 +105,8 @@ source, via this same admin CRUD:
 
 **Tool descriptions drive model behavior.** The model chooses which tool to
 call, and with what arguments, almost entirely from these descriptions — not
-from the endpoint's code. Spell out *when* to call each tool and *how they
-chain* (search → get page), so the assistant grounds answers in a real page
+from the endpoint's code. Spell out _when_ to call each tool and _how they
+chain_ (search → get page), so the assistant grounds answers in a real page
 instead of guessing. This is the same "escalate, never fabricate" guarantee:
 the model only states what a tool actually returned.
 

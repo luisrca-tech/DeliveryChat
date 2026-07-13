@@ -168,9 +168,9 @@ describe("dataTools.client", () => {
           }),
       } as Response);
 
-      await expect(
-        setDataToolEnabled("app1", "t1", true),
-      ).rejects.toThrow(DataToolsClientError);
+      await expect(setDataToolEnabled("app1", "t1", true)).rejects.toThrow(
+        DataToolsClientError,
+      );
     });
   });
 });

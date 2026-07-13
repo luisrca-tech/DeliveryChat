@@ -19,7 +19,10 @@ export function isPrivateAddress(address: string, family: number): boolean {
 
 function isPrivateIPv4(address: string): boolean {
   const octets = address.split(".").map((part) => Number(part));
-  if (octets.length !== 4 || octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
+  if (
+    octets.length !== 4 ||
+    octets.some((n) => !Number.isInteger(n) || n < 0 || n > 255)
+  ) {
     // Unparseable — fail closed.
     return true;
   }

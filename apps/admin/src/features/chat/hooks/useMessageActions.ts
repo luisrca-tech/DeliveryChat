@@ -10,7 +10,12 @@ export function useMessageActions(sendEvent: SendEventFn) {
   const queryClient = useQueryClient();
 
   const editMessage = useCallback(
-    (conversationId: string, messageId: string, content: string, contentFormat?: ContentFormat) => {
+    (
+      conversationId: string,
+      messageId: string,
+      content: string,
+      contentFormat?: ContentFormat,
+    ) => {
       queryClient.setQueryData<{
         messages: Message[];
         limit: number;

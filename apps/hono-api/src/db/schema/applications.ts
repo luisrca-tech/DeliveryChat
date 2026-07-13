@@ -45,9 +45,7 @@ export const applications = createTable(
     ),
     productionDomainUnique: uniqueIndex("applications_production_domain_unique")
       .on(table.domain)
-      .where(
-        sql`${table.kind} = 'production' AND ${table.deletedAt} IS NULL`,
-      ),
+      .where(sql`${table.kind} = 'production' AND ${table.deletedAt} IS NULL`),
     testPortUnique: uniqueIndex("applications_test_port_unique")
       .on(table.organizationId, table.port)
       .where(sql`${table.kind} = 'test' AND ${table.deletedAt} IS NULL`),

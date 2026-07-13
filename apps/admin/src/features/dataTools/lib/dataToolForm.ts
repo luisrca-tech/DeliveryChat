@@ -60,11 +60,15 @@ export function coerceParams(
 export const dataToolFormSchema = z
   .object({
     name: z.string().trim().regex(NAME_REGEX, {
-      message: "Must start with a letter; letters, digits, and underscores only.",
+      message:
+        "Must start with a letter; letters, digits, and underscores only.",
     }),
-    description: z.string().trim().min(MIN_DESCRIPTION_LENGTH, {
-      message: `At least ${MIN_DESCRIPTION_LENGTH} characters.`,
-    }),
+    description: z
+      .string()
+      .trim()
+      .min(MIN_DESCRIPTION_LENGTH, {
+        message: `At least ${MIN_DESCRIPTION_LENGTH} characters.`,
+      }),
     config: z.string().trim().min(1),
     rawJsonMode: z.boolean(),
     rawJsonText: z.string(),
@@ -92,7 +96,9 @@ export const dataToolFormSchema = z
 export type DataToolFormValues = z.infer<typeof dataToolFormSchema>;
 
 /** Maps a saved tool (or null, for the create flow) to RHF default values. */
-export function toDataToolFormValues(tool: DataTool | null): DataToolFormValues {
+export function toDataToolFormValues(
+  tool: DataTool | null,
+): DataToolFormValues {
   return {
     name: tool?.name ?? "",
     description: tool?.description ?? "",
@@ -102,7 +108,11 @@ export function toDataToolFormValues(tool: DataTool | null): DataToolFormValues 
         : tool.config.query
       : "",
     rawJsonMode: false,
-    rawJsonText: JSON.stringify(tool?.inputSchema ?? { properties: {} }, null, 2),
+    rawJsonText: JSON.stringify(
+      tool?.inputSchema ?? { properties: {} },
+      null,
+      2,
+    ),
     paramRows: tool ? schemaToParamRows(tool.inputSchema) : [],
   };
 }
@@ -152,7 +162,10 @@ export function buildDataToolBody(
         backingType: "http",
         // URLs are single-line; strip line breaks pasted into the config
         // textarea. Remaining whitespace is rejected by the backend schema.
-        config: { method: "GET", urlTemplate: config.trim().replace(/[\r\n]+/g, "") },
+        config: {
+          method: "GET",
+          urlTemplate: config.trim().replace(/[\r\n]+/g, ""),
+        },
       }
     : {
         ...base,

@@ -10,9 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@repo/ui/components/ui/select";
-import type { ToolInputSchema, ToolPropertyType } from "../types/dataTools.types";
+import type {
+  ToolInputSchema,
+  ToolPropertyType,
+} from "../types/dataTools.types";
 
-const PARAM_TYPES: ToolPropertyType[] = ["string", "number", "integer", "boolean"];
+const PARAM_TYPES: ToolPropertyType[] = [
+  "string",
+  "number",
+  "integer",
+  "boolean",
+];
 
 export type ParamRow = {
   name: string;
@@ -53,7 +61,10 @@ export type ParamSchemaBuilderProps = {
  * Guided builder for a tool's flat input schema — the model only ever sees
  * scalar params, so this avoids exposing raw JSON Schema by default.
  */
-export function ParamSchemaBuilder({ rows, onChange }: ParamSchemaBuilderProps) {
+export function ParamSchemaBuilder({
+  rows,
+  onChange,
+}: ParamSchemaBuilderProps) {
   const addRow = () => {
     onChange([...rows, { name: "", type: "string", required: false }]);
   };

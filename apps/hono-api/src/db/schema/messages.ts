@@ -23,7 +23,9 @@ export const messages = createTable(
       .notNull()
       .default("visitor"),
     content: text("content").notNull(),
-    contentFormat: contentFormatEnum("content_format").notNull().default("plain"),
+    contentFormat: contentFormatEnum("content_format")
+      .notNull()
+      .default("plain"),
     editedAt: timestampStringNullable("edited_at"),
     deletedAt: timestampStringNullable("deleted_at"),
     createdAt: timestampString("created_at")

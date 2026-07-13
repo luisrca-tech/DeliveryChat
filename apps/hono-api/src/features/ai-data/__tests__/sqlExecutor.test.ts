@@ -41,12 +41,17 @@ vi.mock("../../../lib/crypto/secretBox.js", () => ({
   DecryptionError: class DecryptionError extends Error {},
 }));
 
-const { executeSqlTool, __resetPoolsForTest } = await import("../sqlExecutor.js");
+const { executeSqlTool, __resetPoolsForTest } = await import(
+  "../sqlExecutor.js"
+);
 
 function input(overrides: {
   applicationId?: string;
   query?: string;
-  properties?: Record<string, { type: "string" | "integer" | "number" | "boolean" }>;
+  properties?: Record<
+    string,
+    { type: "string" | "integer" | "number" | "boolean" }
+  >;
   params?: Record<string, unknown>;
 }) {
   return {
@@ -55,10 +60,13 @@ function input(overrides: {
       name: "lookupProduct",
       backingType: "sql" as const,
       inputSchema: {
-        properties: overrides.properties ?? { sku: { type: "string" as const } },
+        properties: overrides.properties ?? {
+          sku: { type: "string" as const },
+        },
       },
       config: {
-        query: overrides.query ?? "SELECT id, name FROM products WHERE sku = $1",
+        query:
+          overrides.query ?? "SELECT id, name FROM products WHERE sku = $1",
       },
     },
     source: {
@@ -103,7 +111,9 @@ describe("executeSqlTool", () => {
   it("runs the query inside a read-only transaction and commits", async () => {
     mockClientQuery.mockResolvedValue({ rows: [] });
 
-    await executeSqlTool(input({ query: "SELECT id FROM products WHERE sku = $1" }));
+    await executeSqlTool(
+      input({ query: "SELECT id FROM products WHERE sku = $1" }),
+    );
 
     const sqls = clientQuerySql();
     expect(sqls[0]).toBe("BEGIN TRANSACTION READ ONLY");
@@ -114,7 +124,9 @@ describe("executeSqlTool", () => {
   it("appends LIMIT 50 when the query has no LIMIT", async () => {
     mockClientQuery.mockResolvedValue({ rows: [] });
 
-    await executeSqlTool(input({ query: "SELECT * FROM products WHERE sku = $1" }));
+    await executeSqlTool(
+      input({ query: "SELECT * FROM products WHERE sku = $1" }),
+    );
 
     const [queryText] = dataQueryCall();
     expect(queryText).toMatch(/LIMIT 50$/);

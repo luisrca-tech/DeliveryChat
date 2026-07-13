@@ -133,7 +133,7 @@ describe("applications.client", () => {
         json: () =>
           Promise.resolve({
             error: "PORT_TAKEN",
-            message: "Port 3000 is already used by application \"Other\"",
+            message: 'Port 3000 is already used by application "Other"',
             port: 3000,
             conflictingAppName: "Other",
           }),
@@ -147,9 +147,9 @@ describe("applications.client", () => {
       }
       expect(caught).toBeInstanceOf(ApplicationPortConflictError);
       expect((caught as ApplicationPortConflictError).port).toBe(3000);
-      expect(
-        (caught as ApplicationPortConflictError).conflictingAppName,
-      ).toBe("Other");
+      expect((caught as ApplicationPortConflictError).conflictingAppName).toBe(
+        "Other",
+      );
     });
   });
 
