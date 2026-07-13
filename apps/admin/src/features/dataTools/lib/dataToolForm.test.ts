@@ -4,11 +4,13 @@ import type { DataTool, ToolInputSchema } from "../types/dataTools.types";
 import {
   buildDataToolBody,
   canEnableTool,
-  canSaveDataTool,
   coerceParam,
   coerceParams,
+  dataToolFormSchema,
   NAME_REGEX,
   planDataToolSave,
+  resolveToolSchema,
+  toDataToolFormValues,
 } from "./dataToolForm";
 
 const schema: ToolInputSchema = {
@@ -90,34 +92,119 @@ describe("coerceParams", () => {
   });
 });
 
-describe("canSaveDataTool", () => {
-  it("returns true for a fully valid form", () => {
-    expect(canSaveDataTool(validHttpInputs)).toBe(true);
+describe("dataToolFormSchema", () => {
+  const validForm = {
+    name: "searchProducts",
+    description: "Searches the product catalog",
+    config: "/products?category={category}",
+    rawJsonMode: false,
+    rawJsonText: "{}",
+    paramRows: [{ name: "category", type: "string", required: true }],
+  };
+
+  it("accepts a fully valid form", () => {
+    expect(dataToolFormSchema.safeParse(validForm).success).toBe(true);
   });
 
-  it("returns false without an effective kind", () => {
-    expect(canSaveDataTool({ ...validHttpInputs, effectiveKind: null })).toBe(false);
-  });
-
-  it("returns false for an invalid name", () => {
-    expect(canSaveDataTool({ ...validHttpInputs, name: "1bad" })).toBe(false);
+  it("rejects an invalid name", () => {
+    expect(dataToolFormSchema.safeParse({ ...validForm, name: "1bad" }).success).toBe(
+      false,
+    );
   });
 
   it("enforces the 10-character description boundary", () => {
-    expect(canSaveDataTool({ ...validHttpInputs, description: "123456789" })).toBe(
+    expect(
+      dataToolFormSchema.safeParse({ ...validForm, description: "123456789" }).success,
+    ).toBe(false);
+    expect(
+      dataToolFormSchema.safeParse({ ...validForm, description: "1234567890" }).success,
+    ).toBe(true);
+  });
+
+  it("rejects a blank config", () => {
+    expect(dataToolFormSchema.safeParse({ ...validForm, config: "   " }).success).toBe(
       false,
     );
-    expect(canSaveDataTool({ ...validHttpInputs, description: "1234567890" })).toBe(
-      true,
+  });
+
+  it("rejects unparseable raw JSON only in raw mode", () => {
+    const broken = { ...validForm, rawJsonText: "{oops" };
+    expect(dataToolFormSchema.safeParse(broken).success).toBe(true);
+    const result = dataToolFormSchema.safeParse({ ...broken, rawJsonMode: true });
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues[0]?.path).toEqual(["rawJsonText"]);
+      expect(result.error.issues[0]?.message).toBe("Invalid JSON");
+    }
+  });
+});
+
+describe("toDataToolFormValues", () => {
+  it("returns empty defaults for a new tool", () => {
+    expect(toDataToolFormValues(null)).toEqual({
+      name: "",
+      description: "",
+      config: "",
+      rawJsonMode: false,
+      rawJsonText: JSON.stringify({ properties: {} }, null, 2),
+      paramRows: [],
+    });
+  });
+
+  it("maps an http tool, deriving config from the urlTemplate", () => {
+    const tool = {
+      name: "searchProducts",
+      description: "Searches the product catalog",
+      backingType: "http",
+      config: { method: "GET", urlTemplate: "/products?category={category}" },
+      inputSchema: schema,
+    } as DataTool;
+    expect(toDataToolFormValues(tool)).toEqual({
+      name: "searchProducts",
+      description: "Searches the product catalog",
+      config: "/products?category={category}",
+      rawJsonMode: false,
+      rawJsonText: JSON.stringify(schema, null, 2),
+      paramRows: [{ name: "category", type: "string", required: true }],
+    });
+  });
+
+  it("maps a sql tool, deriving config from the query", () => {
+    const tool = {
+      name: "checkStock",
+      description: "Looks up stock for a SKU",
+      backingType: "sql",
+      config: { query: "SELECT qty FROM stock WHERE sku = $1" },
+      inputSchema: { properties: {} },
+    } as DataTool;
+    expect(toDataToolFormValues(tool).config).toBe(
+      "SELECT qty FROM stock WHERE sku = $1",
     );
   });
+});
 
-  it("returns false for a blank config", () => {
-    expect(canSaveDataTool({ ...validHttpInputs, config: "   " })).toBe(false);
+describe("resolveToolSchema", () => {
+  it("builds from param rows in guided mode", () => {
+    expect(
+      resolveToolSchema({
+        rawJsonMode: false,
+        rawJsonText: "ignored",
+        paramRows: [{ name: "category", type: "string", required: true }],
+      }),
+    ).toEqual({
+      type: "object",
+      properties: { category: { type: "string" } },
+      required: ["category"],
+    });
   });
 
-  it("returns false when the schema did not resolve", () => {
-    expect(canSaveDataTool({ ...validHttpInputs, resolvedSchema: null })).toBe(false);
+  it("parses raw JSON in raw mode, returning null when unparseable", () => {
+    expect(
+      resolveToolSchema({ rawJsonMode: true, rawJsonText: '{"properties":{}}', paramRows: [] }),
+    ).toEqual({ properties: {} });
+    expect(
+      resolveToolSchema({ rawJsonMode: true, rawJsonText: "{oops", paramRows: [] }),
+    ).toBeNull();
   });
 });
 

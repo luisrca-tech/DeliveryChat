@@ -1,4 +1,9 @@
-import type { ParamRow } from "../components/ParamSchemaBuilder";
+import { z } from "zod";
+import {
+  paramRowsToSchema,
+  schemaToParamRows,
+  type ParamRow,
+} from "../components/ParamSchemaBuilder";
 import type {
   DataSourceKind,
   DataTool,
@@ -51,15 +56,73 @@ export function coerceParams(
   );
 }
 
-/** Whether the current form state satisfies every save precondition. */
-export function canSaveDataTool(inputs: DataToolFormInputs): boolean {
-  return (
-    Boolean(inputs.effectiveKind) &&
-    NAME_REGEX.test(inputs.name.trim()) &&
-    inputs.description.trim().length >= MIN_DESCRIPTION_LENGTH &&
-    inputs.config.trim().length > 0 &&
-    inputs.resolvedSchema !== null
-  );
+/** RHF form values for the data-tool dialog, validated by zodResolver. */
+export const dataToolFormSchema = z
+  .object({
+    name: z.string().trim().regex(NAME_REGEX, {
+      message: "Must start with a letter; letters, digits, and underscores only.",
+    }),
+    description: z.string().trim().min(MIN_DESCRIPTION_LENGTH, {
+      message: `At least ${MIN_DESCRIPTION_LENGTH} characters.`,
+    }),
+    config: z.string().trim().min(1),
+    rawJsonMode: z.boolean(),
+    rawJsonText: z.string(),
+    paramRows: z.array(
+      z.object({
+        name: z.string(),
+        type: z.enum(["string", "number", "integer", "boolean"]),
+        required: z.boolean(),
+      }),
+    ),
+  })
+  .superRefine((values, ctx) => {
+    if (!values.rawJsonMode) return;
+    try {
+      JSON.parse(values.rawJsonText);
+    } catch {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["rawJsonText"],
+        message: "Invalid JSON",
+      });
+    }
+  });
+
+export type DataToolFormValues = z.infer<typeof dataToolFormSchema>;
+
+/** Maps a saved tool (or null, for the create flow) to RHF default values. */
+export function toDataToolFormValues(tool: DataTool | null): DataToolFormValues {
+  return {
+    name: tool?.name ?? "",
+    description: tool?.description ?? "",
+    config: tool
+      ? tool.backingType === "http"
+        ? tool.config.urlTemplate
+        : tool.config.query
+      : "",
+    rawJsonMode: false,
+    rawJsonText: JSON.stringify(tool?.inputSchema ?? { properties: {} }, null, 2),
+    paramRows: tool ? schemaToParamRows(tool.inputSchema) : [],
+  };
+}
+
+/**
+ * The inputSchema the form currently expresses — from the guided builder rows,
+ * or the raw JSON text (null when unparseable; parseable-but-malformed JSON is
+ * deliberately accepted here and rejected by the backend schema on save).
+ */
+export function resolveToolSchema(
+  values: Pick<DataToolFormValues, "rawJsonMode" | "rawJsonText" | "paramRows">,
+): ToolInputSchema | null {
+  if (values.rawJsonMode) {
+    try {
+      return JSON.parse(values.rawJsonText);
+    } catch {
+      return null;
+    }
+  }
+  return paramRowsToSchema(values.paramRows);
 }
 
 /**

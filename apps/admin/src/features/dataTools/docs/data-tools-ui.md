@@ -147,21 +147,39 @@ dialog. The dialog keeps only wiring/state:
 - `NAME_REGEX` / `MIN_DESCRIPTION_LENGTH` — the name pattern (leading letter,
   then letters/digits/underscores) and the 10-character description floor,
   mirrored by the backend zod schema.
-- `canSaveDataTool(inputs)` — the save precondition predicate (kind set, valid
-  name, description ≥ 10 chars, non-empty config, resolved schema).
+- `dataToolFormSchema` / `DataToolFormValues` — the React Hook Form zod schema
+  (via `zodResolver`): valid name, description ≥ 10 chars, non-empty config,
+  and — in raw JSON mode — parseable `rawJsonText`.
+- `toDataToolFormValues(tool)` — maps a saved tool (or `null` for the create
+  flow) to the form's default values.
+- `resolveToolSchema(values)` — the inputSchema the form currently expresses:
+  guided builder rows or parsed raw JSON (`null` when unparseable).
 - `buildDataToolBody(inputs)` — the create/update payload, discriminated on the
-  backing kind, or `null` when a precondition is unmet (same gate as
-  `canSaveDataTool`). Trims name/description/config.
+  backing kind, or `null` when a precondition is unmet. Trims
+  name/description/config and strips line breaks from HTTP URL templates.
 - `coerceParam(row, raw)` / `coerceParams(rows, values)` — coerce raw string
   test-inputs into their declared JSON types. Numbers that fail to parse fall
   back to the raw string (the backend then reports the validation error);
   booleans are strict `"true"` vs. anything-else.
 - `canEnableTool(tool)` — the security-relevant test-before-enable gate
   (`Boolean(tool?.lastTestedAt)`).
+- `planDataToolSave({ savedTool, fieldsDirty, enabled })` — what one
+  "Save changes" click must do, in order: persist edited fields, then apply the
+  pending enabled/disabled switch only if the test gate still holds (a field
+  edit resets it server-side, so a wanted enable alongside an edit is blocked
+  until a fresh test).
+
+The dialog uses React Hook Form (`useForm` + `zodResolver`, matching
+`DataSourceSection`): `formState.isDirty` drives the save plan,
+`formState.isValid` gates the save button, and the dialog body remounts on
+every open (Radix unmounts closed content), so there is no reset effect. The
+Enabled switch is deliberately *not* a form field — it is pending
+server-workflow state applied only on save via the enable endpoint.
 
 Covered by `lib/dataToolForm.test.ts` (name-regex edges, the 9-vs-10 char
-description boundary, the coercion table, both backing-type payloads, and the
-null-vs-set `lastTestedAt` enable gate).
+description boundary, the coercion table, both backing-type payloads, form
+schema acceptance/rejection, tool→form-values mapping, schema resolution, the
+save plan matrix, and the null-vs-set `lastTestedAt` enable gate).
 
 ## Testing
 
