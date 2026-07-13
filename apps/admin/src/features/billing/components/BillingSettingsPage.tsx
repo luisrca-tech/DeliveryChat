@@ -179,8 +179,9 @@ export function BillingSettingsPage() {
             <CardTitle>AI Assistant add-on</CardTitle>
           </div>
           <CardDescription>
-            R$ 120/month — autonomous AI answers in the widget, connects to
-            your data, human escalation included.
+            R$ 120/month (US$ 24 for USD-billed accounts) — autonomous AI
+            answers in the widget, connects to your data, human escalation
+            included.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

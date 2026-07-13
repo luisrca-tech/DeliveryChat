@@ -19,7 +19,7 @@ export const checkoutRoute = new Hono().post(
   requireRole("super_admin"),
   async (c) => {
     try {
-      const { plan, enterpriseDetails } = c.req.valid("json");
+      const { plan, currency, enterpriseDetails } = c.req.valid("json");
       const auth = getTenantAuth(c);
       const { organization } = auth;
 
@@ -66,6 +66,7 @@ export const checkoutRoute = new Hono().post(
 
       const baseParams: Stripe.Checkout.SessionCreateParams = {
         mode: "subscription",
+        currency,
         line_items: [{ price, quantity: 1 }],
         client_reference_id: organization.id,
         success_url: `${adminBaseUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,

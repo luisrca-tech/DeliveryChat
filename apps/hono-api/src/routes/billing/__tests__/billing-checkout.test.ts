@@ -170,3 +170,55 @@ describe("POST /billing/checkout — trial_period_days", () => {
     expect(createArgs.subscription_data.trial_period_days).toBe(14);
   });
 });
+
+describe("POST /billing/checkout — currency selection", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mockDbSelect.mockReturnValue(
+      chainMock([{ email: "user@test.com", name: "Test User" }]),
+    );
+    mockDbInsert.mockReturnValue(chainMock([]));
+
+    mockCheckoutSessionsCreate.mockResolvedValue({
+      url: "https://checkout.stripe.com/session",
+    } as unknown as Stripe.Response<Stripe.Checkout.Session>);
+  });
+
+  it("forwards the currency to the Stripe session when provided", async () => {
+    const res = await app.request("/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: "premium", currency: "usd" }),
+    });
+
+    expect(res.status).toBe(200);
+
+    const createArgs = mockCheckoutSessionsCreate.mock.calls[0]?.[0];
+    expect(createArgs.currency).toBe("usd");
+  });
+
+  it("defaults the currency to brl when omitted", async () => {
+    const res = await app.request("/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: "premium" }),
+    });
+
+    expect(res.status).toBe(200);
+
+    const createArgs = mockCheckoutSessionsCreate.mock.calls[0]?.[0];
+    expect(createArgs.currency).toBe("brl");
+  });
+
+  it("rejects an invalid currency value", async () => {
+    const res = await app.request("/billing/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: "premium", currency: "eur" }),
+    });
+
+    expect(res.status).toBe(400);
+    expect(mockCheckoutSessionsCreate).not.toHaveBeenCalled();
+  });
+});

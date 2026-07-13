@@ -56,9 +56,23 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 - Plan sync redundancy: `plan` is synced from `subscription.metadata.plan` in `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `invoice.paid` — if any single event fails, the others recover the plan tier
 - Enforcement: expired trial returns `402 Payment Required`, allowing only `super_admin` recovery routes
 
+### Multi-currency
+
+All Stripe prices (Basic, Premium, AI add-on) carry `currency_options`, so a single price ID bills in either BRL (default) or USD:
+
+| Plan     | BRL (default) | USD    |
+| -------- | ------------- | ------ |
+| Basic    | R$ 90         | US$ 19 |
+| Premium  | R$ 240        | US$ 49 |
+| AI add-on| R$ 120        | US$ 24 |
+
+- `POST /v1/billing/checkout` accepts an optional `currency: "brl" | "usd"` (default `"brl"`), forwarded as the `currency` param to `stripe.checkout.sessions.create`, which selects the matching currency option. The onboarding plan cards expose a BRL/USD toggle.
+- A customer's currency is **locked by their first subscription**. Later items — notably the AI add-on — automatically follow the subscription's currency, so the add-on route sends no currency of its own.
+- Enterprise has no Checkout (manual flow), so currency selection does not apply to it.
+
 ## AI Add-on
 
-The AI assistant is sold as a **purchasable add-on**, decoupled from the plan tier. Only **PREMIUM** and **ENTERPRISE** organizations are eligible to buy it. Flat R$ 120/mo (multi-currency Stripe price; US$49 option), single SKU.
+The AI assistant is sold as a **purchasable add-on**, decoupled from the plan tier. Only **PREMIUM** and **ENTERPRISE** organizations are eligible to buy it. Flat R$ 120/mo (multi-currency Stripe price; US$ 24 option), single SKU.
 
 ### Item model — a second subscription item, never a second subscription
 

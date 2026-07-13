@@ -84,7 +84,7 @@ AI" endpoint. Widget-side disclosure and the "Talk to a human" button are in
 ## Add-on billing & gating matrix
 
 The autonomous assistant is sold as a **purchasable add-on**
-(`STRIPE_AI_ADDON_PRICE_KEY`, R$ 120/mo BRL with a US$49 currency option), decoupled from plan tier, modeled as a
+(`STRIPE_AI_ADDON_PRICE_KEY`, R$ 120/mo BRL with a US$ 24 currency option), decoupled from plan tier, modeled as a
 second subscription item on the existing subscription (never a second
 subscription). Entitlement (`aiAddonActive`) is derived only from Stripe
 webhooks, never set directly by any route. Full billing mechanics:

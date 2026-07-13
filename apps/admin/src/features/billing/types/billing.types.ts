@@ -44,6 +44,8 @@ export type AiAddonPreviewResponse = {
 
 export type CheckoutPlan = "basic" | "premium" | "enterprise";
 
+export type CheckoutCurrency = "brl" | "usd";
+
 export type EnterpriseRequestDetails = {
   fullName: string;
   email: string;
@@ -54,6 +56,7 @@ export type EnterpriseRequestDetails = {
 
 export type CheckoutRequest = {
   plan: CheckoutPlan;
+  currency?: CheckoutCurrency;
   enterpriseDetails?: EnterpriseRequestDetails;
 };
 

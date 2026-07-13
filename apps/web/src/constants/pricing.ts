@@ -10,7 +10,7 @@ export interface PricingPlan {
 export const plans: PricingPlan[] = [
   {
     name: "Starter",
-    price: "49",
+    price: "19",
     description: "Perfect for small businesses getting started",
     features: [
       "Up to 1,000 monthly visitors",
@@ -24,7 +24,7 @@ export const plans: PricingPlan[] = [
   },
   {
     name: "Professional",
-    price: "99",
+    price: "49",
     description: "For growing teams that need more power",
     features: [
       "Up to 10,000 monthly visitors",
