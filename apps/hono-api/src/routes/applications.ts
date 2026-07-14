@@ -193,10 +193,19 @@ export const applicationsRoute = new Hono()
         return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
       }
 
+      const [aiContext] = await db
+        .select({ status: applicationAiContext.status })
+        .from(applicationAiContext)
+        .where(eq(applicationAiContext.applicationId, appId))
+        .limit(1);
+
       const activeApiKeysCount = await countActiveApiKeys(appId);
 
       return c.json({
-        application: app,
+        application: {
+          ...app,
+          aiInterviewStatus: deriveAiInterviewStatus(aiContext?.status ?? null),
+        },
         activeApiKeysCount,
       });
     } catch (error) {

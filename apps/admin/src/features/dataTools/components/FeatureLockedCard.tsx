@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { Lock } from "lucide-react";
 import {
   Card,
@@ -5,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@repo/ui/components/ui/card";
+import { Button } from "@repo/ui/components/ui/button";
 
 export function FeatureLockedCard() {
   return (
@@ -15,7 +17,7 @@ export function FeatureLockedCard() {
         </div>
         <CardTitle>Data tools require the AI Assistant add-on</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2 text-sm text-muted-foreground">
+      <CardContent className="space-y-4 text-sm text-muted-foreground">
         <p>
           Data tools let your AI assistant read live data from your own systems
           (HTTP APIs or a read-only SQL connection) to answer visitor questions
@@ -23,9 +25,11 @@ export function FeatureLockedCard() {
         </p>
         <p>
           Data tools require the <strong>AI Assistant add-on</strong>. Enable it
-          from <strong>Settings → Billing</strong> (available on Premium and
-          Enterprise plans).
+          from Billing (available on Premium and Enterprise plans).
         </p>
+        <Link to="/settings/billing">
+          <Button>Go to Billing</Button>
+        </Link>
       </CardContent>
     </Card>
   );

@@ -22,6 +22,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Label } from "@repo/ui/components/ui/label";
 import { formatRelative } from "@/lib/formatRelative";
 import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus";
+import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
 import { AiInterviewStatusCell } from "@/features/aiInterview/components/AiInterviewStatusCell";
 import {
   AI_INTERVIEW_ACTION_LABEL,
@@ -45,11 +46,13 @@ export function ApplicationDetailsPage({
   const [editOpen, setEditOpen] = useState(false);
   const { data, isLoading } = useApplicationQuery(applicationId);
   const { data: billingStatus } = useBillingStatusQuery();
+  const { planAvailable } = useAiAvailability();
   const updateMutation = useUpdateApplicationMutation();
   const toggleAiMutation = useToggleApplicationAiSettingMutation(applicationId);
 
   const application = data?.application;
-  const aiAddonActive = billingStatus?.aiAddonActive ?? true;
+  const aiInterviewStatus = application?.aiInterviewStatus ?? "not_started";
+  const aiAddonActive = Boolean(billingStatus?.aiAddonActive);
 
   const handleEditSubmit = async (body: UpdateApplicationRequest) => {
     try {
@@ -106,7 +109,7 @@ export function ApplicationDetailsPage({
             <span className="inline-flex items-center rounded-full border border-border/60 bg-muted px-2 py-0.5 text-xs font-medium capitalize">
               {application.kind}
             </span>
-            <AiInterviewStatusCell status={application.aiInterviewStatus} />
+            <AiInterviewStatusCell status={aiInterviewStatus} />
           </div>
           <p className="text-sm text-muted-foreground">{application.domain}</p>
         </div>
@@ -188,68 +191,70 @@ export function ApplicationDetailsPage({
         </Card>
       </div>
 
-      <div className="space-y-3">
-        <h2 className="text-lg font-semibold">AI</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-              <div className="space-y-1">
-                <CardTitle className="text-base">AI auto-respond</CardTitle>
-                <CardDescription>
-                  AI answers new visitor conversations automatically.
-                </CardDescription>
-              </div>
-              <Switch
-                checked={application.aiAutoRespond ?? false}
-                onCheckedChange={(checked) =>
-                  handleToggle("aiAutoRespond", checked)
-                }
-                disabled={toggleAiMutation.isPending}
-                aria-label="Toggle AI auto-respond"
-              />
-            </CardHeader>
-            {!aiAddonActive && (
-              <CardContent className="pt-0">
-                <p className="text-xs text-muted-foreground">
-                  Requires the AI Assistant add-on to take effect.
-                </p>
-              </CardContent>
-            )}
-          </Card>
+      {planAvailable && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">AI</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="text-base">AI auto-respond</CardTitle>
+                  <CardDescription>
+                    AI answers new visitor conversations automatically.
+                  </CardDescription>
+                </div>
+                <Switch
+                  checked={application.aiAutoRespond ?? false}
+                  onCheckedChange={(checked) =>
+                    handleToggle("aiAutoRespond", checked)
+                  }
+                  disabled={toggleAiMutation.isPending}
+                  aria-label="Toggle AI auto-respond"
+                />
+              </CardHeader>
+              {!aiAddonActive && (
+                <CardContent className="pt-0">
+                  <p className="text-xs text-muted-foreground">
+                    Requires the AI Assistant add-on to take effect.
+                  </p>
+                </CardContent>
+              )}
+            </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-              <div className="space-y-1">
-                <CardTitle className="text-base">AI database tools</CardTitle>
-                <CardDescription>
-                  Allow SQL-backed data tools for this application.
-                </CardDescription>
-              </div>
-              <Switch
-                checked={application.aiDbEnabled ?? false}
-                onCheckedChange={(checked) =>
-                  handleToggle("aiDbEnabled", checked)
-                }
-                disabled={toggleAiMutation.isPending}
-                aria-label="Toggle AI database tools"
-              />
-            </CardHeader>
-            {!aiAddonActive && (
-              <CardContent className="pt-0">
-                <p className="text-xs text-muted-foreground">
-                  Requires the AI Assistant add-on to take effect.
-                </p>
-              </CardContent>
-            )}
-          </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+                <div className="space-y-1">
+                  <CardTitle className="text-base">AI database tools</CardTitle>
+                  <CardDescription>
+                    Allow SQL-backed data tools for this application.
+                  </CardDescription>
+                </div>
+                <Switch
+                  checked={application.aiDbEnabled ?? false}
+                  onCheckedChange={(checked) =>
+                    handleToggle("aiDbEnabled", checked)
+                  }
+                  disabled={toggleAiMutation.isPending}
+                  aria-label="Toggle AI database tools"
+                />
+              </CardHeader>
+              {!aiAddonActive && (
+                <CardContent className="pt-0">
+                  <p className="text-xs text-muted-foreground">
+                    Requires the AI Assistant add-on to take effect.
+                  </p>
+                </CardContent>
+              )}
+            </Card>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="space-y-3">
         <h2 className="text-lg font-semibold">Configuration</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
-            to={getAiInterviewRoute(application.aiInterviewStatus)}
+            to={getAiInterviewRoute(aiInterviewStatus)}
             params={{ applicationId: application.id }}
             className="block"
           >
@@ -258,7 +263,7 @@ export function ApplicationDetailsPage({
                 <div className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4 text-primary" />
                   <CardTitle className="text-base">
-                    {AI_INTERVIEW_ACTION_LABEL[application.aiInterviewStatus]}
+                    {AI_INTERVIEW_ACTION_LABEL[aiInterviewStatus]}
                   </CardTitle>
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-muted-foreground" />
