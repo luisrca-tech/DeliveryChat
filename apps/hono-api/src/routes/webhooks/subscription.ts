@@ -8,7 +8,8 @@ import {
   sendTrialStartedEmail,
 } from "../../lib/email/index.js";
 import { formatDate } from "../../utils/date.js";
-import { extractPlanFromMetadata, formatMoney } from "./utils.js";
+import { resolvePlan } from "../../lib/stripePlan.js";
+import { formatMoney } from "./utils.js";
 import {
   deriveAddonEntitlement,
   findAiAddonItem,
@@ -61,9 +62,7 @@ export async function handleSubscriptionCreated(
       ? new Date(subscription.trial_end * 1000).toISOString()
       : null;
 
-  const createdPlan = extractPlanFromMetadata(
-    subscription.metadata as Record<string, string>,
-  );
+  const createdPlan = resolvePlan(subscription);
 
   // Derive the AI add-on entitlement through the shared seam so the created
   // path applies the SAME plan-eligibility guard as the updated path: an add-on
@@ -192,14 +191,12 @@ export async function handleSubscriptionUpdated(
     }
   }
 
-  const metadataPlan = extractPlanFromMetadata(
-    subscription.metadata as Record<string, string>,
-  );
+  const subscriptionPlan = resolvePlan(subscription);
 
   // Derive AI add-on entitlement from the subscription items through the shared
   // seam (never set directly by routes). The add-on is a second item on the
   // subscription; the derivation applies the plan-eligibility guard.
-  const resolvedPlan = metadataPlan ?? org.plan;
+  const resolvedPlan = subscriptionPlan ?? org.plan;
   const { aiAddonActive, aiAddonSubscriptionItemId, revokeItemId } =
     deriveAddonEntitlement(subscription, resolvedPlan);
 
@@ -249,7 +246,7 @@ export async function handleSubscriptionUpdated(
       stripeSubscriptionId: subscription.id,
       cancelAtPeriodEnd: subscription.cancel_at_period_end || false,
       trialEndsAt,
-      ...(metadataPlan ? { plan: metadataPlan } : {}),
+      ...(subscriptionPlan ? { plan: subscriptionPlan } : {}),
       aiAddonActive,
       aiAddonSubscriptionItemId,
       updatedAt: new Date().toISOString(),

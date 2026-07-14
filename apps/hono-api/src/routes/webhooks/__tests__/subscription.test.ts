@@ -34,6 +34,9 @@ vi.mock("../../../env.js", () => ({
   env: {
     SIGNING_STRIPE_SECRET_KEY: "whsec_test",
     STRIPE_AI_ADDON_PRICE_KEY: "price_ai_addon",
+    STRIPE_BASIC_PRICE_KEY: "price_basic",
+    STRIPE_PREMIUM_PRICE_KEY: "price_premium",
+    STRIPE_ENTERPRISE_PRODUCT_KEY: "prod_enterprise",
   },
 }));
 
@@ -143,6 +146,108 @@ describe("webhooks — customer.subscription.updated", () => {
       planStatus: "trialing",
       plan: "BASIC",
     });
+  });
+
+  it("syncs plan from the item price when the Billing Portal switched plans behind stale metadata", async () => {
+    // The Portal swaps the subscription's price item but leaves
+    // `metadata.plan` frozen at whatever was bought at checkout. The price wins.
+    const org = makeOrg({ plan: "BASIC", planStatus: "active" });
+    const { txUpdateChain } = setupMocks(org, mockTransaction);
+
+    const event = makeStripeEvent("customer.subscription.updated", {
+      id: "sub_test",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+      metadata: { plan: "BASIC" },
+      items: makeItems([{ id: "si_base", priceId: "price_premium" }]),
+    });
+
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    const setCall = (txUpdateChain.set as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0];
+    expect(setCall.plan).toBe("PREMIUM");
+  });
+
+  it("syncs a downgrade from the item price when metadata is stale", async () => {
+    const org = makeOrg({ plan: "PREMIUM", planStatus: "active" });
+    const { txUpdateChain } = setupMocks(org, mockTransaction);
+
+    const event = makeStripeEvent("customer.subscription.updated", {
+      id: "sub_test",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+      metadata: { plan: "PREMIUM" },
+      items: makeItems([{ id: "si_base", priceId: "price_basic" }]),
+    });
+
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    const setCall = (txUpdateChain.set as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0];
+    expect(setCall.plan).toBe("BASIC");
+  });
+
+  it("falls back to metadata when the item price is not a recognized plan price", async () => {
+    const org = makeOrg({ plan: "FREE", planStatus: "trialing" });
+    const { txUpdateChain } = setupMocks(org, mockTransaction);
+
+    const event = makeStripeEvent("customer.subscription.updated", {
+      id: "sub_test",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+      metadata: { plan: "PREMIUM" },
+      items: makeItems([{ id: "si_base", priceId: "price_legacy" }]),
+    });
+
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    const setCall = (txUpdateChain.set as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0];
+    expect(setCall.plan).toBe("PREMIUM");
+  });
+
+  it("leaves the plan untouched when neither the price nor the metadata resolves", async () => {
+    const org = makeOrg({ plan: "PREMIUM", planStatus: "active" });
+    const { txUpdateChain } = setupMocks(org, mockTransaction);
+
+    const event = makeStripeEvent("customer.subscription.updated", {
+      id: "sub_test",
+      customer: "cus_test",
+      status: "active",
+      trial_end: null,
+      cancel_at_period_end: false,
+      current_period_end: Math.floor(Date.now() / 1000) + 86400,
+      metadata: {},
+      items: makeItems([{ id: "si_base", priceId: "price_legacy" }]),
+    });
+
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    const setCall = (txUpdateChain.set as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0];
+    expect(setCall.plan).toBeUndefined();
   });
 
   it("does not set plan when metadata.plan is invalid", async () => {

@@ -28,13 +28,29 @@ The `processedEvents` table provides idempotency — each Stripe webhook event I
 
 Handles five events inside atomic database transactions:
 
-- **`invoice.paid`** — Sets status to `active`, syncs `plan` from subscription metadata via Stripe API
+- **`invoice.paid`** — Sets status to `active`, syncs `plan` by retrieving the subscription via the Stripe API
 - **`invoice.payment_failed`** — Sets status to `past_due`
 - **`customer.subscription.created`** — Syncs `plan`, `stripeSubscriptionId`, `planStatus`, and `trialEndsAt` from the new subscription
 - **`customer.subscription.deleted`** — Resets to `FREE` plan with `canceled` status
-- **`customer.subscription.updated`** — Syncs `planStatus`, `trialEndsAt`, and `plan` from subscription metadata
+- **`customer.subscription.updated`** — Syncs `planStatus`, `trialEndsAt`, and `plan` from the subscription
 
 Each event is verified via Stripe signature (`SIGNING_STRIPE_SECRET_KEY`) and checked against `processedEvents` for idempotency.
+
+### Plan Resolution (`lib/stripePlan.ts`)
+
+Every handler above answers "which plan is this subscription on?" through one module, and the answer comes from the subscription's **price**, not its metadata:
+
+1. Scan `subscription.items`, skipping the AI add-on item (it is a second item on the same subscription and says nothing about the base tier).
+2. Match `price.id` against `STRIPE_BASIC_PRICE_KEY` / `STRIPE_PREMIUM_PRICE_KEY`.
+3. Match `price.product` against `STRIPE_ENTERPRISE_PRODUCT_KEY` — enterprise deals are negotiated individually, so each gets a bespoke price under the shared enterprise product and there is no single price ID to compare against.
+4. Fall back to `subscription.metadata.plan` only when no price matches (legacy or hand-made prices).
+5. Resolve to `null` when nothing matches — callers treat this as **leave the current plan alone**, never as a downgrade.
+
+**Why the price and not the metadata.** We only ever write `metadata.plan` at checkout (`subscription_data.metadata`). Any plan change made outside checkout — a switch in the Stripe Billing Portal, an edit in the Stripe Dashboard — swaps the subscription's price item and leaves the metadata frozen at the plan originally bought. A metadata-driven sync therefore reads the stale value and writes the _old_ tier back to the database on every subsequent webhook, so Stripe says PREMIUM while the app says BASIC. Deriving from the price makes those changes self-healing.
+
+### Plan Reconcile on Read
+
+`GET /v1/billing/status` reconciles before responding: if the org has a `stripeSubscriptionId`, it retrieves the live subscription, resolves the plan from its price, and persists it when it differs from the stored plan. This repairs orgs that drifted while webhooks were missed (endpoint down, signature rotation, plan changed directly in the Stripe Dashboard) without waiting for the next billing event. If Stripe is unreachable the error is logged and the stored plan is served — billing must never fail to render.
 
 ### RBAC Billing Middleware (`checkBillingStatus`)
 
@@ -53,7 +69,7 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 - On organization creation: `planStatus = "trialing"`, `trialEndsAt = now + 14 days`, `billingEmail = user.email`
 - Checkout during trial: `trial_period_days` is omitted so the subscription activates immediately (no double trial). `checkout.session.completed` sets `planStatus = "active"` when the org was already trialing.
 - Checkout without trial: includes `trial_period_days: 14` for first-time purchases
-- Plan sync redundancy: `plan` is synced from `subscription.metadata.plan` in `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `invoice.paid` — if any single event fails, the others recover the plan tier
+- Plan sync redundancy: `plan` is synced in `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `invoice.paid` — if any single event fails, the others recover the plan tier. `checkout.session.completed` reads the checkout session's own metadata (the session has no price items); the other three resolve the plan from the subscription's price (see Plan Resolution above)
 - Enforcement: expired trial returns `402 Payment Required`, allowing only `super_admin` recovery routes
 
 ### Multi-currency

@@ -96,6 +96,20 @@ export function canRunInterview(
 export const AI_ADDON_LOOKUP_KEY = "ai_addon_monthly";
 
 /**
+ * Whether a subscription item is the AI add-on, by configured price id or by the
+ * lookup-key fallback. Plan resolution consumes this to skip the add-on item when
+ * deciding which base plan a subscription is on.
+ */
+export function isAiAddonItem(item: Stripe.SubscriptionItem): boolean {
+  const price = item.price;
+  if (!price) return false;
+  return (
+    price.id === env.STRIPE_AI_ADDON_PRICE_KEY ||
+    price.lookup_key === AI_ADDON_LOOKUP_KEY
+  );
+}
+
+/**
  * Finds the AI add-on subscription item on a subscription, if present. The add-on
  * is a second item on the existing subscription, so entitlement is derived by
  * scanning the items for the configured price id or the lookup-key fallback.
@@ -104,17 +118,7 @@ export function findAiAddonItem(
   subscription: Stripe.Subscription,
 ): Stripe.SubscriptionItem | null {
   const items = subscription.items?.data ?? [];
-  for (const item of items) {
-    const price = item.price;
-    if (!price) continue;
-    if (
-      price.id === env.STRIPE_AI_ADDON_PRICE_KEY ||
-      price.lookup_key === AI_ADDON_LOOKUP_KEY
-    ) {
-      return item;
-    }
-  }
-  return null;
+  return items.find(isAiAddonItem) ?? null;
 }
 
 export type AddonEntitlementDerivation = {
