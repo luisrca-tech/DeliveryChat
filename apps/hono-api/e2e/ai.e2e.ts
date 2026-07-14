@@ -275,6 +275,95 @@ test.describe("AI plan gating", () => {
   });
 });
 
+// ── Interview Gating (authoring is NOT serving) ──
+
+test.describe("AI interview plan gating", () => {
+  let trialData: E2ETestData;
+  let trialAdminToken: string;
+  let expiredData: E2ETestData;
+  let expiredAdminToken: string;
+
+  const DAY_MS = 86_400_000;
+
+  test.beforeAll(async () => {
+    trialData = await provisionTestData({
+      plan: "FREE",
+      planStatus: "trialing",
+      trialEndsAt: new Date(Date.now() + 7 * DAY_MS).toISOString(),
+    });
+    trialAdminToken = await createSessionInDB(trialData.adminUser.id);
+
+    expiredData = await provisionTestData({
+      plan: "FREE",
+      planStatus: "trialing",
+      trialEndsAt: new Date(Date.now() - DAY_MS).toISOString(),
+    });
+    expiredAdminToken = await createSessionInDB(expiredData.adminUser.id);
+  });
+
+  test.afterAll(async () => {
+    await cleanupTestData(trialData);
+    await cleanupTestData(expiredData);
+  });
+
+  test("FREE tenant inside its trial may start the interview", async ({
+    request,
+  }) => {
+    const response = await request.post(
+      `/api/v1/applications/${trialData.app.id}/ai-interview/turns`,
+      {
+        headers: authHeaders(trialAdminToken, trialData.org.slug),
+        data: { message: "", expectedCurrentTurn: 0 },
+      },
+    );
+
+    // The plan gate must not reject it. (The provider call itself may still fail
+    // in CI without an AI key — what matters is that it is not a 403.)
+    expect(response.status()).not.toBe(403);
+  });
+
+  test("FREE tenant past its trial is blocked from the interview", async ({
+    request,
+  }) => {
+    const response = await request.post(
+      `/api/v1/applications/${expiredData.app.id}/ai-interview/turns`,
+      {
+        headers: authHeaders(expiredAdminToken, expiredData.org.slug),
+        data: { message: "", expectedCurrentTurn: 0 },
+      },
+    );
+
+    // An expired trial is stopped by `checkBillingStatus`, which runs ahead of
+    // the AI gate and blocks the whole product ("choose a plan to continue").
+    expect(response.status()).toBe(402);
+  });
+
+  test("FREE tenant with no trial at all is blocked from the interview", async ({
+    request,
+  }) => {
+    // `planStatus: null` slips past checkBillingStatus, so the AI gate is the
+    // only thing standing between a trial-less FREE org and unmetered LLM calls.
+    const noTrial = await provisionTestData({ plan: "FREE", planStatus: null });
+    const token = await createSessionInDB(noTrial.adminUser.id);
+
+    try {
+      const response = await request.post(
+        `/api/v1/applications/${noTrial.app.id}/ai-interview/turns`,
+        {
+          headers: authHeaders(token, noTrial.org.slug),
+          data: { message: "", expectedCurrentTurn: 0 },
+        },
+      );
+
+      expect(response.status()).toBe(403);
+      const body = await response.json();
+      expect(body.error).toBe("ai_interview_trial_expired");
+    } finally {
+      await cleanupTestData(noTrial);
+    }
+  });
+});
+
 // ── Billing Gating ──
 
 test.describe("AI billing gating", () => {

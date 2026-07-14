@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { db, type DbExecutor } from "../../db/index.js";
 import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { applications } from "../../db/schema/applications.js";
+import { planAllowsServing } from "../../lib/planLimits.js";
 import { runAICall } from "./ai.callOrchestrator.js";
 import {
   MissingTopicsError,
@@ -116,6 +117,8 @@ export type RunGenerateSummaryParams = {
   applicationId: string;
   tenantId: string;
   userId: string;
+  /** Org plan — decides whether finishing the interview also turns the assistant on. */
+  plan: string;
 };
 
 export class InterviewReadPort {
@@ -864,10 +867,17 @@ export async function runGenerateSummary(
 
   return db.transaction(async (tx) => {
     const updated = await persistSummaryReady(tx, row.id, summary);
-    await tx
-      .update(applications)
-      .set({ aiEnabled: true })
-      .where(eq(applications.id, params.applicationId));
+
+    // Completing the interview switches the assistant on — but only for plans
+    // that may actually be served. A FREE org authors and keeps its context, yet
+    // `aiEnabled` stays false: it has nothing to activate until it subscribes.
+    if (planAllowsServing(params.plan)) {
+      await tx
+        .update(applications)
+        .set({ aiEnabled: true })
+        .where(eq(applications.id, params.applicationId));
+    }
+
     return { row: updated };
   });
 }

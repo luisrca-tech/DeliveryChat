@@ -4,16 +4,25 @@ import { applicationsQueryKeys } from "@/features/applications/hooks/useApplicat
 import type { ApplicationsListResponse } from "@/features/applications/types/applications.types";
 import type { AiInterviewStatus } from "@/features/aiInterview/types/aiInterview.types";
 
-const AI_ENABLED_PLANS = new Set(["PREMIUM", "ENTERPRISE"]);
+/**
+ * Plans the AI assistant may actually SERVE on. Every plan (FREE included) may
+ * author its context through the interview — only these plans may be answered by
+ * the AI. Mirrors `planAllowsServing` in hono-api's planLimits.
+ */
+const AI_SERVING_PLANS = new Set(["BASIC", "PREMIUM", "ENTERPRISE"]);
 
 export function useAiAvailability(applicationId?: string | null) {
   const { data: billing } = useBillingStatusQuery();
   const queryClient = useQueryClient();
 
-  const planAvailable = billing ? AI_ENABLED_PLANS.has(billing.plan) : false;
+  const servingAvailable = billing ? AI_SERVING_PLANS.has(billing.plan) : false;
 
   if (!applicationId) {
-    return { isAvailable: planAvailable, planAvailable, appConfigured: true };
+    return {
+      isAvailable: servingAvailable,
+      servingAvailable,
+      appConfigured: true,
+    };
   }
 
   const lists = queryClient.getQueriesData<ApplicationsListResponse>({
@@ -30,6 +39,6 @@ export function useAiAvailability(applicationId?: string | null) {
   }
 
   const appConfigured = appStatus === "completed";
-  const isAvailable = planAvailable && appConfigured;
-  return { isAvailable, planAvailable, appConfigured };
+  const isAvailable = servingAvailable && appConfigured;
+  return { isAvailable, servingAvailable, appConfigured };
 }

@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import type { InterviewErrorSurface } from "../lib/interviewErrorMapper";
 import { InterviewEyebrow } from "./InterviewEyebrow";
 import { InterviewMarginalia } from "./InterviewMarginalia";
@@ -38,6 +39,28 @@ export function InterviewErrorBoundary({
               {surface.retryLabel}
             </InterviewTextLink>
           ) : null}
+        </div>
+      );
+    case "upgrade_banner":
+      return (
+        <div
+          role="alert"
+          data-testid="interview-upgrade-banner"
+          data-code={surface.code}
+          className="rounded-md border border-[var(--interview-color-accent)]/40 bg-[var(--interview-color-accent)]/5 px-4 py-3 text-sm"
+        >
+          <div className="font-semibold text-[var(--interview-color-foreground)]">
+            {surface.title}
+          </div>
+          <div className="mt-1 text-xs text-[var(--interview-color-muted)]">
+            {surface.detail}
+          </div>
+          <Link
+            to="/settings/billing"
+            className="mt-3 inline-block text-xs font-medium underline underline-offset-4"
+          >
+            {surface.ctaLabel}
+          </Link>
         </div>
       );
     case "blocking_banner":

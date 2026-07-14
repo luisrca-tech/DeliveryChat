@@ -30,7 +30,7 @@ Stores the interview state and resulting context summary for each application.
 
 ### `applications` Table Addition
 
-- `aiEnabled` — `BOOLEAN`, NOT NULL, default `false`. Controls whether AI features are active for this specific application.
+- `aiEnabled` — `BOOLEAN`, NOT NULL, default `false`. Controls whether AI features are active for this specific application. Set to `true` by `runGenerateSummary` when the interview completes — but only on plans that can be served by the AI (`planAllowsServing`). A FREE org completing the interview keeps `aiEnabled = false`: it has authored a context, not enabled an assistant.
 
 ### `aiActionEnum` Addition
 

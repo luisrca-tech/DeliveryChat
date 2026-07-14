@@ -12,6 +12,7 @@ const {
   deriveAddonEntitlement,
   ADDON_ELIGIBLE_PLANS,
   AI_ADDON_LOOKUP_KEY,
+  canRunInterview,
 } = await import("../entitlement.js");
 
 /** Builds a minimal Stripe subscription carrying the given item price ids. */
@@ -136,4 +137,46 @@ describe("deriveAddonEntitlement (plan × item matrix)", () => {
       });
     },
   );
+});
+
+describe("canRunInterview", () => {
+  const FUTURE = new Date(Date.now() + 86_400_000).toISOString();
+  const PAST = new Date(Date.now() - 86_400_000).toISOString();
+
+  it("lets a FREE org interview while its trial is still running", () => {
+    expect(
+      canRunInterview({
+        plan: "FREE",
+        planStatus: "trialing",
+        trialEndsAt: FUTURE,
+      }),
+    ).toBe(true);
+  });
+
+  it("blocks a FREE org once the 14-day trial has expired", () => {
+    expect(
+      canRunInterview({
+        plan: "FREE",
+        planStatus: "trialing",
+        trialEndsAt: PAST,
+      }),
+    ).toBe(false);
+  });
+
+  it("blocks a FREE org that has no trial at all", () => {
+    expect(
+      canRunInterview({ plan: "FREE", planStatus: null, trialEndsAt: null }),
+    ).toBe(false);
+  });
+
+  it("lets serving plans interview regardless of trial state", () => {
+    for (const plan of ["BASIC", "PREMIUM", "ENTERPRISE"]) {
+      expect(
+        canRunInterview({ plan, planStatus: "active", trialEndsAt: null }),
+      ).toBe(true);
+      expect(
+        canRunInterview({ plan, planStatus: "trialing", trialEndsAt: PAST }),
+      ).toBe(true);
+    }
+  });
 });

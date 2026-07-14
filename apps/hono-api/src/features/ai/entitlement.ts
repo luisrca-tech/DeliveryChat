@@ -17,6 +17,7 @@
  */
 import type Stripe from "stripe";
 import { env } from "../../env.js";
+import { planAllowsServing } from "../../lib/planLimits.js";
 
 export const ADDON_ELIGIBLE_PLANS = ["PREMIUM", "ENTERPRISE"] as const;
 export type AddonEligiblePlan = (typeof ADDON_ELIGIBLE_PLANS)[number];
@@ -40,6 +41,37 @@ export function isAddonEntitled(
   organization: EntitlementOrganization,
 ): boolean {
   return addonEligiblePlan(organization.plan) && organization.aiAddonActive;
+}
+
+export type InterviewAccessOrganization = {
+  plan: string;
+  planStatus: string | null;
+  trialEndsAt: string | null;
+};
+
+/**
+ * Whether the org may run the onboarding interview (authoring, not serving).
+ *
+ * Serving plans always may. FREE may too — but only inside its 14-day trial
+ * window, because interview turns are real LLM calls deliberately excluded from
+ * the monthly cap (see QUOTA_EXCLUDED_ACTIONS), so an unbounded FREE tier would
+ * be a free token faucet. A FREE org IS a trialing org: registration stamps
+ * `planStatus = 'trialing'` and `trialEndsAt = now + 14d` on every new
+ * organization.
+ *
+ * This is checked explicitly rather than leaned on as a side effect of
+ * `checkBillingStatus`, which waves through orgs whose `planStatus` is null
+ * (seeds, legacy rows) and would otherwise leave the faucet open.
+ */
+export function canRunInterview(
+  organization: InterviewAccessOrganization,
+): boolean {
+  if (planAllowsServing(organization.plan)) return true;
+
+  const { planStatus, trialEndsAt } = organization;
+  if (planStatus !== "trialing" || !trialEndsAt) return false;
+
+  return Date.now() <= new Date(trialEndsAt).getTime();
 }
 
 /**

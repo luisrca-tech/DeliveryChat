@@ -2,7 +2,7 @@ import type { MiddlewareHandler } from "hono";
 import { getTenantAuth } from "../../lib/middleware/auth.js";
 import { jsonError, HTTP_STATUS } from "../../lib/http.js";
 import { checkAiQuota, QUOTA_EXCLUDED_ACTIONS } from "./ai.quota.js";
-import { isAddonEntitled } from "./entitlement.js";
+import { canRunInterview, isAddonEntitled } from "./entitlement.js";
 
 export { QUOTA_EXCLUDED_ACTIONS };
 
@@ -31,27 +31,43 @@ export function requireAiAddon(): MiddlewareHandler {
 
 type AiFeatureKind = "reply" | "interview";
 
+/**
+ * Gates the two AI capabilities, which are NOT the same gate:
+ *
+ *   "interview" (authoring) — every plan may onboard; FREE only inside its trial
+ *     window. Deliberately does not touch the quota: interview actions are
+ *     cap-excluded, so a tenant sitting at its monthly limit can still finish
+ *     onboarding.
+ *
+ *   "reply" (serving) — requires a plan that grants the assistant AND monthly
+ *     cap headroom.
+ */
 export function requireAiFeature(
   feature: AiFeatureKind = "reply",
 ): MiddlewareHandler {
   return async (c, next) => {
     const auth = getTenantAuth(c);
+
+    if (feature === "interview") {
+      if (!canRunInterview(auth.organization)) {
+        return jsonError(
+          c,
+          HTTP_STATUS.FORBIDDEN,
+          "ai_interview_trial_expired",
+          "Your free trial has ended. Choose a plan to continue setting up your AI assistant.",
+        );
+      }
+
+      await next();
+      return;
+    }
+
     const result = await checkAiQuota(
       auth.organization.id,
       auth.organization.plan,
     );
 
     if (!result.allowed) {
-      // Interview calls are excluded from the monthly cap; only the
-      // plan-availability gate applies.
-      if (
-        feature === "interview" &&
-        result.reason === "ai_monthly_cap_exceeded"
-      ) {
-        await next();
-        return;
-      }
-
       const message =
         result.reason === "ai_feature_not_available"
           ? "AI assistant is not available on your current plan."

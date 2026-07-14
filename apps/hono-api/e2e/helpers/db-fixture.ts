@@ -51,6 +51,8 @@ export async function provisionTestData(opts?: {
     | "paused"
     | null;
   orgStatus?: "ACTIVE" | "PENDING_VERIFICATION" | "EXPIRED" | "DELETED";
+  /** ISO timestamp. Needed to provision a FREE org inside/outside its trial window. */
+  trialEndsAt?: string | null;
 }): Promise<E2ETestData> {
   const testId = randomUUID().slice(0, 8);
   const orgSlug = `${E2E_PREFIX}${testId}`;
@@ -64,6 +66,7 @@ export async function provisionTestData(opts?: {
       name: `E2E Test Org ${testId}`,
       plan: opts?.plan ?? "FREE",
       planStatus: opts?.planStatus ?? null,
+      trialEndsAt: opts?.trialEndsAt ?? null,
       status: opts?.orgStatus ?? "ACTIVE",
     })
     .returning();

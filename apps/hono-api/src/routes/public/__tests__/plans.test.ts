@@ -113,28 +113,33 @@ describe("GET /public/plans", () => {
       body.plans.map((p: { id: string }) => [p.id, p]),
     );
 
+    // Every plan may author its AI context; only paid plans may be served by it.
     expect(byId.FREE.limits).toEqual({
       apiKeys: 3,
       members: 3,
       aiAssistant: false,
+      aiInterview: true,
       aiMonthlyCap: 0,
     });
     expect(byId.BASIC.limits).toEqual({
       apiKeys: 5,
       members: 6,
-      aiAssistant: false,
-      aiMonthlyCap: 0,
+      aiAssistant: true,
+      aiInterview: true,
+      aiMonthlyCap: 1000,
     });
     expect(byId.PREMIUM.limits).toEqual({
       apiKeys: 10,
       members: 15,
       aiAssistant: true,
+      aiInterview: true,
       aiMonthlyCap: 3000,
     });
     expect(byId.ENTERPRISE.limits).toEqual({
       apiKeys: 1000,
       members: 1000,
       aiAssistant: true,
+      aiInterview: true,
       aiMonthlyCap: 3000,
     });
   });

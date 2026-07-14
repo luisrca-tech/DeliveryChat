@@ -39,13 +39,13 @@ export function MessageInput({
 
   const {
     isAvailable: aiAvailable,
-    planAvailable,
+    servingAvailable,
     appConfigured,
   } = useAiAvailability(applicationId);
   const canConfigure =
     currentUserRole === "admin" || currentUserRole === "super_admin";
   const showConfigHint =
-    planAvailable && !appConfigured && !!applicationId && canConfigure;
+    servingAvailable && !appConfigured && !!applicationId && canConfigure;
 
   const handleGenerateSuccess = useCallback((text: string) => {
     editorHandleRef.current?.insertAiMarkdown(text);
@@ -154,7 +154,7 @@ export function MessageInput({
 
   const aiToolbarProps = useMemo(
     () =>
-      planAvailable
+      servingAvailable
         ? {
             onGenerate: handleGenerate,
             onCancelGenerate: cancelGenerate,
@@ -166,7 +166,7 @@ export function MessageInput({
           }
         : undefined,
     [
-      planAvailable,
+      servingAvailable,
       handleGenerate,
       cancelGenerate,
       isGenerating,

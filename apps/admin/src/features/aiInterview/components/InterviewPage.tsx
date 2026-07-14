@@ -90,6 +90,7 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
       <InterviewIntroCard
         onStart={callbacks.startInterview}
         isStarting={isStartingInterview}
+        errorSurface={errorSurface}
       />
     );
   }

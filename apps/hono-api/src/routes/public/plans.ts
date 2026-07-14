@@ -26,6 +26,7 @@ type PlanEntry = {
     apiKeys: number;
     members: number;
     aiAssistant: boolean;
+    aiInterview: boolean;
     aiMonthlyCap: number;
   };
 };
@@ -46,6 +47,7 @@ function buildLimits(plan: PlanId) {
     apiKeys: getApiKeyLimitByPlan(plan),
     members: getMemberLimitByPlan(plan),
     aiAssistant: ai.aiAssistantEnabled,
+    aiInterview: ai.aiInterviewEnabled,
     aiMonthlyCap: ai.aiMonthlyCap,
   };
 }

@@ -23,6 +23,7 @@ import { Label } from "@repo/ui/components/ui/label";
 import { formatRelative } from "@/lib/formatRelative";
 import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus";
 import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
+import { AiPlanLockedNotice } from "@/features/ai/components/AiPlanLockedNotice";
 import { AiInterviewStatusCell } from "@/features/aiInterview/components/AiInterviewStatusCell";
 import {
   AI_INTERVIEW_ACTION_LABEL,
@@ -46,7 +47,7 @@ export function ApplicationDetailsPage({
   const [editOpen, setEditOpen] = useState(false);
   const { data, isLoading } = useApplicationQuery(applicationId);
   const { data: billingStatus } = useBillingStatusQuery();
-  const { planAvailable } = useAiAvailability();
+  const { servingAvailable } = useAiAvailability();
   const updateMutation = useUpdateApplicationMutation();
   const toggleAiMutation = useToggleApplicationAiSettingMutation(applicationId);
 
@@ -191,7 +192,16 @@ export function ApplicationDetailsPage({
         </Card>
       </div>
 
-      {planAvailable && (
+      {!servingAvailable && (
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold">AI</h2>
+          <AiPlanLockedNotice
+            contextReady={aiInterviewStatus === "completed"}
+          />
+        </div>
+      )}
+
+      {servingAvailable && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">AI</h2>
           <div className="grid gap-4 sm:grid-cols-2">

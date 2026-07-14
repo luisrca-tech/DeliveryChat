@@ -17,7 +17,7 @@
 5. **Allowed Domains**: Inline multi-entry input with add/remove actions. Each entry is validated against `DOMAIN_REGEX` (from `@repo/types`). Supports wildcard subdomains (`*.example.com`). Entries are lowercased, duplicates are rejected with inline feedback. The list is sent as `allowedOrigins: string[]` in the PATCH request.
 6. **Delete**: Confirmation dialog shows active API key count. Warns "This will also revoke X active API keys" when applicable.
 7. **Detail**: Configuration cards (AI interview action + Data tools). The AI interview card title is derived from `aiInterviewStatus` (`Configure AI` / `Continue interview` / `View AI context`). Detail API must return this field; the UI falls back to `not_started` if missing.
-8. **AI toggles** (auto-respond + database tools): shown only when the org plan is Premium or Enterprise (`useAiAvailability().planAvailable`). Free/Basic orgs do not see this section. When the plan is eligible but the AI add-on is inactive, the toggles remain visible with a note that the add-on is required for them to take effect.
+8. **AI toggles** (auto-respond + database tools): shown when the org plan can be served by the AI — Basic, Premium, or Enterprise (`useAiAvailability().servingAvailable`). A Free org sees `AiPlanLockedNotice` in this slot instead: it explains that the assistant is off on its plan and links to Billing. When the plan is add-on eligible but the AI add-on is inactive, the toggles remain visible with a note that the add-on is required for them to take effect.
 
 ## Error Handling
 
@@ -30,6 +30,7 @@
 - **API client**: Uses direct fetch with `getTenantHeaders()` (same pattern as api-keys). Custom error classes `ApplicationNotFoundError` and `ApplicationDomainConflictError`.
 - **Delete warning**: Fetches `activeApiKeysCount` via `GET /applications/:id` when delete dialog opens. Displayed in confirmation text.
 - **aiInterviewStatus on detail**: `GET /applications/:id` derives status from `applicationAiContext` (same as list) so the detail page can label/link the AI interview card. Frontend also defaults to `not_started` when the field is absent.
-- **AI section gate**: Detail page uses `planAvailable` from `useAiAvailability` (PREMIUM/ENTERPRISE only). The Data tools config card stays visible for all plans; Free/Basic users land on `FeatureLockedCard` with a Billing CTA.
+- **AI section gate**: Detail page uses `servingAvailable` from `useAiAvailability` (BASIC/PREMIUM/ENTERPRISE — mirrors `planAllowsServing` in hono-api). Authoring and serving are separate rights: every plan, Free included, may run the onboarding interview and keep its context, but only serving plans have the assistant switched on. A Free org therefore reaches the interview, completes it, and then sees a locked notice with a Billing CTA rather than a working toggle.
+- **Data tools card**: stays visible for all plans; plans without the AI add-on land on `FeatureLockedCard` with a Billing CTA.
 - **Shared formatRelative**: Moved to `@/lib/formatRelative` for reuse by api-keys and applications features.
 - **useApplicationsQuery**: Canonical implementation lives in applications feature; api-keys re-exports for backward compatibility.

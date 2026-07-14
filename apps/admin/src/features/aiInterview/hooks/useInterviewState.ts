@@ -33,8 +33,16 @@ function cachedCurrentTurn(state: InterviewState | undefined): number {
   return state.currentTurn;
 }
 
-export function useBootstrapInterviewMutation(applicationId: string) {
+export type BootstrapInterviewOptions = {
+  onBootstrapError?: (error: unknown) => void;
+};
+
+export function useBootstrapInterviewMutation(
+  applicationId: string,
+  options: BootstrapInterviewOptions = {},
+) {
   const queryClient = useQueryClient();
+  const { onBootstrapError } = options;
 
   return useMutation({
     mutationFn: () =>
@@ -42,6 +50,7 @@ export function useBootstrapInterviewMutation(applicationId: string) {
         message: "",
         expectedCurrentTurn: 0,
       }),
+    onError: (error) => onBootstrapError?.(error),
     onSuccess: (data: InterviewTurnResponse) => {
       const previous = queryClient.getQueryData<InterviewState>(
         aiInterviewQueryKeys.state(applicationId),

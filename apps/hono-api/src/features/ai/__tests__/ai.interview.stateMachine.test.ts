@@ -749,6 +749,7 @@ describe("runGenerateSummary", () => {
       applicationId: APP_ID,
       tenantId: TENANT,
       userId: USER,
+      plan: "PREMIUM",
     });
 
     expect(result.row.contextSummary).toContain("# Application Context");
@@ -763,6 +764,27 @@ describe("runGenerateSummary", () => {
     });
   });
 
+  it("saves the summary but leaves aiEnabled off for a FREE plan", async () => {
+    completedRow();
+    const provider = makeProvider([], VALID_SUMMARY);
+
+    const result = await runGenerateSummary({
+      provider,
+      applicationId: APP_ID,
+      tenantId: TENANT,
+      userId: USER,
+      plan: "FREE",
+    });
+
+    // The context is authored and stored — the org keeps everything it wrote.
+    expect(result.row.contextSummary).toContain("# Application Context");
+    expect(result.row.summaryStatus).toBe("ready");
+    // ...but the assistant is never switched on for a plan that cannot serve.
+    expect(applicationUpdates).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ aiEnabled: true })]),
+    );
+  });
+
   it("regeneration overwrites prior contextSummary", async () => {
     completedRow({
       summaryStatus: "ready",
@@ -774,6 +796,7 @@ describe("runGenerateSummary", () => {
       applicationId: APP_ID,
       tenantId: TENANT,
       userId: USER,
+      plan: "PREMIUM",
     });
     expect(result.row.contextSummary).toContain("# Application Context");
   });
@@ -786,6 +809,7 @@ describe("runGenerateSummary", () => {
       applicationId: APP_ID,
       tenantId: TENANT,
       userId: USER,
+      plan: "PREMIUM",
     });
     expect(result.row.summaryStatus).toBe("ready");
   });
@@ -803,6 +827,7 @@ describe("runGenerateSummary", () => {
         applicationId: APP_ID,
         tenantId: TENANT,
         userId: USER,
+        plan: "PREMIUM",
       }),
     ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
 
@@ -819,6 +844,7 @@ describe("runGenerateSummary", () => {
         applicationId: APP_ID,
         tenantId: TENANT,
         userId: USER,
+        plan: "PREMIUM",
       }),
     ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
     expect(usageLogInserts.at(-1)).toMatchObject({
@@ -836,6 +862,7 @@ describe("runGenerateSummary", () => {
         applicationId: APP_ID,
         tenantId: TENANT,
         userId: USER,
+        plan: "PREMIUM",
       }),
     ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
     expect(usageLogInserts).toHaveLength(0);
@@ -850,6 +877,7 @@ describe("runGenerateSummary", () => {
         applicationId: APP_ID,
         tenantId: TENANT,
         userId: USER,
+        plan: "PREMIUM",
       }),
     ).rejects.toBeInstanceOf(SummaryGenerationFailedError);
     expect(usageLogInserts).toHaveLength(0);

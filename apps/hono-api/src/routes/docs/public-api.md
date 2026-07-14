@@ -43,6 +43,7 @@ Two consumers:
         "apiKeys": 3,
         "members": 3,
         "aiAssistant": false,
+        "aiInterview": true,
         "aiMonthlyCap": 0
       }
     },
@@ -56,8 +57,9 @@ Two consumers:
       "limits": {
         "apiKeys": 5,
         "members": 6,
-        "aiAssistant": false,
-        "aiMonthlyCap": 0
+        "aiAssistant": true,
+        "aiInterview": true,
+        "aiMonthlyCap": 1000
       }
     },
     { "id": "PREMIUM", "...": "same shape as BASIC" },
@@ -69,6 +71,7 @@ Two consumers:
         "apiKeys": 1000,
         "members": 1000,
         "aiAssistant": true,
+        "aiInterview": true,
         "aiMonthlyCap": 3000
       }
     }
@@ -78,6 +81,11 @@ Two consumers:
 
 - `limits` are the small, public-safe subset of `src/lib/planLimits.ts`
   (`API_KEY_LIMITS`, `MEMBER_LIMITS`, `AI_LIMITS`) — no rate-limit internals.
+- `aiInterview` vs `aiAssistant` are **not** the same right. `aiInterview` is
+  authoring: running the onboarding interview and generating the AI context —
+  open to every plan (FREE only inside its 14-day trial). `aiAssistant` is
+  serving: actually being answered by the AI — paid plans only. A FREE org can
+  therefore build and keep a full AI context while the assistant stays off.
 - `FREE.prices` is always `null` (no paid plan). `ENTERPRISE.prices` is
   always the string `"custom"` (billing is manual, no Stripe price object).
 - `BASIC` / `PREMIUM` prices are fetched live from Stripe

@@ -14,6 +14,7 @@ import {
   runInterviewTurn,
 } from "../../../features/ai/ai.interview.stateMachine.js";
 import { ERROR_MESSAGES, HTTP_STATUS, jsonError } from "../../../lib/http.js";
+import { planAllowsServing } from "../../../lib/planLimits.js";
 import { completeBodySchema, turnsBodySchema } from "./schemas.js";
 import {
   findOwnedApplication,
@@ -165,13 +166,14 @@ export const aiInterviewRoute = new Hono()
           applicationId,
           tenantId: organization.id,
           userId: authUser.id,
+          plan: organization.plan,
         });
 
         return c.json({
           status: row.status,
           summaryStatus: row.summaryStatus,
           contextSummary: row.contextSummary,
-          aiEnabled: true,
+          aiEnabled: planAllowsServing(organization.plan),
         });
       } catch (error) {
         return mapInterviewError(c, error, "ai-interview generate-summary");
