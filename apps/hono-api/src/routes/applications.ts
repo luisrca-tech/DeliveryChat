@@ -30,6 +30,10 @@ import {
 } from "../features/applications/application.service.js";
 import { getApiKeyLimitByPlan } from "../lib/planLimits.js";
 import {
+  addonEligiblePlan,
+  requestsAddonCapability,
+} from "../features/ai/entitlement.js";
+import {
   getTenantAuth,
   requireRole,
   requireTenantAuth,
@@ -227,6 +231,22 @@ export const applicationsRoute = new Hono()
         const appId = c.req.param("id");
         const { organization } = getTenantAuth(c);
         const data = c.req.valid("json");
+
+        // The AI capabilities these flags unlock are served only under the AI
+        // add-on, which FREE/BASIC can never hold. Refuse to persist a `true`
+        // they could never act on — the admin UI hides the toggles, but the API
+        // is the seam that has to hold.
+        if (
+          requestsAddonCapability(data) &&
+          !addonEligiblePlan(organization.plan)
+        ) {
+          return jsonError(
+            c,
+            HTTP_STATUS.FORBIDDEN,
+            "plan_not_eligible",
+            "AI auto-respond and AI database tools require the AI Assistant add-on, available on the PREMIUM and ENTERPRISE plans.",
+          );
+        }
 
         const updated = await updateApplication(appId, organization.id, data);
         if (!updated) {

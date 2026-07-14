@@ -22,7 +22,7 @@ import { Button } from "@repo/ui/components/ui/button";
 import { Label } from "@repo/ui/components/ui/label";
 import { formatRelative } from "@/lib/formatRelative";
 import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus";
-import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
+import { resolveAiLock } from "@/features/ai/lib/aiPlanGates";
 import { AiPlanLockedNotice } from "@/features/ai/components/AiPlanLockedNotice";
 import { AiInterviewStatusCell } from "@/features/aiInterview/components/AiInterviewStatusCell";
 import {
@@ -47,13 +47,15 @@ export function ApplicationDetailsPage({
   const [editOpen, setEditOpen] = useState(false);
   const { data, isLoading } = useApplicationQuery(applicationId);
   const { data: billingStatus } = useBillingStatusQuery();
-  const { servingAvailable } = useAiAvailability();
   const updateMutation = useUpdateApplicationMutation();
   const toggleAiMutation = useToggleApplicationAiSettingMutation(applicationId);
 
   const application = data?.application;
   const aiInterviewStatus = application?.aiInterviewStatus ?? "not_started";
-  const aiAddonActive = Boolean(billingStatus?.aiAddonActive);
+  const aiLock = resolveAiLock(
+    billingStatus?.plan,
+    Boolean(billingStatus?.aiAddonActive),
+  );
 
   const handleEditSubmit = async (body: UpdateApplicationRequest) => {
     try {
@@ -192,16 +194,21 @@ export function ApplicationDetailsPage({
         </Card>
       </div>
 
-      {!servingAvailable && (
+      {/* Both switches below drive add-on-only capabilities, so they appear only
+          when the org can actually act on them: an add-on-eligible plan WITH the
+          add-on active. Every other case gets the notice that names its own
+          blocker, rather than a switch that silently does nothing. */}
+      {aiLock && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">AI</h2>
           <AiPlanLockedNotice
+            lock={aiLock}
             contextReady={aiInterviewStatus === "completed"}
           />
         </div>
       )}
 
-      {servingAvailable && (
+      {!aiLock && (
         <div className="space-y-3">
           <h2 className="text-lg font-semibold">AI</h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -222,13 +229,6 @@ export function ApplicationDetailsPage({
                   aria-label="Toggle AI auto-respond"
                 />
               </CardHeader>
-              {!aiAddonActive && (
-                <CardContent className="pt-0">
-                  <p className="text-xs text-muted-foreground">
-                    Requires the AI Assistant add-on to take effect.
-                  </p>
-                </CardContent>
-              )}
             </Card>
 
             <Card>
@@ -248,13 +248,6 @@ export function ApplicationDetailsPage({
                   aria-label="Toggle AI database tools"
                 />
               </CardHeader>
-              {!aiAddonActive && (
-                <CardContent className="pt-0">
-                  <p className="text-xs text-muted-foreground">
-                    Requires the AI Assistant add-on to take effect.
-                  </p>
-                </CardContent>
-              )}
             </Card>
           </div>
         </div>

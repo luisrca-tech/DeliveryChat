@@ -10,6 +10,7 @@ const {
   isAddonEntitled,
   findAiAddonItem,
   deriveAddonEntitlement,
+  requestsAddonCapability,
   ADDON_ELIGIBLE_PLANS,
   AI_ADDON_LOOKUP_KEY,
   canRunInterview,
@@ -137,6 +138,28 @@ describe("deriveAddonEntitlement (plan × item matrix)", () => {
       });
     },
   );
+});
+
+describe("requestsAddonCapability", () => {
+  it.each([
+    [{ aiAutoRespond: true }, true],
+    [{ aiDbEnabled: true }, true],
+    [{ aiAutoRespond: true, aiDbEnabled: true }, true],
+    [{ aiAutoRespond: false }, false],
+    [{ aiDbEnabled: false }, false],
+    [{ aiAutoRespond: false, aiDbEnabled: false }, false],
+    // An update that touches neither flag (e.g. a rename) is never gated.
+    [{}, false],
+  ])("update %o → %s", (update, expected) => {
+    expect(requestsAddonCapability(update)).toBe(expected);
+  });
+
+  it("does not treat switching a capability OFF as a request for it", () => {
+    // Downgraded orgs must always be able to clean up stale `true` values.
+    expect(
+      requestsAddonCapability({ aiAutoRespond: false, aiDbEnabled: false }),
+    ).toBe(false);
+  });
 });
 
 describe("canRunInterview", () => {

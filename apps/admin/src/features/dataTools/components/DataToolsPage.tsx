@@ -1,5 +1,7 @@
 import { Database } from "lucide-react";
 import { useApplicationQuery } from "@/features/applications/hooks/useApplicationQuery";
+import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus";
+import { resolveAiLock } from "@/features/ai/lib/aiPlanGates";
 import { useDataSourceQuery } from "../hooks/useDataSourceQuery";
 import { DataToolsFeatureLockedError } from "../lib/dataTools.client";
 import { ConnectionCard } from "./ConnectionCard";
@@ -12,10 +14,17 @@ export type DataToolsPageProps = {
 
 export function DataToolsPage({ applicationId }: DataToolsPageProps) {
   const { data: applicationDetail } = useApplicationQuery(applicationId);
+  const { data: billingStatus } = useBillingStatusQuery();
   const { data: source, isLoading, error } = useDataSourceQuery(applicationId);
 
   const applicationName = applicationDetail?.application.name ?? "Application";
   const isLocked = error instanceof DataToolsFeatureLockedError;
+  // The lock itself is the API's call (`ai_addon_not_active`); the plan only
+  // decides WHICH way out we offer. Default to the purchase message when billing
+  // has not loaded yet — the API already told us the org has no add-on.
+  const lock =
+    resolveAiLock(billingStatus?.plan, Boolean(billingStatus?.aiAddonActive)) ??
+    "addon_inactive";
 
   return (
     <div className="max-w-full space-y-6">
@@ -29,7 +38,7 @@ export function DataToolsPage({ applicationId }: DataToolsPageProps) {
       </p>
 
       {isLocked ? (
-        <FeatureLockedCard />
+        <FeatureLockedCard lock={lock} />
       ) : isLoading ? (
         <div className="h-32 animate-pulse rounded-md bg-muted" />
       ) : (

@@ -17,6 +17,21 @@ button linking to `/settings/billing`, never an error toast.
 `DataToolsPage` treats this as the only "expected" error state; any other
 query error still surfaces the query's default loading/error UI.
 
+The API answers `ai_addon_not_active` for every locked org, so it cannot say
+WHY. The card therefore picks its message from the plan, via `resolveAiLock`
+(`features/ai/lib/aiPlanGates`):
+
+- `free_plan` / `upgrade_plan` (FREE, BASIC) — the add-on is not purchasable on
+  this tier: "available on Premium and Enterprise plans".
+- `addon_inactive` (PREMIUM, ENTERPRISE without the add-on — never bought, or
+  cancelled) — nothing to upgrade: "your plan supports the add-on, but it is not
+  active on your account".
+
+Both keep the same **Go to Billing** CTA. Telling a Premium org to upgrade, or a
+Basic org to buy something it cannot buy, is the failure this split exists to
+prevent. Billing has not loaded yet → default to `addon_inactive`, since the API
+has already established the org has no add-on.
+
 ## Write-only secrets
 
 `applicationDataSource.config` stores encrypted secrets (`encryptedHeaders`

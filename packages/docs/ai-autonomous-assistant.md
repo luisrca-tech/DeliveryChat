@@ -93,16 +93,34 @@ subscription). Entitlement (`aiAddonActive`) is derived only from Stripe
 webhooks, never set directly by any route. Full billing mechanics:
 `packages/docs/billing-and-plans/stripe-plan.md` ("AI Add-on" section).
 
-| Capability                                            | Requires                                                                                                                   |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| Purchase the add-on                                   | `plan ∈ {PREMIUM, ENTERPRISE}`, `planStatus ∈ {active, trialing}`                                                          |
-| Autonomous replies in the widget (`isAiTurnEntitled`) | `plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive` **and** `application.aiEnabled` **and** `application.aiAutoRespond` |
-| HTTP data tools                                       | Org add-on entitlement **and** `application.aiEnabled`                                                                     |
-| SQL data tools                                        | Org add-on entitlement **and** `application.aiEnabled` **and** `application.aiDbEnabled` (per-app opt-in)                  |
-| Data-connection config UI (`requireAiAddon`)          | Org add-on entitlement (`plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive`) — same gate as the rest of the AI feature  |
+| Capability                                            | Requires                                                                                                                                                                                  |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Purchase the add-on                                   | `plan ∈ {PREMIUM, ENTERPRISE}`, `planStatus ∈ {active, trialing}`                                                                                                                         |
+| Autonomous replies in the widget (`isAiTurnEntitled`) | `plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive` **and** `application.aiEnabled` **and** `application.aiAutoRespond`                                                                |
+| HTTP data tools                                       | Org add-on entitlement **and** `application.aiEnabled`                                                                                                                                    |
+| SQL data tools                                        | Org add-on entitlement **and** `application.aiEnabled` **and** `application.aiDbEnabled` (per-app opt-in)                                                                                 |
+| Data-connection config UI (`requireAiAddon`)          | Org add-on entitlement (`plan ∈ {PREMIUM, ENTERPRISE}` **and** `aiAddonActive`) — same gate as the rest of the AI feature                                                                 |
+| Setting `aiAutoRespond` / `aiDbEnabled` to `true`     | `plan ∈ {PREMIUM, ENTERPRISE}` (`PATCH /applications/:id` → 403 `plan_not_eligible` otherwise). Setting them to `false` is never gated, so a downgraded org can always clear stale values |
+| The two AI switches in the admin UI                   | Org add-on entitlement. Anything short of it renders `AiPlanLockedNotice` instead of the switches — never a toggle the runtime would ignore                                               |
 
 A downgrade away from `{PREMIUM, ENTERPRISE}` clears the entitlement flags
 immediately and schedules removal of the orphaned Stripe subscription item.
+
+### The three locked states in the admin UI
+
+The API answers `ai_addon_not_active` for every locked org, so the admin UI
+derives the reason — and therefore the way out — from the plan, in
+`apps/admin/src/features/ai/lib/aiPlanGates.ts` (`resolveAiLock`):
+
+| Org                                   | Lock state       | Message                                          |
+| ------------------------------------- | ---------------- | ------------------------------------------------ |
+| FREE                                  | `free_plan`      | The assistant is off on this plan — subscribe    |
+| BASIC                                 | `upgrade_plan`   | Drafts work; the add-on needs Premium/Enterprise |
+| PREMIUM/ENTERPRISE, add-on not active | `addon_inactive` | Your plan supports it — purchase the add-on      |
+| PREMIUM/ENTERPRISE, add-on active     | `null`           | Switches shown                                   |
+
+Telling a Premium org to "upgrade" (it already has) or a Basic org to "buy the
+add-on" (it cannot) are the two failures this split exists to prevent.
 
 ## Encryption
 

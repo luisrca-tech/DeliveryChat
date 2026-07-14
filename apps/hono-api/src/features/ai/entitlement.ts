@@ -43,6 +43,20 @@ export function isAddonEntitled(
   return addonEligiblePlan(organization.plan) && organization.aiAddonActive;
 }
 
+/**
+ * Whether an application update is asking to switch ON a capability that only
+ * the AI add-on can deliver (autonomous auto-respond, SQL data tools).
+ *
+ * Switching a capability OFF is never gated: an org that downgraded must still
+ * be able to clear stale `true` values.
+ */
+export function requestsAddonCapability(update: {
+  aiAutoRespond?: boolean;
+  aiDbEnabled?: boolean;
+}): boolean {
+  return update.aiAutoRespond === true || update.aiDbEnabled === true;
+}
+
 export type InterviewAccessOrganization = {
   plan: string;
   planStatus: string | null;
