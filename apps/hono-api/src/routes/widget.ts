@@ -197,11 +197,19 @@ export const widgetRoute = new Hono()
 
         await resolveOrCreateVisitor(visitorId);
 
+        // Same AI-vs-human decision the unified `/conversations` route makes.
+        // Without it the widget — the only path real visitors use — would
+        // always create human-handled conversations and the AI would never run.
+        const handledBy = await resolveInitialHandledBy(
+          widgetAuth.application.id,
+        );
+
         const conversation = await createConversation({
           organizationId: widgetAuth.organizationId,
           applicationId: widgetAuth.application.id,
           subject,
           createdBy: visitorId,
+          handledBy,
           participants: [{ userId: visitorId, role: "visitor" }],
         });
 
