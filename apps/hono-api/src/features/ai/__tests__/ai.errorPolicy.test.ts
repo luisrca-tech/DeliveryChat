@@ -82,7 +82,7 @@ describe("classifyProviderException", () => {
   });
 });
 
-// Shaped like the AI SDK's APICallError on a Groq 429: the retry-after header
+// Shaped like the AI SDK's APICallError on a provider 429: the retry-after header
 // (seconds) is the contract; the message text is informational only.
 function apiCallError429(retryAfter?: string): Error {
   const responseHeaders: Record<string, string> = {

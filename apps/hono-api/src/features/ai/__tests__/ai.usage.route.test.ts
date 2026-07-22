@@ -115,7 +115,7 @@ describe("GET /ai/usage", () => {
         operatorName: "Test Operator",
         action: "generate",
         conversationId: "conv-1",
-        model: "groq/llama-3.3-70b",
+        model: "nvidia/nemotron-3-super-120b-a12b:free",
         inputTokens: 100,
         outputTokens: 50,
         latencyMs: 1200,
