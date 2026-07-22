@@ -187,7 +187,7 @@ This is the "tool can't deliver the data" path, and it's distinct from Conversat
 
 ### Conversation 12 — Provider down (no dead air)
 
-**Setup:** blank or corrupt `GROQ_API_KEY`, restart the API.
+**Setup:** blank or corrupt `OPENROUTER_API_KEY`, restart the API.
 
 > **You:** `Hello?`
 

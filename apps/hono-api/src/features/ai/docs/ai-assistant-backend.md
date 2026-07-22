@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AI assistant feature enables operators on PREMIUM and ENTERPRISE plans to use an LLM (Groq/Llama) for two actions: **Generate Reply** (draft a new reply from conversation context) and **Improve Message** (rewrite an operator's existing draft for clarity and professionalism).
+The AI assistant feature enables operators on PREMIUM and ENTERPRISE plans to use an LLM (via OpenRouter gateway) for two actions: **Generate Reply** (draft a new reply from conversation context) and **Improve Message** (rewrite an operator's existing draft for clarity and professionalism).
 
 ## Routes
 
@@ -34,7 +34,7 @@ Rewrites an operator's draft message for better clarity, tone, and professionali
 ## Provider Abstraction
 
 - `AIProvider` interface with `generateText()` method
-- `GroqProvider` — production, uses Vercel AI SDK + `@ai-sdk/groq`
+- `OpenRouterProvider` — production, uses Vercel AI SDK + `@openrouter/ai-sdk-provider`
 - `MockProvider` — tests, activated by `mock://` model identifier. Supports simulation flags in system prompt: `__TIMEOUT__`, `__EMPTY__`, `__CONTENT_FILTER__`, `__PROVIDER_ERROR__`
 
 ## Context Building

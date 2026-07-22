@@ -38,7 +38,7 @@ Every interview LLM call uses `provider.generateObject(...)` with `interviewerOu
 }
 ```
 
-`MockProvider.queueObject(...)` drives this in tests; `GroqProvider.generateObject(...)` backs production.
+`MockProvider.queueObject(...)` drives this in tests; `OpenRouterProvider.generateObject(...)` backs production.
 
 ## Routes
 

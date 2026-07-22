@@ -69,7 +69,7 @@ ENTERPRISE tenants can have custom monthly caps configured via tenant rate limit
 
 - No customer messages or AI-generated responses are stored beyond the conversation itself
 - The `aiUsageLog` table records metadata only: timestamps, token counts, latency, status
-- All AI processing happens through Groq's API with the configured model
+- All AI processing happens through OpenRouter gateway with the configured model
 
 ## Error States
 
@@ -182,8 +182,8 @@ All prompt composition uses the single `buildSystemPrompt()` API.
 
 ## Technical Details
 
-- **Provider**: Groq API via Vercel AI SDK
-- **Model**: Configurable via `AI_MODEL` environment variable (default: `llama-3.3-70b-versatile`)
+- **Provider**: OpenRouter gateway via Vercel AI SDK (`@openrouter/ai-sdk-provider`)
+- **Model**: Configurable via `AI_MODEL` environment variable (default: `nvidia/nemotron-3-super-120b-a12b:free`)
 - **Backend routes**: `POST /api/v1/ai/generate-reply`, `POST /api/v1/ai/improve-message`, `GET /api/v1/ai/usage`, `GET /api/v1/applications/:applicationId/ai-interview`, `POST /api/v1/applications/:applicationId/ai-interview/turns`, `POST /api/v1/applications/:applicationId/ai-interview/complete`
 - **Interview model**: Configurable via `AI_INTERVIEW_MODEL` (default mirrors `AI_MODEL`).
 - **Interview lifecycle**: `GET` returns the persisted state or a `not_started` sentinel. `POST /turns` with `{ expectedCurrentTurn: 0 }` and no message bootstraps the interview lazily; subsequent calls advance the turn under an optimistic lock on `currentTurn`. The server tracks core-topic coverage from each assistant turn's `topicsCoveredThisTurn`; once every core topic is covered the response exposes `canFinish: true`. When the LLM tries to wrap up early (`suggest_finish` with topics missing), the server silently downgrades the intent to `ask` and re-prompts the LLM to address the missing topics. The admin completes the interview explicitly via `POST /complete` with `{ expectedCurrentTurn }`: it returns `422 { error: 'interview_checklist_incomplete', missing }` if topics are still missing, `409 turn_conflict` on stale state, and `200` with `status='completed'`, `completedBy`, `completedAt` on success. `contextSummary` and `applications.aiEnabled` are intentionally not touched yet — flipping those is a later phase.
