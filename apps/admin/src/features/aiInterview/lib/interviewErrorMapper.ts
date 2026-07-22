@@ -12,6 +12,11 @@ export type RetryableCode =
 
 export type SystemBubbleCode = "ai_empty_response" | "ai_content_filtered";
 
+/** Backend codes that mean "this needs a paid plan", not "this went wrong". */
+export type UpgradeCode =
+  | "ai_feature_not_available"
+  | "ai_interview_trial_expired";
+
 export type InterviewErrorSurface =
   | {
       kind: "retry_row";
@@ -30,6 +35,13 @@ export type InterviewErrorSurface =
       code: "ai_monthly_cap_exceeded";
       title: string;
       detail: string;
+    }
+  | {
+      kind: "upgrade_banner";
+      code: UpgradeCode;
+      title: string;
+      detail: string;
+      ctaLabel: string;
     }
   | {
       kind: "missing_topics";
@@ -96,6 +108,19 @@ const BLOCKING_BANNER_COPY = {
     "You have used your AI allowance for this billing period. The interview will resume next cycle, or contact your admin to upgrade.",
 };
 
+const UPGRADE_COPY: Record<UpgradeCode, { title: string; detail: string }> = {
+  ai_feature_not_available: {
+    title: "The AI assistant is not included in your current plan.",
+    detail:
+      "Choose a plan to turn the assistant on. Any context you have already written is kept.",
+  },
+  ai_interview_trial_expired: {
+    title: "Your free trial has ended.",
+    detail:
+      "Setting up the AI assistant is available during the 14-day trial, and on any paid plan. Choose a plan to pick up where you left off.",
+  },
+};
+
 export function mapInterviewErrorToSurface(
   error: unknown,
 ): InterviewErrorSurface | null {
@@ -144,6 +169,16 @@ export function mapInterviewErrorToSurface(
       detail:
         "Your interview was saved, but the summary step failed. You can retry without losing your answers.",
       retryLabel: "Retry generation",
+    };
+  }
+
+  if (code && code in UPGRADE_COPY) {
+    const upgradeCode = code as UpgradeCode;
+    return {
+      kind: "upgrade_banner",
+      code: upgradeCode,
+      ...UPGRADE_COPY[upgradeCode],
+      ctaLabel: "See plans",
     };
   }
 

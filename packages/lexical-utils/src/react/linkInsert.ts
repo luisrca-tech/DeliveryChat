@@ -56,11 +56,7 @@ export function insertLinkAtSelection(
         saved.anchorOffset,
         saved.anchorType,
       );
-      selection.focus.set(
-        saved.focusKey,
-        saved.focusOffset,
-        saved.focusType,
-      );
+      selection.focus.set(saved.focusKey, saved.focusOffset, saved.focusType);
       $setSelection(selection);
     }
 

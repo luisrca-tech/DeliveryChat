@@ -56,8 +56,7 @@ export function ApiKeysPage() {
   const pickedIsValid =
     pickedAppId != null && applications.some((a) => a.id === pickedAppId);
   const selectedAppId = pickedIsValid ? pickedAppId : firstApplicationId;
-  const selectedApp =
-    applications.find((a) => a.id === selectedAppId) ?? null;
+  const selectedApp = applications.find((a) => a.id === selectedAppId) ?? null;
 
   const { data: keysData, isLoading: keysLoading } =
     useApiKeysQuery(selectedAppId);

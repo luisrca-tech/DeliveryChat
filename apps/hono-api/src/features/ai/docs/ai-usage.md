@@ -13,7 +13,7 @@
 ## Query Parameters
 
 | Parameter  | Type   | Default | Description                              |
-|------------|--------|---------|------------------------------------------|
+| ---------- | ------ | ------- | ---------------------------------------- |
 | `limit`    | number | 20      | Results per page (1–100)                 |
 | `offset`   | number | 0       | Pagination offset                        |
 | `action`   | string | —       | Filter by action: `generate`, `improve`  |
@@ -34,7 +34,7 @@
       "operatorName": "Jane Doe",
       "action": "generate",
       "conversationId": "uuid | null",
-      "model": "groq/llama-3.3-70b",
+      "model": "nvidia/nemotron-3-super-120b-a12b:free",
       "inputTokens": 150,
       "outputTokens": 60,
       "latencyMs": 1200,

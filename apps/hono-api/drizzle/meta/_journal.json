@@ -218,6 +218,27 @@
       "when": 1780147664622,
       "tag": "0033_add_application_kind_and_port",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1783797290848,
+      "tag": "0034_add_ai_data_tools_and_escalation",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1783800689236,
+      "tag": "0035_add_autonomous_reply_ai_action",
+      "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1783801486656,
+      "tag": "0036_add_handoff_summary_and_action",
+      "breakpoints": true
     }
   ]
 }

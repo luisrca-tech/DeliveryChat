@@ -15,12 +15,12 @@ The redesigned interview reads like a curated print magazine rather than a chat 
 
 ### Tones
 
-| Tone        | CSS variable                          | Used for                                              |
-| ----------- | ------------------------------------- | ----------------------------------------------------- |
-| Foreground  | `--interview-color-foreground`        | Display headlines, primary body                       |
-| Muted       | `--interview-color-muted`             | Eyebrows, fine print, disabled actions                |
-| Accent      | `--interview-color-accent`            | Final-question eyebrow, text-links, left-rules        |
-| Amber       | `--interview-color-amber`             | Guardrail eyebrows and their dashed under-rules       |
+| Tone       | CSS variable                   | Used for                                        |
+| ---------- | ------------------------------ | ----------------------------------------------- |
+| Foreground | `--interview-color-foreground` | Display headlines, primary body                 |
+| Muted      | `--interview-color-muted`      | Eyebrows, fine print, disabled actions          |
+| Accent     | `--interview-color-accent`     | Final-question eyebrow, text-links, left-rules  |
+| Amber      | `--interview-color-amber`      | Guardrail eyebrows and their dashed under-rules |
 
 Amber is the only state color in the system. There is no destructive red and no success green — error states are communicated through copy and the dashed amber rule.
 
@@ -36,14 +36,14 @@ All theme tokens live in `apps/admin/src/features/aiInterview/styles/interview-t
 
 All primitives live in `apps/admin/src/features/aiInterview/components/` and have colocated snapshot tests.
 
-| Primitive                | Purpose                                                                 | A11y notes                                                                                          |
-| ------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `InterviewEyebrow`       | Uppercase tracked label with optional under-rule. 5 variants.           | Renders as `<p data-variant>`; under-rule is decorative `::after`.                                  |
-| `InterviewTextLink`      | Real `<button>` styled as accent text-link. Loading swaps to italic.    | `type="button"` default; arrow is `aria-hidden`; disabled state is muted; `:focus-visible` ring.    |
-| `InterviewQuestionBlock` | Eyebrow + serif display question. Applies eyebrow precedence.           | `<article>` landmark; amber under-rule is decorative.                                               |
-| `InterviewAnswerBlock`   | Indented sans-serif answer with 2px accent left-rule.                   | Plain text block; no interactive elements.                                                          |
-| `InterviewRuler`         | Two-zone editorial progress ruler (opening + suggested) with large serif numeral. | `aria-label="Turn N of M"`; numeral is `aria-hidden`; visible duplicate "Turn N of M" caption.      |
-| `InterviewMarginalia`    | Indented italic note for send errors and conflict-style asides.         | `role="status"` by default, `role="alert"` for errors; configurable via prop.                       |
+| Primitive                | Purpose                                                                           | A11y notes                                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `InterviewEyebrow`       | Uppercase tracked label with optional under-rule. 5 variants.                     | Renders as `<p data-variant>`; under-rule is decorative `::after`.                               |
+| `InterviewTextLink`      | Real `<button>` styled as accent text-link. Loading swaps to italic.              | `type="button"` default; arrow is `aria-hidden`; disabled state is muted; `:focus-visible` ring. |
+| `InterviewQuestionBlock` | Eyebrow + serif display question. Applies eyebrow precedence.                     | `<article>` landmark; amber under-rule is decorative.                                            |
+| `InterviewAnswerBlock`   | Indented sans-serif answer with 2px accent left-rule.                             | Plain text block; no interactive elements.                                                       |
+| `InterviewRuler`         | Two-zone editorial progress ruler (opening + suggested) with large serif numeral. | `aria-label="Turn N of M"`; numeral is `aria-hidden`; visible duplicate "Turn N of M" caption.   |
+| `InterviewMarginalia`    | Indented italic note for send errors and conflict-style asides.                   | `role="status"` by default, `role="alert"` for errors; configurable via prop.                    |
 
 The existing legacy components (`InterviewChatScrollback`, `InterviewIntroCard`, etc.) are kept for non-editorial code paths but no longer drive the redesigned surfaces.
 
@@ -62,13 +62,13 @@ The existing legacy components (`InterviewChatScrollback`, `InterviewIntroCard`,
 
 Every primary action is a text-link. Names are stable across all surfaces so existing E2E selectors continue to resolve:
 
-| Action               | Where it appears                                                                | Loading label        |
-| -------------------- | -------------------------------------------------------------------------------- | -------------------- |
-| `Begin interview →`  | Intro cover                                                                      | `Starting…`          |
-| `Send →`             | Composer (auto-grow textarea, italic placeholder)                                | `Sending…`           |
-| `Finish interview →` | Header text-link (suggested window), inline band, cap-reached state, completion | `Finishing…`         |
-| `Retry →`            | Send-error marginalia                                                            | `Retrying…`          |
-| `Regenerate summary →` | Summary spread header                                                          | `Rewriting your brief…` |
+| Action                 | Where it appears                                                                | Loading label           |
+| ---------------------- | ------------------------------------------------------------------------------- | ----------------------- |
+| `Begin interview →`    | Intro cover                                                                     | `Starting…`             |
+| `Send →`               | Composer (auto-grow textarea, italic placeholder)                               | `Sending…`              |
+| `Finish interview →`   | Header text-link (suggested window), inline band, cap-reached state, completion | `Finishing…`            |
+| `Retry →`              | Send-error marginalia                                                           | `Retrying…`             |
+| `Regenerate summary →` | Summary spread header                                                           | `Rewriting your brief…` |
 
 Disabled text-links lose the arrow and drop to muted color. Loading text-links swap their label to italic Fraunces in the muted tone, with no spinner.
 

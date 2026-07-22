@@ -1,4 +1,10 @@
-import { Users } from "lucide-react";
+import { useState } from "react";
+import { Bot, ChevronDown, Users } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@repo/ui/components/ui/collapsible";
 import { useConversationDetailQuery } from "../hooks/useConversationsQuery";
 import type { ConversationParticipant } from "../types/chat.types";
 
@@ -14,10 +20,42 @@ const roleColors: Record<string, string> = {
 
 export function ParticipantPanel({ conversationId }: Props) {
   const { data } = useConversationDetailQuery(conversationId);
-  const participants = data?.conversation?.participants ?? [];
+  const conversation = data?.conversation;
+  const participants = conversation?.participants ?? [];
+  const [isSummaryOpen, setIsSummaryOpen] = useState(true);
 
   return (
     <div className="w-72 border-l border-border bg-card/50 flex flex-col shrink-0">
+      {conversation?.handoffSummary && (
+        <Collapsible
+          open={isSummaryOpen}
+          onOpenChange={setIsSummaryOpen}
+          className="border-b border-border"
+        >
+          <CollapsibleTrigger className="w-full flex items-center justify-between gap-2 p-4 text-left">
+            <span className="flex items-center gap-2 text-sm font-medium">
+              <Bot className="h-4 w-4 text-indigo-600" />
+              AI handoff summary
+            </span>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform ${
+                isSummaryOpen ? "rotate-180" : ""
+              }`}
+            />
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-4 pb-4 space-y-2">
+            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              {conversation.handoffSummary}
+            </p>
+            {conversation.escalationReason && (
+              <p className="text-xs text-muted-foreground italic">
+                Reason: {conversation.escalationReason}
+              </p>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
+      )}
+
       <div className="p-4 border-b border-border flex items-center gap-2">
         <Users className="h-4 w-4 text-muted-foreground" />
         <span className="text-sm font-medium">Participants</span>

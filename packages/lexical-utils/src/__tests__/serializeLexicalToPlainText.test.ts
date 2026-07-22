@@ -163,9 +163,7 @@ describe("serializeLexicalToPlainText", () => {
       },
     });
 
-    expect(serializeLexicalToPlainText(json, "lexical")).toBe(
-      "Visit our site",
-    );
+    expect(serializeLexicalToPlainText(json, "lexical")).toBe("Visit our site");
   });
 
   it("returns truncated fallback for malformed JSON", () => {

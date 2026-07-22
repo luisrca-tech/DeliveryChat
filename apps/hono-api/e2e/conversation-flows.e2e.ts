@@ -1,23 +1,40 @@
 import { test, expect } from "@playwright/test";
 import WebSocket from "ws";
+import { randomUUID } from "node:crypto";
 import {
   provisionTestData,
   cleanupTestData,
   createConversationInDB,
   addParticipantInDB,
+  createSessionInDB,
+  signSessionCookie,
+  signVisitorWsToken,
   type E2ETestData,
 } from "./helpers/db-fixture";
 import {
   connectWebSocket,
   waitForMessage,
   sendWsEvent,
+  joinRoomAndSettle,
   sleep,
 } from "./helpers/setup";
 
+/**
+ * How long to let WebSocket connections settle before asserting on traffic.
+ * Staff auth costs extra DB round-trips (session → org → membership) on top of
+ * the visitor path, so a short wait races: their `room:join` can land after a
+ * message has already been broadcast, and they miss it.
+ */
+const WS_SETTLE_MS = 1000;
+
 let testData: E2ETestData;
+let operatorSessionToken: string;
+let adminSessionToken: string;
 
 test.beforeAll(async () => {
   testData = await provisionTestData();
+  operatorSessionToken = await createSessionInDB(testData.operatorUser.id);
+  adminSessionToken = await createSessionInDB(testData.adminUser.id);
   console.log(`[E2E Flows] Test data provisioned: org=${testData.org.slug}`);
 });
 
@@ -27,19 +44,35 @@ test.afterAll(async () => {
 });
 
 // ── Helper to build WS URLs ──
+//
+// The WS endpoint has two auth paths (see wsAuth.ts):
+//   - visitors  → `token`, a signed WS token binding appId + visitorId + origin
+//   - staff     → `sessionToken` (a Better Auth session) + `tenant` (org slug)
+// Staff must NOT borrow the visitor path: it would resolve them with role
+// "visitor", and role-sensitive assertions would silently test the wrong thing.
 
 function visitorWsUrl(visitorId: string) {
-  return `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${visitorId}`;
+  const token = signVisitorWsToken({ appId: testData.app.id, visitorId });
+  return `ws://localhost:8000/api/v1/ws?token=${encodeURIComponent(token)}`;
+}
+
+function staffWsUrl(sessionToken: string) {
+  // wsAuth promotes `sessionToken` to `Authorization: Bearer …`, and Better
+  // Auth's bearer plugin runs that value through the signed-cookie verifier —
+  // which expects the percent-encoded signed form. Hono decodes the query
+  // param once, so it has to be encoded twice to survive intact.
+  const bearer = encodeURIComponent(signSessionCookie(sessionToken));
+  return `ws://localhost:8000/api/v1/ws?sessionToken=${bearer}&tenant=${encodeURIComponent(
+    testData.org.slug,
+  )}`;
 }
 
 function operatorWsUrl() {
-  // Operators use session auth, but for E2E we simulate via the widget path
-  // using the operator's userId as visitorId (they're still in the participant table)
-  return `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${testData.operatorUser.id}`;
+  return staffWsUrl(operatorSessionToken);
 }
 
 function adminWsUrl() {
-  return `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}&visitorId=${testData.adminUser.id}`;
+  return staffWsUrl(adminSessionToken);
 }
 
 // ── Flow 1: Visitor ↔ Operator (Support) ──
@@ -56,6 +89,9 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
         { userId: testData.visitorUser.id, role: "visitor" },
         { userId: testData.operatorUser.id, role: "operator" },
       ],
+      // The operator has accepted the conversation — required for them to reply.
+      assignedTo: testData.operatorUser.id,
+      status: "active",
     });
   });
 
@@ -68,15 +104,9 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
     await sleep(500);
 
     // 2. Both join the conversation room
-    sendWsEvent(visitor.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
+    await joinRoomAndSettle(visitor.ws, visitor.messages, conversationId);
     await sleep(200);
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
+    await joinRoomAndSettle(operator.ws, operator.messages, conversationId);
     await sleep(500);
 
     // 3. Visitor sends a message
@@ -120,14 +150,10 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
       visitorWsUrl(testData.visitorUser.id),
     );
     const operator = await connectWebSocket(operatorWsUrl());
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
-    sendWsEvent(visitor.ws, { type: "room:join", payload: { conversationId } });
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
-    await sleep(300);
+    await joinRoomAndSettle(visitor.ws, visitor.messages, conversationId);
+    await joinRoomAndSettle(operator.ws, operator.messages, conversationId);
 
     // Operator responds
     sendWsEvent(operator.ws, {
@@ -166,14 +192,10 @@ test.describe("Flow 1: Visitor ↔ Operator (Support Conversation)", () => {
       visitorWsUrl(testData.visitorUser.id),
     );
     const operator = await connectWebSocket(operatorWsUrl());
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
-    sendWsEvent(visitor.ws, { type: "room:join", payload: { conversationId } });
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
-    await sleep(300);
+    await joinRoomAndSettle(visitor.ws, visitor.messages, conversationId);
+    await joinRoomAndSettle(operator.ws, operator.messages, conversationId);
 
     // Send 3 messages in sequence
     for (let i = 1; i <= 3; i++) {
@@ -231,14 +253,10 @@ test.describe("Flow 2: Operator ↔ Admin (Internal Conversation)", () => {
   test("operator and admin exchange messages in internal conversation", async () => {
     const operator = await connectWebSocket(operatorWsUrl());
     const admin = await connectWebSocket(adminWsUrl());
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
-    sendWsEvent(admin.ws, { type: "room:join", payload: { conversationId } });
-    await sleep(300);
+    await joinRoomAndSettle(operator.ws, operator.messages, conversationId);
+    await joinRoomAndSettle(admin.ws, admin.messages, conversationId);
 
     // Operator sends
     sendWsEvent(operator.ws, {
@@ -282,12 +300,9 @@ test.describe("Flow 2: Operator ↔ Admin (Internal Conversation)", () => {
   test("internal conversation does not require applicationId", async () => {
     // The conversation was created without applicationId — verify it works
     const operator = await connectWebSocket(operatorWsUrl());
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
+    await joinRoomAndSettle(operator.ws, operator.messages, conversationId);
     await sleep(200);
 
     sendWsEvent(operator.ws, {
@@ -331,12 +346,9 @@ test.describe("Flow 3: Admin Escalation into Support Conversation", () => {
 
   test("admin cannot join before being added as participant", async () => {
     const admin = await connectWebSocket(adminWsUrl());
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
-    sendWsEvent(admin.ws, {
-      type: "room:join",
-      payload: { conversationId: supportConvId },
-    });
+    await joinRoomAndSettle(admin.ws, admin.messages, supportConvId);
 
     const error = await waitForMessage(
       admin.messages,
@@ -357,22 +369,12 @@ test.describe("Flow 3: Admin Escalation into Support Conversation", () => {
     );
     const operator = await connectWebSocket(operatorWsUrl());
     const admin = await connectWebSocket(adminWsUrl());
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
     // 3. All join the room
-    sendWsEvent(visitor.ws, {
-      type: "room:join",
-      payload: { conversationId: supportConvId },
-    });
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId: supportConvId },
-    });
-    sendWsEvent(admin.ws, {
-      type: "room:join",
-      payload: { conversationId: supportConvId },
-    });
-    await sleep(300);
+    await joinRoomAndSettle(visitor.ws, visitor.messages, supportConvId);
+    await joinRoomAndSettle(operator.ws, operator.messages, supportConvId);
+    await joinRoomAndSettle(admin.ws, admin.messages, supportConvId);
 
     // 4. Visitor sends a message — both operator AND admin should receive it
     sendWsEvent(visitor.ws, {
@@ -451,6 +453,8 @@ test.describe("Flow 4: Reconnection and Message Sync", () => {
         { userId: testData.visitorUser.id, role: "visitor" },
         { userId: testData.operatorUser.id, role: "operator" },
       ],
+      assignedTo: testData.operatorUser.id,
+      status: "active",
     });
   });
 
@@ -460,17 +464,10 @@ test.describe("Flow 4: Reconnection and Message Sync", () => {
       visitorWsUrl(testData.visitorUser.id),
     );
     const operator = await connectWebSocket(operatorWsUrl());
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
-    sendWsEvent(visitor1.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId },
-    });
-    await sleep(300);
+    await joinRoomAndSettle(visitor1.ws, visitor1.messages, conversationId);
+    await joinRoomAndSettle(operator.ws, operator.messages, conversationId);
 
     // 2. Visitor sends a message to establish a known messageId
     sendWsEvent(visitor1.ws, {
@@ -519,7 +516,7 @@ test.describe("Flow 4: Reconnection and Message Sync", () => {
     const visitor2 = await connectWebSocket(
       visitorWsUrl(testData.visitorUser.id),
     );
-    await sleep(300);
+    await sleep(WS_SETTLE_MS);
 
     sendWsEvent(visitor2.ws, {
       type: "room:join",
@@ -579,26 +576,14 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
     );
     const operator = await connectWebSocket(operatorWsUrl());
     const admin = await connectWebSocket(adminWsUrl());
-    await sleep(300);
+    // An unrelated visitor, participant of nothing — the isolation probe.
+    const stranger = await connectWebSocket(visitorWsUrl(randomUUID()));
 
     // Visitor joins Conv A, Admin joins Conv B, Operator joins both
-    sendWsEvent(visitor.ws, {
-      type: "room:join",
-      payload: { conversationId: convA },
-    });
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId: convA },
-    });
-    sendWsEvent(operator.ws, {
-      type: "room:join",
-      payload: { conversationId: convB },
-    });
-    sendWsEvent(admin.ws, {
-      type: "room:join",
-      payload: { conversationId: convB },
-    });
-    await sleep(300);
+    await joinRoomAndSettle(visitor.ws, visitor.messages, convA);
+    await joinRoomAndSettle(operator.ws, operator.messages, convA);
+    await joinRoomAndSettle(operator.ws, operator.messages, convB);
+    await joinRoomAndSettle(admin.ws, admin.messages, convB);
 
     // Send a message in Conv A
     sendWsEvent(visitor.ws, {
@@ -619,9 +604,13 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
     );
     expect(opReceived).toBeDefined();
 
-    // Wait a bit then verify admin did NOT receive it
+    // A visitor who is not a participant of Conv A must never see it. This is
+    // the isolation guarantee that matters: staff are deliberately excluded
+    // from it — `message:send` also calls broadcastToStaff() so every operator
+    // and admin in the org gets live inbox updates, so the admin connection
+    // here is NOT a valid isolation probe.
     await sleep(500);
-    const adminGotConvAMessage = admin.messages.some((raw) => {
+    const strangerGotConvAMessage = stranger.messages.some((raw) => {
       try {
         const m = JSON.parse(raw);
         return (
@@ -632,10 +621,11 @@ test.describe("Flow 5: Room Isolation Between Conversations", () => {
         return false;
       }
     });
-    expect(adminGotConvAMessage).toBe(false);
+    expect(strangerGotConvAMessage).toBe(false);
 
     visitor.ws.close();
     operator.ws.close();
     admin.ws.close();
+    stranger.ws.close();
   });
 });

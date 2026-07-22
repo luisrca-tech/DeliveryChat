@@ -20,6 +20,8 @@ import {
   Pencil,
   Trash2,
   Check,
+  User,
+  Bot,
 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import type { ContentFormat } from "@repo/types";
@@ -235,6 +237,12 @@ export interface MessageThreadPanelProps {
     e: React.KeyboardEvent<HTMLInputElement>,
     msg: OptimisticMessage,
   ) => void;
+  handoffHidden: boolean;
+  handoffDisabled: boolean;
+  handoffError: string | null;
+  onRequestHuman: () => void;
+  /** `settings.ai.assistantLabel`; defaults to "AI Assistant". */
+  aiAssistantLabel?: string;
 }
 
 export function MessageThreadPanel({
@@ -258,6 +266,11 @@ export function MessageThreadPanel({
   handleSaveEdit,
   onRequestDelete,
   handleEditKeyDown,
+  handoffHidden,
+  handoffDisabled,
+  handoffError,
+  onRequestHuman,
+  aiAssistantLabel,
 }: MessageThreadPanelProps) {
   if (!conversation) {
     return (
@@ -277,9 +290,34 @@ export function MessageThreadPanel({
         <p className="text-[11px] font-medium truncate flex-1">
           {conversation.subject || "No subject"}
         </p>
+        {!handoffHidden && (
+          <button
+            type="button"
+            onClick={onRequestHuman}
+            disabled={handoffDisabled}
+            title={
+              handoffDisabled
+                ? "A team member is already handling this conversation"
+                : "Connect with a team member"
+            }
+            className="human-handoff-btn flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <User className="h-3 w-3" />
+            Talk to a human
+          </button>
+        )}
         <ConnectionDot status={wsStatus} />
         <StatusBadge status={conversation.status} />
       </div>
+
+      {handoffError && (
+        <div
+          role="alert"
+          className="px-3 py-1 text-[10px] text-destructive border-b border-border"
+        >
+          {handoffError}
+        </div>
+      )}
 
       <ScrollArea className="flex-1 px-3 py-2">
         {loadingMsgs ? (
@@ -320,6 +358,10 @@ export function MessageThreadPanel({
                 Date.now() - new Date(msg.createdAt).getTime() < 15 * 60 * 1000;
               const isEditing = editingState?.id === msg.id;
               const isLexical = isLexicalMessage(msg);
+              // AI bubbles carry a visual distinction from human ones — the
+              // same border + avatar + label the widget uses. This is legally
+              // required disclosure, not decoration.
+              const isAi = msg.authorType === "ai";
 
               return (
                 <div
@@ -373,6 +415,15 @@ export function MessageThreadPanel({
                     )
                   ) : (
                     <div className="flex w-fit max-w-[72%] shrink-0 items-end gap-1 min-w-0">
+                      {isAi && (
+                        <div
+                          aria-hidden="true"
+                          data-testid="ai-avatar"
+                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        >
+                          <Bot className="h-3.5 w-3.5" />
+                        </div>
+                      )}
                       {canModify && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -418,32 +469,36 @@ export function MessageThreadPanel({
                           isVisitor
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-foreground",
+                          isAi && "border border-primary",
                           msg.pending && "opacity-60",
                         )}
                       >
-                        {isLexical ? (
-                          (() => {
-                            const html =
-                              msg.contentHtml ??
-                              serializeLexicalJsonToHtml(msg.content);
-                            if (html) {
-                              return (
-                                <div
-                                  className={cn(
-                                    "rich-text-content",
-                                    isVisitor
-                                      ? "rich-text-content--self"
-                                      : "rich-text-content--other",
-                                  )}
-                                  dangerouslySetInnerHTML={{ __html: html }}
-                                />
-                              );
-                            }
-                            return msg.content;
-                          })()
-                        ) : (
-                          msg.content
+                        {isAi && (
+                          <span className="mb-0.5 block text-[10px] font-semibold text-primary">
+                            {aiAssistantLabel ?? "AI Assistant"}
+                          </span>
                         )}
+                        {isLexical
+                          ? (() => {
+                              const html =
+                                msg.contentHtml ??
+                                serializeLexicalJsonToHtml(msg.content);
+                              if (html) {
+                                return (
+                                  <div
+                                    className={cn(
+                                      "rich-text-content",
+                                      isVisitor
+                                        ? "rich-text-content--self"
+                                        : "rich-text-content--other",
+                                    )}
+                                    dangerouslySetInnerHTML={{ __html: html }}
+                                  />
+                                );
+                              }
+                              return msg.content;
+                            })()
+                          : msg.content}
                         {msg.editedAt && (
                           <span className="ml-1 text-[9px] opacity-60">
                             (edited)

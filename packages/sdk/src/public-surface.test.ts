@@ -22,6 +22,7 @@ describe("window.DeliveryChat public surface", () => {
       | "sendMessage"
       | "identify"
       | "getConversation"
+      | "requestHuman"
       | "queue";
     type ActualKeys = keyof DeliveryChatAPI;
 
@@ -82,6 +83,15 @@ describe("window.DeliveryChat public surface", () => {
 
     const optsDefault: InitOptions = { appId: "test" };
     expect(optsDefault.headless).toBeUndefined();
+  });
+
+  it("requestHuman takes no arguments and returns Promise<void>", () => {
+    type Params = Parameters<DeliveryChatAPI["requestHuman"]>;
+    type ReturnT = ReturnType<DeliveryChatAPI["requestHuman"]>;
+    const noParams: Params["length"] extends 0 ? true : false = true;
+    const isPromiseVoid: ReturnT extends Promise<void> ? true : false = true;
+    expect(noParams).toBe(true);
+    expect(isPromiseVoid).toBe(true);
   });
 
   it("sendMessage returns Promise<ChatMessage>", () => {

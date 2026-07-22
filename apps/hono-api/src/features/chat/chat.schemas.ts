@@ -11,7 +11,10 @@ export const roomLeaveSchema = z.object({
   conversationId: z.string().uuid(),
 });
 
-const contentFormatSchema = z.enum(["plain", "lexical"]).optional().default("plain");
+const contentFormatSchema = z
+  .enum(["plain", "lexical"])
+  .optional()
+  .default("plain");
 const contentFormatOptionalSchema = z.enum(["plain", "lexical"]).optional();
 
 export const messageSendSchema = z.object({

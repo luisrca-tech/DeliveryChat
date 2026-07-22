@@ -1,5 +1,13 @@
 import { useState } from "react";
-import { MoreHorizontal, Copy, Pencil, Trash2, Check, X } from "lucide-react";
+import {
+  MoreHorizontal,
+  Copy,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  Bot,
+} from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -19,7 +27,11 @@ const DELETE_WINDOW_MS = 2 * 24 * 60 * 60 * 1000;
 type Props = {
   message: Message;
   isSelf: boolean;
-  onEdit?: (messageId: string, content: string, contentFormat?: "plain" | "lexical") => void;
+  onEdit?: (
+    messageId: string,
+    content: string,
+    contentFormat?: "plain" | "lexical",
+  ) => void;
   onDelete?: (messageId: string) => void;
 };
 
@@ -67,8 +79,17 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
     );
   }
 
-  const roleLabel = message.senderRole ? roleLabels[message.senderRole] : null;
-  const roleColor = message.senderRole ? roleColors[message.senderRole] : "";
+  const isAiMessage = message.authorType === "ai";
+  const roleLabel = isAiMessage
+    ? "AI Assistant"
+    : message.senderRole
+      ? roleLabels[message.senderRole]
+      : null;
+  const roleColor = isAiMessage
+    ? "text-indigo-600"
+    : message.senderRole
+      ? roleColors[message.senderRole]
+      : "";
   const isLexical = message.contentFormat === "lexical";
 
   const canDelete =
@@ -94,7 +115,10 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
     setIsEditing(true);
   };
 
-  const handleSaveEdit = (content?: string, contentFormat?: "plain" | "lexical") => {
+  const handleSaveEdit = (
+    content?: string,
+    contentFormat?: "plain" | "lexical",
+  ) => {
     const finalContent = content ?? editContent.trim();
     const finalFormat = contentFormat ?? (isLexical ? "lexical" : "plain");
     if (finalContent && finalContent !== message.content) {
@@ -174,8 +198,13 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
       );
     }
 
-    if (isLexical) {
-      const html = message.contentHtml ?? serializeLexicalJsonToHtml(message.content);
+    // Rich rendering: lexical messages (operator rich text) and any message
+    // carrying server-rendered contentHtml (AI replies arrive as plain-format
+    // constrained markdown, rendered to sanitized HTML server-side).
+    if (isLexical || message.contentHtml) {
+      const html = isLexical
+        ? (message.contentHtml ?? serializeLexicalJsonToHtml(message.content))
+        : message.contentHtml;
       if (html) {
         return (
           <>
@@ -215,7 +244,8 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
     >
       {!isSelf && (
         <div className="flex items-center gap-1.5 mb-0.5 px-1">
-          {message.senderName && (
+          {isAiMessage && <Bot className="h-3 w-3 text-indigo-600" />}
+          {message.senderName && !isAiMessage && (
             <span className="text-[11px] font-medium text-muted-foreground">
               {message.senderName}
             </span>
@@ -235,7 +265,9 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
           className={`flex-1 min-w-0 px-3 py-2 rounded-xl text-sm leading-relaxed ${
             isSelf
               ? "bg-primary text-primary-foreground rounded-br-sm"
-              : "bg-muted rounded-bl-sm"
+              : isAiMessage
+                ? "bg-indigo-50 text-indigo-950 border border-indigo-200 rounded-bl-sm"
+                : "bg-muted rounded-bl-sm"
           }`}
         >
           {renderContent()}

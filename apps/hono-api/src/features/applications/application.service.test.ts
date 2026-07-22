@@ -218,6 +218,63 @@ describe("updateApplication", () => {
       expect.objectContaining({ allowedOrigins: origins }),
     );
   });
+
+  it("passes aiAutoRespond and aiDbEnabled to update when provided", async () => {
+    const updatedApp = {
+      ...mockApp,
+      aiAutoRespond: true,
+      aiDbEnabled: true,
+    };
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([mockApp]),
+        }),
+      }),
+    } as never);
+
+    const mockSet = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([updatedApp]),
+      }),
+    });
+    vi.mocked(db.update).mockReturnValue({ set: mockSet } as never);
+
+    const result = await updateApplication("app-123", "org-1", {
+      aiAutoRespond: true,
+      aiDbEnabled: true,
+    });
+    expect(result).toEqual(updatedApp);
+    expect(mockSet).toHaveBeenCalledWith(
+      expect.objectContaining({ aiAutoRespond: true, aiDbEnabled: true }),
+    );
+  });
+
+  it("does not touch aiAutoRespond/aiDbEnabled when not provided", async () => {
+    vi.mocked(db.select).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([mockApp]),
+        }),
+      }),
+    } as never);
+
+    const mockSet = vi.fn().mockReturnValue({
+      where: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([mockApp]),
+      }),
+    });
+    vi.mocked(db.update).mockReturnValue({ set: mockSet } as never);
+
+    await updateApplication("app-123", "org-1", { name: "Updated" });
+    expect(mockSet).toHaveBeenCalledTimes(1);
+    const setArg = mockSet.mock.calls[0]?.[0] as
+      | Record<string, unknown>
+      | undefined;
+    expect(setArg).toBeDefined();
+    expect(setArg).not.toHaveProperty("aiAutoRespond");
+    expect(setArg).not.toHaveProperty("aiDbEnabled");
+  });
 });
 
 describe("countActiveApiKeys", () => {

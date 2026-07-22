@@ -5,7 +5,14 @@ export function handleMessageEdited(
   payload: MessageEditedPayload,
   ctx: WebSocketHandlerContext,
 ): void {
-  const { conversationId, messageId, content, contentFormat, contentHtml, editedAt } = payload;
+  const {
+    conversationId,
+    messageId,
+    content,
+    contentFormat,
+    contentHtml,
+    editedAt,
+  } = payload;
 
   ctx.setQueryData(ctx.messagesQueryKey(conversationId), (old: unknown) => {
     const prev = old as
@@ -15,7 +22,9 @@ export function handleMessageEdited(
     return {
       ...prev,
       messages: prev.messages.map((msg) =>
-        msg.id === messageId ? { ...msg, content, contentFormat, contentHtml, editedAt } : msg,
+        msg.id === messageId
+          ? { ...msg, content, contentFormat, contentHtml, editedAt }
+          : msg,
       ),
     };
   });

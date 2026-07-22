@@ -4,11 +4,11 @@
 
 Every message carries three fields that together describe its content:
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `content` | `string` | — | Raw message body: plain text or serialized Lexical `EditorState` JSON |
-| `contentFormat` | `"plain" \| "lexical"` | `"plain"` | Discriminator for interpreting `content` |
-| `contentHtml` | `string \| null` | `null` | Pre-sanitized HTML computed server-side for `lexical` messages |
+| Field           | Type                   | Default   | Description                                                           |
+| --------------- | ---------------------- | --------- | --------------------------------------------------------------------- |
+| `content`       | `string`               | —         | Raw message body: plain text or serialized Lexical `EditorState` JSON |
+| `contentFormat` | `"plain" \| "lexical"` | `"plain"` | Discriminator for interpreting `content`                              |
+| `contentHtml`   | `string \| null`       | `null`    | Pre-sanitized HTML computed server-side for `lexical` messages        |
 
 The backend always computes `contentHtml` when `contentFormat` is `"lexical"`. Clients render `contentHtml` directly — they never need to parse Lexical JSON.
 
@@ -36,36 +36,36 @@ An optional React package that provides Lexical editor components for React-base
 
 ### Admin Panel (`apps/admin`)
 
-| Aspect | Behavior |
-|--------|----------|
-| **Editor** | Lexical rich text editor, always on. Toolbar: Bold, Italic, Underline, Strikethrough, Code, Code Block, H1-H3, Bullet/Numbered List, Link, AI Generate, AI Improve. |
-| **Plain-text detection** | `isPlainTextLexicalJson()` auto-detects when content has no formatting and sends as `contentFormat: "plain"` to avoid unnecessary JSON overhead. |
-| **Rendering** | Uses `contentHtml` from server. For optimistic messages, computes `contentHtml` client-side via `serializeLexicalJsonToHtml()`. Falls back to the same serializer if `contentHtml` is missing. |
-| **Inline editing** | Edits preserve format. Lexical messages re-open in the Lexical editor; plain messages use a text input. |
+| Aspect                   | Behavior                                                                                                                                                                                       |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Editor**               | Lexical rich text editor, always on. Toolbar: Bold, Italic, Underline, Strikethrough, Code, Code Block, H1-H3, Bullet/Numbered List, Link, AI Generate, AI Improve.                            |
+| **Plain-text detection** | `isPlainTextLexicalJson()` auto-detects when content has no formatting and sends as `contentFormat: "plain"` to avoid unnecessary JSON overhead.                                               |
+| **Rendering**            | Uses `contentHtml` from server. For optimistic messages, computes `contentHtml` client-side via `serializeLexicalJsonToHtml()`. Falls back to the same serializer if `contentHtml` is missing. |
+| **Inline editing**       | Edits preserve format. Lexical messages re-open in the Lexical editor; plain messages use a text input.                                                                                        |
 
 ### SDK Widget (`packages/sdk`)
 
-| Aspect | Behavior |
-|--------|----------|
-| **Editor** | Plain `<textarea>`. All visitor messages are `contentFormat: "plain"`. |
+| Aspect        | Behavior                                                                                                        |
+| ------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Editor**    | Plain `<textarea>`. All visitor messages are `contentFormat: "plain"`.                                          |
 | **Rendering** | If `contentFormat === "lexical"`, renders `contentHtml` via `innerHTML`. Otherwise, displays `content` as text. |
-| **Styling** | Rich content styles (headings, lists, code blocks, links) are scoped within the Shadow DOM. |
+| **Styling**   | Rich content styles (headings, lists, code blocks, links) are scoped within the Shadow DOM.                     |
 
 ### Chat Demo (`apps/web`)
 
-| Aspect | Behavior |
-|--------|----------|
-| **Editor** | Lexical rich text editor (same node set as admin, without AI toolbar actions). Toolbar: Bold, Italic, Underline, Strikethrough, Code, Code Block, H1-H3, Bullet/Numbered List, Link. |
-| **Plain-text detection** | Same `isPlainTextLexicalJson()` logic — unformatted messages send as `contentFormat: "plain"`. |
-| **Rendering** | Checks `contentFormat === "lexical"` and renders `contentHtml` via `dangerouslySetInnerHTML`. Plain messages render as text. |
-| **Purpose** | Showcases the rich text experience on the landing page so prospects can evaluate the platform's capabilities. |
+| Aspect                   | Behavior                                                                                                                                                                             |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Editor**               | Lexical rich text editor (same node set as admin, without AI toolbar actions). Toolbar: Bold, Italic, Underline, Strikethrough, Code, Code Block, H1-H3, Bullet/Numbered List, Link. |
+| **Plain-text detection** | Same `isPlainTextLexicalJson()` logic — unformatted messages send as `contentFormat: "plain"`.                                                                                       |
+| **Rendering**            | Checks `contentFormat === "lexical"` and renders `contentHtml` via `dangerouslySetInnerHTML`. Plain messages render as text.                                                         |
+| **Purpose**              | Showcases the rich text experience on the landing page so prospects can evaluate the platform's capabilities.                                                                        |
 
 ### Third-Party REST API Integrations
 
-| Aspect | Behavior |
-|--------|----------|
-| **Receiving** | Every message response includes `contentFormat` and `contentHtml`. Integrators render `contentHtml` as HTML — no Lexical knowledge required. |
-| **Sending (simple)** | Omit `contentFormat` or set it to `"plain"` and send plain text in `content`. This is the recommended path for most integrations. |
+| Aspect                 | Behavior                                                                                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Receiving**          | Every message response includes `contentFormat` and `contentHtml`. Integrators render `contentHtml` as HTML — no Lexical knowledge required.                      |
+| **Sending (simple)**   | Omit `contentFormat` or set it to `"plain"` and send plain text in `content`. This is the recommended path for most integrations.                                 |
 | **Sending (advanced)** | Set `contentFormat: "lexical"` and send a valid Lexical `EditorState` JSON string in `content`. The server computes `contentHtml` and returns it in the response. |
 
 ## REST API Examples

@@ -12,6 +12,7 @@ import {
 } from "@repo/ui/components/ui/card";
 import { useCreateCheckoutMutation } from "@/features/billing/hooks/useBillingCheckout";
 import type {
+  CheckoutCurrency,
   CheckoutPlan,
   EnterpriseRequestDetails,
 } from "@/features/billing/types/billing.types";
@@ -23,6 +24,7 @@ export function PlansOnboardingPage() {
   const checkout = useCreateCheckoutMutation();
   const [loadingPlan, setLoadingPlan] = useState<CheckoutPlan | null>(null);
   const [enterpriseOpen, setEnterpriseOpen] = useState(false);
+  const [currency, setCurrency] = useState<CheckoutCurrency>("brl");
 
   const startCheckout = async (
     plan: CheckoutPlan,
@@ -32,6 +34,7 @@ export function PlansOnboardingPage() {
     try {
       const data = await checkout.mutateAsync({
         plan,
+        currency,
         ...(enterpriseDetails ? { enterpriseDetails } : {}),
       });
 
@@ -86,6 +89,27 @@ export function PlansOnboardingPage() {
           </Button>
         </div>
 
+        <div className="flex justify-center">
+          <div
+            role="group"
+            aria-label="Billing currency"
+            className="inline-flex rounded-lg border border-border/60 p-1"
+          >
+            {(["brl", "usd"] as const).map((code) => (
+              <Button
+                key={code}
+                type="button"
+                size="sm"
+                variant={currency === code ? "default" : "ghost"}
+                aria-pressed={currency === code}
+                onClick={() => setCurrency(code)}
+              >
+                {code.toUpperCase()}
+              </Button>
+            ))}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {PLAN_CARDS.map((plan) => (
             <Card
@@ -104,7 +128,7 @@ export function PlansOnboardingPage() {
                   {plan.name}
                 </CardTitle>
                 <CardDescription>{plan.description}</CardDescription>
-                <div className="text-4xl font-bold">{plan.price}</div>
+                <div className="text-4xl font-bold">{plan.price[currency]}</div>
               </CardHeader>
               <CardContent className="space-y-6">
                 <ul className="space-y-3">

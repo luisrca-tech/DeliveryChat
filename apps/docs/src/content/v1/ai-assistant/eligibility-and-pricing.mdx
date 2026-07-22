@@ -1,0 +1,108 @@
+# Eligibility & Pricing
+
+The AI Assistant is sold as a **purchasable add-on**, separate from your plan
+tier — it doesn't require an upgrade by itself, but your organization does
+need to be on the right plan to buy it.
+
+## Who can buy it
+
+<FeatureList
+  title="Eligibility"
+  features={[
+    { name: "PREMIUM", description: "Eligible to purchase the AI Assistant add-on" },
+    { name: "ENTERPRISE", description: "Eligible to purchase the AI Assistant add-on" },
+    { name: "FREE / BASIC", description: "Not eligible — upgrade to PREMIUM or ENTERPRISE first" }
+  ]}
+/>
+
+## Pricing
+
+<PricingGrid>
+  <PricingCard
+    title="AI Assistant"
+    price="R$ 120/month (US$ 24)"
+    description="Autonomous AI answers for your visitors, connected to your own data."
+    features={[
+      "Answers visitors directly in the widget",
+      "Reads your data through admin-configured tools (HTTP or read-only SQL)",
+      "Escalates to a human whenever it can't help",
+      "Monthly AI usage quota included",
+      "Add to any PREMIUM or ENTERPRISE organization"
+    ]}
+    bestFor="Teams that want visitors answered instantly, day or night"
+  />
+</PricingGrid>
+
+## How to purchase
+
+A `super_admin` enables the add-on from **Settings → Billing**. It's added as a
+line item on your existing subscription — one invoice, prorated automatically,
+no separate checkout.
+
+<StepByStep
+  title="Enabling the add-on"
+  steps={[
+    {
+      title: "Go to Settings → Billing",
+      content: "Only super_admin can see and use the purchase controls."
+    },
+    {
+      title: "Click \"Enable add-on\" on the AI Assistant card",
+      content: "This starts the purchase — the card shows a pending state until Stripe confirms it."
+    },
+    {
+      title: "Wait for confirmation",
+      content: "The add-on becomes active once Stripe processes the change (usually a few seconds). The card updates automatically."
+    },
+    {
+      title: "Turn on auto-respond per application",
+      content: "Purchasing the add-on makes the AI Assistant available — you still need to configure and enable it per application. See Configuration."
+    }
+  ]}
+/>
+
+<Callout type="note" title="Entitlement comes from Stripe, not a toggle">
+  Whether the add-on is active is derived from your Stripe subscription, not a
+  flag you can flip directly. If a payment fails or the subscription is
+  canceled, the add-on turns off automatically.
+</Callout>
+
+## Data-connection: included with the add-on
+
+Connecting the AI Assistant to your own **HTTP endpoints or a database**
+(the "data tools" that let it answer with your real data) is **part of the AI
+Assistant add-on** — the same entitlement that unlocks the assistant itself.
+
+- Requires the AI Assistant add-on active (available on **Premium and
+  Enterprise** plans).
+- SQL data tools additionally require enabling the database connection per
+  application. For SQL sources, grant a **SELECT-only database user** so the
+  assistant can never modify your data.
+- No separate onboarding or custom plan is required.
+
+Without the add-on, the AI Assistant is unavailable; with it, both the
+assistant and its live data tools are unlocked.
+
+## Usage quota
+
+AI Assistant replies count against your organization's **monthly AI usage
+quota**, shared with the operator-assist AI features (Generate Reply / Improve
+Message). See [Plans & Pricing](/v1/plans) for the caps that apply to your
+plan; ENTERPRISE organizations can have a custom cap configured.
+
+<FAQ
+  items={[
+    {
+      question: "Can I try the AI Assistant without ENTERPRISE?",
+      answer: "Yes — PREMIUM organizations can buy the R$ 120/mo (US$ 24) add-on and get the full feature, including live data-connection tools (HTTP/SQL). The add-on is the single entitlement for the assistant and its data tools on both Premium and Enterprise."
+    },
+    {
+      question: "What happens if I downgrade below PREMIUM?",
+      answer: "The add-on entitlement is revoked automatically and the AI Assistant stops answering visitors until you're back on an eligible plan and re-enable it."
+    },
+    {
+      question: "Is the add-on billed separately from my plan?",
+      answer: "No — it's added as a second line item on your existing subscription, so you get one invoice with Stripe-native proration."
+    }
+  ]}
+/>

@@ -22,9 +22,18 @@ import { fetchSettings } from "./api.js";
 import { getApiBaseUrl, setApiBaseUrl } from "./config.js";
 import { isValidLauncherImageUrl } from "./utils/logo-url.js";
 import type { ChatMessage } from "./types/index.js";
-import { defaultSettings, HOST_ID, MAX_MESSAGES } from "./constants/index.js";
+import {
+  defaultSettings,
+  HOST_ID,
+  MAX_MESSAGES,
+  AI_ASSISTANT_USER_ID,
+} from "./constants/index.js";
 import { getSdkApi } from "./SdkApi.js";
 import { connectEventBridge, disconnectEventBridge } from "./EventBridge.js";
+import {
+  seedDisclosureIfNeeded,
+  handoffOffer,
+} from "./aiConversationLifecycle.js";
 
 import styles from "./styles/main.css?inline";
 
@@ -154,6 +163,7 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     onDelete: (messageId) => {
       getSdkApi().deleteMessage(messageId);
     },
+    aiAssistantLabel: settings.ai?.assistantLabel,
   };
 
   // eslint-disable-next-line prefer-const
@@ -181,6 +191,11 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
       onTypingStart: () => getSdkApi().notifyTypingStart(),
       onTypingStop: () => getSdkApi().notifyTypingStop(),
       onClose: closeChat,
+      onRequestHuman: () => {
+        getSdkApi()
+          .requestHuman()
+          .catch(() => {});
+      },
     },
     bubbleCtx,
   );
@@ -321,6 +336,38 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   cleanupFns.push(unsubConvStatus);
 
+  // Human-handoff button (plan §8, AC #4) — hidden when AI is off or until a
+  // conversation exists, disabled once already escalated/human-handled.
+  const humanHandoffBtn = chatWindow.querySelector(
+    ".human-handoff-btn",
+  ) as HTMLButtonElement | null;
+  const refreshHumanHandoffButton = (): void => {
+    if (!humanHandoffBtn) return;
+    const { hidden, disabled } = handoffOffer({
+      aiEnabled: settings.ai?.enabled === true,
+      conversationId: getState("conversationId"),
+      messages: getState("messages"),
+      humanRequested: getState("humanRequested"),
+    });
+    humanHandoffBtn.hidden = hidden;
+    humanHandoffBtn.disabled = disabled;
+  };
+  refreshHumanHandoffButton();
+  const unsubHandoffConv = subscribe(
+    "conversationId",
+    refreshHumanHandoffButton,
+  );
+  const unsubHandoffMessages = subscribe("messages", refreshHumanHandoffButton);
+  const unsubHandoffRequested = subscribe(
+    "humanRequested",
+    refreshHumanHandoffButton,
+  );
+  cleanupFns.push(
+    unsubHandoffConv,
+    unsubHandoffMessages,
+    unsubHandoffRequested,
+  );
+
   let lastMessageCount = getState("messages").length;
   const renderedMessages = new Map<string, ChatMessage>();
 
@@ -333,14 +380,16 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
     const listEl = getMessageListEl(chatWindow);
     if (!listEl) return;
 
-    // Full reset (conversation change)
+    // Full reset (conversation change). Falls through (rather than
+    // returning) so any messages already present in the new, shorter array —
+    // e.g. the AI disclosure line seeded synchronously by startNewChat() —
+    // still get appended below instead of waiting for the next state change.
     if (messages.length < lastMessageCount) {
       const typingEl = listEl.querySelector(".typing-indicator");
       listEl.replaceChildren();
       if (typingEl) listEl.appendChild(typingEl);
       lastMessageCount = 0;
       renderedMessages.clear();
-      return;
     }
 
     // Detect in-place edits/deletes on existing messages
@@ -353,7 +402,14 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
           msg.content !== prev.content ||
           msg.editedAt !== prev.editedAt
         ) {
-          updateMessageContent(listEl, msg.id, msg.content, msg.editedAt, msg.contentFormat, msg.contentHtml);
+          updateMessageContent(
+            listEl,
+            msg.id,
+            msg.content,
+            msg.editedAt,
+            msg.contentFormat,
+            msg.contentHtml,
+          );
         }
       }
       renderedMessages.set(msg.id, msg);
@@ -386,7 +442,14 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
         const msgId = row?.getAttribute("data-id") ?? null;
         if (msgId && msgId !== editingId) {
           const msg = getState("messages").find((m) => m.id === msgId);
-          exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt, msg?.contentFormat, msg?.contentHtml);
+          exitEditMode(
+            listEl,
+            msgId,
+            msg?.content ?? "",
+            msg?.editedAt,
+            msg?.contentFormat,
+            msg?.contentHtml,
+          );
         }
       });
 
@@ -397,7 +460,14 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
           const msgId = row?.getAttribute("data-id") ?? null;
           if (msgId) {
             const msg = getState("messages").find((m) => m.id === msgId);
-            exitEditMode(listEl, msgId, msg?.content ?? "", msg?.editedAt, msg?.contentFormat, msg?.contentHtml);
+            exitEditMode(
+              listEl,
+              msgId,
+              msg?.content ?? "",
+              msg?.editedAt,
+              msg?.contentFormat,
+              msg?.contentHtml,
+            );
           }
         });
         return;
@@ -423,10 +493,13 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   const unsubTyping = subscribe("typingUser", (typingUser) => {
     if (!typingEl) return;
     if (typingUser) {
+      const assistantLabel = settings.ai?.assistantLabel ?? "AI Assistant";
       typingEl.textContent =
         typingUser.senderRole === "visitor"
           ? "Visitor is typing..."
-          : `${typingUser.userName ?? "Agent"} is typing...`;
+          : typingUser.userId === AI_ASSISTANT_USER_ID
+            ? `${assistantLabel} is typing...`
+            : `${typingUser.userName ?? "Agent"} is typing...`;
       typingEl.hidden = false;
       const listEl = getMessageListEl(chatWindow);
       if (listEl) listEl.scrollTop = listEl.scrollHeight;
@@ -527,6 +600,11 @@ export async function init(opts: InitOptions): Promise<void> {
   const sdkApi = getSdkApi();
   await sdkApi.initChat({ appId: opts.appId });
   connectEventBridge(sdkApi.emitter);
+
+  // Opening AI-disclosure line (plan §8) — seeded only when no history exists
+  // yet (fresh conversation) and the application's AI entitlement is on. The
+  // empty-list guard lives inside the lifecycle module.
+  seedDisclosureIfNeeded(settings);
 
   if (opts.headless) {
     sdkApi.markInitialized({ headless: true, appId: opts.appId });

@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from "vitest";
-import { render, screen, waitFor, within, cleanup } from "@testing-library/react";
+import {
+  render,
+  screen,
+  waitFor,
+  within,
+  cleanup,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
@@ -33,7 +39,9 @@ function renderWithEditor(isLink: boolean) {
       initialConfig={{
         namespace: "test",
         nodes: [LinkNode, AutoLinkNode],
-        onError: (error) => { throw error; },
+        onError: (error) => {
+          throw error;
+        },
       }}
     >
       <RichTextPlugin

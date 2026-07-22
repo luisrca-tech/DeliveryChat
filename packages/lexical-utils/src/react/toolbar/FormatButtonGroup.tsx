@@ -1,9 +1,4 @@
-import {
-  Bold,
-  Italic,
-  Underline,
-  Strikethrough,
-} from "lucide-react";
+import { Bold, Italic, Underline, Strikethrough } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import type { TextFormatType } from "lexical";
 

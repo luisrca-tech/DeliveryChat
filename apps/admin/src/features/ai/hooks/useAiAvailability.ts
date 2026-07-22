@@ -3,17 +3,28 @@ import { useBillingStatusQuery } from "@/features/billing/hooks/useBillingStatus
 import { applicationsQueryKeys } from "@/features/applications/hooks/useApplicationsQuery";
 import type { ApplicationsListResponse } from "@/features/applications/types/applications.types";
 import type { AiInterviewStatus } from "@/features/aiInterview/types/aiInterview.types";
+import { planAllowsServing } from "../lib/aiPlanGates";
 
-const AI_ENABLED_PLANS = new Set(["PREMIUM", "ENTERPRISE"]);
-
+/**
+ * Whether the AI may SERVE this org (drafts, replies) — BASIC and up. Every plan,
+ * FREE included, may author its context through the interview; only serving plans
+ * get answered by the AI.
+ *
+ * This is NOT the gate for auto-respond and data tools: those are add-on
+ * capabilities and use `resolveAiLock` from `lib/aiPlanGates`.
+ */
 export function useAiAvailability(applicationId?: string | null) {
   const { data: billing } = useBillingStatusQuery();
   const queryClient = useQueryClient();
 
-  const planAvailable = billing ? AI_ENABLED_PLANS.has(billing.plan) : false;
+  const servingAvailable = planAllowsServing(billing?.plan);
 
   if (!applicationId) {
-    return { isAvailable: planAvailable, planAvailable, appConfigured: true };
+    return {
+      isAvailable: servingAvailable,
+      servingAvailable,
+      appConfigured: true,
+    };
   }
 
   const lists = queryClient.getQueriesData<ApplicationsListResponse>({
@@ -30,6 +41,6 @@ export function useAiAvailability(applicationId?: string | null) {
   }
 
   const appConfigured = appStatus === "completed";
-  const isAvailable = planAvailable && appConfigured;
-  return { isAvailable, planAvailable, appConfigured };
+  const isAvailable = servingAvailable && appConfigured;
+  return { isAvailable, servingAvailable, appConfigured };
 }

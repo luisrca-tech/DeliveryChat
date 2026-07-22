@@ -33,6 +33,12 @@ vi.mock("../../../features/chat/chat.service.js", async (importOriginal) => {
   };
 });
 
+const mockResolveInitialHandledBy = vi.fn().mockResolvedValue("human");
+vi.mock("../../../features/ai-turn/resolveInitialHandledBy.js", () => ({
+  resolveInitialHandledBy: (...args: unknown[]) =>
+    mockResolveInitialHandledBy(...args),
+}));
+
 const mockMapServiceError = vi.fn().mockReturnValue(null);
 vi.mock("../../../features/chat/error-mapper.js", () => ({
   mapServiceErrorToResponse: (...args: unknown[]) =>

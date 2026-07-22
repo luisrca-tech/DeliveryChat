@@ -14,6 +14,10 @@ vi.mock("../lexicalSerializer.js", () => ({
   serializeLexicalToHtml: vi.fn(() => null),
 }));
 
+vi.mock("../../ai-turn/trigger.js", () => ({
+  maybeTriggerAiTurn: vi.fn(),
+}));
+
 vi.mock("@repo/lexical-utils", () => ({
   serializeLexicalToPlainText: vi.fn((content: string) => content),
 }));
@@ -481,6 +485,44 @@ describe("chat.service", () => {
       expect(mockUpdate).toHaveBeenCalled();
     });
 
+    it("flips handledBy to 'human' in the same race-safe UPDATE (operator takeover stops the AI)", async () => {
+      let capturedSet: Record<string, unknown> | null = null;
+      const updateChain: Record<string, unknown> = {};
+      updateChain.set = vi.fn((v: Record<string, unknown>) => {
+        capturedSet = v;
+        return updateChain;
+      });
+      updateChain.where = vi.fn(() => updateChain);
+      updateChain.returning = vi.fn(() =>
+        Promise.resolve([
+          {
+            id: "conv-1",
+            organizationId: "org-1",
+            status: "active" as const,
+            assignedTo: "operator-1",
+            handledBy: "human",
+            updatedAt: "2026-01-01T00:00:00Z",
+          },
+        ]),
+      );
+      mockUpdate.mockReturnValueOnce(updateChain);
+      mockInsert.mockReturnValueOnce(chainMock([systemMsgRow]));
+
+      const result = await acceptConversation(
+        "conv-1",
+        "org-1",
+        "operator-1",
+        "Alice",
+      );
+
+      expect(capturedSet).toMatchObject({
+        status: "active",
+        assignedTo: "operator-1",
+        handledBy: "human",
+      });
+      expect(result.handledBy).toBe("human");
+    });
+
     it("broadcasts lifecycle and system message events on success", async () => {
       const updatedRow = {
         id: "conv-1",
@@ -747,8 +789,8 @@ describe("chat.service", () => {
         assignedTo: "operator-1",
         organizationId: "org-1",
       };
-      const selectConvChain = chainMock([convData]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+      mockSelect.mockReturnValueOnce(chainMock([convData]));
+      mockSelect.mockReturnValueOnce(chainMock([{ id: "part-1" }]));
 
       const result = await validateSendAuthorization(
         "conv-1",
@@ -758,36 +800,50 @@ describe("chat.service", () => {
       expect(result).toEqual(convData);
     });
 
-    it("rejects operator who is NOT assignedTo the conversation", async () => {
-      const selectConvChain = chainMock([
-        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
-      ]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+    it("rejects operator who is NOT a participant", async () => {
+      mockSelect.mockReturnValueOnce(
+        chainMock([
+          {
+            status: "active",
+            assignedTo: "operator-1",
+            organizationId: "org-1",
+          },
+        ]),
+      );
+      mockSelect.mockReturnValueOnce(chainMock([]));
 
       await expect(
         validateSendAuthorization("conv-1", "operator-2", "operator"),
       ).rejects.toThrow(NotAssignedToConversationError);
     });
 
-    it("rejects admin who is NOT assignedTo the conversation", async () => {
-      const selectConvChain = chainMock([
-        { status: "active", assignedTo: "operator-1", organizationId: "org-1" },
-      ]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+    it("rejects admin who is NOT a participant", async () => {
+      mockSelect.mockReturnValueOnce(
+        chainMock([
+          {
+            status: "active",
+            assignedTo: "operator-1",
+            organizationId: "org-1",
+          },
+        ]),
+      );
+      mockSelect.mockReturnValueOnce(chainMock([]));
 
       await expect(
         validateSendAuthorization("conv-1", "admin-1", "admin"),
       ).rejects.toThrow(NotAssignedToConversationError);
     });
 
-    it("allows admin who IS assignedTo and returns conversation data", async () => {
+    // Escalation: an admin joins a conversation assigned to an operator and
+    // replies to the visitor. Participation — not assignment — authorizes them.
+    it("allows admin who is a participant but NOT assignedTo", async () => {
       const convData = {
         status: "active",
-        assignedTo: "admin-1",
+        assignedTo: "operator-1",
         organizationId: "org-1",
       };
-      const selectConvChain = chainMock([convData]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+      mockSelect.mockReturnValueOnce(chainMock([convData]));
+      mockSelect.mockReturnValueOnce(chainMock([{ id: "part-1" }]));
 
       const result = await validateSendAuthorization(
         "conv-1",
@@ -797,15 +853,22 @@ describe("chat.service", () => {
       expect(result).toEqual(convData);
     });
 
-    it("rejects staff sending to a pending conversation (must accept first)", async () => {
-      const selectConvChain = chainMock([
-        { status: "pending", assignedTo: null, organizationId: "org-1" },
-      ]);
-      mockSelect.mockReturnValueOnce(selectConvChain);
+    // Internal staff-only conversation: nobody is ever assigned to it.
+    it("allows staff in an unassigned conversation when they are a participant", async () => {
+      const convData = {
+        status: "pending",
+        assignedTo: null,
+        organizationId: "org-1",
+      };
+      mockSelect.mockReturnValueOnce(chainMock([convData]));
+      mockSelect.mockReturnValueOnce(chainMock([{ id: "part-1" }]));
 
-      await expect(
-        validateSendAuthorization("conv-1", "operator-1", "operator"),
-      ).rejects.toThrow(NotAssignedToConversationError);
+      const result = await validateSendAuthorization(
+        "conv-1",
+        "operator-1",
+        "operator",
+      );
+      expect(result).toEqual(convData);
     });
 
     it("throws ConversationNotFoundError for non-existent conversation", async () => {
@@ -2084,7 +2147,8 @@ describe("chat.service", () => {
     it("serializes lexical content to HTML and plain text", () => {
       const lexicalMessage = {
         ...baseMessage,
-        content: '{"root":{"children":[{"type":"paragraph","children":[{"text":"Rich text"}]}]}}',
+        content:
+          '{"root":{"children":[{"type":"paragraph","children":[{"text":"Rich text"}]}]}}',
         contentFormat: "lexical" as const,
       };
 
@@ -2109,8 +2173,14 @@ describe("chat.service", () => {
 
       enrichMessage(lexicalMessage);
 
-      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith('{"root":{}}', "lexical");
-      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith('{"root":{}}', "lexical");
+      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith(
+        '{"root":{}}',
+        "lexical",
+      );
+      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith(
+        '{"root":{}}',
+        "lexical",
+      );
     });
 
     it("defaults contentFormat to plain when undefined", () => {
@@ -2124,8 +2194,14 @@ describe("chat.service", () => {
 
       const result = enrichMessage(noFormatMessage);
 
-      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith("Hello world", "plain");
-      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith("Hello world", "plain");
+      expect(mockSerializeLexicalToHtml).toHaveBeenCalledWith(
+        "Hello world",
+        "plain",
+      );
+      expect(mockSerializeLexicalToPlainText).toHaveBeenCalledWith(
+        "Hello world",
+        "plain",
+      );
       expect(result.contentPlainText).toBe("Hello world");
     });
 
@@ -2145,5 +2221,55 @@ describe("chat.service", () => {
       expect(result.editedAt).toBe(baseMessage.editedAt);
       expect(result.deletedAt).toBe(baseMessage.deletedAt);
     });
+  });
+});
+
+describe("enrichMessage — AI markdown rendering", () => {
+  const aiMessage = {
+    id: "msg-ai-1",
+    conversationId: "conv-1",
+    senderId: null,
+    authorType: "ai" as const,
+    type: "text" as const,
+    content: "The **Premium** plan",
+    contentFormat: "plain" as const,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    editedAt: null,
+    deletedAt: null,
+  };
+
+  it("renders constrained markdown to contentHtml for AI-authored plain messages", () => {
+    mockSerializeLexicalToPlainText.mockReturnValue("The **Premium** plan");
+
+    const result = enrichMessage(aiMessage);
+
+    expect(result.contentHtml).toBe("<p>The <strong>Premium</strong> plan</p>");
+  });
+
+  it("does NOT render markdown for visitor-authored plain messages", () => {
+    mockSerializeLexicalToHtml.mockReturnValue(null);
+    mockSerializeLexicalToPlainText.mockReturnValue("x");
+
+    const result = enrichMessage({
+      ...aiMessage,
+      authorType: "visitor" as const,
+      content: "**not bold for visitors**",
+    });
+
+    expect(result.contentHtml).toBeNull();
+  });
+
+  it("keeps the lexical path untouched for AI messages in lexical format", () => {
+    mockSerializeLexicalToHtml.mockReturnValue("<p>lex</p>");
+    mockSerializeLexicalToPlainText.mockReturnValue("lex");
+
+    const result = enrichMessage({
+      ...aiMessage,
+      content: '{"root":{}}',
+      contentFormat: "lexical" as const,
+    });
+
+    expect(result.contentHtml).toBe("<p>lex</p>");
   });
 });

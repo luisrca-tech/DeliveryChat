@@ -1,0 +1,72 @@
+# Security & Privacy
+
+The AI Assistant is built so that its data access is safe by default, not just
+by policy. This page covers the guardrails behind
+[Configuration](/v1/ai-assistant/configuration).
+
+## Read-only by construction
+
+The AI cannot write to your systems — this is enforced structurally, not by
+model instructions:
+
+- **HTTP tools are hard-coded to `GET`.** The method is never read from
+  configuration or from the model's output.
+- **SQL tools run a single, curated, parameterized `SELECT`.** Any
+  write/DDL keyword is rejected when the tool is saved, and the check runs
+  again at execution time as defense in depth.
+- **The AI only supplies parameter values** (like an order ID) into a request
+  or query you defined ahead of time — it never composes the URL or SQL
+  itself.
+
+## SSRF protections (HTTP tools)
+
+Outbound HTTP calls are constrained to prevent the AI's tool calls from being
+used to reach internal infrastructure:
+
+- The request's host must exactly match the `allowedHost` you configured.
+- The resolved IP address is checked against private/reserved ranges (e.g.
+  `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, loopback, link-local) and
+  rejected if it falls inside any of them.
+- Redirects are never followed — a 3xx response is treated as a failed
+  request, not silently redirected somewhere else.
+- Requests have a timeout and a response size cap, so a slow or oversized
+  response can't stall or overload a conversation.
+
+## Secrets encrypted at rest
+
+Any secret your data source needs — HTTP headers (e.g. an API key) or a
+database connection string — is **encrypted at rest with AES-256-GCM** before
+it's stored. Secrets are:
+
+- Decrypted only in-memory, per request, at the moment they're needed.
+- **Never** returned by any admin API response — the dashboard only shows
+  whether a secret is set (and header *names*, never values), never the
+  secret itself.
+- Never written to logs, including error logs.
+
+## Usage quota
+
+AI Assistant replies draw from your organization's monthly AI usage quota
+(shared with the operator-assist AI features). If the quota is exhausted, the
+assistant escalates the conversation to a human rather than going silent or
+degrading — see [Escalation & Handoff](/v1/ai-assistant/escalation).
+
+## Bot disclosure
+
+Several jurisdictions require clear disclosure when a user is interacting with
+an automated system (e.g. California's B.O.T. Act, the EU AI Act's
+transparency obligations). The widget is built to satisfy this by default:
+
+- AI replies are always visually labeled as AI, never presented as a human
+  operator.
+- The AI never claims to be a person or impersonates a specific employee or
+  brand representative.
+- A path to a human is always available and visible — see
+  [Escalation & Handoff](/v1/ai-assistant/escalation).
+
+<Callout type="note" title="Data isolation still applies">
+  The AI Assistant's data access is scoped the same way everything else in
+  Delivery Chat is: per application, per organization. It can only reach the
+  data source you configured for that specific application — never another
+  tenant's data.
+</Callout>

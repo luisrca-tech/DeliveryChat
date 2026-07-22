@@ -27,12 +27,10 @@ export function useMessageHistory({
     client
       .getMessages(selectedId)
       .then(({ messages: msgs }) => {
-        const ordered = [...msgs]
-          .reverse()
-          .map((m) => ({
-            ...m,
-            type: m.type === "system" ? ("system" as const) : ("text" as const),
-          }));
+        const ordered = [...msgs].reverse().map((m) => ({
+          ...m,
+          type: m.type === "system" ? ("system" as const) : ("text" as const),
+        }));
         setMessages(ordered);
         const lastMsg = ordered[ordered.length - 1];
         if (lastMsg) {

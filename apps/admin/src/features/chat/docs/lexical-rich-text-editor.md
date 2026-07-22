@@ -32,7 +32,7 @@ Replaces the admin dashboard's plain `<Input>` in `MessageInput` with a Lexical 
 type Message = {
   // ... existing fields
   contentFormat: ContentFormat; // "plain" | "lexical"
-  contentHtml: string | null;  // sanitized HTML from server, null for plain
+  contentHtml: string | null; // sanitized HTML from server, null for plain
 };
 ```
 
@@ -44,6 +44,7 @@ type Message = {
 ### Styling
 
 All Lexical editor styles and rich text rendering styles are defined in `packages/ui/src/styles.css` under `@layer components`. Two sets of classes:
+
 - `.lexical-*` classes for the editor's live editing view.
 - `.rich-text-content` scoped styles for rendered HTML in message bubbles. Modifiers `--self` / `--other` tune inline `code`, `pre`, and links for primary vs muted bubble backgrounds (aligned with widget SDK styles).
 
@@ -53,6 +54,7 @@ All Lexical editor styles and rich text rendering styles are defined in `package
 - Plain text messages from the widget continue rendering as plain text.
 - System messages remain unchanged.
 - Undo/redo via Ctrl+Z / Ctrl+Shift+Z (no toolbar buttons).
+
 ### AI Toolbar Integration (Phase 4)
 
 - AI Generate Reply and Improve Message buttons are rendered inside the Lexical toolbar, after the formatting buttons, separated by a vertical divider.

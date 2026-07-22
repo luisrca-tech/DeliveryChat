@@ -37,3 +37,13 @@ export const EDIT_ICON: TrustedStaticHTML = trustedStaticHTML(
 export const DELETE_ICON: TrustedStaticHTML = trustedStaticHTML(
   `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
 );
+
+/** AI-assistant avatar — legally-required visual distinction (bot disclosure). */
+export const AI_AVATAR_ICON: TrustedStaticHTML = trustedStaticHTML(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="9" width="18" height="11" rx="2"/><circle cx="8.5" cy="14.5" r="1.25" fill="currentColor" stroke="none"/><circle cx="15.5" cy="14.5" r="1.25" fill="currentColor" stroke="none"/><path d="M12 9V5"/><circle cx="12" cy="3.5" r="1.5"/><path d="M3 13H1.5M22.5 13H21"/></svg>`,
+);
+
+/** "Talk to a human" escalation trigger icon (person outline). */
+export const HUMAN_ICON: TrustedStaticHTML = trustedStaticHTML(
+  `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>`,
+);

@@ -137,7 +137,8 @@ export function CreateApplicationDialog({
     onOpenChange(false);
   };
 
-  const portNumber = typeof portValue === "number" ? portValue : Number(portValue);
+  const portNumber =
+    typeof portValue === "number" ? portValue : Number(portValue);
   const portPreview =
     Number.isFinite(portNumber) && portNumber > 0
       ? `localhost:${portNumber}`

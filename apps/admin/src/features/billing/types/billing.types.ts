@@ -14,10 +14,37 @@ export type BillingStatusResponse = {
   cancelAtPeriodEnd: boolean;
   trialEndsAt: string | null;
   role: BillingRole;
+  aiAddonActive: boolean;
   isReady: boolean;
 };
 
+export type AiAddonErrorCode =
+  | "no_active_subscription"
+  | "subscription_not_active"
+  | "plan_not_eligible"
+  | "ai_addon_already_active"
+  | "ai_addon_not_active"
+  | "internal_server_error"
+  | "unknown_error";
+
+export type AiAddonResponse = {
+  status: "pending";
+  message?: string;
+};
+
+export type AiAddonPreviewResponse = {
+  currency: string;
+  /** Prorated amount charged immediately, in minor units. */
+  prorationAmount: number;
+  /** Recurring monthly amount, in minor units. */
+  recurringAmount: number;
+  /** ISO date of the first full recurring charge. */
+  nextBillingDate: string;
+};
+
 export type CheckoutPlan = "basic" | "premium" | "enterprise";
+
+export type CheckoutCurrency = "brl" | "usd";
 
 export type EnterpriseRequestDetails = {
   fullName: string;
@@ -29,6 +56,7 @@ export type EnterpriseRequestDetails = {
 
 export type CheckoutRequest = {
   plan: CheckoutPlan;
+  currency?: CheckoutCurrency;
   enterpriseDetails?: EnterpriseRequestDetails;
 };
 

@@ -40,7 +40,10 @@ function wrapWithFormats(text: string, format: number): string {
   return result;
 }
 
-function serializeTextNode(node: LexicalNode, insideCodeBlock: boolean): string {
+function serializeTextNode(
+  node: LexicalNode,
+  insideCodeBlock: boolean,
+): string {
   const escaped = escapeHtml(node.text ?? "");
   if (insideCodeBlock) return escaped;
   const format = typeof node.format === "number" ? node.format : 0;
@@ -72,8 +75,12 @@ function serializeNode(node: LexicalNode, insideCodeBlock = false): string {
       return `<blockquote>${serializeChildren(node)}</blockquote>`;
 
     case "code": {
-      const lang = node.language ? ` class="language-${escapeHtml(node.language)}"` : "";
-      const inner = (node.children ?? []).map((c) => serializeNode(c, true)).join("");
+      const lang = node.language
+        ? ` class="language-${escapeHtml(node.language)}"`
+        : "";
+      const inner = (node.children ?? [])
+        .map((c) => serializeNode(c, true))
+        .join("");
       return `<pre${lang}><code>${inner}</code></pre>`;
     }
 

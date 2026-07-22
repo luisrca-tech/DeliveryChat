@@ -205,6 +205,35 @@ describe("Conversations query endpoints", () => {
       );
     });
 
+    it("forwards the handledBy filter so the queue can exclude AI-handled conversations", async () => {
+      mockUnifiedAuthContext = memberAuth("operator");
+      mockListConversationsForMember.mockResolvedValue({
+        conversations: [],
+        total: 0,
+      });
+
+      const res = await app.request(
+        "/conversations?status=pending&handledBy=human",
+      );
+
+      expect(res.status).toBe(200);
+      expect(mockListConversationsForMember).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: ["pending"],
+          handledBy: "human",
+        }),
+      );
+    });
+
+    it("rejects an invalid handledBy value", async () => {
+      mockUnifiedAuthContext = memberAuth("operator");
+
+      const res = await app.request("/conversations?handledBy=robot");
+
+      expect(res.status).toBe(400);
+      expect(mockListConversationsForMember).not.toHaveBeenCalled();
+    });
+
     it("cross-visitor isolation: visitor cannot see another visitor's conversations", async () => {
       mockUnifiedAuthContext = visitorAuth();
       mockListConversationsForVisitor.mockResolvedValue({

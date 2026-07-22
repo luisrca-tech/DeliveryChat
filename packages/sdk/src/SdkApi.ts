@@ -7,7 +7,12 @@ import {
   getConversationMessages,
   getUnreadCount,
   markConversationAsRead,
+  escalateConversation,
 } from "./conversation.js";
+import {
+  seedDisclosureIfNeeded,
+  resetForNewConversation,
+} from "./aiConversationLifecycle.js";
 import {
   connectWS,
   disconnectWS,
@@ -146,6 +151,42 @@ class SdkApi {
     return { id, status: status ?? "pending", messages };
   }
 
+  /**
+   * Deterministic "Talk to a human" escalation trigger (plan §8, AC #4).
+   * Idempotent server-side; the resulting system message renders through the
+   * normal message flow, so no local state mutation is needed beyond marking
+   * the request as sent (drives the button's disabled state).
+   */
+  async requestHuman(): Promise<void> {
+    this.requireInit();
+
+    if (!this.chatInitialized || !this.appId) {
+      throw new Error("[DeliveryChat] SDK not initialized. Call init() first.");
+    }
+
+    const conversationId = getState("conversationId");
+    if (!conversationId) {
+      throw new Error(
+        "[DeliveryChat] No active conversation to escalate. Send a message first.",
+      );
+    }
+
+    const visitorId = getState("visitorId");
+    if (!visitorId) {
+      throw new Error(
+        "[DeliveryChat] visitorId not available. Was init() called?",
+      );
+    }
+
+    await escalateConversation(
+      getApiBaseUrl(),
+      this.appId,
+      visitorId,
+      conversationId,
+    );
+    setState("humanRequested", true);
+  }
+
   on<K extends keyof SdkEventMap>(
     event: K,
     callback: Listener<SdkEventMap[K]>,
@@ -275,10 +316,13 @@ class SdkApi {
 
     setState("conversationId", null);
     setState("conversationStatus", null);
-    setState("messages", []);
     setState("typingUser", null);
     setState("unreadCount", 0);
+    resetForNewConversation();
     this.lastTypingSent = 0;
+
+    setState("messages", []);
+    seedDisclosureIfNeeded(getState("settings"));
   }
 
   connectEagerly(): void {
@@ -304,6 +348,7 @@ class SdkApi {
     setState("conversationStatus", null);
     setState("messages", []);
     setState("unreadCount", 0);
+    resetForNewConversation();
 
     this.lastTypingSent = 0;
     this.chatInitialized = false;

@@ -9,7 +9,11 @@ type Props = {
   isLoading: boolean;
   currentUserId: string;
   typingUser: TypingUser;
-  onEditMessage?: (messageId: string, content: string, contentFormat?: "plain" | "lexical") => void;
+  onEditMessage?: (
+    messageId: string,
+    content: string,
+    contentFormat?: "plain" | "lexical",
+  ) => void;
   onDeleteMessage?: (messageId: string) => void;
 };
 

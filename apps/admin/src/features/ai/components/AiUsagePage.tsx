@@ -1,8 +1,19 @@
-import { BarChart3, CalendarIcon, ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import {
+  BarChart3,
+  CalendarIcon,
+  ChevronLeft,
+  ChevronRight,
+  RotateCcw,
+} from "lucide-react";
 import { useQueryState, parseAsInteger } from "nuqs";
 import { Button } from "@repo/ui/components/ui/button";
 import { Calendar } from "@repo/ui/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle } from "@repo/ui/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@repo/ui/components/ui/card";
 import {
   Popover,
   PopoverContent,
@@ -30,12 +41,34 @@ import { useState } from "react";
 const PAGE_SIZE = 20;
 
 const STATUS_LABELS: Record<string, { label: string; className: string }> = {
-  success: { label: "Success", className: "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950" },
-  provider_error: { label: "Provider Error", className: "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950" },
-  timeout: { label: "Timeout", className: "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950" },
-  empty: { label: "Empty", className: "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950" },
-  content_filtered: { label: "Filtered", className: "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-950" },
-  aborted: { label: "Aborted", className: "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-950" },
+  success: {
+    label: "Success",
+    className:
+      "text-green-600 bg-green-50 dark:text-green-400 dark:bg-green-950",
+  },
+  provider_error: {
+    label: "Provider Error",
+    className: "text-red-600 bg-red-50 dark:text-red-400 dark:bg-red-950",
+  },
+  timeout: {
+    label: "Timeout",
+    className:
+      "text-orange-600 bg-orange-50 dark:text-orange-400 dark:bg-orange-950",
+  },
+  empty: {
+    label: "Empty",
+    className:
+      "text-yellow-600 bg-yellow-50 dark:text-yellow-400 dark:bg-yellow-950",
+  },
+  content_filtered: {
+    label: "Filtered",
+    className:
+      "text-purple-600 bg-purple-50 dark:text-purple-400 dark:bg-purple-950",
+  },
+  aborted: {
+    label: "Aborted",
+    className: "text-gray-600 bg-gray-50 dark:text-gray-400 dark:bg-gray-950",
+  },
 };
 
 const ACTION_LABELS: Record<string, string> = {
@@ -44,9 +77,14 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 function StatusPill({ status }: { status: string }) {
-  const config = STATUS_LABELS[status] ?? { label: status, className: "text-gray-600 bg-gray-50" };
+  const config = STATUS_LABELS[status] ?? {
+    label: status,
+    className: "text-gray-600 bg-gray-50",
+  };
   return (
-    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${config.className}`}>
+    <span
+      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${config.className}`}
+    >
       {config.label}
     </span>
   );
@@ -118,11 +156,21 @@ export function AiUsagePage() {
     void setPage(0);
     const cleanValue = !value || value === "all" ? null : value;
     switch (key) {
-      case "action": void setAction(cleanValue); break;
-      case "status": void setStatus(cleanValue); break;
-      case "userId": void setUserId(cleanValue); break;
-      case "dateFrom": void setDateFrom(cleanValue); break;
-      case "dateTo": void setDateTo(cleanValue); break;
+      case "action":
+        void setAction(cleanValue);
+        break;
+      case "status":
+        void setStatus(cleanValue);
+        break;
+      case "userId":
+        void setUserId(cleanValue);
+        break;
+      case "dateFrom":
+        void setDateFrom(cleanValue);
+        break;
+      case "dateTo":
+        void setDateTo(cleanValue);
+        break;
     }
   }
 
@@ -198,15 +246,24 @@ export function AiUsagePage() {
 
             <Popover open={dateFromOpen} onOpenChange={setDateFromOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[160px] justify-start text-left font-normal">
+                <Button
+                  variant="outline"
+                  className="w-[160px] justify-start text-left font-normal"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateFrom ? formatDateLabel(dateFrom) : <span className="text-muted-foreground">From</span>}
+                  {dateFrom ? (
+                    formatDateLabel(dateFrom)
+                  ) : (
+                    <span className="text-muted-foreground">From</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={dateFrom ? new Date(dateFrom + "T00:00:00") : undefined}
+                  selected={
+                    dateFrom ? new Date(dateFrom + "T00:00:00") : undefined
+                  }
                   onSelect={(day) => {
                     if (day) {
                       const iso = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
@@ -222,9 +279,16 @@ export function AiUsagePage() {
 
             <Popover open={dateToOpen} onOpenChange={setDateToOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[160px] justify-start text-left font-normal">
+                <Button
+                  variant="outline"
+                  className="w-[160px] justify-start text-left font-normal"
+                >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {dateTo ? formatDateLabel(dateTo) : <span className="text-muted-foreground">To</span>}
+                  {dateTo ? (
+                    formatDateLabel(dateTo)
+                  ) : (
+                    <span className="text-muted-foreground">To</span>
+                  )}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
@@ -285,7 +349,9 @@ export function AiUsagePage() {
                       {formatTimestamp(log.createdAt)}
                     </TableCell>
                     <TableCell>{log.operatorName ?? "Unknown"}</TableCell>
-                    <TableCell>{ACTION_LABELS[log.action] ?? log.action}</TableCell>
+                    <TableCell>
+                      {ACTION_LABELS[log.action] ?? log.action}
+                    </TableCell>
                     <TableCell>
                       <StatusPill status={log.status} />
                     </TableCell>
@@ -350,7 +416,8 @@ function UsageSummaryCards({
   const avgLatency =
     logsWithLatency.length > 0
       ? Math.round(
-          logsWithLatency.reduce((sum, l) => sum + l.latencyMs!, 0) / logsWithLatency.length,
+          logsWithLatency.reduce((sum, l) => sum + l.latencyMs!, 0) /
+            logsWithLatency.length,
         )
       : 0;
 

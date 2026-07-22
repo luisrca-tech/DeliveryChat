@@ -53,9 +53,7 @@ export async function createApplication(
 ): Promise<typeof applications.$inferSelect> {
   const id = crypto.randomUUID();
   const allowedOrigins =
-    input.kind === "test"
-      ? [`localhost:${input.port}`]
-      : [input.domain];
+    input.kind === "test" ? [`localhost:${input.port}`] : [input.domain];
 
   try {
     const [row] = await db
@@ -114,6 +112,8 @@ export type UpdateApplicationInput = {
   description?: string;
   settings?: Record<string, unknown>;
   allowedOrigins?: string[];
+  aiAutoRespond?: boolean;
+  aiDbEnabled?: boolean;
 };
 
 export async function getApplicationSettings(
@@ -161,6 +161,9 @@ export async function updateApplication(
   if (data.settings !== undefined) updates.settings = data.settings;
   if (data.allowedOrigins !== undefined)
     updates.allowedOrigins = data.allowedOrigins;
+  if (data.aiAutoRespond !== undefined)
+    updates.aiAutoRespond = data.aiAutoRespond;
+  if (data.aiDbEnabled !== undefined) updates.aiDbEnabled = data.aiDbEnabled;
 
   const [updated] = await db
     .update(applications)

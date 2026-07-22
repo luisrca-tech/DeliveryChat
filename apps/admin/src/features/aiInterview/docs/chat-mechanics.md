@@ -65,6 +65,7 @@ Operator presses "Finish interview" → controller chains `POST /complete` → `
 On success → `finished` phase, which redirects to the AI context view.
 
 On `/complete` failure:
+
 - `interview_checklist_incomplete` → `error_complete` phase, missing-topics surface.
 - Other mapped errors → toast fallback.
 

@@ -16,6 +16,9 @@ export type Conversation = {
   updatedAt: string;
 };
 
+/** Who authored a message. Mirrors the API's `MessageAuthorType`. */
+export type MessageAuthorType = "visitor" | "operator" | "ai" | "system";
+
 export type Message = {
   id: string;
   conversationId: string;
@@ -26,6 +29,11 @@ export type Message = {
   editedAt: string | null;
   createdAt: string;
   type: "text" | "system";
+  /**
+   * Optional for backward compatibility with older payloads. Drives the
+   * AI-assistant bubble styling — see ChatDemoComponents.
+   */
+  authorType?: MessageAuthorType;
 };
 
 export type PaginationOptions = {
@@ -88,6 +96,30 @@ export function createChatClient({
       return request("/ws-token", { method: "POST" });
     },
 
+    /**
+     * Public widget settings. `ai.enabled` is server-derived from the full AI
+     * entitlement (plan + add-on + per-application toggles), so the demo can
+     * never offer an AI affordance the backend wouldn't honour.
+     */
+    getSettings(): Promise<{
+      settings: {
+        header?: { title?: string };
+        ai?: { enabled?: boolean; assistantLabel?: string };
+      };
+    }> {
+      return request(`/settings/${appId}`);
+    },
+
+    /**
+     * Deterministic "Talk to a human" escalation. Idempotent server-side: a
+     * conversation that is already human-handled comes back 200 as a no-op.
+     */
+    escalate(conversationId: string): Promise<{ conversation: Conversation }> {
+      return request(`/conversations/${conversationId}/escalate`, {
+        method: "POST",
+      });
+    },
+
     createConversation(
       subject?: string,
     ): Promise<{ conversation: Conversation }> {
@@ -97,9 +129,7 @@ export function createChatClient({
       });
     },
 
-    listConversations(
-      opts?: PaginationOptions,
-    ): Promise<{
+    listConversations(opts?: PaginationOptions): Promise<{
       conversations: Conversation[];
       visitorUserId: string;
       total: number;

@@ -10,18 +10,18 @@ The AI context system enables per-application context customization through an i
 
 Stores the interview state and resulting context summary for each application.
 
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| `id` | UUID | PK, auto-generated | Row identifier |
-| `applicationId` | UUID | FK → `applications.id`, unique, cascade delete | One-to-one with application |
-| `status` | `aiContextStatusEnum` | NOT NULL | `in_progress` or `completed` |
-| `interviewLog` | JSONB | NOT NULL, default `[]` | Array of `{ role, content }` interview messages |
-| `currentTurn` | INTEGER | NOT NULL, default 0, CHECK (0-15) | Current turn in the interview flow |
-| `contextSummary` | TEXT | nullable | Final summary produced after interview completion |
-| `completedBy` | TEXT | FK → `user.id`, restrict delete | User who completed the interview |
-| `completedAt` | TIMESTAMP | nullable | When the interview was completed |
-| `createdAt` | TIMESTAMP | NOT NULL, auto | Row creation time |
-| `updatedAt` | TIMESTAMP | NOT NULL, auto | Last update time |
+| Column           | Type                  | Constraints                                    | Description                                       |
+| ---------------- | --------------------- | ---------------------------------------------- | ------------------------------------------------- |
+| `id`             | UUID                  | PK, auto-generated                             | Row identifier                                    |
+| `applicationId`  | UUID                  | FK → `applications.id`, unique, cascade delete | One-to-one with application                       |
+| `status`         | `aiContextStatusEnum` | NOT NULL                                       | `in_progress` or `completed`                      |
+| `interviewLog`   | JSONB                 | NOT NULL, default `[]`                         | Array of `{ role, content }` interview messages   |
+| `currentTurn`    | INTEGER               | NOT NULL, default 0, CHECK (0-15)              | Current turn in the interview flow                |
+| `contextSummary` | TEXT                  | nullable                                       | Final summary produced after interview completion |
+| `completedBy`    | TEXT                  | FK → `user.id`, restrict delete                | User who completed the interview                  |
+| `completedAt`    | TIMESTAMP             | nullable                                       | When the interview was completed                  |
+| `createdAt`      | TIMESTAMP             | NOT NULL, auto                                 | Row creation time                                 |
+| `updatedAt`      | TIMESTAMP             | NOT NULL, auto                                 | Last update time                                  |
 
 ### `aiContextStatusEnum`
 
@@ -30,7 +30,7 @@ Stores the interview state and resulting context summary for each application.
 
 ### `applications` Table Addition
 
-- `aiEnabled` — `BOOLEAN`, NOT NULL, default `false`. Controls whether AI features are active for this specific application.
+- `aiEnabled` — `BOOLEAN`, NOT NULL, default `false`. Controls whether AI features are active for this specific application. Set to `true` by `runGenerateSummary` when the interview completes — but only on plans that can be served by the AI (`planAllowsServing`). A FREE org completing the interview keeps `aiEnabled = false`: it has authored a context, not enabled an assistant.
 
 ### `aiActionEnum` Addition
 

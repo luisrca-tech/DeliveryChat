@@ -37,6 +37,10 @@ function renderMessages(messages: OptimisticMessage[]) {
       handleSaveEdit={noop}
       onRequestDelete={noop}
       handleEditKeyDown={noop}
+      handoffHidden={true}
+      handoffDisabled={false}
+      handoffError={null}
+      onRequestHuman={noop}
     />,
   );
 }

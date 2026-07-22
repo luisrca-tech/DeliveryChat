@@ -99,7 +99,12 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
           currentUserId={currentUserId}
           typingUser={ws.typingUser}
           onEditMessage={(messageId, content, contentFormat) =>
-            editMessage(conversationId, messageId, content, contentFormat as ContentFormat | undefined)
+            editMessage(
+              conversationId,
+              messageId,
+              content,
+              contentFormat as ContentFormat | undefined,
+            )
           }
           onDeleteMessage={(messageId) =>
             deleteMessage(conversationId, messageId)
@@ -126,7 +131,9 @@ export function ChatPanel({ conversationId, ws, currentUserRole }: Props) {
 
         {isActive && (
           <MessageInput
-            onSend={(content, contentFormat) => send(conversationId, content, contentFormat as ContentFormat)}
+            onSend={(content, contentFormat) =>
+              send(conversationId, content, contentFormat as ContentFormat)
+            }
             onTypingStart={() => {
               ws.sendEvent({
                 type: "typing:start",

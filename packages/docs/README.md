@@ -16,6 +16,11 @@ Architecture guides, implementation references, and technical decision records f
 
 - [Stripe Integration](billing-and-plans/stripe-plan.md) — Webhooks, RBAC billing middleware, trial control, enterprise workflow, admin UI
 
+### AI Assistant
+
+- [AI Assistant](ai-assistant.md) — Operator-assist AI: Generate Reply / Improve Message, AI Context interview, constrained Markdown output
+- [AI Autonomous Assistant](ai-autonomous-assistant.md) — Autonomous AI turn: DataTool abstraction, escalation policy, add-on billing/gating matrix, encryption
+
 ### Widget Embed
 
 - [Embed Reference](embed/embed-widget.md) — Quick reference for widget consumers: init options, async loading, destroy API

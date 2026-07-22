@@ -39,20 +39,24 @@ export function MessageInput({
 
   const {
     isAvailable: aiAvailable,
-    planAvailable,
+    servingAvailable,
     appConfigured,
   } = useAiAvailability(applicationId);
   const canConfigure =
     currentUserRole === "admin" || currentUserRole === "super_admin";
   const showConfigHint =
-    planAvailable && !appConfigured && !!applicationId && canConfigure;
+    servingAvailable && !appConfigured && !!applicationId && canConfigure;
 
   const handleGenerateSuccess = useCallback((text: string) => {
     editorHandleRef.current?.insertAiMarkdown(text);
     setIsAiSuggestion(true);
   }, []);
 
-  const { generate, cancel: cancelGenerate, isGenerating } = useGenerateReply({
+  const {
+    generate,
+    cancel: cancelGenerate,
+    isGenerating,
+  } = useGenerateReply({
     onSuccess: handleGenerateSuccess,
   });
 
@@ -61,7 +65,11 @@ export function MessageInput({
     setImproveState("review");
   }, []);
 
-  const { improve, cancel: cancelImprove, isImproving } = useImproveMessage({
+  const {
+    improve,
+    cancel: cancelImprove,
+    isImproving,
+  } = useImproveMessage({
     onSuccess: handleImproveSuccess,
   });
 
@@ -132,13 +140,21 @@ export function MessageInput({
   }, [improve, conversationId]);
 
   const canGenerate =
-    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && !editorHasContent;
+    aiAvailable &&
+    !aiInFlight &&
+    !disabled &&
+    improveState === "idle" &&
+    !editorHasContent;
   const canImprove =
-    aiAvailable && !aiInFlight && !disabled && improveState === "idle" && editorHasContent;
+    aiAvailable &&
+    !aiInFlight &&
+    !disabled &&
+    improveState === "idle" &&
+    editorHasContent;
 
   const aiToolbarProps = useMemo(
     () =>
-      planAvailable
+      servingAvailable
         ? {
             onGenerate: handleGenerate,
             onCancelGenerate: cancelGenerate,
@@ -150,7 +166,7 @@ export function MessageInput({
           }
         : undefined,
     [
-      planAvailable,
+      servingAvailable,
       handleGenerate,
       cancelGenerate,
       isGenerating,

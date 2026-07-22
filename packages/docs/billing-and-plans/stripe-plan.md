@@ -17,6 +17,8 @@ The `organization` table holds all billing state:
 - `trialEndsAt` — Trial expiration timestamp
 - `billingEmail` — Set to admin's email on org creation
 - `cancelAtPeriodEnd` — Whether the subscription will cancel at period end
+- `aiAddonActive` — Whether the AI add-on is active (derived from webhooks only)
+- `aiAddonSubscriptionItemId` — Stripe subscription item ID of the AI add-on (derived from webhooks only)
 
 The `processedEvents` table provides idempotency — each Stripe webhook event ID is stored to prevent duplicate processing.
 
@@ -26,13 +28,29 @@ The `processedEvents` table provides idempotency — each Stripe webhook event I
 
 Handles five events inside atomic database transactions:
 
-- **`invoice.paid`** — Sets status to `active`, syncs `plan` from subscription metadata via Stripe API
+- **`invoice.paid`** — Sets status to `active`, syncs `plan` by retrieving the subscription via the Stripe API
 - **`invoice.payment_failed`** — Sets status to `past_due`
 - **`customer.subscription.created`** — Syncs `plan`, `stripeSubscriptionId`, `planStatus`, and `trialEndsAt` from the new subscription
 - **`customer.subscription.deleted`** — Resets to `FREE` plan with `canceled` status
-- **`customer.subscription.updated`** — Syncs `planStatus`, `trialEndsAt`, and `plan` from subscription metadata
+- **`customer.subscription.updated`** — Syncs `planStatus`, `trialEndsAt`, and `plan` from the subscription
 
 Each event is verified via Stripe signature (`SIGNING_STRIPE_SECRET_KEY`) and checked against `processedEvents` for idempotency.
+
+### Plan Resolution (`lib/stripePlan.ts`)
+
+Every handler above answers "which plan is this subscription on?" through one module, and the answer comes from the subscription's **price**, not its metadata:
+
+1. Scan `subscription.items`, skipping the AI add-on item (it is a second item on the same subscription and says nothing about the base tier).
+2. Match `price.id` against `STRIPE_BASIC_PRICE_KEY` / `STRIPE_PREMIUM_PRICE_KEY`.
+3. Match `price.product` against `STRIPE_ENTERPRISE_PRODUCT_KEY` — enterprise deals are negotiated individually, so each gets a bespoke price under the shared enterprise product and there is no single price ID to compare against.
+4. Fall back to `subscription.metadata.plan` only when no price matches (legacy or hand-made prices).
+5. Resolve to `null` when nothing matches — callers treat this as **leave the current plan alone**, never as a downgrade.
+
+**Why the price and not the metadata.** We only ever write `metadata.plan` at checkout (`subscription_data.metadata`). Any plan change made outside checkout — a switch in the Stripe Billing Portal, an edit in the Stripe Dashboard — swaps the subscription's price item and leaves the metadata frozen at the plan originally bought. A metadata-driven sync therefore reads the stale value and writes the _old_ tier back to the database on every subsequent webhook, so Stripe says PREMIUM while the app says BASIC. Deriving from the price makes those changes self-healing.
+
+### Plan Reconcile on Read
+
+`GET /v1/billing/status` reconciles before responding: if the org has a `stripeSubscriptionId`, it retrieves the live subscription, resolves the plan from its price, and persists it when it differs from the stored plan. This repairs orgs that drifted while webhooks were missed (endpoint down, signature rotation, plan changed directly in the Stripe Dashboard) without waiting for the next billing event. If Stripe is unreachable the error is logged and the stored plan is served — billing must never fail to render.
 
 ### RBAC Billing Middleware (`checkBillingStatus`)
 
@@ -51,8 +69,72 @@ Applied after `requireTenantAuth()`. Enforcement rules by `planStatus`:
 - On organization creation: `planStatus = "trialing"`, `trialEndsAt = now + 14 days`, `billingEmail = user.email`
 - Checkout during trial: `trial_period_days` is omitted so the subscription activates immediately (no double trial). `checkout.session.completed` sets `planStatus = "active"` when the org was already trialing.
 - Checkout without trial: includes `trial_period_days: 14` for first-time purchases
-- Plan sync redundancy: `plan` is synced from `subscription.metadata.plan` in `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `invoice.paid` — if any single event fails, the others recover the plan tier
+- Plan sync redundancy: `plan` is synced in `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, and `invoice.paid` — if any single event fails, the others recover the plan tier. `checkout.session.completed` reads the checkout session's own metadata (the session has no price items); the other three resolve the plan from the subscription's price (see Plan Resolution above)
 - Enforcement: expired trial returns `402 Payment Required`, allowing only `super_admin` recovery routes
+
+### Multi-currency
+
+All Stripe prices (Basic, Premium, AI add-on) carry `currency_options`, so a single price ID bills in either BRL (default) or USD:
+
+| Plan      | BRL (default) | USD    |
+| --------- | ------------- | ------ |
+| Basic     | R$ 90         | US$ 19 |
+| Premium   | R$ 240        | US$ 49 |
+| AI add-on | R$ 120        | US$ 24 |
+
+- `POST /v1/billing/checkout` accepts an optional `currency: "brl" | "usd"` (default `"brl"`), forwarded as the `currency` param to `stripe.checkout.sessions.create`, which selects the matching currency option. The onboarding plan cards expose a BRL/USD toggle.
+- A customer's currency is **locked by their first subscription**. Later items — notably the AI add-on — automatically follow the subscription's currency, so the add-on route sends no currency of its own.
+- Enterprise has no Checkout (manual flow), so currency selection does not apply to it.
+
+## AI Add-on
+
+The AI assistant is sold as a **purchasable add-on**, decoupled from the plan tier. Only **PREMIUM** and **ENTERPRISE** organizations are eligible to buy it. Flat R$ 120/mo (multi-currency Stripe price; US$ 24 option), single SKU.
+
+### Item model — a second subscription item, never a second subscription
+
+The add-on is modeled as a **second subscription item on the existing subscription** (Stripe price `STRIPE_AI_ADDON_PRICE_KEY`, `lookup_key = ai_addon_monthly`). This keeps the single-`stripeSubscriptionId` schema, one invoice, Stripe-native proration, and an independent cancel lifecycle. A second subscription would break the `status → planStatus` mapping and the single-subscription assumption.
+
+### One entitlement seam — `features/ai/entitlement.ts`
+
+The eligible-plan rule and the webhook derivation live in exactly **one module**, `features/ai/entitlement.ts`, consumed by every layer so the rule cannot drift:
+
+- `ADDON_ELIGIBLE_PLANS` / `addonEligiblePlan(plan)` — the canonical `{PREMIUM, ENTERPRISE}` gate.
+- `isAddonEntitled(org)` — plan eligible **and** `aiAddonActive`. Consumed by `requireAiAddon()` and (via `isAiTurnEntitled`) the per-turn check.
+- `findAiAddonItem(subscription)` — locates the add-on item (`price.id === STRIPE_AI_ADDON_PRICE_KEY`, fallback `price.lookup_key === "ai_addon_monthly"`).
+- `deriveAddonEntitlement(subscription, resolvedPlan)` → `{ aiAddonActive, aiAddonSubscriptionItemId, revokeItemId? }` — the single derivation shared by all three subscription webhook handlers.
+
+### Entitlement is derived from webhooks only
+
+`aiAddonActive` / `aiAddonSubscriptionItemId` are **never set directly by any route**. All three subscription webhook handlers call the same `deriveAddonEntitlement(subscription, resolvedPlan)`:
+
+- **Item present + eligible plan** → `aiAddonActive = true`, `aiAddonSubscriptionItemId = item.id`.
+- **Item absent** → `false` / `null`.
+- **Item present + INELIGIBLE plan** → `false` / `null`, plus a `revokeItemId` for post-commit removal (see Downgrade revocation).
+
+The extra item never disturbs plan resolution (`extractPlanFromMetadata` is unchanged).
+
+- **`customer.subscription.created`** and **`customer.subscription.updated`** apply this derivation identically. (Previously `created` set `aiAddonActive = !!item` with **no plan-eligibility guard** — a bug where an add-on item on an ineligible plan wrongly granted the add-on. The shared seam fixes it: `created` now applies the same guard and revokes the orphaned item, exactly like a downgrade.)
+- **`customer.subscription.deleted`** — the plan drops to `FREE`, so the derivation resolves to `false` / `null` alongside the plan reset. Any `revokeItemId` is ignored because the whole subscription (and its items) is already gone.
+
+### Purchase & cancel routes
+
+Both require `super_admin` and go through the standard billing middleware chain. Responses are `{ status: "pending" }` acknowledgements — the entitlement flips only once the resulting Stripe webhook is processed.
+
+- **`POST /v1/billing/ai-addon`** — preconditions: org has `stripeSubscriptionId`; `planStatus ∈ {active, trialing}`; `plan ∈ {PREMIUM, ENTERPRISE}`; add-on not already active. Adds the item via `stripe.subscriptionItems.create` (default proration).
+- **`DELETE /v1/billing/ai-addon`** — requires `aiAddonSubscriptionItemId`; removes it via `stripe.subscriptionItems.del` with `proration_behavior: "create_prorations"`.
+
+### Downgrade revocation
+
+When the resolved plan is **not** in `{PREMIUM, ENTERPRISE}` (e.g. a downgrade to BASIC) while the add-on item is still present, `deriveAddonEntitlement` returns a `revokeItemId`, and the handler:
+
+1. clears the entitlement flags immediately (for consistency), and
+2. schedules a **post-commit** Stripe call (`subscriptionItems.del`, same deferred pattern as `emailTasks`) to remove the orphaned item — which itself fires a follow-up `subscription.updated`.
+
+Both `created` and `updated` honour `revokeItemId` this way; `deleted` ignores it (the subscription is gone).
+
+### Feature gates
+
+- **`requireAiAddon()`** — plan ∈ {PREMIUM, ENTERPRISE} **and** `aiAddonActive === true`, else `403 ai_addon_not_active`. This is the single AI gate: it protects the autonomous assistant **and** the data-tools / data-connection routes (both HTTP- and SQL-backed). There is no separate ENTERPRISE-custom gate.
 
 ### Enterprise Hybrid Workflow
 
@@ -85,7 +167,7 @@ Enterprise tier bypasses Stripe Checkout entirely:
 
 After checkout, the success page polls `GET /v1/billing/status` every 2 seconds until `isReady === true`, then redirects to dashboard. This handles the delay between Stripe webhook delivery and database update ("Zombie Checkout" pattern).
 
-**Status endpoint returns:** `isReady`, `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`
+**Status endpoint returns:** `isReady`, `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`, `aiAddonActive`
 
 ## Environment Variables
 
@@ -96,6 +178,7 @@ After checkout, the success page polls `GET /v1/billing/status` every 2 seconds 
 | `STRIPE_BASIC_PRICE_KEY`        | hono-api | Stripe price ID for Basic              |
 | `STRIPE_PREMIUM_PRICE_KEY`      | hono-api | Stripe price ID for Premium            |
 | `STRIPE_ENTERPRISE_PRODUCT_KEY` | hono-api | Stripe product ID for Enterprise       |
+| `STRIPE_AI_ADDON_PRICE_KEY`     | hono-api | Stripe price ID for the AI add-on      |
 | `STRIPE_AUTOMATIC_TAX_ENABLED`  | hono-api | Enable automatic tax calculation       |
 | `RESEND_EMAIL_TO`               | hono-api | Enterprise contact email destination   |
 | `VITE_RESEND_EMAIL_TO`          | admin    | Enterprise contact email (client-side) |

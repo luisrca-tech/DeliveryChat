@@ -25,10 +25,7 @@ Then render the HTML inside a container with the appropriate CSS class:
 
 ```tsx
 // Admin / Web (uses @repo/ui styles)
-<div
-  className="rich-text-content"
-  dangerouslySetInnerHTML={{ __html: html }}
-/>
+<div className="rich-text-content" dangerouslySetInnerHTML={{ __html: html }} />
 
 // Widget SDK (uses SDK styles)
 // Apply class="rich-text" to the container

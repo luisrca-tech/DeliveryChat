@@ -32,12 +32,12 @@ none ──(complete) ──▶ pending ──(generate-summary success) ──�
                             (retry generate-summary) ◀──────────────┘
 ```
 
-| `summaryStatus` | When it appears                                                                             |
-| --------------- | ------------------------------------------------------------------------------------------- |
-| `none`          | Interview is still `in_progress` (or has never been started).                               |
-| `pending`       | Interview just transitioned to `completed`; summary has not yet been generated.             |
-| `ready`         | Summary generation succeeded; `contextSummary` is populated.                                |
-| `failed`        | Summary generation attempt failed; the row is eligible for retry.                            |
+| `summaryStatus` | When it appears                                                                 |
+| --------------- | ------------------------------------------------------------------------------- |
+| `none`          | Interview is still `in_progress` (or has never been started).                   |
+| `pending`       | Interview just transitioned to `completed`; summary has not yet been generated. |
+| `ready`         | Summary generation succeeded; `contextSummary` is populated.                    |
+| `failed`        | Summary generation attempt failed; the row is eligible for retry.               |
 
 Endpoint semantics:
 
@@ -77,8 +77,8 @@ The "Configure now" link is shown to `admin` / `super_admin` viewers and routes 
 
 Once every core topic is covered and the interview is past the soft-finish-window minimum (turn 8), the interviewer enters a **Discovery phase**: every new admin message is treated as "extra context" and classified into one of three buckets that drives behaviour.
 
-| `extraContextRelevance` | When the LLM picks it                                                                                       | Assistant behaviour                                                              | `followUpQuestion` |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------ |
+| `extraContextRelevance` | When the LLM picks it                                                                                        | Assistant behaviour                                                              | `followUpQuestion` |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------- | ------------------ |
 | `relevant`              | Extra introduces material that would sharpen the support config (new prohibited topic, audience, tone, etc.) | Ask exactly one targeted follow-up question that materially sharpens the config. | `true`             |
 | `irrelevant`            | Extra is about the business but does not shape end-user support (funding, runway, headcount, MRR, roadmap)   | Brief acknowledgement, no follow-up question.                                    | `false` / absent   |
 | `duplicate`             | Extra substantially repeats prior log content, including paraphrased near-duplicates                         | Acknowledge as duplicate, no follow-up question.                                 | `false` / absent   |

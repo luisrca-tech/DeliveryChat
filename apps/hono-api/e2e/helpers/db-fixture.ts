@@ -18,9 +18,13 @@ import { conversations } from "../../src/db/schema/conversations";
 import { messages } from "../../src/db/schema/messages";
 import { conversationParticipants } from "../../src/db/schema/conversationParticipants";
 import { aiUsageLog } from "../../src/db/schema/aiUsageLog";
-import { createHash } from "node:crypto";
+import { signWsToken } from "../../src/lib/security/wsToken";
+import { createHash, createHmac } from "node:crypto";
 
-const E2E_PREFIX = "e2e_test_";
+// Must satisfy the tenant slug regex (/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/)
+// in requestContext.ts — an underscore here makes `X-Tenant-Slug` unresolvable
+// and every session-authenticated request 403s with "Tenant subdomain not found".
+const E2E_PREFIX = "e2e-test-";
 
 export interface E2ETestData {
   org: { id: string; slug: string };
@@ -35,13 +39,21 @@ function hashApiKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");
 }
 
-export async function provisionTestData(
-  opts?: {
-    plan?: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
-    planStatus?: "active" | "trialing" | "past_due" | "canceled" | "unpaid" | "incomplete" | "paused" | null;
-    orgStatus?: "ACTIVE" | "PENDING_VERIFICATION" | "EXPIRED" | "DELETED";
-  },
-): Promise<E2ETestData> {
+export async function provisionTestData(opts?: {
+  plan?: "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
+  planStatus?:
+    | "active"
+    | "trialing"
+    | "past_due"
+    | "canceled"
+    | "unpaid"
+    | "incomplete"
+    | "paused"
+    | null;
+  orgStatus?: "ACTIVE" | "PENDING_VERIFICATION" | "EXPIRED" | "DELETED";
+  /** ISO timestamp. Needed to provision a FREE org inside/outside its trial window. */
+  trialEndsAt?: string | null;
+}): Promise<E2ETestData> {
   const testId = randomUUID().slice(0, 8);
   const orgSlug = `${E2E_PREFIX}${testId}`;
 
@@ -54,6 +66,7 @@ export async function provisionTestData(
       name: `E2E Test Org ${testId}`,
       plan: opts?.plan ?? "FREE",
       planStatus: opts?.planStatus ?? null,
+      trialEndsAt: opts?.trialEndsAt ?? null,
       status: opts?.orgStatus ?? "ACTIVE",
     })
     .returning();
@@ -169,6 +182,14 @@ export async function createConversationInDB(opts: {
   applicationId?: string;
   subject?: string;
   participants: { userId: string; role: "visitor" | "operator" | "admin" }[];
+  /**
+   * The staff member the conversation is assigned to. `validateSendAuthorization`
+   * only lets a non-visitor send when `assignedTo === senderId`, so any flow
+   * where staff sends must set this — it is what `POST /conversations/:id/accept`
+   * does in production.
+   */
+  assignedTo?: string;
+  status?: "pending" | "active" | "closed";
 }): Promise<string> {
   const convId = randomUUID();
   await db.insert(conversations).values({
@@ -176,6 +197,8 @@ export async function createConversationInDB(opts: {
     organizationId: opts.organizationId,
     applicationId: opts.applicationId ?? null,
     subject: opts.subject ?? null,
+    ...(opts.assignedTo ? { assignedTo: opts.assignedTo } : {}),
+    ...(opts.status ? { status: opts.status } : {}),
   });
 
   for (const p of opts.participants) {
@@ -207,8 +230,62 @@ export async function addParticipantInDB(
 }
 
 /**
+ * Signs a raw session token the way Better Auth signs its session cookie, so a
+ * DB-provisioned session authenticates over `Cookie:`.
+ *
+ * Better Auth delegates to better-call's `signCookieValue`, which produces
+ * `encodeURIComponent(`${token}.${base64(HMAC-SHA256(secret, token))}`)`. The
+ * signature is verified BEFORE the DB lookup, so an unsigned raw token yields a
+ * null session (401) even though the row exists.
+ */
+export function signSessionCookie(token: string): string {
+  const secret = process.env.BETTER_AUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      "BETTER_AUTH_SECRET is required to sign the E2E session cookie. " +
+        "Run via: infisical run --path=/hono-api -- <command>",
+    );
+  }
+  const signature = createHmac("sha256", secret).update(token).digest("base64");
+  return encodeURIComponent(`${token}.${signature}`);
+}
+
+/**
+ * Mints the signed WebSocket token a widget visitor connects with
+ * (`/v1/ws?token=...`). This is the same token `POST /widget/ws-token` returns;
+ * signing it here keeps the WS tests independent of the widget REST route.
+ *
+ * The token binds the origin, and `authenticateWebSocket` compares it against
+ * the connection's `Origin` header. The `ws` client sends no Origin, so the
+ * default empty origin is what matches — pass one only if the test sets it.
+ */
+export function signVisitorWsToken(opts: {
+  appId: string;
+  visitorId: string;
+  origin?: string;
+}): string {
+  const secret = process.env.WS_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error(
+      "WS_TOKEN_SECRET is required to sign the E2E WebSocket token. " +
+        "Run via: infisical run --path=/hono-api -- <command>",
+    );
+  }
+  return signWsToken(
+    {
+      appId: opts.appId,
+      visitorId: opts.visitorId,
+      origin: opts.origin ?? "",
+    },
+    secret,
+  );
+}
+
+/**
  * Creates a Better Auth session directly in the DB for E2E testing.
- * Returns the session token to use in Authorization or Cookie headers.
+ * Returns the RAW session token — valid as a Bearer token, and as the
+ * `sessionToken` query param that authenticates a staff WebSocket connection.
+ * For a `Cookie:` header, wrap it in {@link signSessionCookie}.
  */
 export async function createSessionInDB(userId: string): Promise<string> {
   const token = randomUUID();
@@ -253,17 +330,13 @@ export async function cleanupTestData(data: E2ETestData) {
   ];
 
   // Delete in reverse dependency order
-  await db
-    .delete(aiUsageLog)
-    .where(eq(aiUsageLog.tenantId, data.org.id));
+  await db.delete(aiUsageLog).where(eq(aiUsageLog.tenantId, data.org.id));
 
   await db
     .delete(conversationParticipants)
     .where(inArray(conversationParticipants.userId, userIds));
 
-  await db
-    .delete(messages)
-    .where(inArray(messages.senderId, userIds));
+  await db.delete(messages).where(inArray(messages.senderId, userIds));
 
   await db
     .delete(conversations)
@@ -273,9 +346,7 @@ export async function cleanupTestData(data: E2ETestData) {
 
   await db.delete(member).where(eq(member.organizationId, data.org.id));
 
-  await db
-    .delete(session)
-    .where(inArray(session.userId, userIds));
+  await db.delete(session).where(inArray(session.userId, userIds));
 
   await db
     .delete(applications)

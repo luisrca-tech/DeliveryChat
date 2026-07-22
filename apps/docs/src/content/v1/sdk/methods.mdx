@@ -169,6 +169,23 @@ await chat.identify({
 
 **Returns:** `Promise<IdentityResult>`
 
+## Escalation
+
+### `requestHuman()`
+
+Escalate the current conversation to a human operator. Used to build a custom
+"talk to a human" control on top of the default one already shown in the
+widget header — see [AI Assistant: Escalation & Handoff](/v1/ai-assistant/escalation).
+
+```typescript
+const chat = getSdkApi();
+await chat.requestHuman();
+```
+
+**Returns:** `Promise<void>` — resolves once the escalation is confirmed by
+the server. Idempotent: calling it again on an already-escalated or
+human-handled conversation is a no-op.
+
 ## Events
 
 ### `on(event, callback)`

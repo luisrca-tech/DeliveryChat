@@ -35,7 +35,11 @@ export function InterviewRuler({ displayTurn }: InterviewRulerProps) {
   const numeralTone = TONE_TEXT[tone];
 
   const zoneFill1 = zoneFillFor(displayTurn, 1, ZONE1_LEN);
-  const zoneFill2 = zoneFillFor(displayTurn, INTERVIEW_SUGGESTED_MIN, ZONE2_LEN);
+  const zoneFill2 = zoneFillFor(
+    displayTurn,
+    INTERVIEW_SUGGESTED_MIN,
+    ZONE2_LEN,
+  );
 
   return (
     <div
@@ -51,8 +55,18 @@ export function InterviewRuler({ displayTurn }: InterviewRulerProps) {
       </span>
       <div className="flex flex-1 flex-col gap-1.5">
         <div className="hidden items-end gap-1 md:flex">
-          <RulerZone label="OPENING" labelHint="1–7" fill={zoneFill1} toneClass={TONE_RULE.neutral} />
-          <RulerZone label="SUGGESTED" labelHint="8–12" fill={zoneFill2} toneClass={TONE_RULE.green} />
+          <RulerZone
+            label="OPENING"
+            labelHint="1–7"
+            fill={zoneFill1}
+            toneClass={TONE_RULE.neutral}
+          />
+          <RulerZone
+            label="SUGGESTED"
+            labelHint="8–12"
+            fill={zoneFill2}
+            toneClass={TONE_RULE.green}
+          />
         </div>
         <div className="flex items-center gap-1 md:hidden">
           <CompressedZone fill={zoneFill1} toneClass={TONE_RULE.neutral} />
@@ -86,8 +100,7 @@ function RulerZone({
         />
       </div>
       <p className="interview-eyebrow text-[var(--interview-color-muted)]">
-        {label}{" "}
-        <span className="opacity-60">{labelHint}</span>
+        {label} <span className="opacity-60">{labelHint}</span>
       </p>
     </div>
   );

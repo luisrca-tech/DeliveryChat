@@ -1,7 +1,4 @@
-import type {
-  CoreTopic,
-  InterviewContextRow,
-} from "./ai.interview.schema.js";
+import type { CoreTopic, InterviewContextRow } from "./ai.interview.schema.js";
 
 export class AIProviderError extends Error {
   constructor(message: string, options?: { cause?: unknown }) {
@@ -11,9 +8,17 @@ export class AIProviderError extends Error {
 }
 
 export class AIProviderRateLimitError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message, options);
+  // Provider-declared wait (from the retry-after header), in milliseconds.
+  // Undefined when the provider gave no usable hint.
+  readonly retryAfterMs?: number;
+
+  constructor(
+    message: string,
+    options?: { cause?: unknown; retryAfterMs?: number },
+  ) {
+    super(message, { cause: options?.cause });
     this.name = "AIProviderRateLimitError";
+    this.retryAfterMs = options?.retryAfterMs;
   }
 }
 

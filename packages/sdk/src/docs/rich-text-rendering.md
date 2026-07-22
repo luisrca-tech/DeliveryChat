@@ -13,10 +13,10 @@ Every `ChatMessage` now carries two optional fields:
 
 ## Rendering Rules
 
-| `contentFormat` | `contentHtml` | Rendering |
-|---|---|---|
-| `"plain"` or absent | `null` or absent | `textContent` assignment (XSS-safe) |
-| `"lexical"` | Non-null HTML string | `innerHTML` assignment with `.rich-text` class |
+| `contentFormat`     | `contentHtml`        | Rendering                                      |
+| ------------------- | -------------------- | ---------------------------------------------- |
+| `"plain"` or absent | `null` or absent     | `textContent` assignment (XSS-safe)            |
+| `"lexical"`         | Non-null HTML string | `innerHTML` assignment with `.rich-text` class |
 
 The server sanitizes `contentHtml` using `sanitize-html` before sending it. The widget trusts this pre-sanitized output — no Lexical dependency is added to the widget bundle.
 

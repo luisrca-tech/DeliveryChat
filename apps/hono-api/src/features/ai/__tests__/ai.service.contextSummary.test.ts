@@ -10,13 +10,13 @@ vi.mock("../../../db/index.js", () => ({
 vi.mock("../../../env.js", () => ({
   env: {
     AI_MODEL: "mock://test",
-    GROQ_API_KEY: "test-key",
+    OPENROUTER_API_KEY: "test-key",
     AI_CONTEXT_MESSAGE_LIMIT: 10,
   },
 }));
 
-vi.mock("../ai.groqProvider.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../ai.groqProvider.js")>();
+vi.mock("../ai.openRouterProvider.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../ai.openRouterProvider.js")>();
   return {
     ...actual,
     createAIProvider: vi.fn(),
@@ -24,7 +24,7 @@ vi.mock("../ai.groqProvider.js", async (importOriginal) => {
 });
 
 const { db } = await import("../../../db/index.js");
-const { createAIProvider } = await import("../ai.groqProvider.js");
+const { createAIProvider } = await import("../ai.openRouterProvider.js");
 
 const mockSelect = db.select as ReturnType<typeof vi.fn>;
 const mockInsert = db.insert as ReturnType<typeof vi.fn>;

@@ -98,6 +98,29 @@ export async function getUnreadCount(
   return data.unreadCount;
 }
 
+/**
+ * Visitor-facing "Talk to a human" escalation (plan §8, AC #4). Mirrors the
+ * header convention used by the other widget REST calls in this file
+ * (`X-App-Id` + `X-Visitor-Id`). Idempotent server-side: the resulting system
+ * message + `handledBy` flip render through the normal message flow.
+ */
+export async function escalateConversation(
+  apiBaseUrl: string,
+  appId: string,
+  visitorId: string,
+  conversationId: string,
+): Promise<void> {
+  const url = `${apiBaseUrl}/api/v1/widget/conversations/${conversationId}/escalate`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: buildHeaders(appId, visitorId),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to escalate conversation (${res.status})`);
+  }
+}
+
 export async function markConversationAsRead(
   apiBaseUrl: string,
   appId: string,

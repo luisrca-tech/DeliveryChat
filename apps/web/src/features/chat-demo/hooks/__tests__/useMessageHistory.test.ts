@@ -175,13 +175,11 @@ describe("useMessageHistory", () => {
 
   it("appendMessage adds to the end of the list", async () => {
     const client = makeClient({
-      getMessages: vi
-        .fn()
-        .mockResolvedValue({
-          messages: [makeMsg("msg-1")],
-          limit: 20,
-          offset: 0,
-        }),
+      getMessages: vi.fn().mockResolvedValue({
+        messages: [makeMsg("msg-1")],
+        limit: 20,
+        offset: 0,
+      }),
     });
 
     const { result } = renderHook(() =>
@@ -204,13 +202,11 @@ describe("useMessageHistory", () => {
 
   it("replaceMessage updates content and editedAt by id", async () => {
     const client = makeClient({
-      getMessages: vi
-        .fn()
-        .mockResolvedValue({
-          messages: [makeMsg("msg-1")],
-          limit: 20,
-          offset: 0,
-        }),
+      getMessages: vi.fn().mockResolvedValue({
+        messages: [makeMsg("msg-1")],
+        limit: 20,
+        offset: 0,
+      }),
     });
 
     const { result } = renderHook(() =>

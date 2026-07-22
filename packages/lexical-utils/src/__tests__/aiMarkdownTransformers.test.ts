@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { createEditor, $getRoot, $createParagraphNode, $createTextNode } from "lexical";
+import {
+  createEditor,
+  $getRoot,
+  $createParagraphNode,
+  $createTextNode,
+} from "lexical";
 import { HeadingNode } from "@lexical/rich-text";
 import { ListNode, ListItemNode } from "@lexical/list";
 import {

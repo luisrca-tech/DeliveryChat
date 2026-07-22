@@ -2,16 +2,22 @@
  * E2E tests for AI Assistant endpoints.
  *
  * PREREQUISITE: The hono-api server must be running with AI_MODEL=mock://test
- * so the MockProvider is used instead of calling the real Groq API.
+ * so the MockProvider is used instead of calling the real OpenRouter API.
  *
  * Run with: AI_MODEL=mock://test infisical run --path=/hono-api -- npx playwright test e2e/ai.e2e.ts
  */
 import { test, expect } from "@playwright/test";
+import { randomUUID } from "node:crypto";
+import { eq } from "drizzle-orm";
+import { db } from "../src/db/index";
+import { applications } from "../src/db/schema/applications";
+import { applicationAiContext } from "../src/db/schema/applicationAiContext";
 import {
   provisionTestData,
   cleanupTestData,
   createConversationInDB,
   createSessionInDB,
+  signSessionCookie,
   addMessageInDB,
   type E2ETestData,
 } from "./helpers/db-fixture";
@@ -24,7 +30,7 @@ let premiumAdminToken: string;
 
 function authHeaders(token: string, slug: string) {
   return {
-    Cookie: `better-auth.session_token=${token}`,
+    Cookie: `better-auth.session_token=${signSessionCookie(token)}`,
     "X-Tenant-Slug": slug,
     "Content-Type": "application/json",
   };
@@ -37,14 +43,25 @@ test.beforeAll(async () => {
     plan: "PREMIUM",
     planStatus: "active",
   });
-  premiumOperatorToken = await createSessionInDB(
-    premiumData.operatorUser.id,
-  );
+  premiumOperatorToken = await createSessionInDB(premiumData.operatorUser.id);
   premiumAdminToken = await createSessionInDB(premiumData.adminUser.id);
 
-  console.log(
-    `[AI E2E] Provisioned: org=${premiumData.org.slug} plan=PREMIUM`,
-  );
+  // The AI routes require the application to have `aiEnabled` AND a completed
+  // AI context; without both, every call is rejected with 403 `ai_not_configured`.
+  await db
+    .update(applications)
+    .set({ aiEnabled: true })
+    .where(eq(applications.id, premiumData.app.id));
+
+  await db.insert(applicationAiContext).values({
+    id: randomUUID(),
+    applicationId: premiumData.app.id,
+    status: "completed",
+    contextSummary:
+      "This is an e2e test business. It sells widgets and offers standard support.",
+  });
+
+  console.log(`[AI E2E] Provisioned: org=${premiumData.org.slug} plan=PREMIUM`);
 });
 
 test.afterAll(async () => {
@@ -156,9 +173,7 @@ test.describe("POST /ai/improve-message", () => {
     const conversationId = await createConversationInDB({
       organizationId: premiumData.org.id,
       applicationId: premiumData.app.id,
-      participants: [
-        { userId: premiumData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: premiumData.operatorUser.id, role: "operator" }],
     });
 
     const draft = "a".repeat(4000);
@@ -176,9 +191,7 @@ test.describe("POST /ai/improve-message", () => {
     const conversationId = await createConversationInDB({
       organizationId: premiumData.org.id,
       applicationId: premiumData.app.id,
-      participants: [
-        { userId: premiumData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: premiumData.operatorUser.id, role: "operator" }],
     });
 
     const draft = "a".repeat(4001);
@@ -194,9 +207,7 @@ test.describe("POST /ai/improve-message", () => {
     const conversationId = await createConversationInDB({
       organizationId: premiumData.org.id,
       applicationId: premiumData.app.id,
-      participants: [
-        { userId: premiumData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: premiumData.operatorUser.id, role: "operator" }],
     });
 
     const response = await request.post("/api/v1/ai/improve-message", {
@@ -217,9 +228,7 @@ test.describe("AI plan gating", () => {
   test.beforeAll(async () => {
     freeData = await provisionTestData({ plan: "FREE", planStatus: "active" });
     freeOperatorToken = await createSessionInDB(freeData.operatorUser.id);
-    console.log(
-      `[AI E2E] Provisioned FREE org: ${freeData.org.slug}`,
-    );
+    console.log(`[AI E2E] Provisioned FREE org: ${freeData.org.slug}`);
   });
 
   test.afterAll(async () => {
@@ -233,9 +242,7 @@ test.describe("AI plan gating", () => {
     const conversationId = await createConversationInDB({
       organizationId: freeData.org.id,
       applicationId: freeData.app.id,
-      participants: [
-        { userId: freeData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: freeData.operatorUser.id, role: "operator" }],
     });
 
     const response = await request.post("/api/v1/ai/generate-reply", {
@@ -254,9 +261,7 @@ test.describe("AI plan gating", () => {
     const conversationId = await createConversationInDB({
       organizationId: freeData.org.id,
       applicationId: freeData.app.id,
-      participants: [
-        { userId: freeData.operatorUser.id, role: "operator" },
-      ],
+      participants: [{ userId: freeData.operatorUser.id, role: "operator" }],
     });
 
     const response = await request.post("/api/v1/ai/improve-message", {
@@ -267,6 +272,95 @@ test.describe("AI plan gating", () => {
     expect(response.status()).toBe(403);
     const body = await response.json();
     expect(body.error).toBe("ai_feature_not_available");
+  });
+});
+
+// ── Interview Gating (authoring is NOT serving) ──
+
+test.describe("AI interview plan gating", () => {
+  let trialData: E2ETestData;
+  let trialAdminToken: string;
+  let expiredData: E2ETestData;
+  let expiredAdminToken: string;
+
+  const DAY_MS = 86_400_000;
+
+  test.beforeAll(async () => {
+    trialData = await provisionTestData({
+      plan: "FREE",
+      planStatus: "trialing",
+      trialEndsAt: new Date(Date.now() + 7 * DAY_MS).toISOString(),
+    });
+    trialAdminToken = await createSessionInDB(trialData.adminUser.id);
+
+    expiredData = await provisionTestData({
+      plan: "FREE",
+      planStatus: "trialing",
+      trialEndsAt: new Date(Date.now() - DAY_MS).toISOString(),
+    });
+    expiredAdminToken = await createSessionInDB(expiredData.adminUser.id);
+  });
+
+  test.afterAll(async () => {
+    await cleanupTestData(trialData);
+    await cleanupTestData(expiredData);
+  });
+
+  test("FREE tenant inside its trial may start the interview", async ({
+    request,
+  }) => {
+    const response = await request.post(
+      `/api/v1/applications/${trialData.app.id}/ai-interview/turns`,
+      {
+        headers: authHeaders(trialAdminToken, trialData.org.slug),
+        data: { message: "", expectedCurrentTurn: 0 },
+      },
+    );
+
+    // The plan gate must not reject it. (The provider call itself may still fail
+    // in CI without an AI key — what matters is that it is not a 403.)
+    expect(response.status()).not.toBe(403);
+  });
+
+  test("FREE tenant past its trial is blocked from the interview", async ({
+    request,
+  }) => {
+    const response = await request.post(
+      `/api/v1/applications/${expiredData.app.id}/ai-interview/turns`,
+      {
+        headers: authHeaders(expiredAdminToken, expiredData.org.slug),
+        data: { message: "", expectedCurrentTurn: 0 },
+      },
+    );
+
+    // An expired trial is stopped by `checkBillingStatus`, which runs ahead of
+    // the AI gate and blocks the whole product ("choose a plan to continue").
+    expect(response.status()).toBe(402);
+  });
+
+  test("FREE tenant with no trial at all is blocked from the interview", async ({
+    request,
+  }) => {
+    // `planStatus: null` slips past checkBillingStatus, so the AI gate is the
+    // only thing standing between a trial-less FREE org and unmetered LLM calls.
+    const noTrial = await provisionTestData({ plan: "FREE", planStatus: null });
+    const token = await createSessionInDB(noTrial.adminUser.id);
+
+    try {
+      const response = await request.post(
+        `/api/v1/applications/${noTrial.app.id}/ai-interview/turns`,
+        {
+          headers: authHeaders(token, noTrial.org.slug),
+          data: { message: "", expectedCurrentTurn: 0 },
+        },
+      );
+
+      expect(response.status()).toBe(403);
+      const body = await response.json();
+      expect(body.error).toBe("ai_interview_trial_expired");
+    } finally {
+      await cleanupTestData(noTrial);
+    }
   });
 });
 
@@ -284,9 +378,7 @@ test.describe("AI billing gating", () => {
     canceledOperatorToken = await createSessionInDB(
       canceledData.operatorUser.id,
     );
-    console.log(
-      `[AI E2E] Provisioned canceled org: ${canceledData.org.slug}`,
-    );
+    console.log(`[AI E2E] Provisioned canceled org: ${canceledData.org.slug}`);
   });
 
   test.afterAll(async () => {
@@ -368,12 +460,9 @@ test.describe("GET /ai/usage", () => {
   });
 
   test("supports action filter", async ({ request }) => {
-    const response = await request.get(
-      "/api/v1/ai/usage?action=generate",
-      {
-        headers: authHeaders(premiumAdminToken, premiumData.org.slug),
-      },
-    );
+    const response = await request.get("/api/v1/ai/usage?action=generate", {
+      headers: authHeaders(premiumAdminToken, premiumData.org.slug),
+    });
 
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -383,12 +472,9 @@ test.describe("GET /ai/usage", () => {
   });
 
   test("supports status filter", async ({ request }) => {
-    const response = await request.get(
-      "/api/v1/ai/usage?status=success",
-      {
-        headers: authHeaders(premiumAdminToken, premiumData.org.slug),
-      },
-    );
+    const response = await request.get("/api/v1/ai/usage?status=success", {
+      headers: authHeaders(premiumAdminToken, premiumData.org.slug),
+    });
 
     expect(response.status()).toBe(200);
     const body = await response.json();
@@ -398,12 +484,9 @@ test.describe("GET /ai/usage", () => {
   });
 
   test("supports pagination", async ({ request }) => {
-    const response = await request.get(
-      "/api/v1/ai/usage?limit=1&offset=0",
-      {
-        headers: authHeaders(premiumAdminToken, premiumData.org.slug),
-      },
-    );
+    const response = await request.get("/api/v1/ai/usage?limit=1&offset=0", {
+      headers: authHeaders(premiumAdminToken, premiumData.org.slug),
+    });
 
     expect(response.status()).toBe(200);
     const body = await response.json();

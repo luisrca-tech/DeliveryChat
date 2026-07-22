@@ -33,7 +33,9 @@ function getEditorConfig() {
   return {
     namespace: "test",
     nodes: [ListNode, ListItemNode],
-    onError: (error: Error) => { throw error; },
+    onError: (error: Error) => {
+      throw error;
+    },
   };
 }
 
@@ -87,7 +89,12 @@ function renderWithEditor(
         ErrorBoundary={LexicalErrorBoundary}
       />
       <ListPlugin />
-      <SetupEditor setup={setup} onEditor={(e) => { editorRef = e; }} />
+      <SetupEditor
+        setup={setup}
+        onEditor={(e) => {
+          editorRef = e;
+        }}
+      />
       <ListKeyboardPlugin interceptPlainEnter={interceptPlainEnter} />
     </LexicalComposer>,
   );
@@ -103,7 +110,10 @@ function getTextContent(editor: LexicalEditor): string {
   return text;
 }
 
-function dispatchEnter(editor: LexicalEditor, modifiers: Partial<KeyboardEvent> = {}) {
+function dispatchEnter(
+  editor: LexicalEditor,
+  modifiers: Partial<KeyboardEvent> = {},
+) {
   return act(() => {
     editor.dispatchCommand(KEY_ENTER_COMMAND, {
       preventDefault: vi.fn(),
@@ -130,7 +140,11 @@ describe("ListKeyboardPlugin", () => {
     const editor = renderWithEditor("paragraph");
     const lineBreakSpy = vi.fn(() => true);
 
-    editor.registerCommand(INSERT_LINE_BREAK_COMMAND, lineBreakSpy, COMMAND_PRIORITY_LOW);
+    editor.registerCommand(
+      INSERT_LINE_BREAK_COMMAND,
+      lineBreakSpy,
+      COMMAND_PRIORITY_LOW,
+    );
 
     await dispatchEnter(editor, { ctrlKey: true });
 

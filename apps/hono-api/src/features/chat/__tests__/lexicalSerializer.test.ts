@@ -254,13 +254,17 @@ describe("serializeLexicalToHtml", () => {
             version: 1,
           },
           {
-            children: [{ format: 0, text: "Subtitle", type: "text", version: 1 }],
+            children: [
+              { format: 0, text: "Subtitle", type: "text", version: 1 },
+            ],
             type: "heading",
             tag: "h2",
             version: 1,
           },
           {
-            children: [{ format: 0, text: "Section", type: "text", version: 1 }],
+            children: [
+              { format: 0, text: "Section", type: "text", version: 1 },
+            ],
             type: "heading",
             tag: "h3",
             version: 1,
@@ -291,13 +295,17 @@ describe("serializeLexicalToHtml", () => {
                 type: "listitem",
                 version: 1,
                 value: 1,
-                children: [{ format: 0, text: "First item", type: "text", version: 1 }],
+                children: [
+                  { format: 0, text: "First item", type: "text", version: 1 },
+                ],
               },
               {
                 type: "listitem",
                 version: 1,
                 value: 2,
-                children: [{ format: 0, text: "Second item", type: "text", version: 1 }],
+                children: [
+                  { format: 0, text: "Second item", type: "text", version: 1 },
+                ],
               },
             ],
           },
@@ -328,13 +336,17 @@ describe("serializeLexicalToHtml", () => {
                 type: "listitem",
                 version: 1,
                 value: 1,
-                children: [{ format: 0, text: "Step one", type: "text", version: 1 }],
+                children: [
+                  { format: 0, text: "Step one", type: "text", version: 1 },
+                ],
               },
               {
                 type: "listitem",
                 version: 1,
                 value: 2,
-                children: [{ format: 0, text: "Step two", type: "text", version: 1 }],
+                children: [
+                  { format: 0, text: "Step two", type: "text", version: 1 },
+                ],
               },
             ],
           },
@@ -386,8 +398,19 @@ describe("serializeLexicalToHtml", () => {
             language: "javascript",
             version: 1,
             children: [
-              { format: 0, text: "function", type: "code-highlight", highlightType: "keyword", version: 1 },
-              { format: 0, text: " hello() {}", type: "code-highlight", version: 1 },
+              {
+                format: 0,
+                text: "function",
+                type: "code-highlight",
+                highlightType: "keyword",
+                version: 1,
+              },
+              {
+                format: 0,
+                text: " hello() {}",
+                type: "code-highlight",
+                version: 1,
+              },
             ],
           },
         ],
@@ -466,7 +489,9 @@ describe("serializeLexicalToHtml", () => {
             type: "heading",
             tag: "h2",
             version: 1,
-            children: [{ format: 0, text: "Summary", type: "text", version: 1 }],
+            children: [
+              { format: 0, text: "Summary", type: "text", version: 1 },
+            ],
           },
           {
             type: "paragraph",
@@ -486,13 +511,17 @@ describe("serializeLexicalToHtml", () => {
                 type: "listitem",
                 version: 1,
                 value: 1,
-                children: [{ format: 0, text: "Point one", type: "text", version: 1 }],
+                children: [
+                  { format: 0, text: "Point one", type: "text", version: 1 },
+                ],
               },
               {
                 type: "listitem",
                 version: 1,
                 value: 2,
-                children: [{ format: 0, text: "Point two", type: "text", version: 1 }],
+                children: [
+                  { format: 0, text: "Point two", type: "text", version: 1 },
+                ],
               },
             ],
           },

@@ -30,6 +30,10 @@ import {
 } from "../features/applications/application.service.js";
 import { getApiKeyLimitByPlan } from "../lib/planLimits.js";
 import {
+  addonEligiblePlan,
+  requestsAddonCapability,
+} from "../features/ai/entitlement.js";
+import {
   getTenantAuth,
   requireRole,
   requireTenantAuth,
@@ -84,12 +88,10 @@ export const applicationsRoute = new Hono()
           .limit(limit)
           .offset(offset);
 
-        const applicationsResult = rows.map(
-          ({ aiContextStatus, ...app }) => ({
-            ...app,
-            aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
-          }),
-        );
+        const applicationsResult = rows.map(({ aiContextStatus, ...app }) => ({
+          ...app,
+          aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
+        }));
 
         return c.json({ applications: applicationsResult, limit, offset });
       }
@@ -124,12 +126,10 @@ export const applicationsRoute = new Hono()
         .limit(limit)
         .offset(offset);
 
-      const applicationsResult = result.map(
-        ({ aiContextStatus, ...app }) => ({
-          ...app,
-          aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
-        }),
-      );
+      const applicationsResult = result.map(({ aiContextStatus, ...app }) => ({
+        ...app,
+        aiInterviewStatus: deriveAiInterviewStatus(aiContextStatus),
+      }));
 
       return c.json({
         applications: applicationsResult,
@@ -197,10 +197,19 @@ export const applicationsRoute = new Hono()
         return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
       }
 
+      const [aiContext] = await db
+        .select({ status: applicationAiContext.status })
+        .from(applicationAiContext)
+        .where(eq(applicationAiContext.applicationId, appId))
+        .limit(1);
+
       const activeApiKeysCount = await countActiveApiKeys(appId);
 
       return c.json({
-        application: app,
+        application: {
+          ...app,
+          aiInterviewStatus: deriveAiInterviewStatus(aiContext?.status ?? null),
+        },
         activeApiKeysCount,
       });
     } catch (error) {
@@ -222,6 +231,22 @@ export const applicationsRoute = new Hono()
         const appId = c.req.param("id");
         const { organization } = getTenantAuth(c);
         const data = c.req.valid("json");
+
+        // The AI capabilities these flags unlock are served only under the AI
+        // add-on, which FREE/BASIC can never hold. Refuse to persist a `true`
+        // they could never act on — the admin UI hides the toggles, but the API
+        // is the seam that has to hold.
+        if (
+          requestsAddonCapability(data) &&
+          !addonEligiblePlan(organization.plan)
+        ) {
+          return jsonError(
+            c,
+            HTTP_STATUS.FORBIDDEN,
+            "plan_not_eligible",
+            "AI auto-respond and AI database tools require the AI Assistant add-on, available on the PREMIUM and ENTERPRISE plans.",
+          );
+        }
 
         const updated = await updateApplication(appId, organization.id, data);
         if (!updated) {

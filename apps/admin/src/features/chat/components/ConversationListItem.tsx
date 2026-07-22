@@ -1,4 +1,4 @@
-import { MessageSquare, MoreVertical, Trash2 } from "lucide-react";
+import { Bot, MessageSquare, MoreVertical, Trash2 } from "lucide-react";
 import { Button } from "@repo/ui/components/ui/button";
 import {
   DropdownMenu,
@@ -35,6 +35,8 @@ export function ConversationListItem({
 }: Props) {
   const statusClass =
     statusColors[conversation.status] ?? "bg-gray-100 text-gray-600";
+  const isEscalated = Boolean(conversation.escalatedAt);
+  const isAiHandled = conversation.handledBy === "ai";
 
   return (
     <div
@@ -70,6 +72,20 @@ export function ConversationListItem({
             >
               {conversation.status}
             </span>
+            {isEscalated && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full shrink-0 bg-amber-100 text-amber-700 font-medium">
+                Escalated
+              </span>
+            )}
+            {isAiHandled && (
+              <span
+                className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded-full shrink-0 bg-indigo-100 text-indigo-700 font-medium"
+                title="Handled by AI"
+              >
+                <Bot className="h-2.5 w-2.5" />
+                AI
+              </span>
+            )}
             {canDelete && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

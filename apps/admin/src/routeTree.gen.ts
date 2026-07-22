@@ -28,6 +28,8 @@ import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/sett
 import { Route as SystemSettingsAiUsageRouteImport } from './routes/_system/settings/ai-usage'
 import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
 import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
+import { Route as SystemApplicationsApplicationIdIndexRouteImport } from './routes/_system/applications/$applicationId/index'
+import { Route as SystemApplicationsApplicationIdDataToolsRouteImport } from './routes/_system/applications/$applicationId/data-tools'
 import { Route as SystemApplicationsApplicationIdAiInterviewRouteImport } from './routes/_system/applications/$applicationId/ai-interview'
 import { Route as SystemApplicationsApplicationIdAiContextRouteImport } from './routes/_system/applications/$applicationId/ai-context'
 
@@ -126,6 +128,18 @@ const SystemBillingSuccessRoute = SystemBillingSuccessRouteImport.update({
   path: '/billing/success',
   getParentRoute: () => SystemRoute,
 } as any)
+const SystemApplicationsApplicationIdIndexRoute =
+  SystemApplicationsApplicationIdIndexRouteImport.update({
+    id: '/$applicationId/',
+    path: '/$applicationId/',
+    getParentRoute: () => SystemApplicationsRoute,
+  } as any)
+const SystemApplicationsApplicationIdDataToolsRoute =
+  SystemApplicationsApplicationIdDataToolsRouteImport.update({
+    id: '/$applicationId/data-tools',
+    path: '/$applicationId/data-tools',
+    getParentRoute: () => SystemApplicationsRoute,
+  } as any)
 const SystemApplicationsApplicationIdAiInterviewRoute =
   SystemApplicationsApplicationIdAiInterviewRouteImport.update({
     id: '/$applicationId/ai-interview',
@@ -159,6 +173,8 @@ export interface FileRoutesByFullPath {
   '/settings': typeof SystemSettingsIndexRoute
   '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
+  '/applications/$applicationId/data-tools': typeof SystemApplicationsApplicationIdDataToolsRoute
+  '/applications/$applicationId': typeof SystemApplicationsApplicationIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/accept-invitation': typeof PublicAcceptInvitationRoute
@@ -179,6 +195,8 @@ export interface FileRoutesByTo {
   '/settings': typeof SystemSettingsIndexRoute
   '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
+  '/applications/$applicationId/data-tools': typeof SystemApplicationsApplicationIdDataToolsRoute
+  '/applications/$applicationId': typeof SystemApplicationsApplicationIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -203,6 +221,8 @@ export interface FileRoutesById {
   '/_system/settings/': typeof SystemSettingsIndexRoute
   '/_system/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
   '/_system/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
+  '/_system/applications/$applicationId/data-tools': typeof SystemApplicationsApplicationIdDataToolsRoute
+  '/_system/applications/$applicationId/': typeof SystemApplicationsApplicationIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -226,6 +246,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/applications/$applicationId/ai-context'
     | '/applications/$applicationId/ai-interview'
+    | '/applications/$applicationId/data-tools'
+    | '/applications/$applicationId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/accept-invitation'
@@ -246,6 +268,8 @@ export interface FileRouteTypes {
     | '/settings'
     | '/applications/$applicationId/ai-context'
     | '/applications/$applicationId/ai-interview'
+    | '/applications/$applicationId/data-tools'
+    | '/applications/$applicationId'
   id:
     | '__root__'
     | '/_public'
@@ -269,6 +293,8 @@ export interface FileRouteTypes {
     | '/_system/settings/'
     | '/_system/applications/$applicationId/ai-context'
     | '/_system/applications/$applicationId/ai-interview'
+    | '/_system/applications/$applicationId/data-tools'
+    | '/_system/applications/$applicationId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -411,6 +437,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SystemBillingSuccessRouteImport
       parentRoute: typeof SystemRoute
     }
+    '/_system/applications/$applicationId/': {
+      id: '/_system/applications/$applicationId/'
+      path: '/$applicationId'
+      fullPath: '/applications/$applicationId'
+      preLoaderRoute: typeof SystemApplicationsApplicationIdIndexRouteImport
+      parentRoute: typeof SystemApplicationsRoute
+    }
+    '/_system/applications/$applicationId/data-tools': {
+      id: '/_system/applications/$applicationId/data-tools'
+      path: '/$applicationId/data-tools'
+      fullPath: '/applications/$applicationId/data-tools'
+      preLoaderRoute: typeof SystemApplicationsApplicationIdDataToolsRouteImport
+      parentRoute: typeof SystemApplicationsRoute
+    }
     '/_system/applications/$applicationId/ai-interview': {
       id: '/_system/applications/$applicationId/ai-interview'
       path: '/$applicationId/ai-interview'
@@ -449,6 +489,8 @@ interface SystemApplicationsRouteChildren {
   SystemApplicationsIndexRoute: typeof SystemApplicationsIndexRoute
   SystemApplicationsApplicationIdAiContextRoute: typeof SystemApplicationsApplicationIdAiContextRoute
   SystemApplicationsApplicationIdAiInterviewRoute: typeof SystemApplicationsApplicationIdAiInterviewRoute
+  SystemApplicationsApplicationIdDataToolsRoute: typeof SystemApplicationsApplicationIdDataToolsRoute
+  SystemApplicationsApplicationIdIndexRoute: typeof SystemApplicationsApplicationIdIndexRoute
 }
 
 const SystemApplicationsRouteChildren: SystemApplicationsRouteChildren = {
@@ -457,6 +499,10 @@ const SystemApplicationsRouteChildren: SystemApplicationsRouteChildren = {
     SystemApplicationsApplicationIdAiContextRoute,
   SystemApplicationsApplicationIdAiInterviewRoute:
     SystemApplicationsApplicationIdAiInterviewRoute,
+  SystemApplicationsApplicationIdDataToolsRoute:
+    SystemApplicationsApplicationIdDataToolsRoute,
+  SystemApplicationsApplicationIdIndexRoute:
+    SystemApplicationsApplicationIdIndexRoute,
 }
 
 const SystemApplicationsRouteWithChildren =

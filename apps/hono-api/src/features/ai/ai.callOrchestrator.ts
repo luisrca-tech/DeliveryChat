@@ -1,13 +1,11 @@
 import { db, type DbExecutor } from "../../db/index.js";
 import { aiUsageLog } from "../../db/schema/aiUsageLog.js";
-import {
-  AIContentFilteredError,
-  AIEmptyResponseError,
-} from "./ai.errors.js";
+import { AIContentFilteredError, AIEmptyResponseError } from "./ai.errors.js";
 import {
   isAbortError,
   isRetryable,
   isTerminal,
+  retryDelayMs,
   usageStatusFor,
   type UsageStatus,
 } from "./ai.errorPolicy.js";
@@ -17,7 +15,9 @@ export type AiCallAction =
   | "improve"
   | "interview"
   | "interview_summary"
-  | "interview_forced_completion";
+  | "interview_forced_completion"
+  | "autonomous_reply"
+  | "handoff_summary";
 
 export type AiCallProviderOutcome<TRaw> = {
   result: TRaw;
@@ -84,7 +84,9 @@ export async function runAICall<TRaw, TParsed>(
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
       if (attempt > 0) {
-        await sleep(RETRY_DELAY_MS);
+        // Honor the provider's retry-after hint when present (short rate
+        // limits); otherwise fall back to the fixed delay.
+        await sleep(retryDelayMs(lastError) ?? RETRY_DELAY_MS);
       }
 
       const outcome = await params.providerCall();

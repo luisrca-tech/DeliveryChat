@@ -10,18 +10,18 @@ Use **one new application per brief**.
 3. Read the **eyebrow** on each question (`Business Description`, `Preferred Tone`, …). Reply only to that topic.
 4. The engine tracks **6 core topics** (not “8 key facts” from the brief):
 
-| Eyebrow (approx.) | Core topic key | Use answer block from tables below |
-| ----------------- | -------------- | ---------------------------------- |
-| Business Description | `business_description` | Pitch |
-| Target Audience | `target_audience` | Users |
-| Products Services | `products_services` | Features + pricing |
-| Preferred Tone | `preferred_tone` | Tone (invented — not in brief) |
-| Common Support Scenarios | `common_support_scenarios` | Pains + ops |
-| Prohibited Topics | `prohibited_topics` | Guardrails (invented) |
+| Eyebrow (approx.)        | Core topic key             | Use answer block from tables below |
+| ------------------------ | -------------------------- | ---------------------------------- |
+| Business Description     | `business_description`     | Pitch                              |
+| Target Audience          | `target_audience`          | Users                              |
+| Products Services        | `products_services`        | Features + pricing                 |
+| Preferred Tone           | `preferred_tone`           | Tone (invented — not in brief)     |
+| Common Support Scenarios | `common_support_scenarios` | Pains + ops                        |
+| Prohibited Topics        | `prohibited_topics`        | Guardrails (invented)              |
 
-5. **`suggest_finish`** (turns ~8–12, all topics covered): the UI offers **Finish interview**.  
-   - **Hortifruti:** do **not** click Finish yet — keep sending messages (see [After suggest_finish](#after-suggest_finish)) until you hit **turn 15** and **auto-finish**.  
-   - **FlagPilot:** click **Finish** after `suggest_finish` (normal path).  
+5. **`suggest_finish`** (turns ~8–12, all topics covered): the UI offers **Finish interview**.
+   - **Hortifruti:** do **not** click Finish yet — keep sending messages (see [After suggest_finish](#after-suggest_finish)) until you hit **turn 15** and **auto-finish**.
+   - **FlagPilot:** click **Finish** after `suggest_finish` (normal path).
    - **ZapZap:** stay vague early; only finish manually once coached or when `suggest_finish` appears with thin context.
 
 If you see **Staying on track · {Topic}**, you answered the wrong topic — resend that topic’s block only.
@@ -32,10 +32,10 @@ If you see **Staying on track · {Topic}**, you answered the wrong topic — res
 
 When the assistant says all core topics are covered and invites you to finish:
 
-| Brief | Action |
-| ----- | ------ |
-| **Hortifruti** | Ignore **Finish**. Send the **extension messages** below, one per turn, until **Turn 15 of 15** and the interview **auto-completes**. |
-| **FlagPilot** | Click **Finish interview** (or send at most **one** short extra line, then Finish). Do **not** run to turn 15. |
+| Brief               | Action                                                                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Hortifruti**      | Ignore **Finish**. Send the **extension messages** below, one per turn, until **Turn 15 of 15** and the interview **auto-completes**.                                                            |
+| **FlagPilot**       | Click **Finish interview** (or send at most **one** short extra line, then Finish). Do **not** run to turn 15.                                                                                   |
 | **Verbose Founder** | Ignore **Finish**. Send the **Discovery-phase script** (see [appendix](#verbose-founder--discovery-phase-script)) one tagged message per turn until the interview **auto-completes** at turn 15. |
 
 ### Hortifruti — extension turns (paste one per turn after `suggest_finish`)
@@ -105,7 +105,7 @@ payouts), customer routes/ETAs, and a "rescue produce" tier for cosmetic
 seconds. Mobile app (iOS/Android) plus ops admin on the web.
 ```
 
-**Preferred tone** *(not in brief — required)*
+**Preferred tone** _(not in brief — required)_
 
 ```text
 Warm and local with families — we're a food brand, not a bank. Clear and
@@ -123,7 +123,7 @@ is manual (~3h call + paperwork). Growth pain: CAC doubled in 6 months as
 Meta ads saturate; LTV is still strong.
 ```
 
-**Prohibited topics** *(not in brief — required)*
+**Prohibited topics** _(not in brief — required)_
 
 ```text
 Don't make medical or "superfood cures" claims; don't guarantee delivery
@@ -134,15 +134,15 @@ margins with customers.
 
 ### Fast path — if questions follow the usual order
 
-| Step | Eyebrow (expected) | Paste |
-| ---- | -------------------- | ----- |
-| 1 | Business Description | [First message](#first-message-reply-to-opening-question) |
-| 2 | Target Audience | Target audience block |
-| 3 | Products Services | Products / services block |
-| 4 | Preferred Tone | Preferred tone block |
-| 5 | Common Support Scenarios | Common support scenarios block |
-| 6 | Prohibited Topics | Prohibited topics block |
-| 7+ | `suggest_finish` then extensions | [Extension turns](#hortifruti--extension-turns-paste-one-per-turn-after-suggest_finish) |
+| Step | Eyebrow (expected)               | Paste                                                                                   |
+| ---- | -------------------------------- | --------------------------------------------------------------------------------------- |
+| 1    | Business Description             | [First message](#first-message-reply-to-opening-question)                               |
+| 2    | Target Audience                  | Target audience block                                                                   |
+| 3    | Products Services                | Products / services block                                                               |
+| 4    | Preferred Tone                   | Preferred tone block                                                                    |
+| 5    | Common Support Scenarios         | Common support scenarios block                                                          |
+| 6    | Prohibited Topics                | Prohibited topics block                                                                 |
+| 7+   | `suggest_finish` then extensions | [Extension turns](#hortifruti--extension-turns-paste-one-per-turn-after-suggest_finish) |
 
 ### Pass checklist (summary)
 
@@ -205,7 +205,7 @@ guarantees; don't share other customers' flag configs; no custom SLAs on
 Pro without sales.
 ```
 
-**Differentiator / roadmap** *(use if asked in business or products follow-up)*
+**Differentiator / roadmap** _(use if asked in business or products follow-up)_
 
 ```text
 Differentiator: 5-minute setup, no SDR calls, transparent pricing. Next
@@ -214,15 +214,15 @@ quarter: scheduled rollouts and Slack notifications.
 
 ### Fast path
 
-| Step | Paste |
-| ---- | ----- |
-| 1 | First message |
-| 2 | Target audience |
-| 3 | Products / services (include differentiator line if room) |
-| 4 | Preferred tone |
-| 5 | Common support scenarios |
-| 6 | Prohibited topics |
-| 7 | On `suggest_finish` → **Finish interview** |
+| Step | Paste                                                     |
+| ---- | --------------------------------------------------------- |
+| 1    | First message                                             |
+| 2    | Target audience                                           |
+| 3    | Products / services (include differentiator line if room) |
+| 4    | Preferred tone                                            |
+| 5    | Common support scenarios                                  |
+| 6    | Prohibited topics                                         |
+| 7    | On `suggest_finish` → **Finish interview**                |
 
 Optional single extra line before Finish:
 
@@ -331,13 +331,13 @@ interview auto-finishes.
 
 ## Quick comparison
 
-| | Hortifruti | FlagPilot | Verbose Founder |
-| --- | --- | --- | --- |
-| First reply | Full pitch | Full pitch | Full pitch (same as Hortifruti) |
-| Answer style | On-topic EN blocks | On-topic EN blocks | Hortifruti blocks turns 1–7, tagged extras turns 8–14 |
-| At `suggest_finish` | Keep sending extensions | **Finish** | Keep sending Discovery-phase extras |
-| Turn 15 auto-finish | **Yes — required** | **No** | **Yes — required** |
-| Classification asserted? | No | No | **Yes** (`relevant` / `irrelevant` / `duplicate`) |
+|                          | Hortifruti              | FlagPilot          | Verbose Founder                                       |
+| ------------------------ | ----------------------- | ------------------ | ----------------------------------------------------- |
+| First reply              | Full pitch              | Full pitch         | Full pitch (same as Hortifruti)                       |
+| Answer style             | On-topic EN blocks      | On-topic EN blocks | Hortifruti blocks turns 1–7, tagged extras turns 8–14 |
+| At `suggest_finish`      | Keep sending extensions | **Finish**         | Keep sending Discovery-phase extras                   |
+| Turn 15 auto-finish      | **Yes — required**      | **No**             | **Yes — required**                                    |
+| Classification asserted? | No                      | No                 | **Yes** (`relevant` / `irrelevant` / `duplicate`)     |
 
 ---
 

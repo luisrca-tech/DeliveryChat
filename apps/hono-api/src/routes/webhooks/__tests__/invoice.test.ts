@@ -31,7 +31,13 @@ vi.mock("../../../db/schema/processedEvents.js", () => ({
 }));
 
 vi.mock("../../../env.js", () => ({
-  env: { SIGNING_STRIPE_SECRET_KEY: "whsec_test" },
+  env: {
+    SIGNING_STRIPE_SECRET_KEY: "whsec_test",
+    STRIPE_AI_ADDON_PRICE_KEY: "price_ai_addon",
+    STRIPE_BASIC_PRICE_KEY: "price_basic",
+    STRIPE_PREMIUM_PRICE_KEY: "price_premium",
+    STRIPE_ENTERPRISE_PRODUCT_KEY: "prod_enterprise",
+  },
 }));
 
 const mockConstructEvent = vi.fn();
@@ -99,5 +105,39 @@ describe("webhooks — invoice.paid", () => {
       planStatus: "active",
       plan: "PREMIUM",
     });
+  });
+
+  it("syncs plan from the subscription's item price over stale metadata", async () => {
+    const org = makeOrg({ plan: "BASIC", planStatus: "active" });
+    const { txUpdateChain } = setupMocks(org, mockTransaction);
+
+    mockSubscriptionsRetrieve.mockResolvedValue({
+      id: "sub_test",
+      metadata: { plan: "BASIC" },
+      items: {
+        data: [
+          { id: "si_base", price: { id: "price_premium", lookup_key: null } },
+        ],
+      },
+    });
+
+    const event = makeStripeEvent("invoice.paid", {
+      customer: "cus_test",
+      amount_paid: 9900,
+      currency: "brl",
+      hosted_invoice_url: null,
+      invoice_pdf: null,
+      lines: { data: [{ price: { recurring: { interval: "month" } } }] },
+      subscription: "sub_test",
+    });
+
+    mockConstructEvent.mockReturnValue(event);
+
+    const res = await postWebhook(app, event);
+    expect(res.status).toBe(200);
+
+    const setCall = (txUpdateChain.set as ReturnType<typeof vi.fn>).mock
+      .calls[0]?.[0];
+    expect(setCall.plan).toBe("PREMIUM");
   });
 });

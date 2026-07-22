@@ -8,7 +8,7 @@ import {
 
 function callFromDriver<T>(
   customTypeBuilder: (...args: unknown[]) => unknown,
-  value: T
+  value: T,
 ): unknown {
   const col = customTypeBuilder() as {
     config: {
@@ -42,7 +42,10 @@ describe("timestampString", () => {
 
 describe("timestampStringNullable", () => {
   it("appends Z to bare timestamp", () => {
-    const result = callFromDriver(timestampStringNullable, "2025-01-15 14:30:00");
+    const result = callFromDriver(
+      timestampStringNullable,
+      "2025-01-15 14:30:00",
+    );
     expect(result).toBe("2025-01-15 14:30:00Z");
   });
 
@@ -54,7 +57,7 @@ describe("timestampStringNullable", () => {
   it("does not double-append Z if already present", () => {
     const result = callFromDriver(
       timestampStringNullable,
-      "2025-01-15T14:30:00Z"
+      "2025-01-15T14:30:00Z",
     );
     expect(result).toBe("2025-01-15T14:30:00Z");
   });
@@ -62,7 +65,7 @@ describe("timestampStringNullable", () => {
   it("does not append Z if value has a timezone offset", () => {
     const result = callFromDriver(
       timestampStringNullable,
-      "2025-01-15T14:30:00+03:00"
+      "2025-01-15T14:30:00+03:00",
     );
     expect(result).toBe("2025-01-15T14:30:00+03:00");
   });
@@ -72,7 +75,7 @@ describe("emailVerifiedTimestamp", () => {
   it("appends Z to bare timestamp", () => {
     const result = callFromDriver(
       emailVerifiedTimestamp,
-      "2025-01-15 14:30:00"
+      "2025-01-15 14:30:00",
     );
     expect(result).toBe("2025-01-15 14:30:00Z");
   });
@@ -85,7 +88,7 @@ describe("emailVerifiedTimestamp", () => {
   it("does not double-append Z if already present", () => {
     const result = callFromDriver(
       emailVerifiedTimestamp,
-      "2025-01-15T14:30:00Z"
+      "2025-01-15T14:30:00Z",
     );
     expect(result).toBe("2025-01-15T14:30:00Z");
   });
@@ -93,7 +96,7 @@ describe("emailVerifiedTimestamp", () => {
   it("does not append Z if value has a timezone offset", () => {
     const result = callFromDriver(
       emailVerifiedTimestamp,
-      "2025-01-15T14:30:00+03:00"
+      "2025-01-15T14:30:00+03:00",
     );
     expect(result).toBe("2025-01-15T14:30:00+03:00");
   });

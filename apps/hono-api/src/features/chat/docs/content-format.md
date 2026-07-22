@@ -32,13 +32,14 @@ All message responses include three fields:
 
 ```typescript
 {
-  content: string;         // raw content (plain text or Lexical JSON)
+  content: string; // raw content (plain text or Lexical JSON)
   contentFormat: "plain" | "lexical";
   contentHtml: string | null; // sanitized HTML for lexical, null for plain
 }
 ```
 
 This applies to:
+
 - REST: `GET /conversations/:id/messages`, `POST /conversations/:id/messages`
 - WebSocket: `message:new`, `message:edited`, `messages:sync`
 

@@ -4,7 +4,15 @@ import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
 import { conversationParticipants } from "../../db/schema/conversationParticipants.js";
 import { user } from "../../db/schema/users.js";
-import type { ConversationStatus, ContentFormat, ParticipantRole } from "@repo/types";
+import type {
+  ConversationStatus,
+  ContentFormat,
+  ParticipantRole,
+} from "@repo/types";
+import { maybeTriggerAiTurn } from "../ai-turn/trigger.js";
+
+/** Discriminates who authored a message (mirrors the `message_author_type` enum). */
+export type MessageAuthorType = "visitor" | "operator" | "ai" | "system";
 import {
   broadcastOrganizationEvent,
   broadcastRoomEvent,
@@ -16,6 +24,7 @@ import {
 } from "./broadcasting.service.js";
 import { serializeLexicalToPlainText } from "@repo/lexical-utils";
 import { serializeLexicalToHtml } from "./lexicalSerializer.js";
+import { renderAiMarkdownToHtml } from "./markdownSerializer.js";
 
 // ── Custom Errors ──
 
@@ -125,14 +134,20 @@ interface CreateConversationInput {
   applicationId?: string;
   subject?: string;
   createdBy?: string;
+  handledBy?: "ai" | "human";
   participants: { userId: string; role: ParticipantRole }[];
 }
 
 interface SendMessageInput {
   conversationId: string;
-  senderId: string;
+  senderId: string | null;
   content: string;
   contentFormat?: ContentFormat;
+  /**
+   * Who authored the message. Defaults to `visitor` for backward-compatibility
+   * with legacy callers. Only `visitor` messages trigger an autonomous AI turn.
+   */
+  authorType?: MessageAuthorType;
   broadcastContext?: {
     senderName: string;
     senderRole: ParticipantRole;
@@ -168,12 +183,25 @@ interface AddParticipantInput {
 // ── Message Enrichment ──
 
 export function enrichMessage<
-  T extends { content: string; contentFormat?: ContentFormat | null },
+  T extends {
+    content: string;
+    contentFormat?: ContentFormat | null;
+    authorType?: string | null;
+  },
 >(message: T): T & { contentHtml: string | null; contentPlainText: string } {
-  const format: ContentFormat = (message.contentFormat ?? "plain") as ContentFormat;
+  const format: ContentFormat = (message.contentFormat ??
+    "plain") as ContentFormat;
+  // AI-authored plain messages are, by prompt contract, constrained markdown —
+  // render them server-side so they ride the same sanitized contentHtml
+  // pipeline as operators' rich (lexical) messages. Computed on read, so
+  // history gets it too.
+  const contentHtml =
+    format === "plain" && message.authorType === "ai"
+      ? renderAiMarkdownToHtml(message.content)
+      : serializeLexicalToHtml(message.content, format);
   return {
     ...message,
-    contentHtml: serializeLexicalToHtml(message.content, format),
+    contentHtml,
     contentPlainText: serializeLexicalToPlainText(message.content, format),
   };
 }
@@ -189,6 +217,7 @@ export async function createConversation(input: CreateConversationInput) {
         organizationId: input.organizationId,
         applicationId: input.applicationId ?? null,
         status: "pending",
+        handledBy: input.handledBy ?? "human",
         createdBy: input.createdBy ?? null,
         subject: input.subject ?? null,
       })
@@ -268,6 +297,7 @@ export async function sendMessage(
   }
 
   const contentFormat = input.contentFormat ?? "plain";
+  const authorType: MessageAuthorType = input.authorType ?? "visitor";
 
   const message = await db.transaction(async (tx) => {
     const [msg] = await tx
@@ -276,6 +306,7 @@ export async function sendMessage(
         id: crypto.randomUUID(),
         conversationId: input.conversationId,
         senderId: input.senderId,
+        authorType,
         content: input.content,
         contentFormat,
       })
@@ -304,6 +335,7 @@ export async function sendMessage(
       contentFormat,
       contentHtml: enriched.contentHtml,
       type: "text",
+      authorType,
       createdAt: enriched.createdAt,
     });
 
@@ -318,6 +350,13 @@ export async function sendMessage(
     } catch (err) {
       console.error("[chat.service] sendMessage room broadcast failed", err);
     }
+  }
+
+  // Only a visitor message can prompt an autonomous AI reply. Fire-and-forget:
+  // the trigger cheaply checks whether the conversation is AI-handled and, if so,
+  // kicks off runAiTurn (which owns its own error handling — never dead air).
+  if (authorType === "visitor") {
+    void maybeTriggerAiTurn(input.conversationId);
   }
 
   return enriched;
@@ -467,6 +506,7 @@ export async function getMessageHistoryForMember(
       senderName: user.name,
       senderRole: conversationParticipants.role,
       type: messages.type,
+      authorType: messages.authorType,
       content: messages.content,
       contentFormat: messages.contentFormat,
       createdAt: messages.createdAt,
@@ -601,15 +641,12 @@ export async function validateSendAuthorization(
     throw new ConversationNotFoundError(conversationId);
   }
 
-  if (senderRole === "visitor") {
-    const participantExists = await isParticipant(conversationId, senderId);
-    if (!participantExists) {
-      throw new NotAssignedToConversationError(conversationId, senderId);
-    }
-    return conversation;
-  }
-
-  if (conversation.assignedTo !== senderId) {
+  // Participation is the authorization boundary for everyone. Requiring staff
+  // to be the assignee would make two supported flows impossible: an internal
+  // staff-only conversation (nobody is assigned) and an admin escalating into a
+  // support conversation already assigned to an operator.
+  const participantExists = await isParticipant(conversationId, senderId);
+  if (!participantExists) {
     throw new NotAssignedToConversationError(conversationId, senderId);
   }
 
@@ -634,6 +671,7 @@ async function broadcastSystemMessage(
       contentFormat: "plain",
       contentHtml: null,
       type: "system",
+      authorType: "system",
       createdAt: msg.createdAt,
     }),
   );
@@ -650,6 +688,13 @@ export async function acceptConversation(
     .set({
       status: "active" as ConversationStatus,
       assignedTo: operatorId,
+      // Taking over stops the AI: any AI-handled conversation flips to human
+      // handling here. This is in the SAME race-safe UPDATE (WHERE assignedTo
+      // IS NULL), so a lost race never half-flips. AI-handled conversations run
+      // as status='pending' throughout (creation and escalation both leave them
+      // pending), so this single guard covers takeover of BOTH an escalated
+      // chat and a still-healthy AI chat.
+      handledBy: "human",
       updatedAt: sql`now()`,
     })
     .where(
@@ -967,6 +1012,7 @@ interface ListConversationsForMemberInput {
   status?: ConversationStatus[];
   applicationId?: string;
   assignedTo?: "me";
+  handledBy?: "ai" | "human";
 }
 
 export async function listConversationsForMember(
@@ -981,6 +1027,7 @@ export async function listConversationsForMember(
     status,
     applicationId,
     assignedTo,
+    handledBy,
   } = params;
 
   const conditions = [
@@ -993,11 +1040,19 @@ export async function listConversationsForMember(
     conditions.push(eq(conversations.applicationId, applicationId));
   if (assignedTo === "me")
     conditions.push(eq(conversations.assignedTo, userId));
+  if (handledBy) conditions.push(eq(conversations.handledBy, handledBy));
 
   if (!isAdmin) {
+    // Operators see the human queue plus their own chats. The pending arm
+    // excludes AI-handled conversations: a live AI thread stays
+    // status='pending' by design (so takeover stays race-safe) and must not
+    // surface in the queue until it escalates (which flips handledBy).
     conditions.push(
       or(
-        eq(conversations.status, "pending"),
+        and(
+          eq(conversations.status, "pending"),
+          eq(conversations.handledBy, "human"),
+        ),
         eq(conversations.assignedTo, userId),
       )!,
     );
