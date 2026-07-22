@@ -55,6 +55,7 @@ const { db } = await import("../../../db/index.js");
 const { MockProvider } = await import("../../ai/ai.mockProvider.js");
 const { AIProviderRateLimitError } = await import("../../ai/ai.errors.js");
 const { ESCALATE_TOOL_NAME } = await import("../tools.js");
+const broadcasting = await import("../../chat/broadcasting.service.js");
 
 const { runAiTurn } = await import("../runAiTurn.js");
 
@@ -196,6 +197,54 @@ describe("runAiTurn — happy path", () => {
     expect(mockEscalate).not.toHaveBeenCalled();
     // usage logged via runAICall
     expect(mockDbInsert).toHaveBeenCalled();
+  });
+});
+
+describe("runAiTurn — typing heartbeat", () => {
+  const startCalls = () =>
+    (broadcasting.buildTypingStartEvent as ReturnType<typeof vi.fn>).mock.calls
+      .length;
+
+  it("re-emits typing:start on a heartbeat while the turn runs, then stops", async () => {
+    vi.useFakeTimers();
+    try {
+      const provider = useProvider();
+      let resolveTurn!: (v: unknown) => void;
+      provider.generateWithTools = vi.fn(
+        () =>
+          new Promise((res) => {
+            resolveTurn = res;
+          }),
+      ) as typeof provider.generateWithTools;
+
+      const turn = runAiTurn("conv-1");
+      // Flush the async setup (context load, quota) up to the provider call.
+      await vi.advanceTimersByTimeAsync(0);
+      expect(startCalls()).toBe(1); // initial typing:start
+
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(startCalls()).toBe(2); // first heartbeat
+      await vi.advanceTimersByTimeAsync(2_000);
+      expect(startCalls()).toBe(3); // second heartbeat
+
+      resolveTurn({
+        text: "All done.",
+        toolCalls: [],
+        usage: { promptTokens: 10, completionTokens: 5 },
+        finishReason: "stop",
+      });
+      await vi.advanceTimersByTimeAsync(0);
+      await turn;
+
+      expect(broadcasting.buildTypingStopEvent).toHaveBeenCalledTimes(1);
+
+      // Heartbeat interval must be cleared after the turn ends.
+      const after = startCalls();
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(startCalls()).toBe(after);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

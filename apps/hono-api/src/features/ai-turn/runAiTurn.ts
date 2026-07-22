@@ -44,6 +44,14 @@ export const AI_TYPING_USER_ID = "ai-assistant";
 const AI_TYPING_USER_NAME = "AI Assistant";
 const AI_SENDER_NAME = "AI Assistant";
 
+/**
+ * Interval between typing:start re-broadcasts during a turn. Clients guard
+ * against a lost typing:stop with an auto-expiry timer (3s in the SDK), so a
+ * single typing:start would vanish mid-turn — the heartbeat keeps it alive
+ * for the whole multi-step tool loop.
+ */
+const AI_TYPING_HEARTBEAT_MS = 2_000;
+
 function toPlainText(message: TurnMessage): string {
   return serializeLexicalToPlainText(
     message.content,
@@ -67,27 +75,35 @@ function buildTurnMessages(messages: TurnMessage[]): AIProviderMessage[] {
   return result;
 }
 
-function startAiTyping(conversation: TurnConversation): void {
-  try {
-    broadcastRoomEvent(
-      conversation.id,
-      buildTypingStartEvent({
-        conversationId: conversation.id,
-        userId: AI_TYPING_USER_ID,
-        userName: AI_TYPING_USER_NAME,
-        senderRole: "operator",
-      }),
-    );
-  } catch (err) {
-    console.error(
-      "[ai-turn] typing:start broadcast failed",
-      conversation.id,
-      err,
-    );
-  }
+function startAiTyping(conversation: TurnConversation): NodeJS.Timeout {
+  const emit = (): void => {
+    try {
+      broadcastRoomEvent(
+        conversation.id,
+        buildTypingStartEvent({
+          conversationId: conversation.id,
+          userId: AI_TYPING_USER_ID,
+          userName: AI_TYPING_USER_NAME,
+          senderRole: "operator",
+        }),
+      );
+    } catch (err) {
+      console.error(
+        "[ai-turn] typing:start broadcast failed",
+        conversation.id,
+        err,
+      );
+    }
+  };
+  emit();
+  return setInterval(emit, AI_TYPING_HEARTBEAT_MS);
 }
 
-function stopAiTyping(conversation: TurnConversation): void {
+function stopAiTyping(
+  conversation: TurnConversation,
+  heartbeat: NodeJS.Timeout,
+): void {
+  clearInterval(heartbeat);
   try {
     broadcastRoomEvent(
       conversation.id,
@@ -119,7 +135,7 @@ export async function runAiTurn(conversationId: string): Promise<void> {
   }
 
   let ctx: TurnContext | null = null;
-  let typingStarted = false;
+  let typingHeartbeat: NodeJS.Timeout | null = null;
 
   try {
     ctx = await loadTurnContext(conversationId);
@@ -176,8 +192,7 @@ export async function runAiTurn(conversationId: string): Promise<void> {
       return;
     }
 
-    startAiTyping(conversation);
-    typingStarted = true;
+    typingHeartbeat = startAiTyping(conversation);
 
     // ── Assemble tools (escalate + permitted data tools) ──
     const turnCtx: TurnEscalationContext = { escalation: null };
@@ -316,8 +331,8 @@ export async function runAiTurn(conversationId: string): Promise<void> {
       }
     }
   } finally {
-    if (typingStarted && ctx) {
-      stopAiTyping(ctx.conversation);
+    if (typingHeartbeat !== null && ctx) {
+      stopAiTyping(ctx.conversation, typingHeartbeat);
     }
     const rerunPending = releaseTurnLock(conversationId);
     if (rerunPending) {

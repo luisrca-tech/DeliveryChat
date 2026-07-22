@@ -160,6 +160,58 @@ describe("MessageRouter", () => {
       expect(getState("typingUser")).toBeNull();
     });
 
+    it("clears AI typing state when the AI reply arrives (null senderId)", () => {
+      setState("conversationId", "conv-1");
+      setState("typingUser", {
+        userId: "ai-assistant",
+        userName: "AI Assistant",
+        senderRole: "operator",
+      });
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "msg-ai-1",
+          conversationId: "conv-1",
+          senderId: null,
+          senderRole: "operator",
+          content: "Here is your answer.",
+          createdAt: "2026-01-01T00:00:00Z",
+          authorType: "ai",
+        },
+      });
+
+      expect(getState("typingUser")).toBeNull();
+    });
+
+    it("does not clear a human operator's typing state on an AI message", () => {
+      setState("conversationId", "conv-1");
+      setState("typingUser", {
+        userId: "op-1",
+        userName: "Alice",
+        senderRole: "operator",
+      });
+
+      router.handle({
+        type: "message:new",
+        payload: {
+          id: "msg-ai-2",
+          conversationId: "conv-1",
+          senderId: null,
+          senderRole: "operator",
+          content: "AI reply",
+          createdAt: "2026-01-01T00:00:00Z",
+          authorType: "ai",
+        },
+      });
+
+      expect(getState("typingUser")).toEqual({
+        userId: "op-1",
+        userName: "Alice",
+        senderRole: "operator",
+      });
+    });
+
     it("routes message:edited to update message content", () => {
       setState("conversationId", "conv-1");
       setState("messages", [

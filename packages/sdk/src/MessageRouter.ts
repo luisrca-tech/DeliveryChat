@@ -2,7 +2,10 @@ import { setState, getState } from "./state.js";
 import type { ChatMessage, MessageAuthorType } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
 import { onIncomingMessage } from "./aiConversationLifecycle.js";
-import { WS_TYPING_TIMEOUT_MS } from "./constants/index.js";
+import {
+  WS_TYPING_TIMEOUT_MS,
+  AI_ASSISTANT_USER_ID,
+} from "./constants/index.js";
 import type { MessagePipeline } from "./MessagePipeline.js";
 
 type MessageRouterOptions = {
@@ -123,7 +126,16 @@ export class MessageRouter {
       }
     }
 
-    if (p.senderId === getState("typingUser")?.userId) {
+    // AI replies arrive with senderId null while the AI typing state uses the
+    // "ai-assistant" sentinel — match on authorType so the indicator drops
+    // the moment the reply renders instead of waiting for typing:stop.
+    const typingUser = getState("typingUser");
+    const isAiReplyClearingAiTyping =
+      p.authorType === "ai" && typingUser?.userId === AI_ASSISTANT_USER_ID;
+    if (
+      typingUser &&
+      (p.senderId === typingUser.userId || isAiReplyClearingAiTyping)
+    ) {
       this.clearTypingState();
     }
   }
