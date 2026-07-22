@@ -88,6 +88,25 @@ export function createChatClient({
       return request("/ws-token", { method: "POST" });
     },
 
+    /**
+     * Public widget settings. `ai.enabled` is server-derived from the full AI
+     * entitlement (plan + add-on + per-application toggles), so the demo can
+     * never offer an AI affordance the backend wouldn't honour.
+     */
+    getSettings(): Promise<{ settings: { ai?: { enabled?: boolean } } }> {
+      return request(`/settings/${appId}`);
+    },
+
+    /**
+     * Deterministic "Talk to a human" escalation. Idempotent server-side: a
+     * conversation that is already human-handled comes back 200 as a no-op.
+     */
+    escalate(conversationId: string): Promise<{ conversation: Conversation }> {
+      return request(`/conversations/${conversationId}/escalate`, {
+        method: "POST",
+      });
+    },
+
     createConversation(
       subject?: string,
     ): Promise<{ conversation: Conversation }> {

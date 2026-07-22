@@ -336,14 +336,15 @@ function render(shadow: ShadowRoot, settings: WidgetSettings): void {
   });
   cleanupFns.push(unsubConvStatus);
 
-  // Human-handoff button (plan §8, AC #4) — hidden until a conversation
-  // exists, disabled once already escalated/human-handled.
+  // Human-handoff button (plan §8, AC #4) — hidden when AI is off or until a
+  // conversation exists, disabled once already escalated/human-handled.
   const humanHandoffBtn = chatWindow.querySelector(
     ".human-handoff-btn",
   ) as HTMLButtonElement | null;
   const refreshHumanHandoffButton = (): void => {
     if (!humanHandoffBtn) return;
     const { hidden, disabled } = handoffOffer({
+      aiEnabled: settings.ai?.enabled === true,
       conversationId: getState("conversationId"),
       messages: getState("messages"),
       humanRequested: getState("humanRequested"),

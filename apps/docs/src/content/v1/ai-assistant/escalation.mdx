@@ -38,9 +38,11 @@ From here, the conversation behaves exactly like a normal queued conversation
 
 Two ways a visitor can request a human at any time:
 
-- **Click "Talk to a human"** — always visible in the chat widget header.
-  It's disabled once a human is already involved, since there's nothing left
-  to escalate.
+- **Click "Talk to a human"** — shown in the chat widget header whenever the
+  AI assistant is active for your application. It's disabled once a human is
+  already involved, since there's nothing left to escalate. When the AI
+  assistant is off, the button is hidden entirely: those conversations already
+  go straight to your team, so there is nothing to escalate *from*.
 - **Programmatically, via the SDK** — if you're building a custom UI on top of
   the SDK, call `requestHuman()`:
 

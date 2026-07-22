@@ -23,6 +23,7 @@ import { useWebSocketDispatch } from "../hooks/useWebSocketDispatch";
 import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
 import { useConversationList } from "../hooks/useConversationList";
 import { useMessageHistory } from "../hooks/useMessageHistory";
+import { useHumanHandoff } from "../hooks/useHumanHandoff";
 import type { EditorHandle } from "@repo/lexical-utils/react";
 import {
   ConversationListPanel,
@@ -190,6 +191,18 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
 
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
+  const {
+    hidden: handoffHidden,
+    disabled: handoffDisabled,
+    error: handoffError,
+    requestHuman,
+  } = useHumanHandoff({
+    client: clientRef.current,
+    conversation: selectedConversation,
+    messages,
+    visitorUserId,
+  });
+
   return (
     <div className="relative w-full h-full flex overflow-hidden bg-background text-foreground font-sans">
       {!selectedConversation && (
@@ -239,6 +252,10 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         handleSaveEdit={handleSaveEdit}
         onRequestDelete={setMessageToDelete}
         handleEditKeyDown={handleEditKeyDown}
+        handoffHidden={handoffHidden}
+        handoffDisabled={handoffDisabled}
+        handoffError={handoffError}
+        onRequestHuman={requestHuman}
       />
 
       <AlertDialog

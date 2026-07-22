@@ -155,6 +155,7 @@ describe("aiConversationLifecycle", () => {
     it("hides the button while no conversation exists", () => {
       expect(
         handoffOffer({
+          aiEnabled: true,
           conversationId: null,
           messages: [],
           humanRequested: false,
@@ -165,6 +166,7 @@ describe("aiConversationLifecycle", () => {
     it("shows and enables the button once a conversation exists with no operator message and no request", () => {
       expect(
         handoffOffer({
+          aiEnabled: true,
           conversationId: "conv-1",
           messages: [aiMessage()],
           humanRequested: false,
@@ -175,6 +177,7 @@ describe("aiConversationLifecycle", () => {
     it("disables the button once a human has been requested", () => {
       expect(
         handoffOffer({
+          aiEnabled: true,
           conversationId: "conv-1",
           messages: [aiMessage()],
           humanRequested: true,
@@ -185,6 +188,7 @@ describe("aiConversationLifecycle", () => {
     it("disables the button once any operator message has arrived", () => {
       expect(
         handoffOffer({
+          aiEnabled: true,
           conversationId: "conv-1",
           messages: [aiMessage(), operatorMessage()],
           humanRequested: false,
@@ -195,7 +199,32 @@ describe("aiConversationLifecycle", () => {
     it("stays hidden even when disabling signals are present but no conversation exists", () => {
       expect(
         handoffOffer({
+          aiEnabled: true,
           conversationId: null,
+          messages: [operatorMessage()],
+          humanRequested: true,
+        }),
+      ).toEqual({ hidden: true, disabled: true });
+    });
+
+    it("hides the button when AI is disabled, even mid-conversation", () => {
+      // Without AI there is nothing to escalate *from* — the visitor is
+      // already queued for a human, so offering to connect them is noise.
+      expect(
+        handoffOffer({
+          aiEnabled: false,
+          conversationId: "conv-1",
+          messages: [],
+          humanRequested: false,
+        }),
+      ).toEqual({ hidden: true, disabled: false });
+    });
+
+    it("keeps the button hidden when AI is disabled regardless of other signals", () => {
+      expect(
+        handoffOffer({
+          aiEnabled: false,
+          conversationId: "conv-1",
           messages: [operatorMessage()],
           humanRequested: true,
         }),

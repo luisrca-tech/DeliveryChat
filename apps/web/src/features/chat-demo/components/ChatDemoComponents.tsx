@@ -20,6 +20,7 @@ import {
   Pencil,
   Trash2,
   Check,
+  User,
 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import type { ContentFormat } from "@repo/types";
@@ -235,6 +236,10 @@ export interface MessageThreadPanelProps {
     e: React.KeyboardEvent<HTMLInputElement>,
     msg: OptimisticMessage,
   ) => void;
+  handoffHidden: boolean;
+  handoffDisabled: boolean;
+  handoffError: string | null;
+  onRequestHuman: () => void;
 }
 
 export function MessageThreadPanel({
@@ -258,6 +263,10 @@ export function MessageThreadPanel({
   handleSaveEdit,
   onRequestDelete,
   handleEditKeyDown,
+  handoffHidden,
+  handoffDisabled,
+  handoffError,
+  onRequestHuman,
 }: MessageThreadPanelProps) {
   if (!conversation) {
     return (
@@ -277,9 +286,34 @@ export function MessageThreadPanel({
         <p className="text-[11px] font-medium truncate flex-1">
           {conversation.subject || "No subject"}
         </p>
+        {!handoffHidden && (
+          <button
+            type="button"
+            onClick={onRequestHuman}
+            disabled={handoffDisabled}
+            title={
+              handoffDisabled
+                ? "A team member is already handling this conversation"
+                : "Connect with a team member"
+            }
+            className="human-handoff-btn flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          >
+            <User className="h-3 w-3" />
+            Talk to a human
+          </button>
+        )}
         <ConnectionDot status={wsStatus} />
         <StatusBadge status={conversation.status} />
       </div>
+
+      {handoffError && (
+        <div
+          role="alert"
+          className="px-3 py-1 text-[10px] text-destructive border-b border-border"
+        >
+          {handoffError}
+        </div>
+      )}
 
       <ScrollArea className="flex-1 px-3 py-2">
         {loadingMsgs ? (

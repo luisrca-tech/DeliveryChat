@@ -104,6 +104,8 @@ export function resetForNewConversation(): void {
 
 /** State slices the "Talk to a human" offer rule depends on. */
 export type HandoffOfferInput = {
+  /** `settings.ai.enabled` — server-derived AI entitlement for this app. */
+  aiEnabled: boolean;
   conversationId: string | null;
   messages: ChatMessage[];
   humanRequested: boolean;
@@ -120,6 +122,11 @@ export type HandoffOffer = {
  * AC #4) from conversation + escalation state. Pure — no DOM, no `getState` — so
  * the escalation-offer invariant is testable directly.
  *
+ * - Hidden when AI is off for this application. There is nothing to escalate
+ *   *from* — the visitor is already talking to humans — so offering to connect
+ *   them to one is noise. Gated on the same server-derived `settings.ai.enabled`
+ *   as the disclosure line, so both visitor-facing AI affordances appear and
+ *   disappear together.
  * - Hidden until a conversation exists (`conversationId` is null).
  * - Disabled once already escalated (`humanRequested`) or once an operator
  *   message has arrived — either signal means the visitor is already with, or
@@ -127,7 +134,7 @@ export type HandoffOffer = {
  */
 export function handoffOffer(input: HandoffOfferInput): HandoffOffer {
   return {
-    hidden: !input.conversationId,
+    hidden: !input.aiEnabled || !input.conversationId,
     disabled:
       input.humanRequested ||
       input.messages.some((m) => m.authorType === "operator"),
