@@ -5,6 +5,7 @@ import {
   isAbortError,
   isRetryable,
   isTerminal,
+  retryDelayMs,
   usageStatusFor,
   type UsageStatus,
 } from "./ai.errorPolicy.js";
@@ -83,7 +84,9 @@ export async function runAICall<TRaw, TParsed>(
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
       if (attempt > 0) {
-        await sleep(RETRY_DELAY_MS);
+        // Honor the provider's retry-after hint when present (short rate
+        // limits); otherwise fall back to the fixed delay.
+        await sleep(retryDelayMs(lastError) ?? RETRY_DELAY_MS);
       }
 
       const outcome = await params.providerCall();

@@ -34,10 +34,31 @@ export function isTerminal(error: unknown): boolean {
   );
 }
 
+// A rate limit is only worth waiting out when the provider promises a short
+// window (per-minute token limits). Longer waits (daily quota) fail fast.
+export const RATE_LIMIT_RETRY_MAX_MS = 10_000;
+
 export function isRetryable(error: unknown): boolean {
-  if (error instanceof AIProviderRateLimitError) return false;
+  if (error instanceof AIProviderRateLimitError) {
+    return (
+      error.retryAfterMs !== undefined &&
+      error.retryAfterMs <= RATE_LIMIT_RETRY_MAX_MS
+    );
+  }
   if (error instanceof AIProviderError) return true;
   return false;
+}
+
+// Provider-declared wait before retrying, or null when the error carries no
+// hint (callers fall back to their own default delay).
+export function retryDelayMs(error: unknown): number | null {
+  if (
+    error instanceof AIProviderRateLimitError &&
+    error.retryAfterMs !== undefined
+  ) {
+    return error.retryAfterMs;
+  }
+  return null;
 }
 
 export function usageStatusFor(error: unknown): UsageStatus {
@@ -65,6 +86,20 @@ function unwrapRetryError(error: unknown): unknown {
   return error;
 }
 
+// The retry-after header (seconds) on the inner APICallError is the contract
+// for how long the provider wants us to wait. The delay also appears in the
+// message text ("Please try again in 4.8675s") but only the header is parsed.
+function parseRetryAfterMs(inner: unknown): number | undefined {
+  if (inner === null || typeof inner !== "object") return undefined;
+  const headers = (inner as { responseHeaders?: unknown }).responseHeaders;
+  if (headers === null || typeof headers !== "object") return undefined;
+  const raw = (headers as Record<string, unknown>)["retry-after"];
+  if (typeof raw !== "string") return undefined;
+  const seconds = Number(raw);
+  if (!Number.isFinite(seconds) || seconds <= 0) return undefined;
+  return seconds * 1000;
+}
+
 // Translate a raw SDK/network exception into a domain error. Provider adapters
 // call this so they never have to know about HTTP status codes or string
 // matching individually.
@@ -86,6 +121,7 @@ export function classifyProviderException(error: unknown): unknown {
   if (statusCode === 429) {
     return new AIProviderRateLimitError("AI provider rate limit exceeded", {
       cause: error,
+      retryAfterMs: parseRetryAfterMs(inner),
     });
   }
 

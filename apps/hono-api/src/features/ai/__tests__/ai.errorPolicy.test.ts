@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { classifyProviderException } from "../ai.errorPolicy.js";
+import {
+  classifyProviderException,
+  isRetryable,
+  retryDelayMs,
+} from "../ai.errorPolicy.js";
 import {
   AIProviderError,
   AIProviderRateLimitError,
@@ -75,5 +79,71 @@ describe("classifyProviderException", () => {
     abort.name = "AbortError";
 
     expect(classifyProviderException(abort)).toBe(abort);
+  });
+});
+
+// Shaped like the AI SDK's APICallError on a Groq 429: the retry-after header
+// (seconds) is the contract; the message text is informational only.
+function apiCallError429(retryAfter?: string): Error {
+  const responseHeaders: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  if (retryAfter !== undefined) responseHeaders["retry-after"] = retryAfter;
+  return Object.assign(
+    new Error("Rate limit reached. Please try again in 4.8675s"),
+    { statusCode: 429, responseHeaders },
+  );
+}
+
+describe("rate-limit retry-after policy", () => {
+  it("extracts retryAfterMs from a short retry-after header and marks it retryable", () => {
+    const result = classifyProviderException(apiCallError429("5"));
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBe(5000);
+    expect(isRetryable(result)).toBe(true);
+    expect(retryDelayMs(result)).toBe(5000);
+  });
+
+  it("extracts retryAfterMs from a long retry-after header but keeps it non-retryable", () => {
+    const result = classifyProviderException(apiCallError429("3600"));
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBe(3_600_000);
+    expect(isRetryable(result)).toBe(false);
+  });
+
+  it("leaves retryAfterMs undefined and non-retryable when the header is absent", () => {
+    const result = classifyProviderException(apiCallError429());
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBeUndefined();
+    expect(isRetryable(result)).toBe(false);
+    expect(retryDelayMs(result)).toBeNull();
+  });
+
+  it("leaves retryAfterMs undefined and non-retryable when the header is garbage", () => {
+    const result = classifyProviderException(apiCallError429("soon"));
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBeUndefined();
+    expect(isRetryable(result)).toBe(false);
+    expect(retryDelayMs(result)).toBeNull();
+  });
+
+  it("extracts retryAfterMs from the inner error of a RetryError-wrapped 429", () => {
+    const inner429 = apiCallError429("5");
+    const result = classifyProviderException(
+      retryErrorLike({ lastError: inner429, errors: [inner429] }),
+    );
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBe(5000);
+    expect(isRetryable(result)).toBe(true);
+  });
+
+  it("returns null delay for non-rate-limit errors", () => {
+    expect(retryDelayMs(new AIProviderError("boom"))).toBeNull();
+    expect(retryDelayMs(new Error("boom"))).toBeNull();
   });
 });

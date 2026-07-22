@@ -159,6 +159,51 @@ describe("AICallOrchestrator.runAICall", () => {
     expect(valuesCall.status).toBe("provider_error");
   });
 
+  it("retries once after waiting retryAfterMs on a short-retry-after rate limit", async () => {
+    vi.useFakeTimers();
+    try {
+      const generateText = vi
+        .fn()
+        .mockRejectedValueOnce(
+          new AIProviderRateLimitError("rl", { retryAfterMs: 5000 }),
+        )
+        .mockResolvedValueOnce(textResponse({ text: "ok" }));
+      const provider = new FakeProvider(generateText);
+
+      const promise = callTextRun(provider, (r) => r);
+
+      // Just before the retry-after window elapses, no second attempt yet.
+      await vi.advanceTimersByTimeAsync(4999);
+      expect(generateText).toHaveBeenCalledTimes(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(promise).resolves.toBe("ok");
+      expect(generateText).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("does NOT retry a rate limit whose retryAfterMs exceeds the cap", async () => {
+    const insertChain = mockInsertChain();
+    mockInsert.mockReturnValue(insertChain);
+    const provider = new FakeProvider(
+      vi
+        .fn()
+        .mockRejectedValue(
+          new AIProviderRateLimitError("rl", { retryAfterMs: 3_600_000 }),
+        ),
+    );
+
+    await expect(callTextRun(provider, (r) => r)).rejects.toThrow(
+      AIProviderRateLimitError,
+    );
+    expect(provider.generateText).toHaveBeenCalledTimes(1);
+    const valuesCall = (insertChain.values as ReturnType<typeof vi.fn>).mock
+      .calls[0]![0];
+    expect(valuesCall.status).toBe("provider_error");
+  });
+
   it("retries on AITimeoutError, logs status=timeout", async () => {
     const insertChain = mockInsertChain();
     mockInsert.mockReturnValue(insertChain);
