@@ -7,7 +7,7 @@ import { user } from "../../db/schema/users.js";
 import { applications } from "../../db/schema/applications.js";
 import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { env } from "../../env.js";
-import { createAIProvider } from "./ai.groqProvider.js";
+import { createAIProvider } from "./ai.openRouterProvider.js";
 import { buildContext, buildSystemPrompt } from "./ai.context.js";
 import { enrichMessage } from "../chat/chat.service.js";
 import { runAICall } from "./ai.callOrchestrator.js";
@@ -118,7 +118,7 @@ export async function generateReply(
   requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;
-  const provider = createAIProvider(model, env.GROQ_API_KEY);
+  const provider = createAIProvider(model, env.OPENROUTER_API_KEY);
   const limit = env.AI_CONTEXT_MESSAGE_LIMIT;
 
   const [rawMessages, contextSummary] = await Promise.all([
@@ -243,7 +243,7 @@ export async function improveMessage(
   requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;
-  const provider = createAIProvider(model, env.GROQ_API_KEY);
+  const provider = createAIProvider(model, env.OPENROUTER_API_KEY);
 
   const [rawMessages, contextSummary] = await Promise.all([
     db

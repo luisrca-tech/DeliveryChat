@@ -7,12 +7,12 @@ vi.mock("@repo/lexical-utils", () => ({
 vi.mock("../../../env.js", () => ({
   env: {
     AI_MODEL: "mock://test",
-    GROQ_API_KEY: "test-key",
+    OPENROUTER_API_KEY: "test-key",
     AI_CONTEXT_MESSAGE_LIMIT: 10,
   },
 }));
 
-vi.mock("../../ai/ai.groqProvider.js", () => ({ createAIProvider: vi.fn() }));
+vi.mock("../../ai/ai.openRouterProvider.js", () => ({ createAIProvider: vi.fn() }));
 
 vi.mock("../loadContext.js", () => ({
   loadConversationMessages: vi.fn(),
@@ -33,7 +33,7 @@ vi.mock("../../../db/index.js", () => ({
   },
 }));
 
-const { createAIProvider } = await import("../../ai/ai.groqProvider.js");
+const { createAIProvider } = await import("../../ai/ai.openRouterProvider.js");
 const loadContext = await import("../loadContext.js");
 const { db } = await import("../../../db/index.js");
 const { QUOTA_EXCLUDED_ACTIONS } = await import("../../ai/ai.quota.js");

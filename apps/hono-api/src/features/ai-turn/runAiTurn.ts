@@ -1,6 +1,6 @@
 import { serializeLexicalToPlainText } from "@repo/lexical-utils";
 import { env } from "../../env.js";
-import { createAIProvider } from "../ai/ai.groqProvider.js";
+import { createAIProvider } from "../ai/ai.openRouterProvider.js";
 import { runAICall } from "../ai/ai.callOrchestrator.js";
 import { buildAutonomousSystemPrompt } from "../ai/ai.context.js";
 import { checkAiQuota } from "../ai/ai.quota.js";
@@ -201,7 +201,7 @@ export async function runAiTurn(conversationId: string): Promise<void> {
       toolNames: Object.keys(tools).filter((n) => n !== ESCALATE_TOOL_NAME),
     });
 
-    const provider = createAIProvider(env.AI_MODEL, env.GROQ_API_KEY);
+    const provider = createAIProvider(env.AI_MODEL, env.OPENROUTER_API_KEY);
     const providerMessages = buildTurnMessages(turnMessages);
     const usageUserId =
       conversation.createdBy ?? latestVisitor?.senderId ?? organization.id;

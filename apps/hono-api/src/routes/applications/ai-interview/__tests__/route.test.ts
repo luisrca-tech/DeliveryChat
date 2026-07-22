@@ -10,7 +10,7 @@ vi.mock("../../../../env.js", () => ({
   env: {
     AI_MODEL: "mock://test",
     AI_INTERVIEW_MODEL: "mock://interview",
-    GROQ_API_KEY: "test-key",
+    OPENROUTER_API_KEY: "test-key",
     AI_CONTEXT_MESSAGE_LIMIT: 10,
   },
 }));
@@ -171,7 +171,7 @@ vi.mock("../../../../features/ai/ai.errors.js", () => ({
   AIContentSafetyError: class AIContentSafetyError extends Error {},
 }));
 
-vi.mock("../../../../features/ai/ai.groqProvider.js", () => ({
+vi.mock("../../../../features/ai/ai.openRouterProvider.js", () => ({
   createAIProvider: vi.fn(() => ({
     generateText: vi.fn(),
     generateObject: vi.fn(),

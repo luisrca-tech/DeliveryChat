@@ -2,7 +2,7 @@
  * E2E tests for AI Assistant endpoints.
  *
  * PREREQUISITE: The hono-api server must be running with AI_MODEL=mock://test
- * so the MockProvider is used instead of calling the real Groq API.
+ * so the MockProvider is used instead of calling the real OpenRouter API.
  *
  * Run with: AI_MODEL=mock://test infisical run --path=/hono-api -- npx playwright test e2e/ai.e2e.ts
  */

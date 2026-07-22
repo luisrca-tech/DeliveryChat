@@ -10,7 +10,7 @@ const TOOL_ID = "tool-aaaa";
 vi.mock("../../../../env.js", () => ({
   env: {
     SECRETS_ENCRYPTION_KEY: "test",
-    GROQ_API_KEY: "test-key",
+    OPENROUTER_API_KEY: "test-key",
     AI_INTERVIEW_MODEL: "mock://interview",
   },
 }));

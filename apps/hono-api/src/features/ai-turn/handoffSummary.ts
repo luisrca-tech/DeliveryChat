@@ -4,7 +4,7 @@ import { db } from "../../db/index.js";
 import { conversations } from "../../db/schema/conversations.js";
 import { env } from "../../env.js";
 import { runAICall } from "../ai/ai.callOrchestrator.js";
-import { createAIProvider } from "../ai/ai.groqProvider.js";
+import { createAIProvider } from "../ai/ai.openRouterProvider.js";
 import { AIEmptyResponseError } from "../ai/ai.errors.js";
 import {
   loadConversationMessages,
@@ -76,7 +76,7 @@ export async function generateHandoffSummary(
     );
     if (messages.length === 0) return;
 
-    const provider = createAIProvider(env.AI_MODEL, env.GROQ_API_KEY);
+    const provider = createAIProvider(env.AI_MODEL, env.OPENROUTER_API_KEY);
     const userMessage = buildHandoffUserMessage(messages);
 
     const summary = await runAICall<string, string>({

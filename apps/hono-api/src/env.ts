@@ -39,9 +39,9 @@ export const env = createEnv({
       .refine((v) => Buffer.from(v, "base64").length === 32, {
         message: "SECRETS_ENCRYPTION_KEY must be a base64-encoded 32-byte key",
       }),
-    GROQ_API_KEY: z.string().min(1).optional(),
-    AI_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
-    AI_INTERVIEW_MODEL: z.string().min(1).default("llama-3.3-70b-versatile"),
+    OPENROUTER_API_KEY: z.string().min(1).optional(),
+    AI_MODEL: z.string().min(1).default("nvidia/nemotron-3-super-120b-a12b:free"),
+    AI_INTERVIEW_MODEL: z.string().min(1).default("nvidia/nemotron-3-super-120b-a12b:free"),
     AI_CONTEXT_MESSAGE_LIMIT: z
       .string()
       .optional()
@@ -72,7 +72,7 @@ export const env = createEnv({
     STRIPE_AUTOMATIC_TAX_ENABLED: process.env.STRIPE_AUTOMATIC_TAX_ENABLED,
     WS_TOKEN_SECRET: process.env.WS_TOKEN_SECRET,
     SECRETS_ENCRYPTION_KEY: process.env.SECRETS_ENCRYPTION_KEY,
-    GROQ_API_KEY: process.env.GROQ_API_KEY,
+    OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     AI_MODEL: process.env.AI_MODEL,
     AI_INTERVIEW_MODEL: process.env.AI_INTERVIEW_MODEL,
     AI_CONTEXT_MESSAGE_LIMIT: process.env.AI_CONTEXT_MESSAGE_LIMIT,

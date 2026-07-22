@@ -11,7 +11,7 @@ vi.mock("../../../env.js", () => ({
   env: {
     AI_MODEL: "mock://test",
     AI_INTERVIEW_MODEL: "mock://interview",
-    GROQ_API_KEY: "test-key",
+    OPENROUTER_API_KEY: "test-key",
     AI_CONTEXT_MESSAGE_LIMIT: 10,
   },
 }));

@@ -16,7 +16,7 @@
  *
  * PREREQUISITE: the hono-api server must be running on localhost:8000
  * (`bun run dev`). The tests DO NOT depend on LLM output — every assertion is
- * deterministic and holds whether GROQ_API_KEY is real, mock, or absent.
+ * deterministic and holds whether OPENROUTER_API_KEY is real, mock, or absent.
  *
  * Run with:
  *   bun run test:e2e --filter=hono-api
