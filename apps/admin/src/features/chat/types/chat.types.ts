@@ -78,6 +78,7 @@ export type ConversationFilters = {
   status?: ConversationStatus | ConversationStatus[];
   applicationId?: string;
   assignedTo?: "me";
+  handledBy?: "ai" | "human";
   limit: number;
   offset: number;
 };

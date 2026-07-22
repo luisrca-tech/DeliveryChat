@@ -13,6 +13,7 @@ export const listConversationsQuerySchema = z.object({
     ),
   applicationId: z.string().uuid().optional(),
   assignedTo: z.enum(["me"]).optional(),
+  handledBy: z.enum(["ai", "human"]).optional(),
 });
 
 export const getMessagesQuerySchema = z.object({

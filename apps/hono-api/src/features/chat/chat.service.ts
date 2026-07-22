@@ -999,6 +999,7 @@ interface ListConversationsForMemberInput {
   status?: ConversationStatus[];
   applicationId?: string;
   assignedTo?: "me";
+  handledBy?: "ai" | "human";
 }
 
 export async function listConversationsForMember(
@@ -1013,6 +1014,7 @@ export async function listConversationsForMember(
     status,
     applicationId,
     assignedTo,
+    handledBy,
   } = params;
 
   const conditions = [
@@ -1025,11 +1027,19 @@ export async function listConversationsForMember(
     conditions.push(eq(conversations.applicationId, applicationId));
   if (assignedTo === "me")
     conditions.push(eq(conversations.assignedTo, userId));
+  if (handledBy) conditions.push(eq(conversations.handledBy, handledBy));
 
   if (!isAdmin) {
+    // Operators see the human queue plus their own chats. The pending arm
+    // excludes AI-handled conversations: a live AI thread stays
+    // status='pending' by design (so takeover stays race-safe) and must not
+    // surface in the queue until it escalates (which flips handledBy).
     conditions.push(
       or(
-        eq(conversations.status, "pending"),
+        and(
+          eq(conversations.status, "pending"),
+          eq(conversations.handledBy, "human"),
+        ),
         eq(conversations.assignedTo, userId),
       )!,
     );
