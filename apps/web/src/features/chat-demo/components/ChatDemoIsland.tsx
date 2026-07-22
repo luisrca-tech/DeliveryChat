@@ -24,6 +24,8 @@ import { useWebSocketConnection } from "../hooks/useWebSocketConnection";
 import { useConversationList } from "../hooks/useConversationList";
 import { useMessageHistory } from "../hooks/useMessageHistory";
 import { useHumanHandoff } from "../hooks/useHumanHandoff";
+import { useWidgetSettings } from "../hooks/useWidgetSettings";
+import { useAiDisclosure } from "../hooks/useAiDisclosure";
 import type { EditorHandle } from "@repo/lexical-utils/react";
 import {
   ConversationListPanel,
@@ -191,6 +193,8 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
 
   const selectedConversation = conversations.find((c) => c.id === selectedId);
 
+  const { aiEnabled, settings } = useWidgetSettings(clientRef.current);
+
   const {
     hidden: handoffHidden,
     disabled: handoffDisabled,
@@ -198,10 +202,25 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
     requestHuman,
   } = useHumanHandoff({
     client: clientRef.current,
+    aiEnabled,
     conversation: selectedConversation,
     messages,
     visitorUserId,
   });
+
+  const disclosure = useAiDisclosure({
+    aiEnabled,
+    settings,
+    conversationId: selectedId,
+    messageCount: messages.length,
+    loadingMessages: loadingMsgs,
+  });
+
+  // Client-side only — pinned above real history, never sent to the server.
+  const displayMessages = useMemo(
+    () => (disclosure ? [disclosure, ...messages] : messages),
+    [disclosure, messages],
+  );
 
   return (
     <div className="relative w-full h-full flex overflow-hidden bg-background text-foreground font-sans">
@@ -232,7 +251,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         handleCreateConversation={handleCreateConversation}
       />
       <MessageThreadPanel
-        messages={messages}
+        messages={displayMessages}
         conversation={selectedConversation}
         wsStatus={wsStatus}
         loadingMsgs={loadingMsgs}
@@ -256,6 +275,7 @@ export function ChatDemoIsland({ apiUrl, apiKey, appId }: ChatDemoIslandProps) {
         handoffDisabled={handoffDisabled}
         handoffError={handoffError}
         onRequestHuman={requestHuman}
+        aiAssistantLabel={settings.ai?.assistantLabel}
       />
 
       <AlertDialog

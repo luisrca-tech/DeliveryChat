@@ -21,6 +21,7 @@ import {
   Trash2,
   Check,
   User,
+  Bot,
 } from "lucide-react";
 import { cn } from "@repo/ui/lib/utils";
 import type { ContentFormat } from "@repo/types";
@@ -240,6 +241,8 @@ export interface MessageThreadPanelProps {
   handoffDisabled: boolean;
   handoffError: string | null;
   onRequestHuman: () => void;
+  /** `settings.ai.assistantLabel`; defaults to "AI Assistant". */
+  aiAssistantLabel?: string;
 }
 
 export function MessageThreadPanel({
@@ -267,6 +270,7 @@ export function MessageThreadPanel({
   handoffDisabled,
   handoffError,
   onRequestHuman,
+  aiAssistantLabel,
 }: MessageThreadPanelProps) {
   if (!conversation) {
     return (
@@ -354,6 +358,10 @@ export function MessageThreadPanel({
                 Date.now() - new Date(msg.createdAt).getTime() < 15 * 60 * 1000;
               const isEditing = editingState?.id === msg.id;
               const isLexical = isLexicalMessage(msg);
+              // AI bubbles carry a visual distinction from human ones — the
+              // same border + avatar + label the widget uses. This is legally
+              // required disclosure, not decoration.
+              const isAi = msg.authorType === "ai";
 
               return (
                 <div
@@ -407,6 +415,15 @@ export function MessageThreadPanel({
                     )
                   ) : (
                     <div className="flex w-fit max-w-[72%] shrink-0 items-end gap-1 min-w-0">
+                      {isAi && (
+                        <div
+                          aria-hidden="true"
+                          data-testid="ai-avatar"
+                          className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                        >
+                          <Bot className="h-3.5 w-3.5" />
+                        </div>
+                      )}
                       {canModify && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -452,9 +469,15 @@ export function MessageThreadPanel({
                           isVisitor
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-foreground",
+                          isAi && "border border-primary",
                           msg.pending && "opacity-60",
                         )}
                       >
+                        {isAi && (
+                          <span className="mb-0.5 block text-[10px] font-semibold text-primary">
+                            {aiAssistantLabel ?? "AI Assistant"}
+                          </span>
+                        )}
                         {isLexical
                           ? (() => {
                               const html =

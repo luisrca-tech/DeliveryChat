@@ -4,6 +4,8 @@ import { handoffOffer, type HandoffMessage } from "../lib/handoffOffer";
 
 type UseHumanHandoffArgs = {
   client: ChatClient;
+  /** Server-derived AI entitlement, from `useWidgetSettings`. */
+  aiEnabled: boolean;
   conversation: Conversation | undefined;
   messages: HandoffMessage[];
   visitorUserId: string | null;
@@ -26,32 +28,14 @@ type UseHumanHandoff = {
  */
 export function useHumanHandoff({
   client,
+  aiEnabled,
   conversation,
   messages,
   visitorUserId,
 }: UseHumanHandoffArgs): UseHumanHandoff {
-  const [aiEnabled, setAiEnabled] = useState(false);
   const [humanRequested, setHumanRequested] = useState(false);
   const [escalating, setEscalating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Settings are per-application and immutable for the life of the island, so
-  // this runs once. A failure leaves aiEnabled false — the button stays hidden
-  // rather than offering an escalation the backend may reject.
-  useEffect(() => {
-    let cancelled = false;
-    client
-      .getSettings()
-      .then(({ settings }) => {
-        if (!cancelled) setAiEnabled(settings?.ai?.enabled === true);
-      })
-      .catch(() => {
-        if (!cancelled) setAiEnabled(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [client]);
 
   // "Already requested" is a property of one conversation, not of the visitor.
   const conversationId = conversation?.id ?? null;

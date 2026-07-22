@@ -16,6 +16,9 @@ export type Conversation = {
   updatedAt: string;
 };
 
+/** Who authored a message. Mirrors the API's `MessageAuthorType`. */
+export type MessageAuthorType = "visitor" | "operator" | "ai" | "system";
+
 export type Message = {
   id: string;
   conversationId: string;
@@ -26,6 +29,11 @@ export type Message = {
   editedAt: string | null;
   createdAt: string;
   type: "text" | "system";
+  /**
+   * Optional for backward compatibility with older payloads. Drives the
+   * AI-assistant bubble styling — see ChatDemoComponents.
+   */
+  authorType?: MessageAuthorType;
 };
 
 export type PaginationOptions = {
@@ -93,7 +101,12 @@ export function createChatClient({
      * entitlement (plan + add-on + per-application toggles), so the demo can
      * never offer an AI affordance the backend wouldn't honour.
      */
-    getSettings(): Promise<{ settings: { ai?: { enabled?: boolean } } }> {
+    getSettings(): Promise<{
+      settings: {
+        header?: { title?: string };
+        ai?: { enabled?: boolean; assistantLabel?: string };
+      };
+    }> {
       return request(`/settings/${appId}`);
     },
 

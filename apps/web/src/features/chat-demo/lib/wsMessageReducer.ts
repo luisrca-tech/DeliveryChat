@@ -1,5 +1,9 @@
 import type { MessageDeletedPayload, MessageEditedPayload } from "@repo/types";
-import type { Conversation, Message } from "../chat-client";
+import type {
+  Conversation,
+  Message,
+  MessageAuthorType,
+} from "../chat-client";
 
 export type OptimisticMessage = Message & {
   clientId?: string;
@@ -77,6 +81,7 @@ export function wsMessageReducer(
         createdAt,
         editedAt,
         type: msgType,
+        authorType,
       } = event.payload as {
         id: string;
         conversationId: string;
@@ -87,6 +92,7 @@ export function wsMessageReducer(
         createdAt: string;
         editedAt?: string | null;
         type?: string;
+        authorType?: MessageAuthorType;
       };
 
       if (conversationId === selectedConversationId) {
@@ -108,6 +114,9 @@ export function wsMessageReducer(
                 editedAt: editedAt ?? null,
                 pending: false,
                 type: msgType === "system" ? "system" : "text",
+                // Drives the AI bubble styling. Optional server-side for
+                // backward compatibility, so only set it when present.
+                ...(authorType !== undefined && { authorType }),
               },
             ],
             operatorTypingName: null,
