@@ -10,7 +10,7 @@ vi.mock("../../../../env.js", () => ({
   env: {
     AI_MODEL: "mock://test",
     AI_INTERVIEW_MODEL: "mock://interview",
-    GROQ_API_KEY: "test-key",
+    OPENROUTER_API_KEY: "test-key",
     AI_CONTEXT_MESSAGE_LIMIT: 10,
   },
 }));
@@ -48,18 +48,24 @@ vi.mock("../../../../db/schema/users.js", () => ({
   user: { id: "id", name: "name" },
 }));
 
-let mockAuthContext:
-  | null
-  | {
-      user: { id: string; name: string };
-      organization: { id: string; plan: string; name: string };
-      membership: { id: string; role: string; userId: string; organizationId: string };
-    } = null;
+let mockAuthContext: null | {
+  user: { id: string; name: string };
+  organization: { id: string; plan: string; name: string };
+  membership: {
+    id: string;
+    role: string;
+    userId: string;
+    organizationId: string;
+  };
+} = null;
 
 vi.mock("../../../../lib/middleware/auth.js", () => ({
   requireTenantAuth:
     () =>
-    async (c: { set: (k: string, v: unknown) => void }, next: () => Promise<void>) => {
+    async (
+      c: { set: (k: string, v: unknown) => void },
+      next: () => Promise<void>,
+    ) => {
       if (!mockAuthContext) {
         return new Response(JSON.stringify({ error: "unauthorized" }), {
           status: 401,
@@ -71,10 +77,7 @@ vi.mock("../../../../lib/middleware/auth.js", () => ({
   getTenantAuth: (c: { get: (k: string) => unknown }) => c.get("auth"),
   requireRole:
     (minRole: "operator" | "admin" | "super_admin") =>
-    async (
-      c: { get: (k: string) => unknown },
-      next: () => Promise<void>,
-    ) => {
+    async (c: { get: (k: string) => unknown }, next: () => Promise<void>) => {
       const auth = c.get("auth") as { membership: { role: string } } | null;
       const rank: Record<string, number> = {
         operator: 1,
@@ -95,7 +98,9 @@ let billingAllowed = true;
 vi.mock("../../../../lib/middleware/billing.js", () => ({
   checkBillingStatus: () => async (_c: unknown, next: () => Promise<void>) => {
     if (!billingAllowed) {
-      return new Response(JSON.stringify({ error: "billing" }), { status: 402 });
+      return new Response(JSON.stringify({ error: "billing" }), {
+        status: 402,
+      });
     }
     await next();
   },
@@ -166,8 +171,11 @@ vi.mock("../../../../features/ai/ai.errors.js", () => ({
   AIContentSafetyError: class AIContentSafetyError extends Error {},
 }));
 
-vi.mock("../../../../features/ai/ai.groqProvider.js", () => ({
-  createAIProvider: vi.fn(() => ({ generateText: vi.fn(), generateObject: vi.fn() })),
+vi.mock("../../../../features/ai/ai.openRouterProvider.js", () => ({
+  createAIProvider: vi.fn(() => ({
+    generateText: vi.fn(),
+    generateObject: vi.fn(),
+  })),
 }));
 
 vi.mock("../../../../features/ai/ai.errorMapper.js", () => ({
@@ -180,14 +188,24 @@ function adminAuth() {
   return {
     user: { id: USER_ID, name: "Admin" },
     organization: { id: ORG_ID, plan: "PREMIUM", name: "Test Org" },
-    membership: { id: "m-1", role: "admin", userId: USER_ID, organizationId: ORG_ID },
+    membership: {
+      id: "m-1",
+      role: "admin",
+      userId: USER_ID,
+      organizationId: ORG_ID,
+    },
   };
 }
 
 function operatorAuth() {
   return {
     ...adminAuth(),
-    membership: { id: "m-1", role: "operator", userId: USER_ID, organizationId: ORG_ID },
+    membership: {
+      id: "m-1",
+      role: "operator",
+      userId: USER_ID,
+      organizationId: ORG_ID,
+    },
   };
 }
 
@@ -208,25 +226,33 @@ beforeEach(() => {
 describe("GET /applications/:applicationId/ai-interview", () => {
   it("returns 401 when unauthenticated", async () => {
     mockAuthContext = null;
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     expect(res.status).toBe(401);
   });
 
   it("returns 403 for non-admin roles", async () => {
     mockAuthContext = operatorAuth();
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     expect(res.status).toBe(403);
   });
 
   it("returns 404 for cross-tenant application", async () => {
     ownedApplicationRows.length = 0;
-    const res = await buildApp().request(`/applications/${OTHER_APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${OTHER_APP_ID}/ai-interview`,
+    );
     expect(res.status).toBe(404);
   });
 
   it("returns not_started sentinel when no row exists", async () => {
     mockGetInterviewContext.mockResolvedValue(null);
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({ status: "not_started" });
@@ -243,7 +269,9 @@ describe("GET /applications/:applicationId/ai-interview", () => {
       completedBy: USER_ID,
       completedAt: "2026-05-29T12:00:00.000Z",
     });
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({
@@ -269,7 +297,9 @@ describe("GET /applications/:applicationId/ai-interview", () => {
       completedBy: USER_ID,
       completedAt: "2026-05-29T12:00:00.000Z",
     });
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     const body = await res.json();
     expect(body.summaryStatus).toBe("pending");
     expect(body.contextSummary).toBeNull();
@@ -286,7 +316,9 @@ describe("GET /applications/:applicationId/ai-interview", () => {
       completedBy: USER_ID,
       completedAt: "2026-05-29T12:00:00.000Z",
     });
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     const body = await res.json();
     expect(body.summaryStatus).toBe("failed");
     expect(body.contextSummary).toBe("# Stale Summary");
@@ -302,7 +334,9 @@ describe("GET /applications/:applicationId/ai-interview", () => {
       completedBy: null,
       completedAt: null,
     });
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({
@@ -323,7 +357,9 @@ describe("GET /applications/:applicationId/ai-interview", () => {
       currentTurn: 0,
       interviewLog: [{ role: "assistant", content: "Hi!" }],
     });
-    const res = await buildApp().request(`/applications/${APP_ID}/ai-interview`);
+    const res = await buildApp().request(
+      `/applications/${APP_ID}/ai-interview`,
+    );
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body).toEqual({
@@ -341,14 +377,11 @@ describe("POST /applications/:applicationId/ai-interview/turns (bootstrap)", () 
   }
 
   async function postBootstrap(appId = APP_ID) {
-    return buildApp().request(
-      `/applications/${appId}/ai-interview/turns`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: bootstrapBody(),
-      },
-    );
+    return buildApp().request(`/applications/${appId}/ai-interview/turns`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: bootstrapBody(),
+    });
   }
 
   it("returns 401 when unauthenticated", async () => {
@@ -409,7 +442,9 @@ describe("POST /applications/:applicationId/ai-interview/turns (bootstrap)", () 
     const body = await res.json();
     expect(body.status).toBe("in_progress");
     expect(body.currentTurn).toBe(0);
-    expect(body.interviewLog).toEqual([{ role: "assistant", content: "Hello!" }]);
+    expect(body.interviewLog).toEqual([
+      { role: "assistant", content: "Hello!" },
+    ]);
     expect(body.turn).toEqual({
       intent: "ask",
       topicsCoveredThisTurn: ["business_description"],
@@ -425,7 +460,6 @@ describe("POST /applications/:applicationId/ai-interview/turns (bootstrap)", () 
       expectedCurrentTurn: 0,
     });
   });
-
 });
 
 describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", () => {
@@ -443,7 +477,10 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
         status: "in_progress",
         currentTurn: 1,
         interviewLog: [
-          { role: "assistant", content: "Welcome — tell me about your business." },
+          {
+            role: "assistant",
+            content: "Welcome — tell me about your business.",
+          },
           { role: "user", content: "We sell books online." },
           { role: "assistant", content: "Who are your typical customers?" },
         ],
@@ -625,18 +662,12 @@ describe("POST /applications/:applicationId/ai-interview/turns (steady-state)", 
 });
 
 describe("POST /applications/:applicationId/ai-interview/complete", () => {
-  async function postComplete(
-    body: Record<string, unknown>,
-    appId = APP_ID,
-  ) {
-    return buildApp().request(
-      `/applications/${appId}/ai-interview/complete`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      },
-    );
+  async function postComplete(body: Record<string, unknown>, appId = APP_ID) {
+    return buildApp().request(`/applications/${appId}/ai-interview/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
   }
 
   it("returns 401 when unauthenticated", async () => {

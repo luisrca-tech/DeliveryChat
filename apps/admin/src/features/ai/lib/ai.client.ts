@@ -1,6 +1,10 @@
 import { getApiBaseUrl } from "@/lib/urls";
 import { getTenantHeaders } from "@/lib/tenantHeaders";
-import type { AiErrorResponse, GenerateReplyResponse, ImproveMessageResponse } from "../types/ai.types";
+import type {
+  AiErrorResponse,
+  GenerateReplyResponse,
+  ImproveMessageResponse,
+} from "../types/ai.types";
 
 export class AiApiError extends Error {
   constructor(

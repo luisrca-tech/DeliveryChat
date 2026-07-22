@@ -40,4 +40,10 @@ describe("handleConversationLifecycle", () => {
     handleConversationLifecycle("conversation:resolved", ctx);
     expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
   });
+
+  it("calls invalidateQueries for conversation:escalated (upserts into the pending queue via refetch)", () => {
+    const ctx = createCtx();
+    handleConversationLifecycle("conversation:escalated", ctx);
+    expect(ctx.invalidateQueries).toHaveBeenCalledTimes(1);
+  });
 });

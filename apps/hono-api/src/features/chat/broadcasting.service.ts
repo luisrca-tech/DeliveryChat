@@ -5,6 +5,7 @@ import type {
   ConversationAcceptedPayload,
   ConversationReleasedPayload,
   ConversationResolvedPayload,
+  ConversationEscalatedPayload,
   MessageEditedPayload,
   MessageDeletedPayload,
   TypingStartBroadcastPayload,
@@ -50,6 +51,15 @@ export function buildConversationResolvedEvent(
   { type: typeof WSServerEventType.CONVERSATION_RESOLVED }
 > {
   return { type: "conversation:resolved", payload };
+}
+
+export function buildConversationEscalatedEvent(
+  payload: ConversationEscalatedPayload,
+): Extract<
+  WSServerEvent,
+  { type: typeof WSServerEventType.CONVERSATION_ESCALATED }
+> {
+  return { type: "conversation:escalated", payload };
 }
 
 export function buildMessageEditedEvent(

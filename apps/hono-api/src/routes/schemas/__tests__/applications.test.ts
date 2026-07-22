@@ -150,6 +150,34 @@ describe("updateApplicationSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  it("accepts aiAutoRespond and aiDbEnabled as optional booleans", () => {
+    const result = updateApplicationSchema.safeParse({
+      aiAutoRespond: true,
+      aiDbEnabled: false,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.aiAutoRespond).toBe(true);
+      expect(result.data.aiDbEnabled).toBe(false);
+    }
+  });
+
+  it("aiAutoRespond and aiDbEnabled are optional", () => {
+    const result = updateApplicationSchema.safeParse({ name: "My App" });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.aiAutoRespond).toBeUndefined();
+      expect(result.data.aiDbEnabled).toBeUndefined();
+    }
+  });
+
+  it("rejects non-boolean values for aiAutoRespond", () => {
+    const result = updateApplicationSchema.safeParse({
+      aiAutoRespond: "true",
+    });
+    expect(result.success).toBe(false);
+  });
 });
 
 describe("createApplicationSchema", () => {

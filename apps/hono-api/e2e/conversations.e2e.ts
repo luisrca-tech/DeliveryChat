@@ -1,8 +1,10 @@
 import { test, expect } from "@playwright/test";
 import WebSocket from "ws";
+import { randomUUID } from "node:crypto";
 import {
   provisionTestData,
   cleanupTestData,
+  signVisitorWsToken,
   type E2ETestData,
 } from "./helpers/db-fixture";
 import {
@@ -13,6 +15,15 @@ import {
 } from "./helpers/setup";
 
 let testData: E2ETestData;
+
+/** Widget visitors connect with a signed WS token, not the raw API key. */
+function visitorWsUrl(): string {
+  const token = signVisitorWsToken({
+    appId: testData.app.id,
+    visitorId: testData.visitorUser.id,
+  });
+  return `ws://localhost:8000/api/v1/ws?token=${encodeURIComponent(token)}`;
+}
 
 test.beforeAll(async () => {
   testData = await provisionTestData();
@@ -46,7 +57,9 @@ test.describe("REST: Conversation Management", () => {
       expect(body.conversation).toBeDefined();
       expect(body.conversation.applicationId).toBe(testData.app.id);
       expect(body.conversation.organizationId).toBe(testData.org.id);
-      expect(body.conversation.status).toBe("active");
+      // A new visitor conversation enters the operator queue as `pending`; it
+      // only becomes `active` once an operator accepts it.
+      expect(body.conversation.status).toBe("pending");
     });
 
     test("rejects widget conversation without X-Visitor-Id", async ({
@@ -64,20 +77,24 @@ test.describe("REST: Conversation Management", () => {
       expect(response.status()).toBe(400);
     });
 
-    test("rejects widget conversation with invalid API key", async ({
+    // The widget runs in the browser and cannot hold a secret, so
+    // `requireWidgetAuth` authenticates on X-App-Id + Origin — never on an API
+    // key. An unknown application is the rejection this route actually makes.
+    test("rejects widget conversation with an unknown X-App-Id", async ({
       request,
     }) => {
       const response = await request.post("/api/v1/widget/conversations", {
         headers: {
-          Authorization: "Bearer dk_test_invalidkeyinvalidkeyinvalidk",
-          "X-App-Id": testData.app.id,
+          "X-App-Id": randomUUID(),
           "X-Visitor-Id": testData.visitorUser.id,
           "Content-Type": "application/json",
         },
         data: {},
       });
 
-      expect(response.status()).toBe(401);
+      expect(response.status()).toBe(404);
+      const body = await response.json();
+      expect(body.error).toBe("app_not_found");
     });
   });
 });
@@ -107,8 +124,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("connects via WebSocket with API key auth (widget)", async () => {
-    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
-    const { ws, messages } = await connectWebSocket(wsUrl);
+    const { ws, messages } = await connectWebSocket(visitorWsUrl());
 
     // Give server time to process onOpen
     await sleep(200);
@@ -123,7 +139,8 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("rejects WebSocket with invalid credentials", async () => {
-    const wsUrl = `ws://localhost:8000/api/v1/ws?token=dk_test_invalidkeyinvalidkeyinvalidk&appId=${testData.app.id}`;
+    // A garbage `token` fails HMAC verification before any DB lookup.
+    const wsUrl = `ws://localhost:8000/api/v1/ws?token=not-a-valid-ws-token`;
 
     const result = await new Promise<{ errorReceived: boolean }>((resolve) => {
       const ws = new WebSocket(wsUrl);
@@ -131,7 +148,10 @@ test.describe("WebSocket: Real-Time Messaging", () => {
 
       ws.on("message", (data) => {
         const parsed = JSON.parse(data.toString());
-        if (parsed.type === "error" && parsed.payload.code === "UNAUTHORIZED") {
+        if (
+          parsed.type === "error" &&
+          parsed.payload.code === "INVALID_TOKEN"
+        ) {
           errorReceived = true;
         }
       });
@@ -149,11 +169,18 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("room:join fails for non-participant", async () => {
-    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
-    const { ws, messages } = await connectWebSocket(wsUrl);
+    // Connect as a DIFFERENT visitor than the one who opened the conversation,
+    // otherwise the join legitimately succeeds.
+    const strangerToken = signVisitorWsToken({
+      appId: testData.app.id,
+      visitorId: randomUUID(),
+    });
+    const { ws, messages } = await connectWebSocket(
+      `ws://localhost:8000/api/v1/ws?token=${encodeURIComponent(strangerToken)}`,
+    );
     await sleep(200);
 
-    // Try to join a conversation the anonymous user is NOT a participant of
+    // Try to join a conversation this visitor is NOT a participant of
     sendWsEvent(ws, {
       type: "room:join",
       payload: { conversationId },
@@ -169,8 +196,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("ping responds with pong", async () => {
-    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
-    const { ws, messages } = await connectWebSocket(wsUrl);
+    const { ws, messages } = await connectWebSocket(visitorWsUrl());
     await sleep(200);
 
     sendWsEvent(ws, { type: "ping" });
@@ -182,8 +208,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("rejects invalid event types", async () => {
-    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
-    const { ws, messages } = await connectWebSocket(wsUrl);
+    const { ws, messages } = await connectWebSocket(visitorWsUrl());
     await sleep(200);
 
     sendWsEvent(ws, { type: "unknown:event", payload: {} });
@@ -198,8 +223,7 @@ test.describe("WebSocket: Real-Time Messaging", () => {
   });
 
   test("rejects malformed JSON", async () => {
-    const wsUrl = `ws://localhost:8000/api/v1/ws?token=${testData.apiKeyRaw}&appId=${testData.app.id}`;
-    const { ws, messages } = await connectWebSocket(wsUrl);
+    const { ws, messages } = await connectWebSocket(visitorWsUrl());
     await sleep(200);
 
     ws.send("not valid json{{{");

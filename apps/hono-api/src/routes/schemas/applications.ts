@@ -64,5 +64,7 @@ export const updateApplicationSchema = z
         message: "Duplicate entries are not allowed",
       })
       .optional(),
+    aiAutoRespond: z.boolean().optional(),
+    aiDbEnabled: z.boolean().optional(),
   })
   .strict();

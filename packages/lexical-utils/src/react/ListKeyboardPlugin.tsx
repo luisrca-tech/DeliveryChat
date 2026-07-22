@@ -7,10 +7,7 @@ import {
   $getSelection,
   $isRangeSelection,
 } from "lexical";
-import {
-  $handleListInsertParagraph,
-  $isListItemNode,
-} from "@lexical/list";
+import { $handleListInsertParagraph, $isListItemNode } from "@lexical/list";
 import { $getActiveListItem } from "./listUtils";
 
 function $handleListEnter(): boolean {
@@ -48,12 +45,16 @@ export function ListKeyboardPlugin({ interceptPlainEnter = true }: Props) {
           .getEditorState()
           .read(() => $getActiveListItem() !== null);
 
-        if (event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey) {
+        if (
+          event.shiftKey &&
+          !event.ctrlKey &&
+          !event.altKey &&
+          !event.metaKey
+        ) {
           return false;
         }
 
-        const isModifiedEnter =
-          event.ctrlKey || event.altKey || event.metaKey;
+        const isModifiedEnter = event.ctrlKey || event.altKey || event.metaKey;
 
         if (isModifiedEnter) {
           if (inList) {

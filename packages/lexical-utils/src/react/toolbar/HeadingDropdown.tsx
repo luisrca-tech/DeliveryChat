@@ -20,7 +20,8 @@ export function HeadingDropdown({
   formatHeading,
   activeClass,
 }: HeadingDropdownProps) {
-  const isHeading = blockType === "h1" || blockType === "h2" || blockType === "h3";
+  const isHeading =
+    blockType === "h1" || blockType === "h2" || blockType === "h3";
 
   return (
     <DropdownMenu>

@@ -56,7 +56,9 @@ function seed(queryClient: QueryClient, state: InterviewState) {
   vi.mocked(getInterviewState).mockResolvedValue(state);
 }
 
-function turnOk(overrides: Partial<InterviewTurnResponse> = {}): InterviewTurnResponse {
+function turnOk(
+  overrides: Partial<InterviewTurnResponse> = {},
+): InterviewTurnResponse {
   return {
     status: "in_progress",
     currentTurn: 2,
@@ -139,9 +141,7 @@ describe("useInterviewController", () => {
 
     act(() => result.current.callbacks.sendTurn("msg"));
 
-    await waitFor(() =>
-      expect(result.current.progress.canFinish).toBe(true),
-    );
+    await waitFor(() => expect(result.current.progress.canFinish).toBe(true));
     expect(result.current.turnLog.length).toBeGreaterThanOrEqual(2);
   });
 
@@ -213,9 +213,7 @@ describe("useInterviewController", () => {
 
     act(() => result.current.callbacks.retrySend());
 
-    await waitFor(() =>
-      expect(postInterviewTurn).toHaveBeenCalledTimes(2),
-    );
+    await waitFor(() => expect(postInterviewTurn).toHaveBeenCalledTimes(2));
     expect(postInterviewTurn).toHaveBeenLastCalledWith(APPLICATION_ID, {
       message: "retry me",
       expectedCurrentTurn: 2,
@@ -242,14 +240,10 @@ describe("useInterviewController", () => {
     await waitFor(() => expect(result.current.phase).toBe("active"));
 
     act(() => result.current.callbacks.sendTurn("stale"));
-    await waitFor(() =>
-      expect(result.current.showConflictNotice).toBe(true),
-    );
+    await waitFor(() => expect(result.current.showConflictNotice).toBe(true));
 
     act(() => result.current.callbacks.sendTurn("fresh"));
-    await waitFor(() =>
-      expect(result.current.showConflictNotice).toBe(false),
-    );
+    await waitFor(() => expect(result.current.showConflictNotice).toBe(false));
   });
 
   it("maps content-filtered responses to a system_bubble surface (no retry row)", async () => {
@@ -532,5 +526,74 @@ describe("useInterviewController", () => {
     await waitFor(() => expect(result.current.phase).toBe("active"));
     expect(result.current.progress.atTurnCap).toBe(true);
     expect(result.current.progress.displayTurn).toBe(15);
+  });
+});
+
+describe("useInterviewController — bootstrap failures surface", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("surfaces a plan 403 from Begin Interview as an upgrade banner", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    seed(queryClient, { status: "not_started" } as InterviewState);
+
+    vi.mocked(postInterviewTurn).mockRejectedValue(
+      new InterviewClientError({
+        code: "ai_feature_not_available",
+        status: 403,
+        message: "AI assistant is not available on your current plan.",
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useInterviewController(APPLICATION_ID),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.phase).toBe("intro"));
+
+    act(() => result.current.callbacks.startInterview());
+
+    await waitFor(() =>
+      expect(result.current.errorSurface).toEqual(
+        expect.objectContaining({
+          kind: "upgrade_banner",
+          code: "ai_feature_not_available",
+        }),
+      ),
+    );
+    // The admin stays on the intro screen and can retry after upgrading.
+    expect(result.current.phase).toBe("intro");
+  });
+
+  it("surfaces an expired-trial 403 as an upgrade banner", async () => {
+    const { queryClient, wrapper } = createWrapper();
+    seed(queryClient, { status: "not_started" } as InterviewState);
+
+    vi.mocked(postInterviewTurn).mockRejectedValue(
+      new InterviewClientError({
+        code: "ai_interview_trial_expired",
+        status: 403,
+        message: "Your free trial has ended.",
+      }),
+    );
+
+    const { result } = renderHook(
+      () => useInterviewController(APPLICATION_ID),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.phase).toBe("intro"));
+    act(() => result.current.callbacks.startInterview());
+
+    await waitFor(() =>
+      expect(result.current.errorSurface).toEqual(
+        expect.objectContaining({
+          kind: "upgrade_banner",
+          code: "ai_interview_trial_expired",
+        }),
+      ),
+    );
   });
 });

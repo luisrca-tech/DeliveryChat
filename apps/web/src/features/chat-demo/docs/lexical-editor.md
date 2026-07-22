@@ -8,12 +8,12 @@ The chat demo on `apps/web` uses a Lexical rich text editor instead of a plain `
 
 The editor lives in `components/lexical/` and mirrors the admin's Lexical implementation (`apps/admin/src/features/chat/components/lexical/`) with the following differences:
 
-| Concern | Admin | Chat Demo |
-|---------|-------|-----------|
-| AI toolbar (Generate/Improve) | Yes | No |
-| ExternalSendPlugin (markdown import/export) | Yes | No |
-| SendButtonPlugin (triggerSend + isEmpty via ref) | No | Yes |
-| Typing indicators | Via `onTypingStart`/`onTypingStop` props | Via `onKeyUp` throttle + `onBlur` |
+| Concern                                          | Admin                                    | Chat Demo                         |
+| ------------------------------------------------ | ---------------------------------------- | --------------------------------- |
+| AI toolbar (Generate/Improve)                    | Yes                                      | No                                |
+| ExternalSendPlugin (markdown import/export)      | Yes                                      | No                                |
+| SendButtonPlugin (triggerSend + isEmpty via ref) | No                                       | Yes                               |
+| Typing indicators                                | Via `onTypingStart`/`onTypingStop` props | Via `onKeyUp` throttle + `onBlur` |
 
 ### Component inventory
 
@@ -49,6 +49,7 @@ The editor lives in `components/lexical/` and mirrors the admin's Lexical implem
 ## Plain text auto-detection
 
 `isPlainTextLexicalJson()` returns `{ plain: true, text }` when ALL of:
+
 - Root contains only `paragraph` children
 - Each paragraph contains only `text` and `linebreak` nodes
 - All text nodes have `format: 0` (no bold, italic, code, etc.)

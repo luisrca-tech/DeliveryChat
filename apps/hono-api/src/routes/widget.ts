@@ -8,12 +8,16 @@ import { env } from "../env.js";
 import { user } from "../db/schema/users.js";
 import { conversations } from "../db/schema/conversations.js";
 import { getApplicationSettings } from "../features/applications/application.service.js";
+import { resolveInitialHandledBy } from "../features/ai-turn/resolveInitialHandledBy.js";
 import {
   createConversation,
   listConversationsForVisitor,
   getUnreadCountForVisitor,
   markAsRead,
+  isParticipant,
 } from "../features/chat/chat.service.js";
+import { escalateIfAiHandled } from "./conversations/escalation.js";
+import { mapServiceErrorToResponse } from "../features/chat/error-mapper.js";
 import { resolveOrCreateVisitor } from "../features/chat/visitor.service.js";
 import {
   requireWidgetAuth,
@@ -47,8 +51,26 @@ export const widgetRoute = new Hono()
       return jsonError(c, HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
     }
 
-    return c.json({ settings }, 200, {
-      "Cache-Control": "public, max-age=300",
+    // Bot-disclosure entitlement (plan §8 — legally required, not polish).
+    // Reuses the same org+application entitlement check the AI turn trigger
+    // uses, so the widget's disclosure line can never drift from whether the
+    // conversation would actually be AI-handled.
+    const handledBy = await resolveInitialHandledBy(appId);
+    const existingAi = (settings as { ai?: Record<string, unknown> }).ai;
+    const settingsWithAi = {
+      ...settings,
+      ai: {
+        ...existingAi,
+        enabled: handledBy === "ai",
+      },
+    };
+
+    // The payload is cheap to serve but now carries the AI-disclosure
+    // entitlement (ai.enabled), so staleness must be bounded tightly: 60s
+    // keeps widget-boot caching while making AI on/off toggles propagate
+    // within a minute.
+    return c.json({ settings: settingsWithAi }, 200, {
+      "Cache-Control": "public, max-age=60",
     });
   })
 
@@ -179,11 +201,19 @@ export const widgetRoute = new Hono()
 
         await resolveOrCreateVisitor(visitorId);
 
+        // Same AI-vs-human decision the unified `/conversations` route makes.
+        // Without it the widget — the only path real visitors use — would
+        // always create human-handled conversations and the AI would never run.
+        const handledBy = await resolveInitialHandledBy(
+          widgetAuth.application.id,
+        );
+
         const conversation = await createConversation({
           organizationId: widgetAuth.organizationId,
           applicationId: widgetAuth.application.id,
           subject,
           createdBy: visitorId,
+          handledBy,
           participants: [{ userId: visitorId, role: "visitor" }],
         });
 
@@ -272,6 +302,81 @@ export const widgetRoute = new Hono()
       }
     },
   )
+
+  // POST /conversations/:id/escalate — visitor "Talk to a human" trigger.
+  // Widget-auth variant of routes/conversations/escalation.ts (browser widgets
+  // have no API key/session); shares the exact same escalation semantics.
+  .post("/conversations/:id/escalate", requireWidgetAuth(), async (c) => {
+    try {
+      const widgetAuth = getWidgetAuth(c);
+      if (!widgetAuth) {
+        return jsonError(
+          c,
+          HTTP_STATUS.UNAUTHORIZED,
+          ERROR_MESSAGES.UNAUTHORIZED,
+        );
+      }
+
+      const conversationId = c.req.param("id");
+      const visitorId = c.req.header("X-Visitor-Id");
+      if (!visitorId) {
+        return jsonError(
+          c,
+          HTTP_STATUS.BAD_REQUEST,
+          ERROR_MESSAGES.BAD_REQUEST,
+          "X-Visitor-Id header required",
+        );
+      }
+
+      // Verify conversation belongs to this application AND the visitor
+      // participates in it — same not-found shape as the sibling endpoints.
+      const [conv] = await db
+        .select({ id: conversations.id })
+        .from(conversations)
+        .where(
+          and(
+            eq(conversations.id, conversationId),
+            eq(conversations.applicationId, widgetAuth.application.id),
+          ),
+        )
+        .limit(1);
+      const participant =
+        conv && (await isParticipant(conversationId, visitorId));
+      if (!conv || !participant) {
+        return jsonError(
+          c,
+          HTTP_STATUS.NOT_FOUND,
+          ERROR_MESSAGES.NOT_FOUND,
+          "Conversation not found",
+        );
+      }
+
+      const result = await escalateIfAiHandled(
+        conversationId,
+        widgetAuth.organizationId,
+      );
+
+      if (result.outcome === "closed") {
+        return jsonError(
+          c,
+          HTTP_STATUS.CONFLICT,
+          ERROR_MESSAGES.CONFLICT,
+          "Conversation is closed",
+        );
+      }
+
+      return c.json({ conversation: result.conversation });
+    } catch (error) {
+      const mapped = mapServiceErrorToResponse(c, error);
+      if (mapped) return mapped;
+      console.error("Error escalating widget conversation:", error);
+      return jsonError(
+        c,
+        HTTP_STATUS.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.INTERNAL_SERVER_ERROR,
+      );
+    }
+  })
 
   // GET /conversations/:id/unread — unread count for visitor
   .get("/conversations/:id/unread", requireWidgetAuth(), async (c) => {

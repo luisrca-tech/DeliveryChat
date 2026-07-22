@@ -1,7 +1,11 @@
 import { setState, getState } from "./state.js";
-import type { ChatMessage } from "./types/index.js";
+import type { ChatMessage, MessageAuthorType } from "./types/index.js";
 import { clearStaleConversationPersistence } from "./conversation-persistence.js";
-import { WS_TYPING_TIMEOUT_MS } from "./constants/index.js";
+import { onIncomingMessage } from "./aiConversationLifecycle.js";
+import {
+  WS_TYPING_TIMEOUT_MS,
+  AI_ASSISTANT_USER_ID,
+} from "./constants/index.js";
 import type { MessagePipeline } from "./MessagePipeline.js";
 
 type MessageRouterOptions = {
@@ -84,11 +88,15 @@ export class MessageRouter {
       type?: string;
       createdAt: string;
       editedAt?: string | null;
+      authorType?: MessageAuthorType;
     };
 
     if (p.conversationId !== getState("conversationId")) return;
 
     const msgType = p.type === "system" ? "system" : "text";
+    // senderId still normalizes null -> "" (system/AI messages have no user
+    // row), but authorType is preserved separately so the widget can still
+    // tell an AI message from a system one.
     const newMsg: ChatMessage = {
       id: p.id,
       content: p.content,
@@ -100,18 +108,17 @@ export class MessageRouter {
       status: "sent",
       createdAt: p.createdAt,
       editedAt: p.editedAt ?? null,
+      authorType: p.authorType,
     };
 
-    let wasDuplicate = false;
-    setState("messages", (prev) => {
-      if (prev.some((m) => m.id === newMsg.id)) {
-        wasDuplicate = true;
-        return prev;
-      }
-      return [...prev, newMsg];
-    });
+    const prevMessages = getState("messages");
+    const wasDuplicate = prevMessages.some((m) => m.id === newMsg.id);
 
     if (!wasDuplicate) {
+      // Appending + the one-time takeover line (plan §8) is owned by the AI
+      // conversation lifecycle module.
+      onIncomingMessage(newMsg);
+
       this.pipeline.processIncoming(newMsg);
 
       if (p.senderRole !== "visitor" && !getState("isOpen")) {
@@ -119,7 +126,16 @@ export class MessageRouter {
       }
     }
 
-    if (p.senderId === getState("typingUser")?.userId) {
+    // AI replies arrive with senderId null while the AI typing state uses the
+    // "ai-assistant" sentinel — match on authorType so the indicator drops
+    // the moment the reply renders instead of waiting for typing:stop.
+    const typingUser = getState("typingUser");
+    const isAiReplyClearingAiTyping =
+      p.authorType === "ai" && typingUser?.userId === AI_ASSISTANT_USER_ID;
+    if (
+      typingUser &&
+      (p.senderId === typingUser.userId || isAiReplyClearingAiTyping)
+    ) {
       this.clearTypingState();
     }
   }
@@ -154,7 +170,8 @@ export class MessageRouter {
               ...msg,
               content: p.content,
               contentFormat: p.contentFormat ?? msg.contentFormat,
-              contentHtml: p.contentHtml !== undefined ? p.contentHtml : msg.contentHtml,
+              contentHtml:
+                p.contentHtml !== undefined ? p.contentHtml : msg.contentHtml,
               editedAt: p.editedAt,
             }
           : msg,
@@ -190,6 +207,7 @@ export class MessageRouter {
         senderRole: "visitor" | "operator" | "admin";
         createdAt: string;
         editedAt?: string | null;
+        authorType?: MessageAuthorType;
       }>;
     };
 
@@ -208,6 +226,7 @@ export class MessageRouter {
       status: "sent" as const,
       createdAt: m.createdAt,
       editedAt: m.editedAt ?? null,
+      authorType: m.authorType,
     }));
 
     setState("messages", (prev) => {

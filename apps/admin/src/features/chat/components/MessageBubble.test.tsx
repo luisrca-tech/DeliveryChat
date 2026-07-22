@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MessageBubble } from "./MessageBubble";
 import type { Message } from "../types/chat.types";
 
@@ -58,5 +58,40 @@ describe("MessageBubble — hostile content rendering", () => {
     );
 
     expect(globalAny.__xss).toBe(false);
+  });
+});
+
+describe("MessageBubble — AI authored messages", () => {
+  it("labels AI-authored messages as 'AI Assistant' instead of the sender role", () => {
+    render(
+      <MessageBubble
+        message={makeMessage({
+          authorType: "ai",
+          senderName: "Bot",
+          senderRole: null,
+          content: "Here is what I found.",
+        })}
+        isSelf={false}
+      />,
+    );
+
+    expect(screen.getByText("AI Assistant")).toBeTruthy();
+    expect(screen.queryByText("Bot")).toBeNull();
+  });
+
+  it("does not label a regular operator message as AI Assistant", () => {
+    const { container } = render(
+      <MessageBubble
+        message={makeMessage({
+          authorType: "operator",
+          senderRole: "operator",
+          senderName: "Maria",
+        })}
+        isSelf={false}
+      />,
+    );
+
+    expect(within(container).queryByText("AI Assistant")).toBeNull();
+    expect(within(container).getByText("Operator")).toBeTruthy();
   });
 });

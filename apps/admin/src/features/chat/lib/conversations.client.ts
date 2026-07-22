@@ -61,6 +61,7 @@ export async function listConversations(
   }
   if (filters.applicationId) params.set("applicationId", filters.applicationId);
   if (filters.assignedTo) params.set("assignedTo", filters.assignedTo);
+  if (filters.handledBy) params.set("handledBy", filters.handledBy);
 
   const res = await fetch(`${base()}/conversations?${params}`, {
     headers: getTenantHeaders(),
@@ -92,9 +93,7 @@ export async function getMessages(
   return parseJson<MessagesListResponse>(res);
 }
 
-export async function acceptConversation(
-  id: string,
-): Promise<{
+export async function acceptConversation(id: string): Promise<{
   conversation: { id: string; status: string; assignedTo: string };
 }> {
   const res = await fetch(`${base()}/conversations/${id}/accept`, {

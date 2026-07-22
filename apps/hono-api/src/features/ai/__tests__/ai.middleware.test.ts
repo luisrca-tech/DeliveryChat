@@ -1,6 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Hono } from "hono";
 
+// `ai.middleware` → `entitlement` → `env`; stub env so importing the middleware
+// doesn't require the full validated environment.
+vi.mock("../../../env.js", () => ({
+  env: { STRIPE_AI_ADDON_PRICE_KEY: "price_ai_addon" },
+}));
+
 vi.mock("../../../db/index.js", () => ({
   db: {
     select: vi.fn(),
@@ -27,17 +33,56 @@ function chainMock(result: unknown) {
   return chain;
 }
 
-const { requireAiFeature, createAiRateLimitMiddleware, QUOTA_EXCLUDED_ACTIONS } = await import("../ai.middleware.js");
+const {
+  requireAiFeature,
+  createAiRateLimitMiddleware,
+  QUOTA_EXCLUDED_ACTIONS,
+} = await import("../ai.middleware.js");
 const { InMemoryRateLimitStore } = await import("../ai.rateLimit.js");
 
-function createMemberAuth(plan: string, organizationId = "org-1") {
+const FUTURE_TRIAL = new Date(Date.now() + 86_400_000).toISOString();
+const PAST_TRIAL = new Date(Date.now() - 86_400_000).toISOString();
+
+function createMemberAuth(
+  plan: string,
+  organizationId = "org-1",
+  billing: { planStatus?: string | null; trialEndsAt?: string | null } = {},
+) {
   return {
     type: "member" as const,
-    organization: { id: organizationId, plan, name: "Test Org" },
-    membership: { role: "operator", userId: "user-1", id: "m-1", organizationId },
+    organization: {
+      id: organizationId,
+      plan,
+      name: "Test Org",
+      planStatus: billing.planStatus ?? "active",
+      trialEndsAt: billing.trialEndsAt ?? null,
+    },
+    membership: {
+      role: "operator",
+      userId: "user-1",
+      id: "m-1",
+      organizationId,
+    },
     user: { id: "user-1", name: "Test User" },
     session: {},
   };
+}
+
+/** Mounts `requireAiFeature(feature)` behind an auth stub and returns the app. */
+function createGatedApp(
+  auth: ReturnType<typeof createMemberAuth>,
+  feature?: "reply" | "interview",
+) {
+  mockGetTenantAuth.mockReturnValue(auth);
+  const app = new Hono();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  app.use("*", (c: any, next) => {
+    c.set("auth", auth);
+    return next();
+  });
+  app.use("*", requireAiFeature(feature));
+  app.get("/test", (c) => c.json({ ok: true }));
+  return app;
 }
 
 describe("requireAiFeature", () => {
@@ -46,70 +91,52 @@ describe("requireAiFeature", () => {
   });
 
   it("allows PREMIUM plan tenants through", async () => {
-    mockGetTenantAuth.mockReturnValue(createMemberAuth("PREMIUM"));
     mockSelect.mockReturnValue(chainMock([]));
 
-    const app = new Hono();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    app.use("*", (c: any, next) => {
-      c.set("auth", createMemberAuth("PREMIUM"));
-      return next();
-    });
-    app.use("*", requireAiFeature());
-    app.get("/test", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test");
+    const res = await createGatedApp(createMemberAuth("PREMIUM")).request(
+      "/test",
+    );
     expect(res.status).toBe(200);
   });
 
   it("blocks FREE plan tenants with 403", async () => {
-    mockGetTenantAuth.mockReturnValue(createMemberAuth("FREE"));
+    const res = await createGatedApp(createMemberAuth("FREE")).request("/test");
 
-    const app = new Hono();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    app.use("*", (c: any, next) => {
-      c.set("auth", createMemberAuth("FREE"));
-      return next();
-    });
-    app.use("*", requireAiFeature());
-    app.get("/test", (c) => c.json({ ok: true }));
-
-    const res = await app.request("/test");
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe("ai_feature_not_available");
   });
 
-  it("blocks BASIC plan tenants with 403", async () => {
-    mockGetTenantAuth.mockReturnValue(createMemberAuth("BASIC"));
+  it("allows BASIC plan tenants through", async () => {
+    mockSelect.mockReturnValue(chainMock([]));
 
-    const app = new Hono();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    app.use("*", (c: any, next) => {
-      c.set("auth", createMemberAuth("BASIC"));
-      return next();
-    });
-    app.use("*", requireAiFeature());
-    app.get("/test", (c) => c.json({ ok: true }));
+    const res = await createGatedApp(createMemberAuth("BASIC")).request(
+      "/test",
+    );
+    expect(res.status).toBe(200);
+  });
 
-    const res = await app.request("/test");
+  it("blocks BASIC once its 1000-call monthly cap is reached", async () => {
+    mockSelect
+      .mockReturnValueOnce(chainMock([]))
+      .mockReturnValueOnce(chainMock([{ count: 1000 }]));
+
+    const res = await createGatedApp(createMemberAuth("BASIC")).request(
+      "/test",
+    );
+
     expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe("ai_monthly_cap_exceeded");
   });
 
   it("blocks when monthly cap is exceeded", async () => {
-    mockGetTenantAuth.mockReturnValue(createMemberAuth("PREMIUM"));
     mockSelect.mockReturnValue(chainMock([{ count: 3000 }]));
 
-    const app = new Hono();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    app.use("*", (c: any, next) => {
-      c.set("auth", createMemberAuth("PREMIUM"));
-      return next();
-    });
-    app.use("*", requireAiFeature());
-    app.get("/test", (c) => c.json({ ok: true }));
+    const res = await createGatedApp(createMemberAuth("PREMIUM")).request(
+      "/test",
+    );
 
-    const res = await app.request("/test");
     expect(res.status).toBe(403);
     const body = await res.json();
     expect(body.error).toBe("ai_monthly_cap_exceeded");
@@ -122,21 +149,74 @@ describe("requireAiFeature", () => {
   });
 
   it("uses aiMonthlyCapOverride for ENTERPRISE tenants", async () => {
-    mockGetTenantAuth.mockReturnValue(createMemberAuth("ENTERPRISE"));
     mockSelect
       .mockReturnValueOnce(chainMock([{ aiMonthlyCapOverride: 5000 }]))
       .mockReturnValueOnce(chainMock([{ count: 4999 }]));
 
-    const app = new Hono();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    app.use("*", (c: any, next) => {
-      c.set("auth", createMemberAuth("ENTERPRISE"));
-      return next();
-    });
-    app.use("*", requireAiFeature());
-    app.get("/test", (c) => c.json({ ok: true }));
+    const res = await createGatedApp(createMemberAuth("ENTERPRISE")).request(
+      "/test",
+    );
+    expect(res.status).toBe(200);
+  });
+});
 
-    const res = await app.request("/test");
+describe('requireAiFeature("interview")', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("lets a FREE tenant interview while its 14-day trial is running", async () => {
+    const auth = createMemberAuth("FREE", "org-1", {
+      planStatus: "trialing",
+      trialEndsAt: FUTURE_TRIAL,
+    });
+
+    const res = await createGatedApp(auth, "interview").request("/test");
+    expect(res.status).toBe(200);
+  });
+
+  it("blocks a FREE tenant whose trial has expired", async () => {
+    const auth = createMemberAuth("FREE", "org-1", {
+      planStatus: "trialing",
+      trialEndsAt: PAST_TRIAL,
+    });
+
+    const res = await createGatedApp(auth, "interview").request("/test");
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe("ai_interview_trial_expired");
+  });
+
+  it("blocks a FREE tenant that has no trial at all", async () => {
+    const auth = createMemberAuth("FREE", "org-1", {
+      planStatus: null,
+      trialEndsAt: null,
+    });
+
+    const res = await createGatedApp(auth, "interview").request("/test");
+
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe("ai_interview_trial_expired");
+  });
+
+  it("lets BASIC interview", async () => {
+    const res = await createGatedApp(
+      createMemberAuth("BASIC"),
+      "interview",
+    ).request("/test");
+    expect(res.status).toBe(200);
+  });
+
+  it("never charges the interview gate against the monthly cap", async () => {
+    // A PREMIUM tenant sitting at its cap may still finish onboarding.
+    mockSelect.mockReturnValue(chainMock([{ count: 3000 }]));
+
+    const res = await createGatedApp(
+      createMemberAuth("PREMIUM"),
+      "interview",
+    ).request("/test");
     expect(res.status).toBe(200);
   });
 });

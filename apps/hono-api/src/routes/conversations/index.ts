@@ -3,6 +3,7 @@ import { createUnifiedRateLimitMiddleware } from "../../lib/middleware/unifiedRa
 import { queriesRoute } from "./queries.js";
 import { messagingRoute } from "./messaging.js";
 import { lifecycleRoute } from "./lifecycle.js";
+import { escalationRoute } from "./escalation.js";
 import { readReceiptsRoute } from "./readReceipts.js";
 
 export const conversationsRoute = new Hono()
@@ -10,4 +11,5 @@ export const conversationsRoute = new Hono()
   .route("/", queriesRoute)
   .route("/", messagingRoute)
   .route("/", lifecycleRoute)
+  .route("/", escalationRoute)
   .route("/", readReceiptsRoute);

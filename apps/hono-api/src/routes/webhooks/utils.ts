@@ -7,19 +7,6 @@ import { stripe } from "../../lib/stripe.js";
 import { jsonError, HTTP_STATUS, ERROR_MESSAGES } from "../../lib/http.js";
 import { eq } from "drizzle-orm";
 
-const VALID_PLANS = ["BASIC", "PREMIUM", "ENTERPRISE"] as const;
-export type ValidPlan = (typeof VALID_PLANS)[number];
-
-export function extractPlanFromMetadata(
-  metadata: Record<string, string> | null | undefined,
-): ValidPlan | null {
-  const plan = metadata?.plan;
-  if (plan && VALID_PLANS.includes(plan as ValidPlan)) {
-    return plan as ValidPlan;
-  }
-  return null;
-}
-
 export function formatMoney(
   amountMinor: number | null | undefined,
 ): string | null {

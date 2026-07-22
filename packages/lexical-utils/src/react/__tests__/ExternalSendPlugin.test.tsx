@@ -21,7 +21,9 @@ function getEditorConfig() {
   return {
     namespace: "test",
     nodes: [HeadingNode, ListNode, ListItemNode],
-    onError: (error: Error) => { throw error; },
+    onError: (error: Error) => {
+      throw error;
+    },
   };
 }
 
@@ -34,7 +36,11 @@ function TestHarness({
   text,
   onReady,
 }: {
-  onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
+  onSend: (
+    content: string,
+    isEmpty: boolean,
+    contentFormat: ContentFormat,
+  ) => void;
   text: string;
   onReady: (harness: Harness) => void;
 }) {
@@ -61,7 +67,11 @@ function TestHarness({
 }
 
 function renderWithEditor(
-  onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void,
+  onSend: (
+    content: string,
+    isEmpty: boolean,
+    contentFormat: ContentFormat,
+  ) => void,
   text = "hello",
 ) {
   let harness!: Harness;
@@ -73,7 +83,13 @@ function renderWithEditor(
         placeholder={null}
         ErrorBoundary={LexicalErrorBoundary}
       />
-      <TestHarness onSend={onSend} text={text} onReady={(h) => { harness = h; }} />
+      <TestHarness
+        onSend={onSend}
+        text={text}
+        onReady={(h) => {
+          harness = h;
+        }}
+      />
     </LexicalComposer>,
   );
 

@@ -90,6 +90,7 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
       <InterviewIntroCard
         onStart={callbacks.startInterview}
         isStarting={isStartingInterview}
+        errorSurface={errorSurface}
       />
     );
   }
@@ -138,7 +139,8 @@ export function InterviewPage({ applicationId }: InterviewPageProps) {
     );
   }
 
-  const showFinishCta = (progress.canFinish || progress.atTurnCap) && !isCapExceeded;
+  const showFinishCta =
+    (progress.canFinish || progress.atTurnCap) && !isCapExceeded;
   const inputLocked = progress.atTurnCap;
 
   const lastEntry = turnLog[turnLog.length - 1];

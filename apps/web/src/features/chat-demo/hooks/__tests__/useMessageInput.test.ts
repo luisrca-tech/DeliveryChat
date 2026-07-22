@@ -38,7 +38,8 @@ describe("useMessageInput", () => {
     });
 
     expect(onAppend).toHaveBeenCalledOnce();
-    const appended = (onAppend as ReturnType<typeof vi.fn>).mock.calls[0][0] as OptimisticMessage;
+    const appended = (onAppend as ReturnType<typeof vi.fn>).mock
+      .calls[0][0] as OptimisticMessage;
     expect(appended.content).toBe("Hello world");
     expect(appended.contentFormat).toBe("plain");
     expect(appended.contentHtml).toBeNull();
@@ -62,7 +63,8 @@ describe("useMessageInput", () => {
     });
 
     expect(onAppend).toHaveBeenCalledOnce();
-    const appended = (onAppend as ReturnType<typeof vi.fn>).mock.calls[0][0] as OptimisticMessage;
+    const appended = (onAppend as ReturnType<typeof vi.fn>).mock
+      .calls[0][0] as OptimisticMessage;
     expect(appended.contentFormat).toBe("lexical");
     expect(appended.contentHtml).toBe('<p>html:{"root":{}}</p>');
 

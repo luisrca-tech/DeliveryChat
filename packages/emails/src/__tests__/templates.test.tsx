@@ -2,6 +2,7 @@ import { render, toPlainText } from "@react-email/render";
 import * as React from "react";
 import { describe, expect, it } from "vitest";
 import {
+  AiAddonActivatedEmail,
   EmailVerifiedWelcomeEmail,
   EnterprisePlanRequestEmail,
   InvoiceReceiptEmail,
@@ -94,6 +95,20 @@ describe("email templates", () => {
       }),
     );
     expect(toPlainText(receipt)).toContain("99.00");
+
+    const aiAddon = await render(
+      React.createElement(AiAddonActivatedEmail, {
+        amount: "120.00",
+        currency: "brl",
+        settingsUrl: "https://acme.deliverychat.online/settings/billing",
+      }),
+    );
+    const aiAddonText = toPlainText(aiAddon);
+    expect(aiAddonText).toContain("120.00");
+    expect(aiAddonText).toContain("BRL");
+    expect(aiAddon).toContain(
+      "https://acme.deliverychat.online/settings/billing",
+    );
   });
 
   it("renders security templates", async () => {

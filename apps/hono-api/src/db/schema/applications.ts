@@ -32,6 +32,8 @@ export const applications = createTable(
       .default(sql`'{}'::text[]`),
     description: text("description"),
     aiEnabled: boolean("ai_enabled").notNull().default(false),
+    aiDbEnabled: boolean("ai_db_enabled").notNull().default(false),
+    aiAutoRespond: boolean("ai_auto_respond").notNull().default(false),
     settings: jsonb("settings").default({}).notNull(),
     deletedAt: timestamp("deleted_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -43,9 +45,7 @@ export const applications = createTable(
     ),
     productionDomainUnique: uniqueIndex("applications_production_domain_unique")
       .on(table.domain)
-      .where(
-        sql`${table.kind} = 'production' AND ${table.deletedAt} IS NULL`,
-      ),
+      .where(sql`${table.kind} = 'production' AND ${table.deletedAt} IS NULL`),
     testPortUnique: uniqueIndex("applications_test_port_unique")
       .on(table.organizationId, table.port)
       .where(sql`${table.kind} = 'test' AND ${table.deletedAt} IS NULL`),

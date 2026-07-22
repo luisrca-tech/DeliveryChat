@@ -1,6 +1,10 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { requireTenantAuth, getTenantAuth, requireRole } from "../lib/middleware/auth.js";
+import {
+  requireTenantAuth,
+  getTenantAuth,
+  requireRole,
+} from "../lib/middleware/auth.js";
 import { checkBillingStatus } from "../lib/middleware/billing.js";
 import {
   requireAiFeature,
@@ -11,7 +15,11 @@ import {
   improveMessageBodySchema,
   listAiUsageQuerySchema,
 } from "../features/ai/ai.schemas.js";
-import { generateReply, improveMessage, getAiUsageLogs } from "../features/ai/ai.service.js";
+import {
+  generateReply,
+  improveMessage,
+  getAiUsageLogs,
+} from "../features/ai/ai.service.js";
 import { mapAiErrorToResponse } from "../features/ai/ai.errorMapper.js";
 import { jsonError, HTTP_STATUS } from "../lib/http.js";
 

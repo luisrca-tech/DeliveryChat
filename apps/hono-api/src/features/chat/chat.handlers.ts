@@ -15,7 +15,11 @@ import {
   MessageEditWindowExpiredError,
   type ConversationData,
 } from "./chat.service.js";
-import type { ContentFormat, MessageNewPayload, WSServerEvent } from "@repo/types";
+import type {
+  ContentFormat,
+  MessageNewPayload,
+  WSServerEvent,
+} from "@repo/types";
 import {
   buildMessageNewEvent,
   buildMessageEditedEvent,
@@ -163,6 +167,7 @@ async function handleRoomJoin(
               contentFormat: (msg.contentFormat ?? "plain") as ContentFormat,
               contentHtml: msg.contentHtml,
               type: msg.type as "text" | "system",
+              authorType: msg.authorType,
               createdAt: msg.createdAt,
             }),
           ),
@@ -182,7 +187,12 @@ function handleRoomLeave(
 
 async function handleMessageSend(
   conn: WSConnection,
-  payload: { conversationId: string; content: string; contentFormat?: string; clientMessageId: string },
+  payload: {
+    conversationId: string;
+    content: string;
+    contentFormat?: string;
+    clientMessageId: string;
+  },
   roomManager: IRoomManager,
 ) {
   let conversationData: ConversationData;
@@ -212,6 +222,7 @@ async function handleMessageSend(
         senderId: conn.userId,
         content: payload.content,
         contentFormat: (payload.contentFormat ?? "plain") as ContentFormat,
+        authorType: conn.role === "visitor" ? "visitor" : "operator",
       },
       conversationData,
     );
@@ -257,6 +268,7 @@ async function handleMessageSend(
     contentFormat: (message.contentFormat ?? "plain") as ContentFormat,
     contentHtml: message.contentHtml,
     type: message.type as "text" | "system",
+    authorType: message.authorType,
     createdAt: message.createdAt,
     assignedTo: conversationData.assignedTo,
   });
@@ -270,7 +282,12 @@ async function handleMessageSend(
 
 async function handleMessageEdit(
   conn: WSConnection,
-  payload: { conversationId: string; messageId: string; content: string; contentFormat?: string },
+  payload: {
+    conversationId: string;
+    messageId: string;
+    content: string;
+    contentFormat?: string;
+  },
   roomManager: IRoomManager,
 ) {
   try {

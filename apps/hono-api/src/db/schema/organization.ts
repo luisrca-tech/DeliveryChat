@@ -44,6 +44,10 @@ export const organization = createTable(
     identityVerificationSecret: varchar("identity_verification_secret", {
       length: 64,
     }),
+    aiAddonActive: boolean("ai_addon_active").notNull().default(false),
+    aiAddonSubscriptionItemId: varchar("ai_addon_subscription_item_id", {
+      length: 255,
+    }),
   },
   (table) => ({
     slugLookupIdx: index("organization_slug_idx").on(table.slug),

@@ -37,10 +37,7 @@ export function InterviewMarginalia({
         borderLeftStyle: dashed ? "dashed" : "solid",
         borderLeftColor: RULE_COLOR[tone],
       }}
-      className={cn(
-        "flex flex-col gap-2 border-l-2 pl-5 md:pl-6",
-        className,
-      )}
+      className={cn("flex flex-col gap-2 border-l-2 pl-5 md:pl-6", className)}
     >
       <p className="interview-italic text-sm leading-relaxed text-[var(--interview-color-muted)] md:text-base">
         {children}

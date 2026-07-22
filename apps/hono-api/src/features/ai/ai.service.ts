@@ -7,7 +7,7 @@ import { user } from "../../db/schema/users.js";
 import { applications } from "../../db/schema/applications.js";
 import { applicationAiContext } from "../../db/schema/applicationAiContext.js";
 import { env } from "../../env.js";
-import { createAIProvider } from "./ai.groqProvider.js";
+import { createAIProvider } from "./ai.openRouterProvider.js";
 import { buildContext, buildSystemPrompt } from "./ai.context.js";
 import { enrichMessage } from "../chat/chat.service.js";
 import { runAICall } from "./ai.callOrchestrator.js";
@@ -111,11 +111,14 @@ async function requireApplicationAiContext(
 export async function generateReply(
   input: GenerateReplyInput,
 ): Promise<GenerateReplyResult> {
-  const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
+  const { applicationId } = await verifyConversationOwnership(
+    input.conversationId,
+    input.tenantId,
+  );
   requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;
-  const provider = createAIProvider(model, env.GROQ_API_KEY);
+  const provider = createAIProvider(model, env.OPENROUTER_API_KEY);
   const limit = env.AI_CONTEXT_MESSAGE_LIMIT;
 
   const [rawMessages, contextSummary] = await Promise.all([
@@ -163,11 +166,19 @@ export async function generateReply(
 const FOLLOW_UP_DRAFT_INSTRUCTION =
   "[System] Draft the next operator reply that follows on from the conversation above. Keep it concise and return only the message text.";
 
+const OPENING_DRAFT_INSTRUCTION =
+  "[System] The conversation has no messages yet. Draft an opening message the operator can send to greet the visitor and offer help. Keep it concise and return only the message text.";
+
 function anchorOnUserTurn(
   contextMessages: AIProviderMessage[],
 ): AIProviderMessage[] {
+  // Every provider call needs at least one user turn: handing the model an
+  // empty message list throws AI_InvalidPromptError (surfacing as a 502).
   const last = contextMessages[contextMessages.length - 1];
-  if (!last || last.role !== "assistant") return contextMessages;
+  if (!last) {
+    return [{ role: "user", content: OPENING_DRAFT_INSTRUCTION }];
+  }
+  if (last.role !== "assistant") return contextMessages;
   return [
     ...contextMessages,
     { role: "user", content: FOLLOW_UP_DRAFT_INSTRUCTION },
@@ -225,11 +236,14 @@ const IMPROVE_CONTEXT_LIMIT = 3;
 export async function improveMessage(
   input: ImproveMessageInput,
 ): Promise<ImproveMessageResult> {
-  const { applicationId } = await verifyConversationOwnership(input.conversationId, input.tenantId);
+  const { applicationId } = await verifyConversationOwnership(
+    input.conversationId,
+    input.tenantId,
+  );
   requireApplicationId(applicationId);
 
   const model = env.AI_MODEL;
-  const provider = createAIProvider(model, env.GROQ_API_KEY);
+  const provider = createAIProvider(model, env.OPENROUTER_API_KEY);
 
   const [rawMessages, contextSummary] = await Promise.all([
     db

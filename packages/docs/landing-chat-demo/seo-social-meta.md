@@ -10,11 +10,11 @@ How the landing page (`apps/web`) renders link previews for LinkedIn, Facebook, 
 
 All meta tags live in `apps/web/src/layouts/Layout.astro` so every page inherits them. The layout accepts optional props for per-page overrides:
 
-| Prop          | Default                                          |
-| ------------- | ------------------------------------------------ |
-| `title`       | `DeliveryChat - Multi-tenant Chat Platform`      |
-| `description` | Multi-tenant SaaS chat one-liner                 |
-| `path`        | `/` — used for `canonical` and `og:url`          |
+| Prop          | Default                                     |
+| ------------- | ------------------------------------------- |
+| `title`       | `DeliveryChat - Multi-tenant Chat Platform` |
+| `description` | Multi-tenant SaaS chat one-liner            |
+| `path`        | `/` — used for `canonical` and `og:url`     |
 
 Tags emitted: `description`, `canonical`, the full Open Graph set (`og:type`, `og:site_name`, `og:title`, `og:description`, `og:url`, `og:image` + `secure_url`/`type`/`width`/`height`/`alt`), and the Twitter Card set (`summary_large_image`).
 

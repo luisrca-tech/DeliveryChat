@@ -87,17 +87,24 @@ The command queue pattern lets you interact with the SDK before the script has l
   window.DeliveryChat = window.DeliveryChat || { queue: [] };
 
   // 2. Push commands — they are stored until the script loads
-  DeliveryChat.queue.push(["on", "unread:changed", function (e) {
-    document.title = e.count > 0 ? "(" + e.count + ") My Site" : "My Site";
-  }]);
+  DeliveryChat.queue.push([
+    "on",
+    "unread:changed",
+    function (e) {
+      document.title = e.count > 0 ? "(" + e.count + ") My Site" : "My Site";
+    },
+  ]);
 
   DeliveryChat.queue.push(["sendMessage", "Hi, I need help with my order"]);
 
-  DeliveryChat.queue.push(["identify", {
-    externalId: "user-123",
-    email: "jane@example.com",
-    name: "Jane Doe"
-  }]);
+  DeliveryChat.queue.push([
+    "identify",
+    {
+      externalId: "user-123",
+      email: "jane@example.com",
+      name: "Jane Doe",
+    },
+  ]);
 
   DeliveryChat.queue.push(["init", { appId: "YOUR_APP_ID" }]);
 
@@ -139,16 +146,16 @@ In headless mode the WebSocket connects immediately on `init()`. UI methods (`op
 
 Register listeners with `on(event, callback)` and remove them with `off(event, callback)`. Listeners registered before `init()` are preserved and start firing once the SDK connects.
 
-| Event                   | Payload                        | Description                                                      |
-| ----------------------- | ------------------------------ | ---------------------------------------------------------------- |
-| `ready`                 | `void`                         | WebSocket connection established                                 |
-| `open`                  | `void`                         | Chat panel opened (widget mode only)                             |
-| `close`                 | `void`                         | Chat panel closed (widget mode only)                             |
-| `message:received`      | `ChatMessage`                  | A new message from an operator or admin arrived                  |
-| `message:sent`          | `ChatMessage`                  | A visitor message was acknowledged by the server                 |
-| `conversation:started`  | `{ conversationId: string }`   | A new conversation was created                                   |
-| `conversation:resolved` | `{ conversationId: string }`   | The conversation was marked as resolved                          |
-| `unread:changed`        | `{ count: number }`            | The unread message count changed                                 |
+| Event                   | Payload                      | Description                                      |
+| ----------------------- | ---------------------------- | ------------------------------------------------ |
+| `ready`                 | `void`                       | WebSocket connection established                 |
+| `open`                  | `void`                       | Chat panel opened (widget mode only)             |
+| `close`                 | `void`                       | Chat panel closed (widget mode only)             |
+| `message:received`      | `ChatMessage`                | A new message from an operator or admin arrived  |
+| `message:sent`          | `ChatMessage`                | A visitor message was acknowledged by the server |
+| `conversation:started`  | `{ conversationId: string }` | A new conversation was created                   |
+| `conversation:resolved` | `{ conversationId: string }` | The conversation was marked as resolved          |
+| `unread:changed`        | `{ count: number }`          | The unread message count changed                 |
 
 **`ChatMessage` payload shape:**
 
@@ -205,20 +212,20 @@ await DeliveryChat.identify({
 
 ## API Reference
 
-| Method | Signature | Description |
-| --- | --- | --- |
-| `init` | `(opts: InitOptions) => void` | Initialize the SDK with your app ID and optional settings |
-| `destroy` | `() => void` | Tear down the SDK, disconnect WebSocket, remove UI |
-| `open` | `() => void` | Open the chat panel |
-| `close` | `() => void` | Close the chat panel |
-| `toggle` | `() => void` | Toggle the chat panel open/closed |
-| `hideWidget` | `() => void` | Hide the launcher button |
-| `showWidget` | `() => void` | Show the launcher button |
-| `sendMessage` | `(text: string) => Promise<ChatMessage>` | Send a message and wait for server acknowledgment |
-| `identify` | `(params: IdentifyParams) => Promise<IdentityResult>` | Associate the visitor with a known user identity |
-| `getConversation` | `() => ConversationSnapshot \| null` | Get the current conversation state, or `null` if none |
-| `on` | `(event, callback) => void` | Subscribe to an SDK event |
-| `off` | `(event, callback) => void` | Unsubscribe from an SDK event |
+| Method            | Signature                                             | Description                                               |
+| ----------------- | ----------------------------------------------------- | --------------------------------------------------------- |
+| `init`            | `(opts: InitOptions) => void`                         | Initialize the SDK with your app ID and optional settings |
+| `destroy`         | `() => void`                                          | Tear down the SDK, disconnect WebSocket, remove UI        |
+| `open`            | `() => void`                                          | Open the chat panel                                       |
+| `close`           | `() => void`                                          | Close the chat panel                                      |
+| `toggle`          | `() => void`                                          | Toggle the chat panel open/closed                         |
+| `hideWidget`      | `() => void`                                          | Hide the launcher button                                  |
+| `showWidget`      | `() => void`                                          | Show the launcher button                                  |
+| `sendMessage`     | `(text: string) => Promise<ChatMessage>`              | Send a message and wait for server acknowledgment         |
+| `identify`        | `(params: IdentifyParams) => Promise<IdentityResult>` | Associate the visitor with a known user identity          |
+| `getConversation` | `() => ConversationSnapshot \| null`                  | Get the current conversation state, or `null` if none     |
+| `on`              | `(event, callback) => void`                           | Subscribe to an SDK event                                 |
+| `off`             | `(event, callback) => void`                           | Unsubscribe from an SDK event                             |
 
 **`InitOptions`:**
 

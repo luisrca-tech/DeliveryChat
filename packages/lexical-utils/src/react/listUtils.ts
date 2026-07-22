@@ -1,8 +1,4 @@
-import {
-  $getSelection,
-  $isRangeSelection,
-  type LexicalEditor,
-} from "lexical";
+import { $getSelection, $isRangeSelection, type LexicalEditor } from "lexical";
 import { $getNearestNodeOfType } from "@lexical/utils";
 import { ListItemNode } from "@lexical/list";
 

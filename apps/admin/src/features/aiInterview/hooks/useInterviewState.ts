@@ -28,15 +28,21 @@ export function useInterviewStateQuery(applicationId: string) {
   });
 }
 
-function cachedCurrentTurn(
-  state: InterviewState | undefined,
-): number {
+function cachedCurrentTurn(state: InterviewState | undefined): number {
   if (!state || state.status === "not_started") return 0;
   return state.currentTurn;
 }
 
-export function useBootstrapInterviewMutation(applicationId: string) {
+export type BootstrapInterviewOptions = {
+  onBootstrapError?: (error: unknown) => void;
+};
+
+export function useBootstrapInterviewMutation(
+  applicationId: string,
+  options: BootstrapInterviewOptions = {},
+) {
   const queryClient = useQueryClient();
+  const { onBootstrapError } = options;
 
   return useMutation({
     mutationFn: () =>
@@ -44,6 +50,7 @@ export function useBootstrapInterviewMutation(applicationId: string) {
         message: "",
         expectedCurrentTurn: 0,
       }),
+    onError: (error) => onBootstrapError?.(error),
     onSuccess: (data: InterviewTurnResponse) => {
       const previous = queryClient.getQueryData<InterviewState>(
         aiInterviewQueryKeys.state(applicationId),
@@ -58,10 +65,7 @@ export function useBootstrapInterviewMutation(applicationId: string) {
         currentTurn: data.currentTurn,
         interviewLog: data.interviewLog,
       };
-      queryClient.setQueryData(
-        aiInterviewQueryKeys.state(applicationId),
-        next,
-      );
+      queryClient.setQueryData(aiInterviewQueryKeys.state(applicationId), next);
     },
   });
 }
@@ -193,9 +197,7 @@ export function useFinishInterviewMutation(
     onSuccess: (result) => {
       const current = queryClient.getQueryData<InterviewState>(queryKey);
       const previousLog =
-        current && current.status !== "not_started"
-          ? current.interviewLog
-          : [];
+        current && current.status !== "not_started" ? current.interviewLog : [];
       const next: InterviewState = {
         status: "completed",
         summaryStatus: result.summary.summaryStatus,

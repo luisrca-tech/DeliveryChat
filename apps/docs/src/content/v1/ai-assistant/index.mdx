@@ -1,0 +1,83 @@
+# AI Assistant
+
+The AI Assistant lets your chat widget answer visitors autonomously, using your
+own data, while always being ready to hand off to a human. It's a separate,
+opt-in capability from the operator-assist tools ("Generate Reply" / "Improve
+Message") — this one drives the conversation directly, on your team's behalf.
+
+## What it does
+
+When enabled for an application, the AI Assistant:
+
+- Reads the visitor's message and replies directly in the widget — no operator
+  has to be online.
+- Answers using **your own data**, through admin-configured tools (an HTTP
+  endpoint or a read-only database query — see
+  [Configuration](/v1/ai-assistant/configuration)). It never invents facts: it
+  only states what a tool actually returned in that conversation.
+- Hands off to a human the moment it can't help — see
+  [Escalation & Handoff](/v1/ai-assistant/escalation).
+
+<Callout type="tip" title="Escalate, never fabricate">
+  This is the core guarantee behind the assistant: if it doesn't have a
+  grounded answer, it stops and connects the visitor to your team instead of
+  guessing.
+</Callout>
+
+## When it escalates
+
+Every AI-handled conversation ends one of two ways: a grounded answer, or a
+clean handoff to a human. The assistant escalates whenever:
+
+- It doesn't have enough information to answer (no tool, or a tool returned
+  nothing useful).
+- The visitor asks for a person, or clicks the "Talk to a human" button that's
+  always visible in the widget header.
+- Something technical fails (a tool call errors out, the request times out).
+- Your monthly AI usage quota is exhausted.
+
+There's never dead air — the visitor is either helped or queued for an
+operator, and your team sees it land in the queue in real time.
+
+## AI transparency
+
+Visitors always know they're talking to an AI:
+
+- Every AI reply is labeled ("AI Assistant" by default, configurable) with a
+  distinct avatar in the widget.
+- The first message in a new conversation discloses that an AI assistant is
+  available and that a person is always reachable.
+- A persistent "Talk to a human" button lives in the chat header at all
+  times — the visitor is never stuck with only the AI.
+
+This is a deliberate design choice, not just good UX: several jurisdictions
+(e.g. California's B.O.T. Act, the EU AI Act) require clear disclosure when a
+user is interacting with an automated system.
+
+## Next steps
+
+<QuickLinks
+  links={[
+    {
+      title: "Eligibility & Pricing",
+      href: "/v1/ai-assistant/eligibility-and-pricing",
+      description: "Which plans qualify and how the add-on is billed"
+    },
+    {
+      title: "Configuration",
+      href: "/v1/ai-assistant/configuration",
+      description: "Connect a data source, add tools, enable auto-respond"
+    },
+    {
+      title: "Escalation & Handoff",
+      href: "/v1/ai-assistant/escalation",
+      description: "How and when the AI hands off to a human"
+    },
+    {
+      title: "Security & Privacy",
+      href: "/v1/ai-assistant/security",
+      description: "Read-only guarantees, encryption, and data handling"
+    }
+  ]}
+  columns={2}
+/>

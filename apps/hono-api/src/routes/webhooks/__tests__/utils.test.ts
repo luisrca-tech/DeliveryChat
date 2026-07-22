@@ -16,26 +16,9 @@ vi.mock("../../../lib/stripe.js", () => ({
   stripe: { webhooks: { constructEvent: vi.fn() } },
 }));
 
-import { extractPlanFromMetadata, formatMoney } from "../utils.js";
-
-describe("extractPlanFromMetadata", () => {
-  it("returns valid plan from metadata", () => {
-    expect(extractPlanFromMetadata({ plan: "BASIC" })).toBe("BASIC");
-    expect(extractPlanFromMetadata({ plan: "PREMIUM" })).toBe("PREMIUM");
-    expect(extractPlanFromMetadata({ plan: "ENTERPRISE" })).toBe("ENTERPRISE");
-  });
-
-  it("returns null for invalid plan", () => {
-    expect(extractPlanFromMetadata({ plan: "INVALID" })).toBeNull();
-    expect(extractPlanFromMetadata({ plan: "FREE" })).toBeNull();
-  });
-
-  it("returns null for missing metadata", () => {
-    expect(extractPlanFromMetadata(null)).toBeNull();
-    expect(extractPlanFromMetadata(undefined)).toBeNull();
-    expect(extractPlanFromMetadata({})).toBeNull();
-  });
-});
+// Plan resolution (price-first, metadata fallback) now lives in
+// `lib/stripePlan.ts` and is covered by `lib/__tests__/stripePlan.test.ts`.
+import { formatMoney } from "../utils.js";
 
 describe("formatMoney", () => {
   it("converts cents to dollar string", () => {

@@ -7,6 +7,7 @@ export type { TrialEndingSoonEmailProps } from "./trial-ending-soon";
 export type { PaymentFailedEmailProps } from "./payment-failed";
 export type { SubscriptionCanceledEmailProps } from "./subscription-canceled";
 export type { InvoiceReceiptEmailProps } from "./invoice-receipt";
+export type { AiAddonActivatedEmailProps } from "./ai-addon-activated";
 export type { EmailVerifiedWelcomeEmailProps } from "./email-verified-welcome";
 export type { PasswordChangedEmailProps } from "./password-changed";
 export type { NewSignInAlertEmailProps } from "./new-sign-in-alert";

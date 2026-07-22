@@ -10,7 +10,7 @@ import {
   SummaryGenerationFailedError,
   TurnConflictError,
 } from "../../../features/ai/ai.errors.js";
-import { createAIProvider } from "../../../features/ai/ai.groqProvider.js";
+import { createAIProvider } from "../../../features/ai/ai.openRouterProvider.js";
 import type { AIProviderPort } from "../../../features/ai/ai.providerPort.js";
 import { ERROR_MESSAGES, HTTP_STATUS, jsonError } from "../../../lib/http.js";
 
@@ -19,7 +19,7 @@ export function getInterviewProvider(): AIProviderPort {
   if (!providerInstance) {
     providerInstance = createAIProvider(
       env.AI_INTERVIEW_MODEL,
-      env.GROQ_API_KEY,
+      env.OPENROUTER_API_KEY,
     );
   }
   return providerInstance;

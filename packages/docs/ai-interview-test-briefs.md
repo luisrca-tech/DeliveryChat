@@ -19,10 +19,10 @@ conversations against each brief's `contextSummary`):
 The DeliveryChat brief (the canonical baseline) is covered separately; the
 three briefs below are designed to cover different stress dimensions:
 
-| Brief           | Fidelity | Language | Stress dimension                                          |
-| --------------- | -------- | -------- | --------------------------------------------------------- |
-| Hortifruti      | High     | English  | Trigger the 15-question cap + auto-finish                 |
-| FlagPilot       | Medium   | English  | SaaS-shape consistency vs the DeliveryChat run            |
+| Brief           | Fidelity | Language | Stress dimension                                                      |
+| --------------- | -------- | -------- | --------------------------------------------------------------------- |
+| Hortifruti      | High     | English  | Trigger the 15-question cap + auto-finish                             |
+| FlagPilot       | Medium   | English  | SaaS-shape consistency vs the DeliveryChat run                        |
 | Verbose Founder | High     | English  | Discovery-phase classify-then-act (relevant / irrelevant / duplicate) |
 
 ---

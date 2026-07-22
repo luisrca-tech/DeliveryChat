@@ -1,10 +1,38 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import {
   daysUntil,
+  formatMoney,
   getBillingBannerDismissKey,
   getBillingAlertDismissStorageKey,
   BILLING_ALERT_DISMISS_STORAGE_PREFIX,
 } from "./billing.utils";
+
+describe("formatMoney", () => {
+  it("formats minor units into a currency string (USD)", () => {
+    const result = formatMoney(4900, "usd");
+    expect(result).toContain("49");
+    expect(result).toContain("$");
+  });
+
+  it("formats BRL amounts", () => {
+    const result = formatMoney(12000, "brl");
+    expect(result).toContain("120");
+  });
+
+  it("handles zero", () => {
+    expect(formatMoney(0, "usd")).toContain("0");
+  });
+
+  it("renders the code for unknown but well-formed currency codes", () => {
+    const result = formatMoney(5000, "xyz");
+    expect(result).toContain("50");
+    expect(result).toContain("XYZ");
+  });
+
+  it("falls back to a plain decimal for malformed currency codes", () => {
+    expect(formatMoney(5000, "x")).toBe("50.00 X");
+  });
+});
 
 describe("getBillingBannerDismissKey", () => {
   beforeEach(() => {

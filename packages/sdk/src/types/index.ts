@@ -36,6 +36,16 @@ export type WidgetSettings = {
     autoOpen: boolean;
     autoOpenDelay: number;
   };
+  /**
+   * AI assistant disclosure (California B.O.T. Act / EU AI Act transparency —
+   * see plans/ai-database-connection-feature.md §8). `enabled` is server-derived
+   * from the application's entitlement; `assistantLabel` overrides the display
+   * name used in the AI bubble label and the opening disclosure line.
+   */
+  ai: {
+    enabled: boolean;
+    assistantLabel?: string;
+  };
 };
 
 export type InitOptions = {
@@ -49,6 +59,13 @@ export type InitOptions = {
   headless?: boolean;
 };
 
+/**
+ * Discriminates who authored a message (mirrors the backend `message_author_type`
+ * enum). Optional for backward compatibility with payloads emitted before AI
+ * turns existed.
+ */
+export type MessageAuthorType = "visitor" | "operator" | "ai" | "system";
+
 export type ChatMessage = {
   id: string;
   content: string;
@@ -61,6 +78,7 @@ export type ChatMessage = {
   createdAt: string;
   editedAt?: string | null;
   isDeleted?: boolean;
+  authorType?: MessageAuthorType;
 };
 
 export type ConversationStatus = "pending" | "active" | "closed";
@@ -81,6 +99,8 @@ export type BubbleContext = {
   visitorId: string | null;
   onEdit: (messageId: string, content: string) => void;
   onDelete: (messageId: string) => void;
+  /** Display label for authorType: 'ai' bubbles. Defaults to "AI Assistant". */
+  aiAssistantLabel?: string;
 };
 
 export type IdentifyParams = {
@@ -131,5 +151,11 @@ export type DeliveryChatAPI = {
   sendMessage: (text: string) => Promise<ChatMessage>;
   identify: (params: IdentifyParams) => Promise<IdentityResult>;
   getConversation: () => ConversationSnapshot | null;
+  /**
+   * Deterministic "Talk to a human" escalation trigger (AC #4). Resolves once
+   * the escalation is accepted by the server; idempotent when already
+   * human-handled.
+   */
+  requestHuman: () => Promise<void>;
   queue: unknown[];
 };

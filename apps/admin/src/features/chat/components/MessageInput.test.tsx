@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  cleanup,
+  waitFor,
+} from "@testing-library/react";
 import { MessageInput } from "./MessageInput";
 
 const mockGenerate = vi.fn();
@@ -26,11 +32,7 @@ vi.mock("@/features/ai/hooks/useGenerateReply", () => ({
 }));
 
 vi.mock("@/features/ai/hooks/useImproveMessage", () => ({
-  useImproveMessage: ({
-    onSuccess,
-  }: {
-    onSuccess: (text: string) => void;
-  }) => {
+  useImproveMessage: ({ onSuccess }: { onSuccess: (text: string) => void }) => {
     mockImprove.mockImplementation(() => {
       if (!mockIsImproving) onSuccess("## Improved\n\n**better** message");
     });
@@ -45,7 +47,7 @@ vi.mock("@/features/ai/hooks/useImproveMessage", () => ({
 vi.mock("@/features/ai/hooks/useAiAvailability", () => ({
   useAiAvailability: () => ({
     isAvailable: mockAiAvailable,
-    planAvailable: mockAiAvailable,
+    servingAvailable: mockAiAvailable,
     appConfigured: true,
   }),
 }));
@@ -160,9 +162,7 @@ describe("MessageInput", () => {
     fireEvent.click(screen.getByTitle("Generate AI reply"));
 
     await waitFor(() => {
-      expect(
-        screen.queryByTitle("Improve message with AI"),
-      ).not.toBeNull();
+      expect(screen.queryByTitle("Improve message with AI")).not.toBeNull();
     });
 
     fireEvent.click(screen.getByTitle("Improve message with AI"));
@@ -178,9 +178,7 @@ describe("MessageInput", () => {
     fireEvent.click(screen.getByTitle("Generate AI reply"));
 
     await waitFor(() => {
-      expect(
-        screen.queryByTitle("Improve message with AI"),
-      ).not.toBeNull();
+      expect(screen.queryByTitle("Improve message with AI")).not.toBeNull();
     });
 
     fireEvent.click(screen.getByTitle("Improve message with AI"));

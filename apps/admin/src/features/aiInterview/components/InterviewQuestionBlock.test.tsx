@@ -21,9 +21,7 @@ describe("InterviewQuestionBlock", () => {
   });
 
   it("falls back to Discovery when topic is missing", () => {
-    render(
-      <InterviewQuestionBlock round={1}>Question</InterviewQuestionBlock>,
-    );
+    render(<InterviewQuestionBlock round={1}>Question</InterviewQuestionBlock>);
     expect(screen.getByText(/Discovery · Round 1/i)).toBeTruthy();
   });
 

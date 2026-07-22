@@ -49,6 +49,7 @@ After the script loads, \`DeliveryChat\` becomes an object with these methods:
 - \`DeliveryChat.showWidget()\` — Show the launcher button
 - \`DeliveryChat.sendMessage(text)\` — Send a message
 - \`DeliveryChat.identify(userData)\` — Identify the visitor
+- \`DeliveryChat.requestHuman()\` — Escalate the current conversation to a human operator
 - \`DeliveryChat.on(event, callback)\` — Subscribe to events
 - \`DeliveryChat.off(event, callback)\` — Unsubscribe from events
 - \`DeliveryChat.getConversation()\` — Get conversation state
@@ -62,6 +63,7 @@ DeliveryChat('init', { appId: 'YOUR_APP_ID' });
 DeliveryChat('on', 'ready', function() { console.log('Widget ready'); });
 DeliveryChat('sendMessage', 'Hello!');
 DeliveryChat('identify', { name: 'Jane', email: 'jane@example.com' });
+DeliveryChat('requestHuman');
 \`\`\`
 
 ### Events

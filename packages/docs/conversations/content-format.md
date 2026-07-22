@@ -6,11 +6,11 @@ Messages now support a `contentFormat` field that discriminates between plain te
 
 ## Message Fields
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `content` | `string` | Raw message content — plain text or serialized Lexical `EditorState` JSON |
-| `contentFormat` | `"plain" \| "lexical"` | Discriminator indicating the format of `content` |
-| `contentHtml` | `string \| null` | Pre-sanitized HTML for `lexical` messages; `null` for `plain` |
+| Field           | Type                   | Description                                                               |
+| --------------- | ---------------------- | ------------------------------------------------------------------------- |
+| `content`       | `string`               | Raw message content — plain text or serialized Lexical `EditorState` JSON |
+| `contentFormat` | `"plain" \| "lexical"` | Discriminator indicating the format of `content`                          |
+| `contentHtml`   | `string \| null`       | Pre-sanitized HTML for `lexical` messages; `null` for `plain`             |
 
 ## Sending Messages
 
@@ -47,6 +47,7 @@ Omitting `contentFormat` defaults to `"plain"`.
 All message responses (REST and WebSocket events) include `contentFormat` and `contentHtml`.
 
 For `plain` messages:
+
 ```json
 {
   "content": "Hello world",
@@ -56,6 +57,7 @@ For `plain` messages:
 ```
 
 For `lexical` messages:
+
 ```json
 {
   "content": "{\"root\":{...}}",

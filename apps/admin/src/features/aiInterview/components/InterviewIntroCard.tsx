@@ -1,10 +1,13 @@
 import "../styles/interview-theme.css";
+import type { InterviewErrorSurface } from "../lib/interviewErrorMapper";
+import { InterviewErrorBoundary } from "./InterviewErrorBoundary";
 import { InterviewEyebrow } from "./InterviewEyebrow";
 import { InterviewTextLink } from "./InterviewTextLink";
 
 export type InterviewIntroCardProps = {
   onStart: () => void;
   isStarting: boolean;
+  errorSurface?: InterviewErrorSurface | null;
 };
 
 const TOPICS = [
@@ -18,6 +21,7 @@ const TOPICS = [
 export function InterviewIntroCard({
   onStart,
   isStarting,
+  errorSurface = null,
 }: InterviewIntroCardProps) {
   return (
     <section className="interview-theme min-h-[100dvh] w-full">
@@ -39,6 +43,8 @@ export function InterviewIntroCard({
           build a useful brief. Nothing is shown to visitors until you review
           and confirm the result.
         </p>
+
+        <InterviewErrorBoundary surface={errorSurface} />
 
         <div>
           <InterviewTextLink

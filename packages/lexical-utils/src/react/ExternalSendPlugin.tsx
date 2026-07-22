@@ -17,7 +17,11 @@ export type EditorHandle = {
 };
 
 type Props = {
-  onSend: (content: string, isEmpty: boolean, contentFormat: ContentFormat) => void;
+  onSend: (
+    content: string,
+    isEmpty: boolean,
+    contentFormat: ContentFormat,
+  ) => void;
   editorHandleRef: import("react").MutableRefObject<EditorHandle | null>;
 };
 

@@ -14,6 +14,16 @@ export const MessageType = {
 } as const;
 export type MessageType = (typeof MessageType)[keyof typeof MessageType];
 
+/** Discriminates who authored a message (mirrors the `message_author_type` enum). */
+export const MessageAuthorType = {
+  VISITOR: "visitor",
+  OPERATOR: "operator",
+  AI: "ai",
+  SYSTEM: "system",
+} as const;
+export type MessageAuthorType =
+  (typeof MessageAuthorType)[keyof typeof MessageAuthorType];
+
 export const ContentFormat = {
   PLAIN: "plain",
   LEXICAL: "lexical",
@@ -104,6 +114,7 @@ export const WSServerEventType = {
   CONVERSATION_ACCEPTED: "conversation:accepted",
   CONVERSATION_RELEASED: "conversation:released",
   CONVERSATION_RESOLVED: "conversation:resolved",
+  CONVERSATION_ESCALATED: "conversation:escalated",
   TYPING_START: "typing:start",
   TYPING_STOP: "typing:stop",
   ERROR: "error",
@@ -125,6 +136,11 @@ export interface MessageNewPayload {
   createdAt: string;
   editedAt?: string | null;
   assignedTo?: string | null;
+  /**
+   * Who authored the message (`visitor | operator | ai | system`). Optional for
+   * backward compatibility; drives the widget's AI-vs-human labels and avatars.
+   */
+  authorType?: MessageAuthorType;
 }
 
 export interface MessageAckPayload {
@@ -178,6 +194,22 @@ export interface ConversationResolvedPayload {
   resolvedBy: string;
 }
 
+/**
+ * Fired to staff when an AI-handled conversation flips to human handling. Carries
+ * the queue-render fields (mirroring `conversation:new`) plus the escalation
+ * metadata so the operator queue can surface why the AI handed off.
+ */
+export interface ConversationEscalatedPayload {
+  conversationId: string;
+  organizationId: string;
+  applicationId: string | null;
+  status: ConversationStatus;
+  subject: string | null;
+  escalationReason: string | null;
+  escalatedAt: string;
+  createdAt: string;
+}
+
 export interface TypingStartBroadcastPayload {
   conversationId: string;
   userId: string;
@@ -225,6 +257,10 @@ export type WSServerEvent =
   | {
       type: typeof WSServerEventType.CONVERSATION_RESOLVED;
       payload: ConversationResolvedPayload;
+    }
+  | {
+      type: typeof WSServerEventType.CONVERSATION_ESCALATED;
+      payload: ConversationEscalatedPayload;
     }
   | {
       type: typeof WSServerEventType.TYPING_START;

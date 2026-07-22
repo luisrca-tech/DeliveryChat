@@ -4,10 +4,12 @@ const {
   mockGetConversationMessages,
   mockMarkConversationAsRead,
   mockGetUnreadCount,
+  mockEscalateConversation,
 } = vi.hoisted(() => ({
   mockGetConversationMessages: vi.fn(),
   mockMarkConversationAsRead: vi.fn(),
   mockGetUnreadCount: vi.fn(),
+  mockEscalateConversation: vi.fn(),
 }));
 
 vi.mock("./ws.js", () => ({
@@ -30,6 +32,7 @@ vi.mock("./conversation.js", () => ({
   getConversationMessages: mockGetConversationMessages,
   markConversationAsRead: mockMarkConversationAsRead,
   getUnreadCount: mockGetUnreadCount,
+  escalateConversation: mockEscalateConversation,
 }));
 
 vi.mock("./conversation-persistence.js", () => ({
@@ -80,6 +83,9 @@ describe("SdkApi", () => {
     setState("isOpen", false);
     setState("connectionStatus", "disconnected");
     setState("editingMessageId", null);
+    setState("humanRequested", false);
+    setState("aiTakeoverAnnounced", false);
+    setState("settings", {} as never);
   });
 
   // ── Public API: pre-init guards ──
@@ -615,6 +621,85 @@ describe("SdkApi", () => {
       api.startNewChat();
       expect(disconnectWS).not.toHaveBeenCalled();
     });
+
+    it("resets humanRequested and aiTakeoverAnnounced", async () => {
+      const api = getSdkApi();
+      await api.initChat({ appId: "app-1" });
+      setState("humanRequested", true);
+      setState("aiTakeoverAnnounced", true);
+
+      api.startNewChat();
+
+      expect(getState("humanRequested")).toBe(false);
+      expect(getState("aiTakeoverAnnounced")).toBe(false);
+    });
+
+    it("funnels disclosure seeding through the AI lifecycle seam", async () => {
+      // Seeding logic itself is covered in aiConversationLifecycle.test.ts;
+      // here we only assert startNewChat wires to it for an AI-enabled tenant.
+      const api = getSdkApi();
+      await api.initChat({ appId: "app-1" });
+      setState("settings", {
+        header: { title: "Acme", subtitle: "", showLogo: false },
+        ai: { enabled: true, assistantLabel: "AI Assistant" },
+      } as never);
+
+      api.startNewChat();
+
+      const messages = getState("messages");
+      expect(messages).toHaveLength(1);
+      expect(messages[0]!.type).toBe("system");
+      expect(messages[0]!.content).toContain("Acme");
+    });
+  });
+
+  // ── requestHuman ──
+
+  describe("requestHuman", () => {
+    it("throws before init", async () => {
+      await expect(getSdkApi().requestHuman()).rejects.toThrow(
+        "SDK not initialized",
+      );
+    });
+
+    it("throws when no active conversation", async () => {
+      const api = getSdkApi();
+      await api.initChat({ appId: "app-1" });
+      api.markInitialized({ appId: "app-1" });
+
+      await expect(api.requestHuman()).rejects.toThrow(
+        "No active conversation",
+      );
+    });
+
+    it("calls escalateConversation and marks humanRequested", async () => {
+      const api = getSdkApi();
+      await api.initChat({ appId: "app-1" });
+      api.markInitialized({ appId: "app-1" });
+      setState("conversationId", "conv-1");
+      mockEscalateConversation.mockResolvedValueOnce(undefined);
+
+      await api.requestHuman();
+
+      expect(mockEscalateConversation).toHaveBeenCalledWith(
+        "https://api.test.com",
+        "app-1",
+        "visitor-123",
+        "conv-1",
+      );
+      expect(getState("humanRequested")).toBe(true);
+    });
+
+    it("propagates escalation errors without marking humanRequested", async () => {
+      const api = getSdkApi();
+      await api.initChat({ appId: "app-1" });
+      api.markInitialized({ appId: "app-1" });
+      setState("conversationId", "conv-1");
+      mockEscalateConversation.mockRejectedValueOnce(new Error("network"));
+
+      await expect(api.requestHuman()).rejects.toThrow("network");
+      expect(getState("humanRequested")).toBe(false);
+    });
   });
 
   // ── connectEagerly (absorbed from chat-controller) ──
@@ -675,6 +760,18 @@ describe("SdkApi", () => {
       expect(getState("conversationStatus")).toBeNull();
       expect(getState("messages")).toEqual([]);
       expect(getState("unreadCount")).toBe(0);
+    });
+
+    it("resets humanRequested and aiTakeoverAnnounced", async () => {
+      const api = getSdkApi();
+      await api.initChat({ appId: "app-1" });
+      setState("humanRequested", true);
+      setState("aiTakeoverAnnounced", true);
+
+      api.destroyChat();
+
+      expect(getState("humanRequested")).toBe(false);
+      expect(getState("aiTakeoverAnnounced")).toBe(false);
     });
   });
 

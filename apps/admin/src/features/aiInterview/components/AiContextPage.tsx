@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from "react";
-import { Navigate } from "@tanstack/react-router";
+import { Link, Navigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
 import { ConfirmDialog } from "@repo/ui/components/ui/confirm-dialog";
 import { MarkdownView } from "@repo/ui/components/ui/markdown-view";
 import "../styles/interview-theme.css";
 import { useApplicationQuery } from "@/features/applications/hooks/useApplicationQuery";
+import { useAiAvailability } from "@/features/ai/hooks/useAiAvailability";
 import {
   useInterviewStateQuery,
   useRegenerateSummaryMutation,
@@ -30,8 +31,7 @@ const SUMMARY_FAILED_SURFACE: InterviewErrorSurface = {
   kind: "full_page_error",
   code: "summary_generation_failed",
   title: "The previous summary generation failed.",
-  detail:
-    "Regenerate the summary from your interview transcript to recover.",
+  detail: "Regenerate the summary from your interview transcript to recover.",
   retryLabel: "Regenerate summary",
 };
 
@@ -61,6 +61,7 @@ function pairTranscript(log: InterviewLogEntry[]): TranscriptPair[] {
 export function AiContextPage({ applicationId }: AiContextPageProps) {
   const { data, isLoading, isError } = useInterviewStateQuery(applicationId);
   const { data: applicationDetail } = useApplicationQuery(applicationId);
+  const { servingAvailable } = useAiAvailability();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [regenerateSurface, setRegenerateSurface] =
     useState<InterviewErrorSurface | null>(null);
@@ -144,8 +145,7 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
 
   const completer = data.completedByName ?? "an admin";
   const completedAtLabel = formatCompletedAt(data.completedAt);
-  const applicationName =
-    applicationDetail?.application.name ?? "Application";
+  const applicationName = applicationDetail?.application.name ?? "Application";
   const turnCount = transcriptPairs.length;
 
   const activeSurface =
@@ -159,9 +159,7 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-10 md:py-14">
         <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
           <div className="flex flex-col gap-3">
-            <InterviewEyebrow>
-              AI Context · {applicationName}
-            </InterviewEyebrow>
+            <InterviewEyebrow>AI Context · {applicationName}</InterviewEyebrow>
             <h1 className="interview-display text-3xl font-medium leading-[1.1] tracking-tight text-[var(--interview-color-foreground)] md:text-5xl">
               Your assistant's brief
             </h1>
@@ -194,6 +192,29 @@ export function AiContextPage({ applicationId }: AiContextPageProps) {
           aria-hidden="true"
           className="h-px w-full bg-[var(--interview-color-rule)]"
         />
+
+        {!servingAvailable ? (
+          <div
+            role="status"
+            data-testid="ai-context-plan-locked"
+            className="rounded-md border border-[var(--interview-color-accent)]/40 bg-[var(--interview-color-accent)]/5 px-4 py-3"
+          >
+            <p className="text-sm font-semibold text-[var(--interview-color-foreground)]">
+              This brief is saved, but the assistant is off on your plan.
+            </p>
+            <p className="mt-1 text-xs text-[var(--interview-color-muted)]">
+              Your answers are kept exactly as written. The AI starts replying
+              to visitors as soon as you move to a paid plan — there is nothing
+              to redo.
+            </p>
+            <Link
+              to="/settings/billing"
+              className="mt-3 inline-block text-xs font-medium underline underline-offset-4"
+            >
+              See plans
+            </Link>
+          </div>
+        ) : null}
 
         <div className="flex flex-col gap-10 md:flex-row md:items-start md:gap-12">
           <main className="flex-1 md:min-w-0">

@@ -11,8 +11,10 @@ const ERROR_MESSAGES: Record<AiErrorCode, string> = {
     "Sorry, AI couldn't generate a suitable response for this conversation.",
   ai_monthly_cap_exceeded:
     "Your organization has reached the monthly AI usage limit.",
-  ai_feature_not_available: "AI assistant is not available on your current plan.",
-  ai_rate_limit_exceeded: "Too many AI requests. Please wait before trying again.",
+  ai_feature_not_available:
+    "AI assistant is not available on your current plan.",
+  ai_rate_limit_exceeded:
+    "Too many AI requests. Please wait before trying again.",
   ai_not_configured:
     "AI is not set up for this application yet. Ask an admin to complete the AI onboarding interview before using the assistant.",
   ai_application_required:

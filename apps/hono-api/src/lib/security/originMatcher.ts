@@ -85,10 +85,7 @@ export function enforceOrigin(input: OriginEnforceInput): OriginEnforceResult {
   return { allowed: true };
 }
 
-function matchesTestAppOrigin(
-  origin: string,
-  appPort: number | null,
-): boolean {
+function matchesTestAppOrigin(origin: string, appPort: number | null): boolean {
   if (appPort === null) return false;
 
   let url: URL;

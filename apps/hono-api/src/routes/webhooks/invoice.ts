@@ -8,7 +8,8 @@ import {
   sendPlanUpgradedEmail,
 } from "../../lib/email/index.js";
 import { formatDate } from "../../utils/date.js";
-import { extractPlanFromMetadata, formatMoney } from "./utils.js";
+import { resolvePlan, type ValidPlan } from "../../lib/stripePlan.js";
+import { formatMoney } from "./utils.js";
 import type { HandlerContext } from "./types.js";
 
 export async function handleInvoicePaid(
@@ -70,14 +71,12 @@ export async function handleInvoicePaid(
     }
   }
 
-  let invoicePlan: ReturnType<typeof extractPlanFromMetadata> = null;
+  let invoicePlan: ValidPlan | null = null;
   const subscriptionId = invoice.subscription as string | null;
   if (subscriptionId) {
     try {
       const sub = await stripe.subscriptions.retrieve(subscriptionId);
-      invoicePlan = extractPlanFromMetadata(
-        sub.metadata as Record<string, string>,
-      );
+      invoicePlan = resolvePlan(sub);
     } catch (err) {
       console.error(
         `[Webhook] invoice.paid: Failed to retrieve subscription ${subscriptionId}:`,

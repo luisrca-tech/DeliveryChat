@@ -15,13 +15,13 @@ The `enrichMessage()` function in `chat.service.ts` is a generic function that t
 
 These service methods return enriched messages:
 
-| Method | Returns |
-|--------|---------|
-| `sendMessage()` | Single enriched message |
-| `editMessage()` | Single enriched message |
-| `getMessageHistory()` | Array of enriched messages |
+| Method                         | Returns                                       |
+| ------------------------------ | --------------------------------------------- |
+| `sendMessage()`                | Single enriched message                       |
+| `editMessage()`                | Single enriched message                       |
+| `getMessageHistory()`          | Array of enriched messages                    |
 | `getMessageHistoryForMember()` | Array of enriched messages (with sender info) |
-| `getMessagesSince()` | Array of enriched messages |
+| `getMessagesSince()`           | Array of enriched messages                    |
 
 ## Consumers
 

@@ -38,7 +38,7 @@ Every interview LLM call uses `provider.generateObject(...)` with `interviewerOu
 }
 ```
 
-`MockProvider.queueObject(...)` drives this in tests; `GroqProvider.generateObject(...)` backs production.
+`MockProvider.queueObject(...)` drives this in tests; `OpenRouterProvider.generateObject(...)` backs production.
 
 ## Routes
 
@@ -187,7 +187,6 @@ Every interview LLM call writes to `aiUsageLog` with `action='interview'`. This 
 
 - `stop` / provider-native reasons — normal turn.
 - `forced_cap_completion` — Phase 5 forced completion at the hard cap.
-
 
 ## Related
 

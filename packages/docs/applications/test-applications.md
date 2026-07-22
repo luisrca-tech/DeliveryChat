@@ -49,10 +49,10 @@ Test applications are pinned to **one specific port** on **`localhost`**:
 
 Each application kind is locked to a single API-key environment:
 
-| App kind     | Allowed key environment | Prefix       |
-| ------------ | ----------------------- | ------------ |
-| `production` | `live`                  | `dk_live_…`  |
-| `test`       | `test`                  | `dk_test_…`  |
+| App kind     | Allowed key environment | Prefix      |
+| ------------ | ----------------------- | ----------- |
+| `production` | `live`                  | `dk_live_…` |
+| `test`       | `test`                  | `dk_test_…` |
 
 The Create API Key dialog locks the environment dropdown to match the
 parent application's kind. Pre-existing keys created before this rule
@@ -69,12 +69,12 @@ port) and create a new one.
 
 ## Conflict messages
 
-| Scenario                                    | Toast                                                                                  |
-| ------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Duplicate production domain (any tenant)    | "Domain already in use." Generic — does not name the conflicting application.          |
-| Duplicate test port (same tenant)           | "Port `<n>` is already used by `<application name>`." Names the conflicting app.       |
-| Submitting `kind`/`port` to PATCH endpoint  | Rejected — both fields are immutable.                                                  |
-| Test app with non-localhost origin          | Widget bearer call rejected with `origin_not_allowed`.                                 |
+| Scenario                                   | Toast                                                                            |
+| ------------------------------------------ | -------------------------------------------------------------------------------- |
+| Duplicate production domain (any tenant)   | "Domain already in use." Generic — does not name the conflicting application.    |
+| Duplicate test port (same tenant)          | "Port `<n>` is already used by `<application name>`." Names the conflicting app. |
+| Submitting `kind`/`port` to PATCH endpoint | Rejected — both fields are immutable.                                            |
+| Test app with non-localhost origin         | Widget bearer call rejected with `origin_not_allowed`.                           |
 
 ## Local dev checklist
 

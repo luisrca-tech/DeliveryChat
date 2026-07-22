@@ -20,6 +20,7 @@ import {
   buildMessageDeletedEvent,
 } from "../../features/chat/broadcasting.service.js";
 import { serializeLexicalToHtml } from "../../features/chat/lexicalSerializer.js";
+import { resolveInitialHandledBy } from "../../features/ai-turn/resolveInitialHandledBy.js";
 import type { ContentFormat } from "@repo/types";
 import {
   requireAuth,
@@ -39,11 +40,13 @@ export const messagingRoute = new Hono()
         const { subject } = c.req.valid("json");
 
         if (auth.type === "visitor") {
+          const handledBy = await resolveInitialHandledBy(auth.application.id);
           const conversation = await createConversation({
             organizationId: auth.application.organizationId,
             applicationId: auth.application.id,
             subject,
             createdBy: auth.visitorUserId,
+            handledBy,
             participants: [{ userId: auth.visitorUserId, role: "visitor" }],
           });
 
@@ -153,6 +156,7 @@ export const messagingRoute = new Hono()
           senderId: authUser.id,
           content,
           contentFormat,
+          authorType: "operator",
           broadcastContext: { senderName: authUser.name, senderRole },
         });
 

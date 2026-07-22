@@ -7,7 +7,10 @@ interface CopyPromptProps {
   title?: string;
 }
 
-export function CopyPrompt({ prompt, title = "AI Quickstart Prompt" }: CopyPromptProps) {
+export function CopyPrompt({
+  prompt,
+  title = "AI Quickstart Prompt",
+}: CopyPromptProps) {
   const [copied, setCopied] = useState(false);
   const [expanded, setExpanded] = useState(false);
 

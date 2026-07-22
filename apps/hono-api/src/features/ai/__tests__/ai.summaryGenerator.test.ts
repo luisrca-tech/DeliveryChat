@@ -6,7 +6,7 @@ vi.mock("../../../env.js", () => ({
   env: {
     AI_MODEL: "mock://test",
     AI_INTERVIEW_MODEL: "mock://interview",
-    GROQ_API_KEY: "test-key",
+    OPENROUTER_API_KEY: "test-key",
     AI_CONTEXT_MESSAGE_LIMIT: 10,
   },
 }));
@@ -46,7 +46,10 @@ function makeProvider(text: string) {
   const generateObject = vi.fn();
   const provider: AIProviderPort = {
     generateText: generateText as unknown as AIProviderPort["generateText"],
-    generateObject: generateObject as unknown as AIProviderPort["generateObject"],
+    generateObject:
+      generateObject as unknown as AIProviderPort["generateObject"],
+    generateWithTools:
+      vi.fn() as unknown as AIProviderPort["generateWithTools"],
   };
   return { provider, generateText };
 }

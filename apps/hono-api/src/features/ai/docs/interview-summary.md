@@ -24,8 +24,15 @@ summary regeneration never destroys a previously good one.
    forced turn-15 cap converge on this exact state.
 2. **`generateSummary`** — LLM call. Reads the persisted interview log, invokes
    the summary generator, persists `contextSummary`, and flips
-   `applications.aiEnabled = true`. Re-runnable while
+   `applications.aiEnabled = true` **only when the org plan can be served by the
+   AI** (`planAllowsServing`, i.e. BASIC/PREMIUM/ENTERPRISE). Re-runnable while
    `status === 'completed'`.
+
+   A FREE org may author and keep a complete context, but nothing switches on:
+   `aiEnabled` stays `false` because it has no assistant to enable. `plan` is
+   therefore a required parameter of `runGenerateSummary` — the summary must know
+   whether it is allowed to activate anything. On upgrade, the admin turns the
+   assistant on from the application detail page; the context is already there.
 
 After `complete` and before `generateSummary`, the application is finished but
 the support AI assistant remains disabled.
@@ -95,8 +102,9 @@ callers wrap the typed AI errors into `summary_generation_failed`.
 - The `aiEnabled` flip is owned by the **service layer**, not the
   `InterviewRepository`. `InterviewRepository` continues to manage a single
   table; the cross-table mutation lives in `ai.interview.service.ts`.
-- On success, `contextSummary` is overwritten and `aiEnabled` is set to
-  `true` (no-op on subsequent successes).
+- On success, `contextSummary` is overwritten and `aiEnabled` is set to `true`
+  on serving plans (no-op on subsequent successes). On non-serving plans (FREE)
+  the summary is still persisted and `aiEnabled` is left `false`.
 - On failure (generator validation error or provider error), **no mutation
   occurs**. A failed regeneration leaves the prior `contextSummary` and
   `aiEnabled` intact. The endpoint surfaces a typed
@@ -130,7 +138,6 @@ The interview engine recognizes the natural completion window:
 - Outside the window, or with topics still missing, the nudge is omitted and
   the existing missing-topics reprompt logic continues to govern premature
   finish suggestions.
-
 
 ## Related
 

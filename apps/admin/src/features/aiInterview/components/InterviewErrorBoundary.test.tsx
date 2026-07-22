@@ -152,7 +152,9 @@ describe("InterviewErrorBoundary", () => {
     );
 
     const block = screen.getByTestId("interview-summary-error");
-    expect(block.textContent).toContain("We could not generate the AI context.");
+    expect(block.textContent).toContain(
+      "We could not generate the AI context.",
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Retry generation" }));
     expect(onRetrySummary).toHaveBeenCalledTimes(1);

@@ -34,6 +34,7 @@ const queueHandlers: Record<string, (...args: unknown[]) => void> = {
     typeof params === "object" &&
     params !== null &&
     sdkApi.identify(params as IdentifyParams),
+  requestHuman: () => sdkApi.requestHuman(),
 };
 
 const w = window as unknown as { DeliveryChat?: { queue?: unknown[] } };
@@ -60,6 +61,7 @@ const DeliveryChat: DeliveryChatAPI = {
   sendMessage: (text) => sdkApi.sendMessage(text),
   identify: (params) => sdkApi.identify(params),
   getConversation: () => sdkApi.getConversation(),
+  requestHuman: () => sdkApi.requestHuman(),
   queue: [] as unknown[],
 };
 

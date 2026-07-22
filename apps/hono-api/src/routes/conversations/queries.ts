@@ -47,7 +47,7 @@ export const queriesRoute = new Hono()
         }
 
         const { organization, user: authUser, membership } = auth;
-        const { limit, offset, status, applicationId, assignedTo } =
+        const { limit, offset, status, applicationId, assignedTo, handledBy } =
           c.req.valid("query");
 
         const isAdmin =
@@ -62,6 +62,7 @@ export const queriesRoute = new Hono()
           status,
           applicationId,
           assignedTo,
+          handledBy,
         });
 
         return c.json({

@@ -162,7 +162,19 @@ export function useInterviewController(
     notifyConflict();
   }, [notifyConflict]);
 
-  const bootstrap = useBootstrapInterviewMutation(applicationId);
+  const [bootstrapErrorSurface, setBootstrapErrorSurface] =
+    useState<InterviewErrorSurface | null>(null);
+
+  const handleBootstrapError = useCallback((error: unknown) => {
+    const surface = mapInterviewErrorToSurface(error);
+    if (!surface) return;
+    setBootstrapErrorSurface(surface);
+    fireToastIfFallback(surface);
+  }, []);
+
+  const bootstrap = useBootstrapInterviewMutation(applicationId, {
+    onBootstrapError: handleBootstrapError,
+  });
   const sendTurn = useSendInterviewTurnMutation(applicationId, {
     onTurnConflict: handleConflict,
     onSendError: handleSendError,
@@ -201,6 +213,7 @@ export function useInterviewController(
   const active = extractActive(data);
 
   const startInterview = useCallback(() => {
+    setBootstrapErrorSurface(null);
     bootstrap.mutate();
   }, [bootstrap]);
 
@@ -276,11 +289,10 @@ export function useInterviewController(
     sendInFlight || sendTurn.isSuccess ? false : showConflictNotice;
 
   const atTurnCap = active.currentTurn >= INTERVIEW_MAX_TURNS;
-  const displayTurn = atTurnCap
-    ? active.currentTurn
-    : active.currentTurn + 1;
+  const displayTurn = atTurnCap ? active.currentTurn : active.currentTurn + 1;
 
-  const baseErrorSurface = effectiveSendError ?? finishErrorSurface ?? null;
+  const baseErrorSurface =
+    effectiveSendError ?? finishErrorSurface ?? bootstrapErrorSurface ?? null;
 
   const phase: InterviewPhase = (() => {
     if (isLoading) return "loading";

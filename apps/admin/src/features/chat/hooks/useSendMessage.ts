@@ -77,7 +77,11 @@ export function useSendMessage(
   }, [subscribe, queryClient, registerAckedId]);
 
   const send = useCallback(
-    (conversationId: string, content: string, contentFormat: ContentFormat = "plain") => {
+    (
+      conversationId: string,
+      content: string,
+      contentFormat: ContentFormat = "plain",
+    ) => {
       const clientMessageId = crypto.randomUUID();
 
       const optimisticMessage: Message = {
@@ -89,7 +93,10 @@ export function useSendMessage(
         type: "text",
         content,
         contentFormat,
-        contentHtml: contentFormat === "lexical" ? serializeLexicalJsonToHtml(content) : null,
+        contentHtml:
+          contentFormat === "lexical"
+            ? serializeLexicalJsonToHtml(content)
+            : null,
         createdAt: new Date().toISOString(),
       };
 

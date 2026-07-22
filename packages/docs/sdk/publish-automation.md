@@ -17,11 +17,11 @@ No manual `bun run build` step is needed before publishing.
 
 ## Published Artifacts
 
-| File             | Format     | Purpose                            |
-| ---------------- | ---------- | ---------------------------------- |
-| `dist/index.mjs` | ES modules | Modern bundlers (Vite, esbuild)    |
-| `dist/index.cjs` | CommonJS   | Node.js, legacy bundlers           |
-| `dist/*.d.ts`    | TypeScript | IDE autocomplete, type checking    |
+| File             | Format     | Purpose                         |
+| ---------------- | ---------- | ------------------------------- |
+| `dist/index.mjs` | ES modules | Modern bundlers (Vite, esbuild) |
+| `dist/index.cjs` | CommonJS   | Node.js, legacy bundlers        |
+| `dist/*.d.ts`    | TypeScript | IDE autocomplete, type checking |
 
 ## Version History
 

@@ -5,6 +5,7 @@ import {
   COPY_ICON,
   EDIT_ICON,
   DELETE_ICON,
+  AI_AVATAR_ICON,
 } from "../constants/icons.js";
 import {
   setTrustedInnerHTML,
@@ -155,7 +156,7 @@ export function updateMessageContent(
 
   const textEl = row.querySelector(".message-text");
   if (textEl) {
-    if (contentFormat === "lexical" && contentHtml) {
+    if (contentHtml) {
       textEl.classList.add("rich-text");
       textEl.innerHTML = contentHtml;
     } else {
@@ -311,7 +312,7 @@ export function exitEditMode(
 
   const textEl = bubble.querySelector(".message-text");
   if (textEl) {
-    if (contentFormat === "lexical" && contentHtml) {
+    if (contentHtml) {
       textEl.classList.add("rich-text");
       textEl.innerHTML = contentHtml;
     } else {
@@ -356,6 +357,7 @@ function createBubble(
   listEl: HTMLElement,
 ): HTMLElement {
   const isVisitor = msg.senderRole === "visitor";
+  const isAi = msg.authorType === "ai";
 
   const row = document.createElement("div");
   row.className = `message-row ${isVisitor ? "message-row-user" : "message-row-visitor"}`;
@@ -365,7 +367,17 @@ function createBubble(
   const bubble = document.createElement("div");
   const roleClass = isVisitor ? "message-user" : "message-visitor";
   const statusClass = msg.status === "pending" ? "message-pending" : "";
-  bubble.className = `message-bubble ${roleClass} ${statusClass}`.trim();
+  const aiClass = isAi ? "message-ai" : "";
+  bubble.className =
+    `message-bubble ${roleClass} ${statusClass} ${aiClass}`.trim();
+
+  if (isAi) {
+    const avatar = document.createElement("div");
+    avatar.className = "message-ai-avatar";
+    avatar.setAttribute("aria-hidden", "true");
+    setTrustedInnerHTML(avatar, AI_AVATAR_ICON);
+    row.appendChild(avatar);
+  }
 
   if (msg.isDeleted) {
     bubble.classList.add("message-deleted");
@@ -383,9 +395,16 @@ function createBubble(
   const wrapper = document.createElement("div");
   wrapper.className = "message-content-wrapper";
 
+  if (isAi) {
+    const label = document.createElement("span");
+    label.className = "message-ai-label";
+    label.textContent = ctx.aiAssistantLabel ?? "AI Assistant";
+    wrapper.appendChild(label);
+  }
+
   const textSpan = document.createElement("span");
   textSpan.className = "message-text";
-  if (msg.contentFormat === "lexical" && msg.contentHtml) {
+  if (msg.contentHtml) {
     textSpan.classList.add("rich-text");
     textSpan.innerHTML = msg.contentHtml;
   } else {

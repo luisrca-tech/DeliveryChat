@@ -729,9 +729,7 @@ describe("wsMessageReducer / contentFormat & contentHtml passthrough", () => {
     );
 
     expect(next.messages[0]!.contentFormat).toBe("lexical");
-    expect(next.messages[0]!.contentHtml).toBe(
-      "<p><strong>Hello</strong></p>",
-    );
+    expect(next.messages[0]!.contentHtml).toBe("<p><strong>Hello</strong></p>");
   });
 
   it("message:new defaults contentFormat to undefined when not provided", () => {

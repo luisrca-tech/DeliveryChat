@@ -1,0 +1,76 @@
+# Escalation & Handoff
+
+The AI Assistant's core rule: **when in doubt, escalate — never fabricate.**
+Every AI-handled conversation ends with either a grounded answer or a clean
+handoff to your team. There's never a dead end.
+
+## The three triggers
+
+<FeatureList
+  title="What causes an escalation"
+  features={[
+    { name: "The AI can't answer", description: "No configured tool has the information, or a tool call returns nothing useful. The AI does not guess — it hands off instead." },
+    { name: "The visitor asks for a human", description: "Either by typing something like \"talk to a person\", or by clicking the persistent \"Talk to a human\" button in the widget header." },
+    { name: "A technical failure", description: "A tool call errors out, times out, or the AI request itself fails. The visitor is never left waiting on a broken request." }
+  ]}
+/>
+
+A monthly AI usage quota running out is treated the same way — the assistant
+escalates rather than going silent.
+
+## What the visitor sees
+
+The moment an escalation happens, the visitor gets an immediate, friendly
+message confirming they're now in the human queue — for example:
+
+> "I wasn't able to fully answer that, so I'm connecting you with someone from
+> our team. You're in the queue — an operator will be with you shortly."
+
+If they asked for a human directly, the copy reflects that instead:
+
+> "Sure — connecting you with a team member now. You're in the queue; someone
+> will join shortly."
+
+From here, the conversation behaves exactly like a normal queued conversation
+— any available operator can pick it up.
+
+## Asking for a human, explicitly
+
+Two ways a visitor can request a human at any time:
+
+- **Click "Talk to a human"** — shown in the chat widget header whenever the
+  AI assistant is active for your application. It's disabled once a human is
+  already involved, since there's nothing left to escalate. When the AI
+  assistant is off, the button is hidden entirely: those conversations already
+  go straight to your team, so there is nothing to escalate *from*.
+- **Programmatically, via the SDK** — if you're building a custom UI on top of
+  the SDK, call `requestHuman()`:
+
+```typescript
+const chat = getSdkApi();
+await chat.requestHuman();
+```
+
+See [SDK Methods](/v1/sdk/methods) for the full method reference.
+
+## What operators see
+
+When a conversation escalates, it lands in your team's queue in real time —
+the same way a brand-new conversation would. To help your team pick up
+smoothly:
+
+- The conversation is flagged as **escalated**, with the reason (couldn't
+  answer, visitor requested, or a technical failure).
+- A short **AI handoff summary** is generated automatically, giving the
+  operator context on what the visitor already asked and what the AI already
+  tried — so they don't have to scroll back through the whole thread cold.
+- **Taking over is the same "Accept" action** used for any pending
+  conversation. There's no separate "take over from AI" button — clicking
+  Accept assigns the conversation to that operator and the AI stops
+  responding to it immediately.
+
+<Callout type="tip" title="No half-measures">
+  Once an operator accepts, the AI will never reply to that conversation
+  again, even if a message the visitor sent right before handoff is still
+  being processed.
+</Callout>

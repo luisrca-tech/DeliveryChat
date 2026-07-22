@@ -94,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
 - \`showWidget()\` — Show the launcher button
 - \`sendMessage(text)\` — Send a message programmatically
 - \`identify(userData)\` — Associate visitor with known user data
+- \`requestHuman()\` — Escalate the current conversation to a human operator (async, resolves once escalation is confirmed)
 - \`on(event, callback)\` — Subscribe to an event
 - \`off(event, callback)\` — Unsubscribe from an event
 - \`getConversation()\` — Get current conversation state
