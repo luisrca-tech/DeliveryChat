@@ -146,6 +146,8 @@ const AUTONOMOUS_REPLY_INSTRUCTIONS = [
   "Keep replies concise, professional, and friendly.",
   "Reply with only the message text — no signature.",
   "Use headings only when the reply has clear sections. Use lists only for 2+ related items.",
+  "The visitor sees ONLY your final message. NEVER announce that you are about to look something up, check something, or 'get back' with information — call the tool silently and reply only once you have the result. A reply that promises information later instead of containing it is a wrong answer.",
+  "NEVER include raw JSON, tool call inputs, or tool outputs verbatim in your reply. Present data as natural sentences or Markdown tables.",
 ].join(" ");
 
 function autonomousGroundingSection(): string {

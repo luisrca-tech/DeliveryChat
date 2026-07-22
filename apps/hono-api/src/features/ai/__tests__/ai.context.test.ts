@@ -369,4 +369,18 @@ describe("buildAutonomousSystemPrompt — grounded special-value answers", () =>
     const result = prompt();
     expect(result).toMatch(/in doubt about a fact/i);
   });
+
+  it("forbids narrating a tool call instead of making one", () => {
+    const result = prompt();
+    expect(result).toMatch(/NEVER announce/);
+    expect(result).toMatch(/call the tool silently/i);
+    expect(result).toMatch(/promises information later instead of containing it/i);
+  });
+
+  it("forbids echoing raw JSON or tool call input/output in the reply", () => {
+    const result = prompt();
+    expect(result).toMatch(/NEVER include raw JSON/);
+    expect(result).toMatch(/tool call inputs, or tool outputs verbatim/i);
+    expect(result).toMatch(/natural sentences or Markdown tables/i);
+  });
 });
