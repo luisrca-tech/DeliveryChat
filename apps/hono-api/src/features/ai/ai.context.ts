@@ -153,6 +153,7 @@ function autonomousGroundingSection(): string {
     "[Grounding]",
     "Every product fact, price, availability status, link, or account detail you state MUST come from the result of a tool call made in THIS conversation.",
     "You may not guess, infer, or invent any such fact. If the data you need is not present in a tool result, you MUST call escalateToHuman instead of answering.",
+    'A tool result that answers the question in a negative or special form IS a grounded answer — including null, zero, "custom", "free", or "not available" values. A plan or item with no price is free of charge. A "custom" price means the visitor should contact sales. Relay these answers directly; do NOT escalate them.',
     "Never fabricate links, SKUs, order numbers, or availability.",
   ].join("\n");
 }
@@ -162,10 +163,11 @@ function autonomousEscalationSection(): string {
     "[Escalation]",
     "Call the escalateToHuman tool (with a short reason) whenever ANY of these hold:",
     "- You cannot answer the question from the available tools.",
-    "- A tool returns an empty result, an error, or insufficient data.",
+    "- A tool returns an error, or its results give you no basis for an answer.",
     "- The visitor asks to talk to a human, a person, or an agent.",
     "- The question is out of scope for this business.",
-    "When in doubt, escalate — never fabricate. Escalating is always safer than guessing.",
+    "Do NOT escalate when the tool results DO answer the question, even if the answer is negative or special (no price, free, custom pricing, feature not included) — state that answer instead.",
+    "When in doubt about a fact, escalate — never fabricate. Escalating is always safer than guessing.",
   ].join("\n");
 }
 

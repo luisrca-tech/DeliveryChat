@@ -80,14 +80,14 @@ describe("GET /public/plans", () => {
     expect(res.headers.get("Cache-Control")).toBe("public, max-age=300");
   });
 
-  it("FREE has null prices", async () => {
+  it("FREE has prices 'free' (self-describing, distinct from the unknown-price null)", async () => {
     mockPricesRetrieve.mockResolvedValue(basicPriceFixture);
     const app = await loadPublicRoute();
 
     const res = await app.request("/public/plans");
     const body = await res.json();
     const free = body.plans.find((p: { id: string }) => p.id === "FREE");
-    expect(free.prices).toBeNull();
+    expect(free.prices).toBe("free");
   });
 
   it("ENTERPRISE has prices 'custom'", async () => {

@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   buildContext,
   buildSystemPrompt,
+  buildAutonomousSystemPrompt,
   baseGuardRails,
   actionInstructions,
   applicationContext,
@@ -341,5 +342,31 @@ describe("buildSystemPrompt", () => {
     expect(result).toContain("# (H1)");
     expect(result).toMatch(/Do NOT use.*links/i);
     expect(result).toMatch(/Do NOT use.*code blocks/i);
+  });
+});
+
+describe("buildAutonomousSystemPrompt — grounded special-value answers", () => {
+  const prompt = () =>
+    buildAutonomousSystemPrompt({
+      tenantName: "TestTenant",
+      toolNames: ["getPlanInfo"],
+    });
+
+  it("teaches that null/zero/'custom'/'free' tool values are grounded answers, not gaps", () => {
+    const result = prompt();
+    expect(result).toMatch(/null.*zero.*"custom".*"free"/i);
+    expect(result).toMatch(/no price .*free of charge/i);
+    expect(result).toMatch(/"custom".*contact sales/i);
+  });
+
+  it("scopes escalation to results with no basis for an answer, not unusual values", () => {
+    const result = prompt();
+    expect(result).toMatch(/no basis for an answer/i);
+    expect(result).not.toMatch(/insufficient data/i);
+  });
+
+  it("scopes 'when in doubt' to doubt about facts", () => {
+    const result = prompt();
+    expect(result).toMatch(/in doubt about a fact/i);
   });
 });

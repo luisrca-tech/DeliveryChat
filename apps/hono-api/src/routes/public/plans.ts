@@ -16,7 +16,18 @@ import {
 type PlanId = "FREE" | "BASIC" | "PREMIUM" | "ENTERPRISE";
 
 type MoneyAmount = { amount: number; formatted: string };
-type PlanPrices = { brl: MoneyAmount; usd: MoneyAmount } | "custom" | null;
+/**
+ * "free" and "custom" are deliberate self-describing strings: `null` is
+ * reserved for "price unknown" (Stripe fetch failed). The distinction matters
+ * because this payload is dogfooded as an AI data tool — a model reading
+ * `prices: null` on FREE cannot tell "costs nothing" from "data missing" and
+ * will wrongly escalate instead of answering.
+ */
+type PlanPrices =
+  | { brl: MoneyAmount; usd: MoneyAmount }
+  | "custom"
+  | "free"
+  | null;
 
 type PlanEntry = {
   id: PlanId;
@@ -92,7 +103,7 @@ function buildPlanEntries(
   premiumPrices: PlanPrices,
 ): PlanEntry[] {
   return [
-    { id: "FREE", name: "Free", prices: null, limits: buildLimits("FREE") },
+    { id: "FREE", name: "Free", prices: "free", limits: buildLimits("FREE") },
     {
       id: "BASIC",
       name: "Basic",
