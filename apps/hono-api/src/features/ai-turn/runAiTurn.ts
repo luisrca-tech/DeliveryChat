@@ -23,6 +23,7 @@ import { assembleTools, ESCALATE_TOOL_NAME } from "./tools.js";
 import type { TurnEscalationContext } from "./tools.js";
 import {
   loadContextSummary,
+  loadConversationLiveState,
   loadConversationMessages,
   loadDataToolset,
   loadTurnContext,
@@ -263,6 +264,23 @@ export async function runAiTurn(conversationId: string): Promise<void> {
       return;
     }
 
+    // ── Pre-send recheck: an operator may have accepted (or closed) the
+    // conversation during the multi-second LLM call — drop the stale reply
+    // rather than talk over the human. ──
+    const live = await loadConversationLiveState(conversationId);
+    if (
+      !live ||
+      live.handledBy !== "ai" ||
+      live.assignedTo !== null ||
+      live.status === "closed"
+    ) {
+      console.debug(
+        "[ai-turn] dropped reply: conversation taken over or closed mid-turn",
+        conversationId,
+      );
+      return;
+    }
+
     await sendMessage({
       conversationId,
       senderId: null,
@@ -293,6 +311,19 @@ export async function runAiTurn(conversationId: string): Promise<void> {
     if (typingStarted && ctx) {
       stopAiTyping(ctx.conversation);
     }
-    releaseTurnLock(conversationId);
+    const rerunPending = releaseTurnLock(conversationId);
+    if (rerunPending) {
+      // A visitor message arrived (and was debounced) while this turn ran —
+      // run one more turn so it never goes unanswered. Fire-and-forget,
+      // mirroring trigger.ts; the rerun consumes the flag, so this cannot
+      // loop without a fresh debounced call.
+      void runAiTurn(conversationId).catch((err) => {
+        console.error(
+          "[ai-turn] rerun rejected unexpectedly",
+          conversationId,
+          err,
+        );
+      });
+    }
   }
 }

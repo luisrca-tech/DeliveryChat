@@ -37,6 +37,7 @@ vi.mock("../loadContext.js", () => ({
   loadConversationMessages: vi.fn(),
   loadDataToolset: vi.fn(),
   loadContextSummary: vi.fn(),
+  loadConversationLiveState: vi.fn(),
 }));
 
 // runAICall stays REAL — it only needs db.insert for the usage log.
@@ -72,6 +73,9 @@ const mockLoadMessages = loadContext.loadConversationMessages as ReturnType<
 >;
 const mockLoadToolset = loadContext.loadDataToolset as ReturnType<typeof vi.fn>;
 const mockLoadSummary = loadContext.loadContextSummary as ReturnType<
+  typeof vi.fn
+>;
+const mockLoadLiveState = loadContext.loadConversationLiveState as ReturnType<
   typeof vi.fn
 >;
 const mockDbInsert = db.insert as ReturnType<typeof vi.fn>;
@@ -163,6 +167,11 @@ beforeEach(() => {
   mockLoadMessages.mockResolvedValue([VISITOR_MSG]);
   mockLoadToolset.mockResolvedValue(null);
   mockLoadSummary.mockResolvedValue(undefined);
+  mockLoadLiveState.mockResolvedValue({
+    handledBy: "ai",
+    assignedTo: null,
+    status: "pending",
+  });
   mockCheckQuota.mockResolvedValue({ allowed: true });
   mockSendMessage.mockResolvedValue(undefined);
   mockEscalate.mockResolvedValue(undefined);
@@ -402,8 +411,40 @@ describe("runAiTurn — no-op guards", () => {
   });
 });
 
+describe("runAiTurn — pre-send takeover recheck", () => {
+  it("drops the reply when an operator accepted during the LLM call", async () => {
+    const provider = useProvider();
+    provider.queueToolLoop({ toolCalls: [], text: "Answer." });
+    mockLoadLiveState.mockResolvedValue({
+      handledBy: "human",
+      assignedTo: "op-1",
+      status: "active",
+    });
+
+    await runAiTurn("conv-1");
+
+    expect(mockSendMessage).not.toHaveBeenCalled();
+    expect(mockEscalate).not.toHaveBeenCalled();
+  });
+
+  it("drops the reply when the conversation was closed during the LLM call", async () => {
+    const provider = useProvider();
+    provider.queueToolLoop({ toolCalls: [], text: "Answer." });
+    mockLoadLiveState.mockResolvedValue({
+      handledBy: "ai",
+      assignedTo: null,
+      status: "closed",
+    });
+
+    await runAiTurn("conv-1");
+
+    expect(mockSendMessage).not.toHaveBeenCalled();
+    expect(mockEscalate).not.toHaveBeenCalled();
+  });
+});
+
 describe("runAiTurn — per-conversation lock", () => {
-  it("debounces a second concurrent turn (single provider call)", async () => {
+  it("debounces a concurrent call and reruns the turn once after release", async () => {
     let resolveCtx!: (v: unknown) => void;
     mockLoadTurnContext.mockReturnValueOnce(
       new Promise((res) => {
@@ -412,16 +453,22 @@ describe("runAiTurn — per-conversation lock", () => {
     );
 
     const provider = useProvider();
-    provider.queueToolLoop({ toolCalls: [], text: "Answer." });
+    provider.queueToolLoop({ toolCalls: [], text: "First answer." });
+    provider.queueToolLoop({ toolCalls: [], text: "Rerun answer." });
 
     const p1 = runAiTurn("conv-1");
-    const p2 = runAiTurn("conv-1"); // lock held → returns immediately
+    const p2 = runAiTurn("conv-1"); // lock held → debounced, schedules a rerun
 
     resolveCtx(eligibleCtx());
     await Promise.all([p1, p2]);
 
-    expect(mockLoadTurnContext).toHaveBeenCalledTimes(1);
-    expect(mockCreateProvider).toHaveBeenCalledTimes(1);
-    expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    // Exactly one rerun covers the message the debounced call carried…
+    await vi.waitFor(() => expect(mockSendMessage).toHaveBeenCalledTimes(2));
+    expect(mockLoadTurnContext).toHaveBeenCalledTimes(2);
+    expect(mockCreateProvider).toHaveBeenCalledTimes(2);
+
+    // …and the consumed flag means no third turn is spawned.
+    await new Promise((r) => setTimeout(r, 0));
+    expect(mockSendMessage).toHaveBeenCalledTimes(2);
   });
 });

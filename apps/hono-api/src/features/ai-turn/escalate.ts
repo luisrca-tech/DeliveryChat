@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { db } from "../../db/index.js";
 import { conversations } from "../../db/schema/conversations.js";
 import { messages } from "../../db/schema/messages.js";
@@ -19,7 +19,11 @@ import {
  * Flip an AI-handled conversation to human handling and notify everyone.
  *
  * 1. `conversations` → handledBy=human, status=pending, assignedTo=null,
- *    escalatedAt=now, escalationReason=reason (truncated to 500).
+ *    escalatedAt=now, escalationReason=reason (truncated to 500). The UPDATE is
+ *    guarded (`handledBy = 'ai' AND status != 'closed'`) so a stale in-flight
+ *    turn can never kick out an operator who accepted mid-call or reopen a
+ *    closed conversation — losing that race makes the whole call a no-op,
+ *    which also makes escalation idempotent for every caller.
  * 2. Persist a visitor-facing system message (type=system, authorType=system).
  * 3. Broadcast that system message to the conversation room.
  * 4. Broadcast `conversation:escalated` to staff so the operator queue updates.
@@ -45,11 +49,28 @@ export async function escalateConversation(input: {
       escalationReason: truncateEscalationReason(reason),
       updatedAt: sql`now()`,
     })
-    .where(eq(conversations.id, conversation.id))
+    .where(
+      and(
+        eq(conversations.id, conversation.id),
+        eq(conversations.handledBy, "ai"),
+        ne(conversations.status, "closed"),
+      ),
+    )
     .returning({
       escalatedAt: conversations.escalatedAt,
       escalationReason: conversations.escalationReason,
     });
+
+  if (!updated) {
+    // Lost the race: an operator already took over, or the conversation was
+    // closed/escalated meanwhile. Nothing to announce — the visitor is already
+    // in (or queued for) human hands.
+    console.debug(
+      "[ai-turn] escalation skipped: conversation no longer AI-handled or closed",
+      conversation.id,
+    );
+    return;
+  }
 
   const [systemMessage] = await db
     .insert(messages)
@@ -100,8 +121,8 @@ export async function escalateConversation(input: {
         status: "pending",
         subject: conversation.subject,
         escalationReason:
-          updated?.escalationReason ?? truncateEscalationReason(reason),
-        escalatedAt: updated?.escalatedAt ?? new Date().toISOString(),
+          updated.escalationReason ?? truncateEscalationReason(reason),
+        escalatedAt: updated.escalatedAt ?? new Date().toISOString(),
         createdAt: conversation.createdAt,
       }),
     );

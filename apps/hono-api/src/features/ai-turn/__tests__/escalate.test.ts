@@ -160,6 +160,27 @@ describe("escalateConversation", () => {
     expect(staffEvent.payload).toHaveProperty("escalatedAt");
   });
 
+  it("no-ops when the guarded UPDATE matches no row (already human-handled or closed)", async () => {
+    // Simulate losing the race: an operator accepted (handledBy=human) or the
+    // conversation closed while this escalation was in flight — the guarded
+    // UPDATE then matches nothing.
+    const updateChain: Record<string, unknown> = {};
+    updateChain.set = vi.fn(() => updateChain);
+    updateChain.where = vi.fn(() => updateChain);
+    updateChain.returning = vi.fn(() => Promise.resolve([]));
+    mockUpdate.mockReturnValue(updateChain);
+
+    await escalateConversation({
+      conversation: CONVERSATION,
+      reason: "no stock",
+      kind: "knowledge_gap",
+    });
+
+    expect(mockInsert).not.toHaveBeenCalled();
+    expect(mockBroadcastRoom).not.toHaveBeenCalled();
+    expect(mockBroadcastStaff).not.toHaveBeenCalled();
+  });
+
   it("truncates the escalation reason to 500 chars", async () => {
     const longReason = "x".repeat(600);
     await escalateConversation({

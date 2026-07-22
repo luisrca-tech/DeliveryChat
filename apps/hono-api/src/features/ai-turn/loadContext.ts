@@ -105,6 +105,34 @@ export async function loadTurnContext(
   };
 }
 
+export type TurnLiveState = {
+  handledBy: string;
+  assignedTo: string | null;
+  status: string;
+};
+
+/**
+ * Cheap re-read of the fields that gate an AI turn (same shape as the trigger
+ * gate). Used right before posting the AI reply, so a multi-second LLM call
+ * can't talk over an operator who accepted — or a close — that happened
+ * mid-turn.
+ */
+export async function loadConversationLiveState(
+  conversationId: string,
+): Promise<TurnLiveState | null> {
+  const [row] = await db
+    .select({
+      handledBy: conversations.handledBy,
+      assignedTo: conversations.assignedTo,
+      status: conversations.status,
+    })
+    .from(conversations)
+    .where(eq(conversations.id, conversationId))
+    .limit(1);
+
+  return row ?? null;
+}
+
 export type TurnMessage = {
   authorType: MessageAuthorType;
   senderId: string | null;
