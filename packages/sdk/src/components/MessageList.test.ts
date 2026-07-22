@@ -268,3 +268,64 @@ describe("MessageList — hostile content rendering", () => {
     document.body.removeChild(list);
   });
 });
+
+describe("MessageList — server-rendered contentHtml (AI markdown)", () => {
+  it("renders contentHtml as rich text even when contentFormat is plain", () => {
+    const list = document.createElement("div");
+    appendMessage(
+      list,
+      makeMessage({
+        authorType: "ai",
+        contentFormat: "plain",
+        content: "**bold** text",
+        contentHtml: "<p><strong>bold</strong> text</p>",
+      }),
+      makeContext(),
+    );
+
+    const textEl = list.querySelector(".message-text");
+    expect(textEl).not.toBeNull();
+    expect(textEl!.classList.contains("rich-text")).toBe(true);
+    expect(textEl!.querySelector("strong")?.textContent).toBe("bold");
+  });
+
+  it("still renders plain messages without contentHtml via textContent", () => {
+    const list = document.createElement("div");
+    appendMessage(
+      list,
+      makeMessage({
+        contentFormat: "plain",
+        contentHtml: null,
+        content: "<b>x</b>",
+      }),
+      makeContext(),
+    );
+
+    const textEl = list.querySelector(".message-text")!;
+    expect(textEl.classList.contains("rich-text")).toBe(false);
+    expect(textEl.querySelector("b")).toBeNull();
+    expect(textEl.textContent).toBe("<b>x</b>");
+  });
+
+  it("updateMessageContent switches to rich text when contentHtml is provided", () => {
+    const list = document.createElement("div");
+    appendMessage(
+      list,
+      makeMessage({ id: "m-9", contentFormat: "plain", contentHtml: null }),
+      makeContext(),
+    );
+
+    updateMessageContent(
+      list,
+      "m-9",
+      "**bold** text",
+      null,
+      "plain",
+      "<p><strong>bold</strong> text</p>",
+    );
+
+    const textEl = list.querySelector(".message-text")!;
+    expect(textEl.classList.contains("rich-text")).toBe(true);
+    expect(textEl.querySelector("strong")?.textContent).toBe("bold");
+  });
+});

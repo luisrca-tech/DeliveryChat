@@ -198,9 +198,13 @@ export function MessageBubble({ message, isSelf, onEdit, onDelete }: Props) {
       );
     }
 
-    if (isLexical) {
-      const html =
-        message.contentHtml ?? serializeLexicalJsonToHtml(message.content);
+    // Rich rendering: lexical messages (operator rich text) and any message
+    // carrying server-rendered contentHtml (AI replies arrive as plain-format
+    // constrained markdown, rendered to sanitized HTML server-side).
+    if (isLexical || message.contentHtml) {
+      const html = isLexical
+        ? (message.contentHtml ?? serializeLexicalJsonToHtml(message.content))
+        : message.contentHtml;
       if (html) {
         return (
           <>

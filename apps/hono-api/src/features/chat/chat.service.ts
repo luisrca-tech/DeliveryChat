@@ -24,6 +24,7 @@ import {
 } from "./broadcasting.service.js";
 import { serializeLexicalToPlainText } from "@repo/lexical-utils";
 import { serializeLexicalToHtml } from "./lexicalSerializer.js";
+import { renderAiMarkdownToHtml } from "./markdownSerializer.js";
 
 // ── Custom Errors ──
 
@@ -182,13 +183,25 @@ interface AddParticipantInput {
 // ── Message Enrichment ──
 
 export function enrichMessage<
-  T extends { content: string; contentFormat?: ContentFormat | null },
+  T extends {
+    content: string;
+    contentFormat?: ContentFormat | null;
+    authorType?: string | null;
+  },
 >(message: T): T & { contentHtml: string | null; contentPlainText: string } {
   const format: ContentFormat = (message.contentFormat ??
     "plain") as ContentFormat;
+  // AI-authored plain messages are, by prompt contract, constrained markdown —
+  // render them server-side so they ride the same sanitized contentHtml
+  // pipeline as operators' rich (lexical) messages. Computed on read, so
+  // history gets it too.
+  const contentHtml =
+    format === "plain" && message.authorType === "ai"
+      ? renderAiMarkdownToHtml(message.content)
+      : serializeLexicalToHtml(message.content, format);
   return {
     ...message,
-    contentHtml: serializeLexicalToHtml(message.content, format),
+    contentHtml,
     contentPlainText: serializeLexicalToPlainText(message.content, format),
   };
 }

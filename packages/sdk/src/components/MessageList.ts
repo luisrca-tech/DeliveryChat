@@ -156,7 +156,7 @@ export function updateMessageContent(
 
   const textEl = row.querySelector(".message-text");
   if (textEl) {
-    if (contentFormat === "lexical" && contentHtml) {
+    if (contentHtml) {
       textEl.classList.add("rich-text");
       textEl.innerHTML = contentHtml;
     } else {
@@ -312,7 +312,7 @@ export function exitEditMode(
 
   const textEl = bubble.querySelector(".message-text");
   if (textEl) {
-    if (contentFormat === "lexical" && contentHtml) {
+    if (contentHtml) {
       textEl.classList.add("rich-text");
       textEl.innerHTML = contentHtml;
     } else {
@@ -404,7 +404,7 @@ function createBubble(
 
   const textSpan = document.createElement("span");
   textSpan.className = "message-text";
-  if (msg.contentFormat === "lexical" && msg.contentHtml) {
+  if (msg.contentHtml) {
     textSpan.classList.add("rich-text");
     textSpan.innerHTML = msg.contentHtml;
   } else {

@@ -2223,3 +2223,53 @@ describe("chat.service", () => {
     });
   });
 });
+
+describe("enrichMessage — AI markdown rendering", () => {
+  const aiMessage = {
+    id: "msg-ai-1",
+    conversationId: "conv-1",
+    senderId: null,
+    authorType: "ai" as const,
+    type: "text" as const,
+    content: "The **Premium** plan",
+    contentFormat: "plain" as const,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    editedAt: null,
+    deletedAt: null,
+  };
+
+  it("renders constrained markdown to contentHtml for AI-authored plain messages", () => {
+    mockSerializeLexicalToPlainText.mockReturnValue("The **Premium** plan");
+
+    const result = enrichMessage(aiMessage);
+
+    expect(result.contentHtml).toBe("<p>The <strong>Premium</strong> plan</p>");
+  });
+
+  it("does NOT render markdown for visitor-authored plain messages", () => {
+    mockSerializeLexicalToHtml.mockReturnValue(null);
+    mockSerializeLexicalToPlainText.mockReturnValue("x");
+
+    const result = enrichMessage({
+      ...aiMessage,
+      authorType: "visitor" as const,
+      content: "**not bold for visitors**",
+    });
+
+    expect(result.contentHtml).toBeNull();
+  });
+
+  it("keeps the lexical path untouched for AI messages in lexical format", () => {
+    mockSerializeLexicalToHtml.mockReturnValue("<p>lex</p>");
+    mockSerializeLexicalToPlainText.mockReturnValue("lex");
+
+    const result = enrichMessage({
+      ...aiMessage,
+      content: '{"root":{}}',
+      contentFormat: "lexical" as const,
+    });
+
+    expect(result.contentHtml).toBe("<p>lex</p>");
+  });
+});
