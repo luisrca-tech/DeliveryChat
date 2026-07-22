@@ -14,6 +14,11 @@ import type {
 } from "./ai.providerPort.js";
 import { MockProvider } from "./ai.mockProvider.js";
 
+// Disable the AI SDK's internal retries so there is exactly ONE retry layer —
+// the orchestrator's (runAICall). Otherwise a quota-exhausted 429 turns into
+// SDK retries × orchestrator retries (6 provider calls for one failed turn).
+const NO_SDK_RETRIES = { maxRetries: 0 } as const;
+
 export class GroqProvider implements AIProviderPort {
   private readonly client: ReturnType<typeof createGroq>;
 
@@ -28,6 +33,7 @@ export class GroqProvider implements AIProviderPort {
         system: request.systemPrompt,
         messages: request.messages,
         abortSignal: request.abortSignal,
+        ...NO_SDK_RETRIES,
       });
 
       return {
@@ -53,6 +59,7 @@ export class GroqProvider implements AIProviderPort {
         messages: request.messages,
         schema: request.schema,
         abortSignal: request.abortSignal,
+        ...NO_SDK_RETRIES,
       });
 
       return {
@@ -91,6 +98,7 @@ export class GroqProvider implements AIProviderPort {
         tools,
         stopWhen: stepCountIs(request.maxSteps),
         abortSignal: request.abortSignal,
+        ...NO_SDK_RETRIES,
       });
 
       return {
