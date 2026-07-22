@@ -147,3 +147,95 @@ describe("rate-limit retry-after policy", () => {
     expect(retryDelayMs(new Error("boom"))).toBeNull();
   });
 });
+
+// Shaped like the AI SDK's APICallError raised from an OpenRouter response.
+// OpenRouter returns `{ error: { code, message, metadata? } }` with the HTTP
+// status mirroring error.code; the SDK surfaces `statusCode`, `responseHeaders`
+// and the parsed body on `data`. 429/503 may send a Retry-After header (seconds).
+function openRouterApiCallError(
+  statusCode: number,
+  message: string,
+  retryAfter?: string,
+): Error {
+  const responseHeaders: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  if (retryAfter !== undefined) responseHeaders["retry-after"] = retryAfter;
+  return Object.assign(new Error(message), {
+    statusCode,
+    responseHeaders,
+    data: { error: { code: statusCode, message } },
+  });
+}
+
+describe("OpenRouter-shaped provider errors", () => {
+  it("maps a 429 with a short retry-after to a retryable rate-limit error", () => {
+    const result = classifyProviderException(
+      openRouterApiCallError(429, "Rate limit exceeded", "5"),
+    );
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBe(5000);
+    expect(isRetryable(result)).toBe(true);
+    expect(retryDelayMs(result)).toBe(5000);
+  });
+
+  it("maps a 429 with a long retry-after to a non-retryable rate-limit error", () => {
+    const result = classifyProviderException(
+      openRouterApiCallError(429, "Rate limit exceeded", "60"),
+    );
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBe(60_000);
+    expect(isRetryable(result)).toBe(false);
+  });
+
+  it("maps a 429 without a retry-after header to a non-retryable rate-limit error", () => {
+    const result = classifyProviderException(
+      openRouterApiCallError(429, "Rate limit exceeded"),
+    );
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBeUndefined();
+    expect(isRetryable(result)).toBe(false);
+    expect(retryDelayMs(result)).toBeNull();
+  });
+
+  it("maps a 502 (model down) to a retryable generic provider error", () => {
+    const result = classifyProviderException(
+      openRouterApiCallError(
+        502,
+        "Model is down or returned an invalid response",
+      ),
+    );
+
+    expect(result).toBeInstanceOf(AIProviderError);
+    expect(result).not.toBeInstanceOf(AIProviderRateLimitError);
+    expect(isRetryable(result)).toBe(true);
+  });
+
+  it("maps a 503 (no available provider) to a retryable generic provider error", () => {
+    const result = classifyProviderException(
+      openRouterApiCallError(
+        503,
+        "No provider meets the routing requirements",
+        "30",
+      ),
+    );
+
+    expect(result).toBeInstanceOf(AIProviderError);
+    expect(result).not.toBeInstanceOf(AIProviderRateLimitError);
+    expect(isRetryable(result)).toBe(true);
+  });
+
+  it("unwraps a RetryError-wrapped OpenRouter 429 and classifies it as rate-limit", () => {
+    const inner = openRouterApiCallError(429, "Rate limit exceeded", "5");
+    const result = classifyProviderException(
+      retryErrorLike({ lastError: inner, errors: [inner] }),
+    );
+
+    expect(result).toBeInstanceOf(AIProviderRateLimitError);
+    expect((result as AIProviderRateLimitError).retryAfterMs).toBe(5000);
+    expect(isRetryable(result)).toBe(true);
+  });
+});
