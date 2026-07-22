@@ -36,6 +36,69 @@ import {
 export const AI_TURN_MAX_STEPS = 5;
 
 /**
+ * Corrective instruction appended (as a user-role turn) when the model's first
+ * draft was raw JSON. It steers the single turn-level retry toward prose the
+ * visitor can actually read.
+ */
+const DEGENERATE_RETRY_PROMPT =
+  "Your previous draft was raw JSON, which the visitor must never see. " +
+  "Rewrite it as a short, natural-language answer (Markdown tables allowed) " +
+  "using only facts already retrieved.";
+
+/**
+ * True when `text` reads as raw JSON rather than a natural-language answer — a
+ * degenerate reply the visitor must never receive. It fires when:
+ *   1. the trimmed text (or a ```json fence's contents) parses to a JSON object
+ *      or array; OR
+ *   2. it *looks* like JSON at the start (opens with `{`/`[` or a ```json
+ *      fence) AND more than half of its characters sit inside `{...}`/`[...]`
+ *      spans — catching malformed, concatenated tool-echo blobs that never
+ *      parse cleanly.
+ *
+ * It deliberately passes normal prose, prose with a small inline code snippet,
+ * and Markdown tables. Exported for direct unit testing.
+ */
+export function isDegenerateJsonReply(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed === "") return false;
+
+  // Unwrap a ```json (or bare ```) fence, if present.
+  const fenceMatch = /^```(?:json)?\s*([\s\S]*?)\s*```$/i.exec(trimmed);
+  const hasFence = fenceMatch !== null;
+  const candidate = hasFence ? (fenceMatch[1] ?? "").trim() : trimmed;
+  if (candidate === "") return false;
+
+  // 1) Cleanly parses to an object/array → unambiguously JSON.
+  try {
+    const parsed = JSON.parse(candidate);
+    if (parsed !== null && typeof parsed === "object") return true;
+  } catch {
+    // Not valid JSON — fall through to the structural heuristic.
+  }
+
+  // 2) Malformed/concatenated JSON: must look like JSON at the start and be
+  //    mostly bracket content.
+  const looksJsonStart =
+    hasFence || candidate.startsWith("{") || candidate.startsWith("[");
+  if (!looksJsonStart) return false;
+
+  let depth = 0;
+  let inside = 0;
+  for (const ch of candidate) {
+    if (ch === "{" || ch === "[") {
+      depth++;
+      inside++;
+    } else if (ch === "}" || ch === "]") {
+      if (depth > 0) inside++;
+      depth = Math.max(0, depth - 1);
+    } else if (depth > 0) {
+      inside++;
+    }
+  }
+  return inside / candidate.length > 0.5;
+}
+
+/**
  * Synthetic identity used when broadcasting the AI's typing indicator. The WS
  * protocol requires a `userId`; this sentinel keeps the payload backward
  * compatible while letting the widget distinguish AI typing later.
@@ -221,13 +284,13 @@ export async function runAiTurn(conversationId: string): Promise<void> {
     const usageUserId =
       conversation.createdBy ?? latestVisitor?.senderId ?? organization.id;
 
-    // ── Run the tool loop through the shared orchestrator (usage logged) ──
-    let result: AIProviderToolsResponse;
-    try {
-      result = await runAICall<
-        AIProviderToolsResponse,
-        AIProviderToolsResponse
-      >({
+    // ── Run the tool loop through the shared orchestrator (usage logged). The
+    // closure is reused verbatim for the degenerate-reply retry below, so both
+    // attempts share the same action/usage accounting. ──
+    const runModel = (
+      messages: AIProviderMessage[],
+    ): Promise<AIProviderToolsResponse> =>
+      runAICall<AIProviderToolsResponse, AIProviderToolsResponse>({
         action: "autonomous_reply",
         tenantId: organization.id,
         userId: usageUserId,
@@ -236,7 +299,7 @@ export async function runAiTurn(conversationId: string): Promise<void> {
         providerCall: async () => {
           const r = await provider.generateWithTools({
             systemPrompt,
-            messages: providerMessages,
+            messages,
             model: env.AI_MODEL,
             tools,
             maxSteps: AI_TURN_MAX_STEPS,
@@ -250,6 +313,10 @@ export async function runAiTurn(conversationId: string): Promise<void> {
         },
         parse: (raw) => raw,
       });
+
+    let result: AIProviderToolsResponse;
+    try {
+      result = await runModel(providerMessages);
     } catch (err) {
       console.error("[ai-turn] provider call failed", conversationId, err);
       await escalateConversation({
@@ -277,7 +344,7 @@ export async function runAiTurn(conversationId: string): Promise<void> {
       return;
     }
 
-    const text = (result.text ?? "").trim();
+    let text = (result.text ?? "").trim();
     if (text === "") {
       await escalateConversation({
         conversation,
@@ -285,6 +352,46 @@ export async function runAiTurn(conversationId: string): Promise<void> {
         kind: "knowledge_gap",
       });
       return;
+    }
+
+    // ── Degenerate-reply guard: on weaker models the final text is sometimes
+    // echoed tool-call JSON. Never let that reach the visitor — retry ONCE with
+    // a corrective instruction, then escalate rather than send a second blob. ──
+    if (isDegenerateJsonReply(text)) {
+      console.warn(
+        "[ai-turn] degenerate JSON reply — retrying",
+        conversationId,
+      );
+      let retry: AIProviderToolsResponse;
+      try {
+        retry = await runModel([
+          ...providerMessages,
+          { role: "user", content: DEGENERATE_RETRY_PROMPT },
+        ]);
+      } catch (err) {
+        console.error(
+          "[ai-turn] degenerate-reply retry failed",
+          conversationId,
+          err,
+        );
+        await escalateConversation({
+          conversation,
+          reason: "turn_failed",
+          kind: "turn_failed",
+        });
+        return;
+      }
+
+      const retryText = (retry.text ?? "").trim();
+      if (retryText === "" || isDegenerateJsonReply(retryText)) {
+        await escalateConversation({
+          conversation,
+          reason: "degenerate_reply",
+          kind: "turn_failed",
+        });
+        return;
+      }
+      text = retryText;
     }
 
     // ── Pre-send recheck: an operator may have accepted (or closed) the

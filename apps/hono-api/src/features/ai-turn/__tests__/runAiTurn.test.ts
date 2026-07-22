@@ -57,7 +57,7 @@ const { AIProviderRateLimitError } = await import("../../ai/ai.errors.js");
 const { ESCALATE_TOOL_NAME } = await import("../tools.js");
 const broadcasting = await import("../../chat/broadcasting.service.js");
 
-const { runAiTurn } = await import("../runAiTurn.js");
+const { runAiTurn, isDegenerateJsonReply } = await import("../runAiTurn.js");
 
 const mockCreateProvider = createAIProvider as ReturnType<typeof vi.fn>;
 const mockCheckQuota = checkAiQuota as ReturnType<typeof vi.fn>;
@@ -489,6 +489,87 @@ describe("runAiTurn — pre-send takeover recheck", () => {
 
     expect(mockSendMessage).not.toHaveBeenCalled();
     expect(mockEscalate).not.toHaveBeenCalled();
+  });
+});
+
+describe("isDegenerateJsonReply", () => {
+  it("flags a plain JSON object", () => {
+    expect(isDegenerateJsonReply('{ "plans": [1, 2] }')).toBe(true);
+  });
+
+  it("flags a JSON array", () => {
+    expect(isDegenerateJsonReply('[{ "id": 1 }, { "id": 2 }]')).toBe(true);
+  });
+
+  it("flags the observed malformed concatenated JSON blob", () => {
+    const blob =
+      '{ "query": "plans", "filters": {} { "plans": [ { "id": 1 } ] }';
+    expect(isDegenerateJsonReply(blob)).toBe(true);
+  });
+
+  it("flags a ```json fenced block", () => {
+    const fenced = '```json\n{ "plans": ["free", "pro"] }\n```';
+    expect(isDegenerateJsonReply(fenced)).toBe(true);
+  });
+
+  it("passes normal prose", () => {
+    expect(
+      isDegenerateJsonReply("Yes, we offer Free and Pro plans."),
+    ).toBe(false);
+  });
+
+  it("passes prose containing a small inline code snippet", () => {
+    expect(
+      isDegenerateJsonReply(
+        'Send `{"id":1}` to the endpoint and you are done.',
+      ),
+    ).toBe(false);
+  });
+
+  it("passes a Markdown table answer", () => {
+    const table =
+      "Here are our plans:\n\n| Plan | Price |\n| --- | --- |\n| Free | $0 |\n| Pro | $20 |";
+    expect(isDegenerateJsonReply(table)).toBe(false);
+  });
+
+  it("passes an empty string", () => {
+    expect(isDegenerateJsonReply("   ")).toBe(false);
+  });
+});
+
+describe("runAiTurn — degenerate JSON reply guard", () => {
+  it("retries once and sends the clean rewrite; no escalation", async () => {
+    const provider = useProvider();
+    provider.queueToolLoop({ toolCalls: [], text: '{ "plans": ["free"] }' });
+    provider.queueToolLoop({
+      toolCalls: [],
+      text: "We offer a Free and a Pro plan.",
+    });
+    const genSpy = vi.spyOn(provider, "generateWithTools");
+
+    await runAiTurn("conv-1");
+
+    expect(genSpy).toHaveBeenCalledTimes(2);
+    expect(mockSendMessage).toHaveBeenCalledTimes(1);
+    expect(mockSendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ content: "We offer a Free and a Pro plan." }),
+    );
+    expect(mockEscalate).not.toHaveBeenCalled();
+  });
+
+  it("escalates turn_failed when the retry is still degenerate", async () => {
+    const provider = useProvider();
+    provider.queueToolLoop({ toolCalls: [], text: '{ "plans": ["free"] }' });
+    provider.queueToolLoop({ toolCalls: [], text: '[{ "still": "json" }]' });
+    const genSpy = vi.spyOn(provider, "generateWithTools");
+
+    await runAiTurn("conv-1");
+
+    expect(genSpy).toHaveBeenCalledTimes(2);
+    expect(mockSendMessage).not.toHaveBeenCalled();
+    expect(mockEscalate).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: "turn_failed" }),
+    );
   });
 });
 
