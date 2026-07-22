@@ -108,6 +108,18 @@ describe("GET /widget/settings/:appId — ai.enabled", () => {
     });
   });
 
+  it("caps Cache-Control at max-age=60 so AI-disclosure toggles propagate quickly", async () => {
+    mockGetApplicationSettings.mockResolvedValue({
+      colors: { primary: "#0ea5e9" },
+    });
+    mockResolveInitialHandledBy.mockResolvedValue("ai");
+
+    const res = await app.request(`/widget/settings/${VALID_APP_ID}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers.get("Cache-Control")).toBe("public, max-age=60");
+  });
+
   it("returns 404 when the application settings are not found", async () => {
     mockGetApplicationSettings.mockResolvedValue(null);
 

@@ -65,8 +65,12 @@ export const widgetRoute = new Hono()
       },
     };
 
+    // The payload is cheap to serve but now carries the AI-disclosure
+    // entitlement (ai.enabled), so staleness must be bounded tightly: 60s
+    // keeps widget-boot caching while making AI on/off toggles propagate
+    // within a minute.
     return c.json({ settings: settingsWithAi }, 200, {
-      "Cache-Control": "public, max-age=300",
+      "Cache-Control": "public, max-age=60",
     });
   })
 
