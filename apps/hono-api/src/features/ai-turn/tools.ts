@@ -12,8 +12,20 @@ export type TurnEscalationContext = {
 
 export const ESCALATE_TOOL_NAME = "escalateToHuman";
 
+/** Max chars of tool input/result serialized into a debug log line. */
+const LOG_PREVIEW_MAX_CHARS = 500;
+
+function logPreview(value: unknown): string {
+  try {
+    return JSON.stringify(value).slice(0, LOG_PREVIEW_MAX_CHARS);
+  } catch {
+    return String(value).slice(0, LOG_PREVIEW_MAX_CHARS);
+  }
+}
+
 function buildDataTool(
   applicationId: string,
+  conversationId: string | undefined,
   source: TurnToolset["source"],
   row: DataToolRow & { description: string },
 ): AIProviderTool {
@@ -21,6 +33,15 @@ function buildDataTool(
     description: row.description,
     inputSchema: toZod(row.inputSchema),
     execute: async (input: Record<string, unknown>) => {
+      // Debug trail for QA/incidents: which tool the model called, with what
+      // input, what came back, and how long it took. Previews are truncated
+      // and never include data-source headers (the executor never returns them).
+      console.debug("[ai-turn] tool:call", {
+        conversationId,
+        tool: row.name,
+        input: logPreview(input ?? {}),
+      });
+      const startedAt = Date.now();
       const result = await executeDataTool({
         applicationId,
         tool: {
@@ -32,6 +53,13 @@ function buildDataTool(
         source,
         params: input ?? {},
       });
+      console.debug("[ai-turn] tool:result", {
+        conversationId,
+        tool: row.name,
+        ok: result.ok,
+        ms: Date.now() - startedAt,
+        preview: logPreview(result.ok ? result.data : result.error),
+      });
       // Never throw: surface the failure to the model as a structured result so
       // it can follow the grounding rule and escalate.
       if (!result.ok) {
@@ -42,7 +70,10 @@ function buildDataTool(
   };
 }
 
-function buildEscalateTool(turnCtx: TurnEscalationContext): AIProviderTool {
+function buildEscalateTool(
+  turnCtx: TurnEscalationContext,
+  conversationId: string | undefined,
+): AIProviderTool {
   return {
     description:
       "Hand this conversation to a human operator. Call this whenever you cannot answer from the available tools, a tool returns empty/error data, the visitor asks for a human, or the question is out of scope. Provide a short reason.",
@@ -52,6 +83,7 @@ function buildEscalateTool(turnCtx: TurnEscalationContext): AIProviderTool {
         typeof input?.reason === "string" && input.reason.trim() !== ""
           ? input.reason
           : "escalation requested";
+      console.debug("[ai-turn] tool:escalate", { conversationId, reason });
       turnCtx.escalation = { reason };
       return { acknowledged: true };
     },
@@ -70,13 +102,15 @@ function buildEscalateTool(turnCtx: TurnEscalationContext): AIProviderTool {
  */
 export function assembleTools(input: {
   applicationId: string;
+  /** For log correlation only — optional so callers outside a turn can omit it. */
+  conversationId?: string;
   toolset: TurnToolset | null;
   httpAllowed: boolean;
   sqlAllowed: boolean;
   turnCtx: TurnEscalationContext;
 }): Record<string, AIProviderTool> {
   const tools: Record<string, AIProviderTool> = {
-    [ESCALATE_TOOL_NAME]: buildEscalateTool(input.turnCtx),
+    [ESCALATE_TOOL_NAME]: buildEscalateTool(input.turnCtx, input.conversationId),
   };
 
   if (!input.toolset) return tools;
@@ -86,6 +120,7 @@ export function assembleTools(input: {
     if (row.backingType === "sql" && !input.sqlAllowed) continue;
     tools[row.name] = buildDataTool(
       input.applicationId,
+      input.conversationId,
       input.toolset.source,
       row,
     );

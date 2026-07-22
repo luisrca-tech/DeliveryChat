@@ -157,3 +157,122 @@ describe("assembleTools", () => {
     expect(res).toEqual({ error: "upstream 500" });
   });
 });
+
+describe("assembleTools — debug logging", () => {
+  it("logs tool call and result (with duration) when a data tool executes", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+    mockExecuteDataTool.mockResolvedValue({ ok: true, data: { plans: [1] } });
+    const turnCtx: TurnEscalationContext = { escalation: null };
+    const tools = assembleTools({
+      applicationId: "app-1",
+      conversationId: "conv-1",
+      toolset: toolset([httpTool("getPlanInfo")]),
+      httpAllowed: true,
+      sqlAllowed: false,
+      turnCtx,
+    });
+
+    await tools.getPlanInfo!.execute({ sku: "abc" });
+
+    expect(debugSpy).toHaveBeenCalledWith(
+      "[ai-turn] tool:call",
+      expect.objectContaining({
+        conversationId: "conv-1",
+        tool: "getPlanInfo",
+        input: expect.stringContaining("abc"),
+      }),
+    );
+    expect(debugSpy).toHaveBeenCalledWith(
+      "[ai-turn] tool:result",
+      expect.objectContaining({
+        conversationId: "conv-1",
+        tool: "getPlanInfo",
+        ok: true,
+        ms: expect.any(Number),
+        preview: expect.stringContaining("plans"),
+      }),
+    );
+    debugSpy.mockRestore();
+  });
+
+  it("logs the error preview when a data tool fails", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+    mockExecuteDataTool.mockResolvedValue({
+      ok: false,
+      kind: "execution",
+      error: "Upstream returned status 404",
+    });
+    const turnCtx: TurnEscalationContext = { escalation: null };
+    const tools = assembleTools({
+      applicationId: "app-1",
+      conversationId: "conv-1",
+      toolset: toolset([httpTool("searchDocs")]),
+      httpAllowed: true,
+      sqlAllowed: false,
+      turnCtx,
+    });
+
+    await tools.searchDocs!.execute({ sku: "x" });
+
+    expect(debugSpy).toHaveBeenCalledWith(
+      "[ai-turn] tool:result",
+      expect.objectContaining({
+        tool: "searchDocs",
+        ok: false,
+        preview: expect.stringContaining("404"),
+      }),
+    );
+    debugSpy.mockRestore();
+  });
+
+  it("truncates long tool results in the log preview", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+    mockExecuteDataTool.mockResolvedValue({
+      ok: true,
+      data: { blob: "x".repeat(5000) },
+    });
+    const turnCtx: TurnEscalationContext = { escalation: null };
+    const tools = assembleTools({
+      applicationId: "app-1",
+      conversationId: "conv-1",
+      toolset: toolset([httpTool("getDocsPage")]),
+      httpAllowed: true,
+      sqlAllowed: false,
+      turnCtx,
+    });
+
+    await tools.getDocsPage!.execute({ sku: "x" });
+
+    const resultCall = debugSpy.mock.calls.find(
+      (c) => c[0] === "[ai-turn] tool:result",
+    );
+    expect(resultCall).toBeDefined();
+    const preview = (resultCall![1] as { preview: string }).preview;
+    expect(preview.length).toBeLessThanOrEqual(600);
+    debugSpy.mockRestore();
+  });
+
+  it("logs the escalation reason when escalateToHuman executes", async () => {
+    const debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
+    const turnCtx: TurnEscalationContext = { escalation: null };
+    const tools = assembleTools({
+      applicationId: "app-1",
+      conversationId: "conv-1",
+      toolset: null,
+      httpAllowed: true,
+      sqlAllowed: false,
+      turnCtx,
+    });
+
+    await tools[ESCALATE_TOOL_NAME]!.execute({ reason: "no data available" });
+
+    expect(debugSpy).toHaveBeenCalledWith(
+      "[ai-turn] tool:escalate",
+      expect.objectContaining({
+        conversationId: "conv-1",
+        reason: "no data available",
+      }),
+    );
+    debugSpy.mockRestore();
+  });
+});

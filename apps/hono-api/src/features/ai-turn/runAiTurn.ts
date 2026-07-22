@@ -187,6 +187,7 @@ export async function runAiTurn(conversationId: string): Promise<void> {
     // per-application `aiDbEnabled` opt-in.
     const tools = assembleTools({
       applicationId: application.id,
+      conversationId,
       toolset,
       httpAllowed: true, // org entitlement already verified above
       sqlAllowed: application.aiDbEnabled,
@@ -245,6 +246,13 @@ export async function runAiTurn(conversationId: string): Promise<void> {
     }
 
     // ── Outcomes ──
+    console.debug("[ai-turn] turn result", {
+      conversationId,
+      finishReason: result.finishReason,
+      toolCalls: result.toolCalls.map((tc) => tc.toolName),
+      textLength: (result.text ?? "").trim().length,
+      escalated: turnCtx.escalation !== null,
+    });
     if (turnCtx.escalation) {
       await escalateConversation({
         conversation,
