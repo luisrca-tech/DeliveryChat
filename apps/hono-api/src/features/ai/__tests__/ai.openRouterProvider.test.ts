@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { z } from "zod";
 
+const chat = vi.fn((model: string) => ({ modelId: model }));
+
 vi.mock("ai", () => ({
   generateText: vi.fn(),
   generateObject: vi.fn(),
@@ -8,19 +10,25 @@ vi.mock("ai", () => ({
   stepCountIs: vi.fn(() => "stop-when-step-count"),
 }));
 
-vi.mock("@ai-sdk/groq", () => ({
-  createGroq: vi.fn(() => vi.fn((model: string) => ({ modelId: model }))),
+vi.mock("@openrouter/ai-sdk-provider", () => ({
+  createOpenRouter: vi.fn(() =>
+    Object.assign(vi.fn(), { chat }),
+  ),
 }));
 
 const { generateText, generateObject } = await import("ai");
 const mockGenerateText = generateText as ReturnType<typeof vi.fn>;
 const mockGenerateObject = generateObject as ReturnType<typeof vi.fn>;
 
-const { GroqProvider } = await import("../ai.groqProvider.js");
+const { OpenRouterProvider, createAIProvider } = await import(
+  "../ai.openRouterProvider.js"
+);
+const { MockProvider } = await import("../ai.mockProvider.js");
+const { AIProviderError } = await import("../ai.errors.js");
 
 const usage = { inputTokens: 10, outputTokens: 5 };
 
-describe("GroqProvider retry configuration", () => {
+describe("OpenRouterProvider retry configuration", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGenerateText.mockResolvedValue({
@@ -36,11 +44,11 @@ describe("GroqProvider retry configuration", () => {
     });
   });
 
-  const provider = new GroqProvider("gsk_test_key");
+  const provider = new OpenRouterProvider("sk-or-test-key");
 
   it("passes maxRetries: 0 to generateText", async () => {
     await provider.generateText({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-4o",
       systemPrompt: "sys",
       messages: [{ role: "user", content: "hi" }],
     });
@@ -52,7 +60,7 @@ describe("GroqProvider retry configuration", () => {
 
   it("passes maxRetries: 0 to generateObject", async () => {
     await provider.generateObject({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-4o",
       systemPrompt: "sys",
       messages: [{ role: "user", content: "hi" }],
       schema: z.object({ answer: z.string() }),
@@ -65,7 +73,7 @@ describe("GroqProvider retry configuration", () => {
 
   it("passes maxRetries: 0 to generateText in generateWithTools", async () => {
     await provider.generateWithTools({
-      model: "llama-3.3-70b-versatile",
+      model: "openai/gpt-4o",
       systemPrompt: "sys",
       messages: [{ role: "user", content: "hi" }],
       tools: {
@@ -81,5 +89,38 @@ describe("GroqProvider retry configuration", () => {
     expect(mockGenerateText).toHaveBeenCalledWith(
       expect.objectContaining({ maxRetries: 0 }),
     );
+  });
+
+  it("instantiates models via chat() with provider.require_parameters", async () => {
+    await provider.generateText({
+      model: "openai/gpt-4o",
+      systemPrompt: "sys",
+      messages: [{ role: "user", content: "hi" }],
+    });
+
+    expect(chat).toHaveBeenCalledWith(
+      "openai/gpt-4o",
+      expect.objectContaining({
+        provider: expect.objectContaining({ require_parameters: true }),
+      }),
+    );
+  });
+});
+
+describe("createAIProvider", () => {
+  it("returns MockProvider for mock:// models", () => {
+    const provider = createAIProvider("mock://test", undefined);
+    expect(provider).toBeInstanceOf(MockProvider);
+  });
+
+  it("throws AIProviderError when apiKey is missing", () => {
+    expect(() => createAIProvider("openai/gpt-4o", undefined)).toThrow(
+      AIProviderError,
+    );
+  });
+
+  it("returns OpenRouterProvider when apiKey is present", () => {
+    const provider = createAIProvider("openai/gpt-4o", "sk-or-test-key");
+    expect(provider).toBeInstanceOf(OpenRouterProvider);
   });
 });

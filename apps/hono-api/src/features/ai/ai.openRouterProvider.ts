@@ -1,5 +1,5 @@
 import { generateText, generateObject, tool, stepCountIs } from "ai";
-import { createGroq } from "@ai-sdk/groq";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import type { z } from "zod";
 import { AIProviderError } from "./ai.errors.js";
 import { classifyProviderException } from "./ai.errorPolicy.js";
@@ -19,17 +19,21 @@ import { MockProvider } from "./ai.mockProvider.js";
 // SDK retries × orchestrator retries (6 provider calls for one failed turn).
 const NO_SDK_RETRIES = { maxRetries: 0 } as const;
 
-export class GroqProvider implements AIProviderPort {
-  private readonly client: ReturnType<typeof createGroq>;
+// Only route to upstream providers that support every parameter in the
+// request (schema/tools/etc.), so OpenRouter never silently drops one.
+const CHAT_SETTINGS = { provider: { require_parameters: true } } as const;
+
+export class OpenRouterProvider implements AIProviderPort {
+  private readonly client: ReturnType<typeof createOpenRouter>;
 
   constructor(apiKey: string) {
-    this.client = createGroq({ apiKey });
+    this.client = createOpenRouter({ apiKey });
   }
 
   async generateText(request: AIProviderRequest): Promise<AIProviderResponse> {
     try {
       const result = await generateText({
-        model: this.client(request.model),
+        model: this.client.chat(request.model, CHAT_SETTINGS),
         system: request.systemPrompt,
         messages: request.messages,
         abortSignal: request.abortSignal,
@@ -54,7 +58,7 @@ export class GroqProvider implements AIProviderPort {
   ): Promise<AIProviderObjectResponse<TSchema>> {
     try {
       const result = await generateObject({
-        model: this.client(request.model),
+        model: this.client.chat(request.model, CHAT_SETTINGS),
         system: request.systemPrompt,
         messages: request.messages,
         schema: request.schema,
@@ -92,7 +96,7 @@ export class GroqProvider implements AIProviderPort {
       );
 
       const result = await generateText({
-        model: this.client(request.model),
+        model: this.client.chat(request.model, CHAT_SETTINGS),
         system: request.systemPrompt,
         messages: request.messages,
         tools,
@@ -128,8 +132,8 @@ export function createAIProvider(
   }
   if (!apiKey) {
     throw new AIProviderError(
-      "GROQ_API_KEY is not configured. Set it in your environment to use AI features.",
+      "OPENROUTER_API_KEY is not configured. Set it in your environment to use AI features.",
     );
   }
-  return new GroqProvider(apiKey);
+  return new OpenRouterProvider(apiKey);
 }
