@@ -128,7 +128,7 @@ Password reset is handled by Better Auth's `emailAndPassword` plugin with dynami
 
 1. User requests reset via `/forgot-password`
 2. System generates token and sends email with reset link
-3. Link points to user's organization subdomain: `https://{subdomain}.deliverychat.com/reset-password?token={token}`
+3. Link points to user's organization subdomain: `https://{subdomain}.deliverychat.online/reset-password?token={token}`
 4. User enters new password
 5. System validates token and updates password
 

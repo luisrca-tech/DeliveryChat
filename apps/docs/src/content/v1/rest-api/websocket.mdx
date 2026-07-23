@@ -4,17 +4,18 @@ The WebSocket protocol enables real-time bidirectional messaging. Use the REST A
 
 ## Getting a Token
 
-Before connecting, request a WebSocket token via the REST API:
+Before connecting, request a WebSocket token from the widget endpoint:
 
 ```
-POST /api/v1/ws-token
+POST /api/v1/widget/ws-token
 ```
+
+This endpoint uses widget (origin-based) authentication: pass your public `X-App-Id`, a per-visitor `X-Visitor-Id`, and the request `Origin`. No API key is required — the server validates that the origin matches the domain registered for the application.
 
 ### cURL Example
 
 ```bash
-curl -X POST https://api.deliverychat.online/api/v1/ws-token \
-  -H "Authorization: Bearer dk_live_your_api_key" \
+curl -X POST https://api.deliverychat.online/api/v1/widget/ws-token \
   -H "X-App-Id: your-app-id" \
   -H "X-Visitor-Id: 550e8400-e29b-41d4-a716-446655440000" \
   -H "Origin: https://your-domain.com"
@@ -37,14 +38,14 @@ The token encodes your `appId`, `visitorId`, and request origin. It is used to a
 Open a WebSocket connection using the token as a query parameter:
 
 ```
-wss://api.deliverychat.online/v1/ws?token=eyJhbGci...
+wss://api.deliverychat.online/api/v1/ws?token=eyJhbGci...
 ```
 
 ### JavaScript Example
 
 ```javascript
 const ws = new WebSocket(
-  `wss://api.deliverychat.online/v1/ws?token=${token}`
+  `wss://api.deliverychat.online/api/v1/ws?token=${token}`
 );
 
 ws.onopen = () => {
@@ -444,7 +445,7 @@ let lastMessageId = localStorage.getItem("lastMessageId");
 let reconnectDelay = 1000;
 
 function connect() {
-  const ws = new WebSocket(`wss://api.deliverychat.online/v1/ws?token=${token}`);
+  const ws = new WebSocket(`wss://api.deliverychat.online/api/v1/ws?token=${token}`);
 
   ws.onopen = () => {
     reconnectDelay = 1000;

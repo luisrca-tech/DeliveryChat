@@ -74,7 +74,7 @@ Each organization operates as an independent tenant:
 
 The `applications.domain` field serves dual purposes:
 
-- **Development/Testing**: Uses subdomain format (e.g., `codewiser.deliverychat.com`)
+- **Development/Testing**: Uses subdomain format (e.g., `codewiser.deliverychat.online`)
 - **Production**: Can be configured as custom domain (e.g., `codewiser.com`)
 - The domain field uniquely identifies each application regardless of domain format
 
@@ -84,7 +84,7 @@ The `applications.domain` field serves dual purposes:
 
 ```typescript
 // Pseudo-code example
-const settings = await fetch(`/v1/widget/settings/${appId}`);
+const settings = await fetch(`/api/v1/widget/settings/${appId}`);
 
 // Widget loads with application-specific configuration
 loadChatWidget({

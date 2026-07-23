@@ -7,7 +7,7 @@ WebSocket connections support two authentication paths depending on the client t
 ## Authentication Paths
 
 ```
-Client connects to GET /v1/ws
+Client connects to GET /api/v1/ws
         │
         ├── Has ?token= query param?
         │     YES → Widget Authentication (Path A)
@@ -24,7 +24,7 @@ Used by the embeddable chat widget. Visitors are anonymous Better Auth users. Au
 ### Step 1: Acquire a WS Token
 
 ```
-POST /v1/widget/ws-token
+POST /api/v1/widget/ws-token
 Headers:
   X-App-Id: <application-uuid>
   X-Visitor-Id: <visitor-uuid>
@@ -58,7 +58,7 @@ The endpoint validates the app ID and (optionally) the `Origin` against the appl
 ### Step 2: Connect with Token
 
 ```
-GET /v1/ws?token=<ws-token>
+GET /api/v1/ws?token=<ws-token>
 ```
 
 **Verification flow:**
@@ -117,7 +117,7 @@ Used by the admin dashboard. Authenticated via Better Auth session tokens.
 ### Admin Connection URL
 
 ```
-wss://api.example.com/v1/ws?tenant={slug}&sessionToken={token}
+wss://api.example.com/api/v1/ws?tenant={slug}&sessionToken={token}
 ```
 
 ## AuthenticatedWSUser Interface
@@ -135,7 +135,7 @@ interface AuthenticatedWSUser {
 
 ## Rate Limiting & Connection Cap
 
-- **WS upgrade rate limit:** IP-based rate limiter on the `/v1/ws` endpoint (5/s, 30/min, 200/hr) prevents connection spam before the upgrade occurs.
+- **WS upgrade rate limit:** IP-based rate limiter on the `/api/v1/ws` endpoint (5/s, 30/min, 200/hr) prevents connection spam before the upgrade occurs.
 - **Per-user connection cap:** `InMemoryRoomManager` enforces a maximum of 5 concurrent connections per user. Exceeding the cap closes the connection with code `4009 connection_limit`.
 
 ## Security Considerations

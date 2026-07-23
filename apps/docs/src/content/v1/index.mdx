@@ -4,15 +4,29 @@ Welcome to the Delivery Chat documentation! This guide will help you get started
 
 ## What is Delivery Chat?
 
-Delivery Chat is a multi-tenant embedded chat support platform that enables you to provide real-time customer support directly within your application. It supports the vanilla JavaScript chat widget (recommended), and additional integration methods are coming soon.
+Delivery Chat is a multi-tenant embedded chat support platform that enables you to provide real-time customer support directly within your application. You can integrate it three ways: the vanilla JavaScript **chat widget** (recommended), the **JavaScript SDK** (`@deliverychat/sdk`), or the **REST API** for server-side integrations.
 
 ## Quick Start
 
 To get started, you'll need:
 
-1. **Application** - Create an application in your dashboard to get your `appId`
-2. **Chat Widget** - Add the script tag and call `DeliveryChat.init({ appId })` on your website
-3. **Configuration** - Customize colors, header, and behavior in your application settings
+1. **Application** — Create an application in your dashboard to get your `appId`
+2. **Chat Widget** — Add the snippet below before `</body>`. It queues calls until the script loads, so use the function-call form `DeliveryChat('init', { appId })`:
+
+```html
+<script>
+  (function(w,d,s,o){
+    w.DeliveryChat=w.DeliveryChat||function(){(w.DeliveryChat.queue=w.DeliveryChat.queue||[]).push(arguments)};
+    var js=d.createElement(s);js.async=1;js.src='https://api.deliverychat.online/widget.js';
+    d.head.appendChild(js);
+  })(window,document,'script');
+
+  DeliveryChat('init', { appId: 'YOUR_APP_ID' });
+</script>
+```
+
+   Once the script has loaded, `DeliveryChat` becomes an object and you can call methods directly (`DeliveryChat.open()`, `DeliveryChat.init({ appId })`, etc.). See [Chat Widget Integration](/v1/chat-widget) for the full reference.
+3. **Configuration** — Customize colors, header, and behavior in your application settings
 
 ## Next Steps
 

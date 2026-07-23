@@ -29,10 +29,10 @@ All `fetch` and `WebSocket` calls are centralised in `apps/web/src/features/chat
 
 | Transport | Pattern                              |
 | --------- | ------------------------------------ |
-| REST      | `{PUBLIC_API_URL}/v1/api/…`          |
-| WebSocket | `wss://{api-host}/v1/ws?token={jwt}` |
+| REST      | `{PUBLIC_API_URL}/api/v1/…`          |
+| WebSocket | `wss://{api-host}/api/v1/ws?token={jwt}` |
 
-The JWT is obtained via `POST /v1/api/ws-token` immediately before opening the socket.
+The JWT is obtained via `POST /api/v1/widget/ws-token` immediately before opening the socket.
 
 ## Headers on every request
 

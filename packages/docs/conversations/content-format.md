@@ -17,7 +17,7 @@ Messages now support a `contentFormat` field that discriminates between plain te
 ### REST
 
 ```http
-POST /v1/conversations/:id/messages
+POST /api/v1/conversations/:id/messages
 Content-Type: application/json
 
 {

@@ -15,8 +15,8 @@ Per-operator unread visitor message counting with real-time badges and toast not
 
 | Endpoint                          | Description                                 |
 | --------------------------------- | ------------------------------------------- |
-| `GET /v1/conversations`           | Now includes `unreadCount` per conversation |
-| `POST /v1/conversations/:id/read` | Marks conversation as read for current user |
+| `GET /api/v1/conversations`           | Now includes `unreadCount` per conversation |
+| `POST /api/v1/conversations/:id/read` | Marks conversation as read for current user |
 
 ## Service Functions
 
@@ -36,8 +36,8 @@ Per-operator unread visitor message counting with real-time badges and toast not
 
 | Endpoint                                  | Description                               |
 | ----------------------------------------- | ----------------------------------------- |
-| `GET /v1/widget/conversations/:id/unread` | Returns `{ unreadCount }` for the visitor |
-| `POST /v1/widget/conversations/:id/read`  | Marks conversation as read for visitor    |
+| `GET /api/v1/widget/conversations/:id/unread` | Returns `{ unreadCount }` for the visitor |
+| `POST /api/v1/widget/conversations/:id/read`  | Marks conversation as read for visitor    |
 
 | Function                                                  | File              |
 | --------------------------------------------------------- | ----------------- |

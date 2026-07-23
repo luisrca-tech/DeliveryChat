@@ -5,7 +5,7 @@ All event types and payloads are defined in `packages/types/src/ws-events.ts` an
 ## Endpoint
 
 ```
-GET /v1/ws
+GET /api/v1/ws
 ```
 
 Upgrade to WebSocket. Authentication via query parameters (see [authentication.md](./authentication.md)).
@@ -213,7 +213,7 @@ A visitor created a new conversation. Broadcast to all connections in the organi
 }
 ```
 
-**Trigger:** `POST /v1/widget/conversations` (REST)
+**Trigger:** `POST /api/v1/widget/conversations` (REST)
 
 ### `conversation:accepted`
 
@@ -230,7 +230,7 @@ An operator accepted a pending conversation. Broadcast org-wide to remove it fro
 }
 ```
 
-**Trigger:** `POST /v1/conversations/:id/accept` (REST)
+**Trigger:** `POST /api/v1/conversations/:id/accept` (REST)
 
 ### `conversation:released`
 
@@ -245,7 +245,7 @@ An operator released an active conversation back to the pending queue. Broadcast
 }
 ```
 
-**Trigger:** `POST /v1/conversations/:id/leave` (REST)
+**Trigger:** `POST /api/v1/conversations/:id/leave` (REST)
 
 ### `conversation:resolved`
 
@@ -261,7 +261,7 @@ A conversation was marked as solved/closed. Broadcast org-wide.
 }
 ```
 
-**Trigger:** `POST /v1/conversations/:id/resolve` (REST)
+**Trigger:** `POST /api/v1/conversations/:id/resolve` (REST)
 
 ### `message:edited`
 

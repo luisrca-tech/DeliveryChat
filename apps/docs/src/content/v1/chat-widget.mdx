@@ -167,10 +167,10 @@ The launcher supports three icon types: `"chat"`, `"question"`, and `"message"`.
 
 ## Security
 
-The widget authenticates using **domain-based origin validation**. When you create an application, you register a domain (e.g. `nike.com`). The server validates that widget requests originate from that domain — no API key is exposed in client-side code.
+The widget authenticates using **domain-based origin validation**. When you create an application, you register a domain (e.g. `example.com`). The server validates that widget requests originate from that domain — no API key is exposed in client-side code.
 
-- Requests from matching domains and subdomains are allowed (e.g. `shop.nike.com` matches `nike.com`)
-- Wildcard domains are supported (e.g. `*.nike.com`)
+- Requests from matching domains and subdomains are allowed (e.g. `shop.example.com` matches `example.com`)
+- Wildcard domains are supported (e.g. `*.example.com`)
 - `localhost` origins are allowed automatically during development
 
 <Callout type="info" title="No API key needed">

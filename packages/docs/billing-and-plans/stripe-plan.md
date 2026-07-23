@@ -24,7 +24,7 @@ The `processedEvents` table provides idempotency — each Stripe webhook event I
 
 ### Webhook Handler
 
-**Endpoint:** `POST /v1/webhooks/stripe`
+**Endpoint:** `POST /api/v1/webhooks/stripe`
 
 Handles five events inside atomic database transactions:
 
@@ -50,7 +50,7 @@ Every handler above answers "which plan is this subscription on?" through one mo
 
 ### Plan Reconcile on Read
 
-`GET /v1/billing/status` reconciles before responding: if the org has a `stripeSubscriptionId`, it retrieves the live subscription, resolves the plan from its price, and persists it when it differs from the stored plan. This repairs orgs that drifted while webhooks were missed (endpoint down, signature rotation, plan changed directly in the Stripe Dashboard) without waiting for the next billing event. If Stripe is unreachable the error is logged and the stored plan is served — billing must never fail to render.
+`GET /api/v1/billing/status` reconciles before responding: if the org has a `stripeSubscriptionId`, it retrieves the live subscription, resolves the plan from its price, and persists it when it differs from the stored plan. This repairs orgs that drifted while webhooks were missed (endpoint down, signature rotation, plan changed directly in the Stripe Dashboard) without waiting for the next billing event. If Stripe is unreachable the error is logged and the stored plan is served — billing must never fail to render.
 
 ### RBAC Billing Middleware (`checkBillingStatus`)
 
@@ -82,7 +82,7 @@ All Stripe prices (Basic, Premium, AI add-on) carry `currency_options`, so a sin
 | Premium   | R$ 240        | US$ 49 |
 | AI add-on | R$ 120        | US$ 24 |
 
-- `POST /v1/billing/checkout` accepts an optional `currency: "brl" | "usd"` (default `"brl"`), forwarded as the `currency` param to `stripe.checkout.sessions.create`, which selects the matching currency option. The onboarding plan cards expose a BRL/USD toggle.
+- `POST /api/v1/billing/checkout` accepts an optional `currency: "brl" | "usd"` (default `"brl"`), forwarded as the `currency` param to `stripe.checkout.sessions.create`, which selects the matching currency option. The onboarding plan cards expose a BRL/USD toggle.
 - A customer's currency is **locked by their first subscription**. Later items — notably the AI add-on — automatically follow the subscription's currency, so the add-on route sends no currency of its own.
 - Enterprise has no Checkout (manual flow), so currency selection does not apply to it.
 
@@ -120,8 +120,8 @@ The extra item never disturbs plan resolution (`extractPlanFromMetadata` is unch
 
 Both require `super_admin` and go through the standard billing middleware chain. Responses are `{ status: "pending" }` acknowledgements — the entitlement flips only once the resulting Stripe webhook is processed.
 
-- **`POST /v1/billing/ai-addon`** — preconditions: org has `stripeSubscriptionId`; `planStatus ∈ {active, trialing}`; `plan ∈ {PREMIUM, ENTERPRISE}`; add-on not already active. Adds the item via `stripe.subscriptionItems.create` (default proration).
-- **`DELETE /v1/billing/ai-addon`** — requires `aiAddonSubscriptionItemId`; removes it via `stripe.subscriptionItems.del` with `proration_behavior: "create_prorations"`.
+- **`POST /api/v1/billing/ai-addon`** — preconditions: org has `stripeSubscriptionId`; `planStatus ∈ {active, trialing}`; `plan ∈ {PREMIUM, ENTERPRISE}`; add-on not already active. Adds the item via `stripe.subscriptionItems.create` (default proration).
+- **`DELETE /api/v1/billing/ai-addon`** — requires `aiAddonSubscriptionItemId`; removes it via `stripe.subscriptionItems.del` with `proration_behavior: "create_prorations"`.
 
 ### Downgrade revocation
 
@@ -154,18 +154,18 @@ Enterprise tier bypasses Stripe Checkout entirely:
 
 ### Plan Selection (`/onboarding/plans`)
 
-- Basic/Premium: calls `POST /v1/billing/checkout` → redirects to Stripe Checkout URL
-- Enterprise: calls `POST /v1/billing/checkout` → shows "manual review" success (Resend email triggered)
+- Basic/Premium: calls `POST /api/v1/billing/checkout` → redirects to Stripe Checkout URL
+- Enterprise: calls `POST /api/v1/billing/checkout` → shows "manual review" success (Resend email triggered)
 
 ### Billing Settings (`/settings/billing`, super_admin only)
 
 - Shows current plan + status
-- Stripe portal: "Manage subscription" → `POST /v1/billing/portal-session`
+- Stripe portal: "Manage subscription" → `POST /api/v1/billing/portal-session`
 - Enterprise: hides portal, displays contact email
 
 ### Status Polling (`/billing/success`)
 
-After checkout, the success page polls `GET /v1/billing/status` every 2 seconds until `isReady === true`, then redirects to dashboard. This handles the delay between Stripe webhook delivery and database update ("Zombie Checkout" pattern).
+After checkout, the success page polls `GET /api/v1/billing/status` every 2 seconds until `isReady === true`, then redirects to dashboard. This handles the delay between Stripe webhook delivery and database update ("Zombie Checkout" pattern).
 
 **Status endpoint returns:** `isReady`, `planStatus`, `plan`, `trialEndsAt`, `role`, `cancelAtPeriodEnd`, `aiAddonActive`
 

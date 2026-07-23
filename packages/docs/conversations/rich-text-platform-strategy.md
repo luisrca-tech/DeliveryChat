@@ -73,7 +73,7 @@ An optional React package that provides Lexical editor components for React-base
 ### Send a Plain Text Message
 
 ```http
-POST /v1/conversations/:id/messages
+POST /api/v1/conversations/:id/messages
 Authorization: Bearer dk_live_...
 X-App-Id: app_...
 Content-Type: application/json
@@ -88,7 +88,7 @@ Content-Type: application/json
 ### Send a Lexical Rich Text Message
 
 ```http
-POST /v1/conversations/:id/messages
+POST /api/v1/conversations/:id/messages
 Authorization: Bearer dk_live_...
 X-App-Id: app_...
 Content-Type: application/json
@@ -104,7 +104,7 @@ The response includes `contentHtml: "<p><b>Important:</b> Your order has shipped
 ### Read Messages with Rich Content
 
 ```http
-GET /v1/conversations/:id/messages
+GET /api/v1/conversations/:id/messages
 Authorization: Bearer dk_live_...
 X-App-Id: app_...
 ```

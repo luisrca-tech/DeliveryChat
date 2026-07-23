@@ -37,7 +37,7 @@ This document is a study guide for the Better Auth integration and the multi-ten
 
 - **Tenant** is derived from the incoming request `Host` header.
   - Dev: `tenant.localhost`
-  - Prod: `tenant.deliverychat.com`
+  - Prod: `tenant.deliverychat.online`
 - The resolved subdomain is mapped to an organization:
   - `subdomain` → `organization.slug` → `organization.id`
 
@@ -108,7 +108,7 @@ Better Auth uses `boolean` for `emailVerified`, but we store timestamps in Postg
 Reset emails contain subdomain-specific URLs:
 
 - System looks up user's organization
-- Generates URL like `https://{subdomain}.deliverychat.com/reset-password?token={token}`
+- Generates URL like `https://{subdomain}.deliverychat.online/reset-password?token={token}`
 - User stays in their tenant context during password reset
 
 ### 7) SSR gotchas in the Admin app

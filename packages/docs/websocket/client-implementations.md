@@ -1,6 +1,6 @@
 # Client Implementations
 
-Two independent WebSocket clients connect to the same server endpoint (`/v1/ws`) with different authentication strategies and state management approaches.
+Two independent WebSocket clients connect to the same server endpoint (`/api/v1/ws`) with different authentication strategies and state management approaches.
 
 ## Admin Dashboard Client
 
@@ -32,7 +32,7 @@ class WebSocketManager {
 **Connection URL:**
 
 ```
-wss://{apiBaseUrl}/v1/ws?tenant={slug}&sessionToken={token}
+wss://{apiBaseUrl}/api/v1/ws?tenant={slug}&sessionToken={token}
 ```
 
 **Key behaviors:**
@@ -109,7 +109,7 @@ function disconnectWS(): void;
 **Connection URL:**
 
 ```
-ws[s]://{apiBaseUrl}/v1/ws?appId={appId}&visitorId={visitorId}
+ws[s]://{apiBaseUrl}/api/v1/ws?appId={appId}&visitorId={visitorId}
 ```
 
 Protocol is inferred from the API base URL: `https` → `wss`, `http` → `ws`.
