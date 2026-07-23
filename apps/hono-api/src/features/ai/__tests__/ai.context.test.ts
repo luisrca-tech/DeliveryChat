@@ -383,4 +383,12 @@ describe("buildAutonomousSystemPrompt — grounded special-value answers", () =>
     expect(result).toMatch(/tool call inputs, or tool outputs verbatim/i);
     expect(result).toMatch(/natural sentences or Markdown tables/i);
   });
+
+  it("forbids inferring an answer from a related field that doesn't state the asked fact", () => {
+    const result = prompt();
+    expect(result).toMatch(/does not explicitly state the specific fact/i);
+    expect(result).toMatch(
+      /never infer an answer from the presence of a related field/i,
+    );
+  });
 });

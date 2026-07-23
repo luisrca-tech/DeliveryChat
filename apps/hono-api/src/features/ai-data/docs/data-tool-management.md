@@ -87,14 +87,17 @@ source, via this same admin CRUD:
    - **`getPlanInfo`** — `backingType: "http"`,
      `urlTemplate: "/api/v1/public/plans"`, empty `inputSchema` (the endpoint
      takes no params). Description e.g. _"Returns DeliveryChat's plans with
-     names, monthly prices (BRL/USD) and limits. Call this whenever the
-     visitor asks about pricing, plan tiers, or feature limits."_
+     each plan's monthly price (BRL/USD) and per-plan quotas — how many API
+     keys and members, the AI message cap, whether the AI add-on is available.
+     Use ONLY for cost, 'how many', or 'which plan' questions. Do NOT use it for
+     how a feature works or how to use it (e.g. whether the widget needs an API
+     key) — send those to searchDocs."_
    - **`searchDocs`** — `urlTemplate: "/api/v1/public/docs/search?q={query}"`,
      `inputSchema: { query: string }`. Description e.g. _"Full-text search over
-     DeliveryChat's documentation (widget install, SDK methods, REST API).
-     Returns matching pages with a title, url and snippet. Use this FIRST to
-     locate the right page for any 'how do I…' question, then fetch it with
-     getDocsPage."_
+     DeliveryChat's documentation — widget install, appId, API keys (what they
+     are, when they're required, how to authenticate), SDK, REST API, AI setup.
+     Use this FIRST for any 'how do I… / do I need… / what is…' question about
+     how the product works, then fetch the page with getDocsPage."_
    - **`getDocsPage`** — `urlTemplate: "/api/v1/public/docs/pages/{slug}"`,
      `inputSchema: { slug: string }`. Description e.g. _"Fetches the full text
      of one documentation page by its slug (from a searchDocs result, e.g.
@@ -109,6 +112,17 @@ from the endpoint's code. Spell out _when_ to call each tool and _how they
 chain_ (search → get page), so the assistant grounds answers in a real page
 instead of guessing. This is the same "escalate, never fabricate" guarantee:
 the model only states what a tool actually returned.
+
+**Disambiguate overlapping tools.** When a term lives in two tools — the plan
+tool's `apiKeys` quota vs. the docs page explaining API keys — each description
+must state which questions it owns _and_ which it does not. Otherwise the model
+routes "do I need an API key for the widget?" to `getPlanInfo` (its description
+says "API keys") and answers from a quota number that never addressed the
+question. Scope by intent: quotas/prices → the plan tool; "how it works / do I
+need" → the docs tool. A regression case for exactly this lives in
+`packages/docs/how-to-qa-ai-runtime.md` (Conversation T1). The grounding prompt
+also backstops it — see the "does not explicitly state the specific fact" rule
+in `features/ai/ai.context.ts` (`autonomousGroundingSection`).
 
 **Dev-environment caveat:** the SSRF guard (`ssrfGuard.ts`) rejects any
 `allowedHost` that resolves to a private/loopback address, which blocks

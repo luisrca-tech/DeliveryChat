@@ -39,7 +39,7 @@ In the terminal running the API, every autonomous turn prints:
 
 - `[ai-turn] tool:call` — `{ tool, input }` — the tool name **and its arguments** (`{"query":"api key"}`, `{"slug":"api-keys"}`). **This is the line that proves tool selection.**
 - `[ai-turn] tool:result` — `{ tool, ok, ms, preview }` — the returned JSON, an `ok` flag, latency. **`preview` is truncated to 500 chars** — enough to confirm the shape, not always the full body.
-- `[ai-turn] turn result` — `{ finishReason, toolCalls }` — the ordered list of tool **names** for the whole turn, plus the finish reason.
+- `[ai-turn] turn result` — `{ finishReason, toolCalls }` — **caution:** this `toolCalls` array only lists tools called in the model's **final step**. When the turn ends with a text reply (the normal case), it prints `toolCalls: []` **even though tools were called earlier**. Do **not** use it to judge which tools ran — use the `tool:call` lines above. `finishReason`/`escalated` are still reliable.
 
 To isolate them from the combined dev output:
 
@@ -48,9 +48,11 @@ To isolate them from the combined dev output:
 … 2>&1 | grep --line-buffered '\[ai-turn\]'
 ```
 
+> **Which tools ran = count the `tool:call` lines**, in order. The `turn result` `toolCalls` array is unreliable (final-step only — usually `[]`).
+>
 > **Reading a chain.** An "API keys" question should print, in order:
-> `tool:call searchDocs {"query":"…api key…"}` → `tool:result searchDocs ok` → `tool:call getDocsPage {"slug":"api-keys"}` → `tool:result getDocsPage ok` → `turn result … toolCalls:["searchDocs","getDocsPage"]`.
-> If `getDocsPage` never appears, the AI answered from a search snippet alone — note it.
+> `tool:call searchDocs {"query":"…api key…"}` → `tool:result searchDocs ok` → `tool:call getDocsPage {"slug":"api-keys"}` → `tool:result getDocsPage ok` → then the text reply.
+> If no `tool:call getDocsPage` line appears, the AI answered from a search snippet alone (or the wrong tool) — note it.
 
 > **How `searchDocs` ranks** (so you can predict what a `query` returns): it tokenizes the query (tokens ≥2 chars), scores an exact-phrase hit at `tokens×10`, each token `+2` in a title and `+1` in body, and returns the **top 5** with a ~300-char snippet. This is why a vague one-word query pulls several loosely-related pages — which is exactly what the misalignment cases below stress.
 
@@ -68,7 +70,7 @@ To isolate them from the combined dev output:
 
 **Expect:** an answer containing **R$ 240** (and/or **$49**). Arrives within a few seconds, badged as AI in both widget and inbox.
 
-**Trace:** `tool:call getPlanInfo` (no args) → `getPlanInfo ok` → `toolCalls:["getPlanInfo"]`. A pricing question must **not** touch `searchDocs`.
+**Trace:** exactly one `tool:call getPlanInfo` (no args) → `tool:result getPlanInfo ok` → text reply. A pricing question must **not** produce a `tool:call searchDocs` line. (`turn result` will show `toolCalls: []` — that's expected; trust the `tool:call` line.)
 
 > **You:** `And the Basic one?`
 
@@ -100,7 +102,7 @@ To isolate them from the combined dev output:
 
 **Expect:** real install guidance from the docs, ideally with a `docs.deliverychat.online` link. This proves `searchDocs` handles a natural multi-word phrase.
 
-**Trace:** `searchDocs {"query": …install…widget…}` → `getDocsPage {"slug":"chat-widget"}` → `toolCalls:["searchDocs","getDocsPage"]`.
+**Trace:** a `tool:call searchDocs {"query": …install…widget…}` line, then a `tool:call getDocsPage {"slug":"chat-widget"}` line, then the reply.
 
 > **You:** `How do I identify a logged-in user in the SDK?`
 
@@ -163,8 +165,10 @@ Each row is a fresh conversation. Type the phrasing, then confirm the trace matc
 
 **Expect:** No — the widget uses only the appId (public); an API key is for the SDK / REST API.
 
-**Trace:** `searchDocs {"query": ≈"api key widget"}` → `getDocsPage {"slug":"api-keys"}` → `toolCalls:["searchDocs","getDocsPage"]`.
-**Red flags:** answers from the search snippet without `getDocsPage`; or calls `getPlanInfo` (that's the _limit_, not this question).
+**Trace:** a `tool:call searchDocs {"query": ≈"api key widget"}` line → `tool:call getDocsPage {"slug":"api-keys"}` line → reply.
+**Red flags:** answers from the search snippet without a `getDocsPage` line; or calls `getPlanInfo` (that's the _limit_, not this question).
+
+> **Observed real failure (weak model).** On the free model this question produced a single `tool:call getPlanInfo` and the confidently **wrong** answer _"Yes, you need an API key to initialize the widget."_ The model saw the `apiKeys` quota field in the plans JSON and confabulated a "yes" the data never stated — a compound of wrong-tool-selection **and** ungrounded inference. If you see this: the fix is a stronger model and/or a sharper `getPlanInfo` description that stops it triggering on the word "API key." This is the canonical case to re-run after any model or description change.
 
 ### Conversation T2 — Narrow fact inside a broad page
 
@@ -212,7 +216,7 @@ This is the core worry: `searchDocs` returns up to five pages, and a page body i
 
 > **You:** `Thanks, that's helpful — just say hi back!`
 
-**Expect:** a short friendly reply, **no tool call, no escalation.** **Trace:** `turn result` with an empty `toolCalls` list. This guards the opposite failure — calling a tool (or escalating) when nothing was asked.
+**Expect:** a short friendly reply, **no tool call, no escalation.** **Trace:** **zero `tool:call` lines** for the turn, and `escalated: false`. (Don't rely on `turn result toolCalls: []` here — it prints `[]` whether or not tools ran; the real signal is the _absence_ of any `tool:call` line.) This guards the opposite failure — calling a tool (or escalating) when nothing was asked.
 
 ---
 

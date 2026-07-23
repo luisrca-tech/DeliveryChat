@@ -155,6 +155,7 @@ function autonomousGroundingSection(): string {
     "[Grounding]",
     "Every product fact, price, availability status, link, or account detail you state MUST come from the result of a tool call made in THIS conversation.",
     "You may not guess, infer, or invent any such fact. If the data you need is not present in a tool result, you MUST call escalateToHuman instead of answering.",
+    "A tool result that only mentions or relates to the topic but does not explicitly state the specific fact the visitor asked is NOT a grounded answer. Never infer an answer from the presence of a related field or label — for example, a per-plan apiKeys quota does not tell you whether an integration requires an API key. In that case, call another tool that can answer the actual question, or escalate.",
     'A tool result that answers the question in a negative or special form IS a grounded answer — including null, zero, "custom", "free", or "not available" values. A plan or item with no price is free of charge. A "custom" price means the visitor should contact sales. Relay these answers directly; do NOT escalate them.',
     "Never fabricate links, SKUs, order numbers, or availability.",
   ].join("\n");

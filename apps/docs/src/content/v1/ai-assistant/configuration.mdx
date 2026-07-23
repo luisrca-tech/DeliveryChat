@@ -4,11 +4,14 @@ Once the AI Assistant add-on is active (see
 [Eligibility & Pricing](/v1/ai-assistant/eligibility-and-pricing)), configure it
 per application from the admin dashboard.
 
-<Callout type="warning" title="Data-connection requires the AI Assistant add-on">
+<Callout
+  type="warning"
+  title="Data-connection requires the AI Assistant add-on"
+>
   Connecting a live HTTP endpoint or database is part of the AI Assistant
   add-on. If the add-on isn't active for your organization, the tool
-  configuration below won't be available — enable it from **Settings →
-  Billing** (available on Premium and Enterprise plans).
+  configuration below won't be available — enable it from **Settings → Billing**
+  (available on Premium and Enterprise plans).
 </Callout>
 
 <StepByStep
@@ -18,54 +21,89 @@ per application from the admin dashboard.
       title: "Enable the add-on",
       content: (
         <>
-          <p>From Settings → Billing (super_admin only). See <a href="/v1/ai-assistant/eligibility-and-pricing">Eligibility & Pricing</a>.</p>
+          <p>
+            From Settings → Billing (super_admin only). See{" "}
+            <a href="/v1/ai-assistant/eligibility-and-pricing">
+              Eligibility & Pricing
+            </a>
+            .
+          </p>
         </>
-      )
+      ),
     },
     {
       title: "Configure a data source",
       content: (
         <>
-          <p>Per application, connect exactly one data source: either an HTTP API or a read-only database.</p>
+          <p>
+            Per application, connect exactly one data source: either an HTTP API
+            or a read-only database.
+          </p>
           <ul>
-            <li><strong>HTTP:</strong> a base URL and an allowed host — the AI can only reach GET endpoints on that host.</li>
-            <li><strong>Read-only SQL:</strong> a connection string for a database user that only has SELECT privileges.</li>
+            <li>
+              <strong>HTTP:</strong> a base URL and an allowed host — the AI can
+              only reach GET endpoints on that host.
+            </li>
+            <li>
+              <strong>Read-only SQL:</strong> a connection string for a database
+              user that only has SELECT privileges.
+            </li>
           </ul>
         </>
-      )
+      ),
     },
     {
       title: "Add tools",
       content: (
         <>
-          <p>A tool is a named, described capability built on top of the data source — for example, "Look up order status by order ID". The AI chooses which tool to call, and with what arguments, based purely on the tool's <strong>name</strong>, <strong>description</strong>, and <strong>input schema</strong>. Write a specific, unambiguous description — that's the only signal the model has.</p>
+          <p>
+            A tool is a named, described capability built on top of the data
+            source — for example, "Look up order status by order ID". The AI
+            chooses which tool to call, and with what arguments, based purely on
+            the tool's <strong>name</strong>, <strong>description</strong>, and{" "}
+            <strong>input schema</strong>. Write a specific, unambiguous
+            description — that's the only signal the model has.
+          </p>
         </>
-      )
+      ),
     },
     {
       title: "Send a test request",
       content: (
         <>
-          <p>Every tool must be tested before it can be enabled. Run a test request with sample parameters and confirm it returns the data you expect.</p>
+          <p>
+            Every tool must be tested before it can be enabled. Run a test
+            request with sample parameters and confirm it returns the data you
+            expect.
+          </p>
         </>
-      )
+      ),
     },
     {
       title: "Enable the tool",
       content: (
         <>
-          <p>Once a tool has passed a test, flip it to enabled. Any later edit to the tool (name, description, schema, or config) resets it back to untested and disabled — it needs a fresh passing test before it can be re-enabled.</p>
+          <p>
+            Once a tool has passed a test, flip it to enabled. Any later edit to
+            the tool (name, description, schema, or config) resets it back to
+            untested and disabled — it needs a fresh passing test before it can
+            be re-enabled.
+          </p>
         </>
-      )
+      ),
     },
     {
       title: "Turn on AI auto-respond",
       content: (
         <>
-          <p>Per application, turn on auto-respond so the AI actually answers visitor messages. Until this is on, the assistant stays configured but silent for that application.</p>
+          <p>
+            Per application, turn on auto-respond so the AI actually answers
+            visitor messages. Until this is on, the assistant stays configured
+            but silent for that application.
+          </p>
         </>
-      )
-    }
+      ),
+    },
   ]}
 />
 
@@ -94,11 +132,11 @@ requirements:
 **Worked example.** DeliveryChat's own assistant is configured this way — it
 answers pricing and setup questions using our public API:
 
-| Tool | Description (what the model sees) | URL template |
-| --- | --- | --- |
-| `getPlanInfo` | "Get subscription plans with current prices and limits." | `/api/v1/public/plans` |
-| `searchDocs` | "Search the documentation. Returns sections with links." | `/api/v1/public/docs/search?q={query}` |
-| `getDocsPage` | "Fetch one documentation page by slug." | `/api/v1/public/docs/pages/{slug}` |
+| Tool          | Description (what the model sees)                                                                                                                                                                                            | URL template                           |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `getPlanInfo` | "Plan prices (BRL/USD) and per-plan quotas — how many API keys and members, the AI message cap, whether the AI add-on is available. Use ONLY for cost / 'how many' / 'which plan' questions, not for how a feature works."   | `/api/v1/public/plans`                 |
+| `searchDocs`  | "Search the docs — widget install, appId, API keys (what they are, when they're required, how to authenticate), SDK, REST API, AI setup. Use for any 'how do I / do I need / what is' question about how the product works." | `/api/v1/public/docs/search?q={query}` |
+| `getDocsPage` | "Fetch the full text of one docs page by slug, from a searchDocs result. Use when the snippet isn't enough."                                                                                                                 | `/api/v1/public/docs/pages/{slug}`     |
 
 A typical e-commerce setup looks the same with different nouns: a
 `searchProducts` tool over your catalog endpoint, a `checkAvailability` tool
@@ -109,6 +147,19 @@ endpoint.
   Expose them as a small search endpoint (query in, matching sections + links
   out) and register it as a tool — that's exactly how DeliveryChat's assistant
   answers "how do I install the widget?" questions from these very docs.
+</Callout>
+
+<Callout
+  type="warning"
+  title="When two tools cover the same word, spell out the boundary"
+>
+  If a term appears in more than one tool — e.g. a plan tool has an `apiKeys`
+  quota and a docs tool explains what API keys are — say in each description
+  which questions it owns and which it does **not**. A description like "use for
+  anything about API keys" will pull the plan tool into "do I need an API key
+  for the widget?", and the model will answer from a quota number that never
+  addressed the question. Scope by intent: quotas/prices go to the plan tool;
+  "how it works / do I need" go to the docs tool.
 </Callout>
 
 ## The read-only guarantee
@@ -142,13 +193,13 @@ URL — the AI can never reach an arbitrary domain, only the one you connected.
     {
       title: "Escalation & Handoff",
       href: "/v1/ai-assistant/escalation",
-      description: "What happens when the AI can't answer"
+      description: "What happens when the AI can't answer",
     },
     {
       title: "Security & Privacy",
       href: "/v1/ai-assistant/security",
-      description: "SSRF protections, encryption, and quota"
-    }
+      description: "SSRF protections, encryption, and quota",
+    },
   ]}
   columns={2}
 />
