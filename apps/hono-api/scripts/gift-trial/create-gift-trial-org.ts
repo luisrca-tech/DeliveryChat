@@ -4,13 +4,21 @@ import { db } from "../../src/db/index.js";
 import { auth } from "../../src/lib/auth.js";
 import { user } from "../../src/db/schema/users.js";
 import { organization } from "../../src/db/schema/organization.js";
+import {
+  GIFT_TRIAL_ACCOUNTS,
+  type GiftTrialAccount,
+} from "./giftTrialAccounts.js";
 
 /**
  * Gift-trial account creation script.
  *
- * Creates a login-ready, email-verified, ACTIVE organization + super_admin
- * admin user WITHOUT going through the OTP / email-verification flow (the
- * target email is a placeholder that does not receive mail).
+ * Iterates over every account in `giftTrialAccounts.ts` and creates a
+ * login-ready, email-verified, ACTIVE organization + super_admin admin user
+ * WITHOUT going through the OTP / email-verification flow (the target emails are
+ * placeholders that do not receive mail).
+ *
+ * Accounts that already exist (by admin email OR organization slug) are SKIPPED,
+ * so re-running the script only creates whatever is missing.
  *
  * It intentionally leaves the plan on the default FREE tier — the PREMIUM tier
  * and the AI add-on are meant to be purchased afterwards through the real
@@ -28,31 +36,26 @@ import { organization } from "../../src/db/schema/organization.js";
  *   # or: bun run gift-trial:create  (from apps/hono-api)
  */
 
-const GIFT_TRIAL = {
-  companyName: "Okane Marketing Trial",
-  subdomain: "okane-marketing",
-  admin: {
-    name: "Andrew Okane",
-    email: "andrew@okn.trial",
-    password: "Okanetrial123@",
-  },
-} as const;
-
 function nowIso(): string {
   return new Date().toISOString();
 }
 
-async function main() {
-  const { companyName, subdomain, admin } = GIFT_TRIAL;
+type CreateOutcome =
+  | { status: "created"; orgId: string; userId: string }
+  | { status: "skipped"; reason: string }
+  | { status: "failed"; reason: string };
+
+async function createAccount(
+  account: GiftTrialAccount,
+): Promise<CreateOutcome> {
+  const { companyName, subdomain, admin } = account;
   const { name, email, password } = admin;
 
-  console.log("[gift-trial:create] Starting.");
-  console.log(`[gift-trial:create] Company : ${companyName}`);
-  console.log(`[gift-trial:create] Subdomain: ${subdomain}`);
-  console.log(`[gift-trial:create] Admin   : ${name} <${email}>`);
+  console.log(`\n[gift-trial:create] === ${companyName} (${subdomain}) ===`);
+  console.log(`[gift-trial:create] Admin: ${name} <${email}>`);
 
-  // --- Pre-flight: refuse to run against a pre-existing user or slug ---------
-  // This keeps the script simple and avoids Better Auth's reactivation path
+  // --- Pre-flight: skip if the user or slug already exists -------------------
+  // This keeps the script idempotent and avoids Better Auth's reactivation path
   // (which uses a bcrypt hash that does not verify on login).
   const existingUser = await db
     .select({ id: user.id })
@@ -61,10 +64,9 @@ async function main() {
     .limit(1);
 
   if (existingUser.length > 0) {
-    console.error(
-      `[gift-trial:create] A user with email "${email}" already exists (id=${existingUser[0].id}). Aborting. Run the delete script first if you want a clean re-create.`,
-    );
-    process.exit(2);
+    const reason = `user "${email}" already exists (id=${existingUser[0].id})`;
+    console.log(`[gift-trial:create] SKIP — ${reason}.`);
+    return { status: "skipped", reason };
   }
 
   const existingOrg = await db
@@ -74,10 +76,9 @@ async function main() {
     .limit(1);
 
   if (existingOrg.length > 0) {
-    console.error(
-      `[gift-trial:create] An organization with slug "${subdomain}" already exists (id=${existingOrg[0].id}). Aborting.`,
-    );
-    process.exit(2);
+    const reason = `slug "${subdomain}" already exists (id=${existingOrg[0].id})`;
+    console.log(`[gift-trial:create] SKIP — ${reason}.`);
+    return { status: "skipped", reason };
   }
 
   // --- 1. Create the user + credential account (scrypt-hashed password) ------
@@ -89,8 +90,10 @@ async function main() {
 
   const userId = signUpResponse.response?.user?.id;
   if (!userId) {
-    console.error("[gift-trial:create] signUpEmail did not return a user id.");
-    process.exit(1);
+    return {
+      status: "failed",
+      reason: "signUpEmail did not return a user id",
+    };
   }
   console.log(`[gift-trial:create] User created: ${userId}`);
 
@@ -113,7 +116,10 @@ async function main() {
       "[gift-trial:create] createOrganization did not return an org id. Cleaning up the orphan user.",
     );
     await db.delete(user).where(eq(user.id, userId));
-    process.exit(1);
+    return {
+      status: "failed",
+      reason: "createOrganization did not return an org id",
+    };
   }
   console.log(`[gift-trial:create] Organization created: ${orgId}`);
 
@@ -144,41 +150,69 @@ async function main() {
   );
 
   // --- 4. Self-check: prove the credentials actually log in ------------------
-  try {
-    const signIn = await auth.api.signInEmail({
-      body: { email, password },
-      headers: new Headers(),
-    });
-    if (!signIn?.user?.id) {
-      throw new Error("signInEmail returned no user");
+  const signIn = await auth.api.signInEmail({
+    body: { email, password },
+    headers: new Headers(),
+  });
+  if (!signIn?.user?.id) {
+    return {
+      status: "failed",
+      reason: "login self-check failed — credentials did not verify",
+    };
+  }
+  console.log("[gift-trial:create] Login self-check PASSED.");
+
+  return { status: "created", orgId, userId };
+}
+
+async function main() {
+  console.log("[gift-trial:create] Starting.");
+
+  const results: Array<{ account: GiftTrialAccount; outcome: CreateOutcome }> =
+    [];
+
+  for (const account of GIFT_TRIAL_ACCOUNTS) {
+    try {
+      const outcome = await createAccount(account);
+      results.push({ account, outcome });
+    } catch (error) {
+      console.error(
+        `[gift-trial:create] Error creating ${account.subdomain}:`,
+        error,
+      );
+      results.push({
+        account,
+        outcome: {
+          status: "failed",
+          reason: error instanceof Error ? error.message : "unknown error",
+        },
+      });
     }
-    console.log("[gift-trial:create] Login self-check PASSED.");
-  } catch (error) {
-    console.error(
-      "[gift-trial:create] Login self-check FAILED — the account exists but credentials did not verify:",
-      error,
-    );
-    process.exit(1);
   }
 
-  // --- Summary: copy these IDs into delete-gift-trial-org.ts -----------------
+  // --- Summary ---------------------------------------------------------------
   console.log("\n========================================================");
-  console.log(" GIFT TRIAL ACCOUNT CREATED");
+  console.log(" GIFT TRIAL — SUMMARY");
   console.log("========================================================");
-  console.log(` Company   : ${companyName}`);
-  console.log(` Subdomain : ${subdomain}`);
-  console.log(` Login     : ${email} / ${password}`);
-  console.log(
-    ` Plan      : FREE (buy PREMIUM + AI add-on via Stripe checkout)`,
-  );
-  console.log("--------------------------------------------------------");
-  console.log(" Paste these into delete-gift-trial-org.ts:");
-  console.log(`   const ORG_ID = "${orgId}";`);
-  console.log(`   const USER_ID = "${userId}";`);
-  console.log(`   const ADMIN_EMAIL = "${email}";`);
+  for (const { account, outcome } of results) {
+    const { companyName, subdomain, admin } = account;
+    if (outcome.status === "created") {
+      console.log(` [CREATED] ${companyName} (${subdomain})`);
+      console.log(`           Login: ${admin.email} / ${admin.password}`);
+      console.log(`           org=${outcome.orgId} user=${outcome.userId}`);
+      console.log(
+        `           Plan: FREE (buy PREMIUM + AI add-on via Stripe checkout)`,
+      );
+    } else if (outcome.status === "skipped") {
+      console.log(` [SKIPPED] ${companyName} (${subdomain}) — ${outcome.reason}`);
+    } else {
+      console.log(` [FAILED]  ${companyName} (${subdomain}) — ${outcome.reason}`);
+    }
+  }
   console.log("========================================================\n");
 
-  process.exit(0);
+  const anyFailed = results.some((r) => r.outcome.status === "failed");
+  process.exit(anyFailed ? 1 : 0);
 }
 
 main().catch((err) => {
