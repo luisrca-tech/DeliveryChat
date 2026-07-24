@@ -35,8 +35,8 @@ import { verification } from "../../src/db/schema/verification.js";
  */
 
 // ---- Fill these from the create script's summary block ----------------------
-const ORG_ID = "";
-const USER_ID = "";
+const ORG_ID = "S5NCH7OqQiyq0ORoRwphXwCVRAL1lGvU";
+const USER_ID = "IU2m0ujbj9tLhhxVdMqM4xjz0IiJnPpW";
 const ADMIN_EMAIL = "andrew@okn.trial";
 // -----------------------------------------------------------------------------
 
