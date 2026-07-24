@@ -8,18 +8,18 @@ The marketing demo (`ChatDemoIsland`) is a **bespoke client**. It calls the same
 not a plan gate, not a developer opt-in, just UI the demo never implemented.
 
 The gap mattered because escalation is a selling point the demo couldn't
-demonstrate. AI auto-replies and *automatic* escalations already worked here,
+demonstrate. AI auto-replies and _automatic_ escalations already worked here,
 because the AI turn is triggered **server-side** when a visitor message arrives
 — it doesn't care which client sent it. Only the manual, visitor-initiated
 escalation was missing.
 
 ## Shape
 
-| Piece | Responsibility |
-| --- | --- |
-| `lib/handoffOffer.ts` | Pure rule: `{ hidden, disabled }` from conversation state |
-| `hooks/useHumanHandoff.ts` | AI-entitlement fetch, per-conversation request flag, the escalate call |
-| `components/ChatDemoComponents.tsx` | Renders the header button and the error row |
+| Piece                               | Responsibility                                                         |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `lib/handoffOffer.ts`               | Pure rule: `{ hidden, disabled }` from conversation state              |
+| `hooks/useHumanHandoff.ts`          | AI-entitlement fetch, per-conversation request flag, the escalate call |
+| `components/ChatDemoComponents.tsx` | Renders the header button and the error row                            |
 
 The rule is pure and separately tested so the escalation-offer invariant can be
 asserted without React, a fetch, or a DOM.
@@ -27,7 +27,7 @@ asserted without React, a fetch, or a DOM.
 ## The rules
 
 **Hidden** when AI is off for the application, or before a conversation is
-selected. Without AI there is nothing to escalate *from* — the visitor is
+selected. Without AI there is nothing to escalate _from_ — the visitor is
 already queued for humans, so offering to connect them to one is noise.
 
 **Disabled** once the visitor has already requested a human, once an operator
@@ -35,7 +35,7 @@ has spoken, or once the conversation is closed. Each means the click would be a
 server-side no-op or a 409.
 
 `aiEnabled` comes from `GET /widget/settings/:appId` → `ai.enabled`, which the
-API derives from the *full* entitlement (plan + add-on + `aiEnabled` +
+API derives from the _full_ entitlement (plan + add-on + `aiEnabled` +
 `aiAutoRespond`). The demo never decides this locally, so it cannot offer an
 affordance the backend would reject.
 

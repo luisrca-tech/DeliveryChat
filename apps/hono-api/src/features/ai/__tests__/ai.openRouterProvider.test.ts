@@ -11,9 +11,7 @@ vi.mock("ai", () => ({
 }));
 
 vi.mock("@openrouter/ai-sdk-provider", () => ({
-  createOpenRouter: vi.fn(() =>
-    Object.assign(vi.fn(), { chat }),
-  ),
+  createOpenRouter: vi.fn(() => Object.assign(vi.fn(), { chat })),
 }));
 
 const { generateText, generateObject } = await import("ai");

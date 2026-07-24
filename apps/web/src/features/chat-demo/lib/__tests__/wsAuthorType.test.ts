@@ -45,11 +45,7 @@ describe("wsMessageReducer — authorType passthrough", () => {
   it("leaves authorType undefined when the server omits it", () => {
     // The field is optional for backward compatibility — an older payload must
     // still produce a renderable message, just without AI styling.
-    const { state } = wsMessageReducer(
-      emptyState,
-      messageNewEvent(),
-      "conv-1",
-    );
+    const { state } = wsMessageReducer(emptyState, messageNewEvent(), "conv-1");
     expect(state.messages[0]?.authorType).toBeUndefined();
     expect(state.messages[0]?.content).toBe("Premium costs R$ 240.");
   });

@@ -46,7 +46,9 @@ describe("renderAiMarkdownToHtml", () => {
   });
 
   it("escapes HTML so model output can never inject markup", () => {
-    const result = renderAiMarkdownToHtml('<script>alert("x")</script> & <b>hi</b>');
+    const result = renderAiMarkdownToHtml(
+      '<script>alert("x")</script> & <b>hi</b>',
+    );
     expect(result).not.toContain("<script");
     expect(result).not.toContain("<b>");
     expect(result).toContain("&amp;");

@@ -41,7 +41,9 @@
     "test:cleanup": "infisical run --path=/hono-api -- tsx scripts/test-cleanup.ts",
     "cron:trial-ending": "tsx scripts/cron-trial-ending.ts",
     "cron:cleanup": "tsx scripts/cron-cleanup.ts",
-    "backfill:allowed-origins": "infisical run --path=/hono-api -- tsx scripts/backfill-allowed-origins.ts"
+    "backfill:allowed-origins": "infisical run --path=/hono-api -- tsx scripts/backfill-allowed-origins.ts",
+    "gift-trial:create": "infisical run --path=/hono-api -- tsx scripts/gift-trial/create-gift-trial-org.ts",
+    "gift-trial:delete": "infisical run --path=/hono-api -- tsx scripts/gift-trial/delete-gift-trial-org.ts"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.6",

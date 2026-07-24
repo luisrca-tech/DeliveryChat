@@ -8,7 +8,7 @@ The AI feature is split into focused modules, each with a single responsibility:
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `ai.callOrchestrator.ts`     | **Sole** writer to `aiUsageLog`. Owns retry policy, request execution, response parsing/sanitisation hook, content-filter detection, error classification, and best-effort usage logging. Single typed entry point: `runAICall<TRaw, TParsed>(params)`. Joins the caller's transaction when `tx` is passed. |
 | `ai.providerPort.ts`         | `AIProviderPort` interface + request/response types. Defines the boundary tests inject against. No SDK imports.                                                                                                                                                                                             |
-| `ai.openRouterProvider.ts`   | `OpenRouterProvider` (OpenRouter SDK) + `createAIProvider(model, apiKey)` factory. The only file that imports `@openrouter/ai-sdk-provider`.                                                                                                                                                              |
+| `ai.openRouterProvider.ts`   | `OpenRouterProvider` (OpenRouter SDK) + `createAIProvider(model, apiKey)` factory. The only file that imports `@openrouter/ai-sdk-provider`.                                                                                                                                                                |
 | `ai.mockProvider.ts`         | `MockProvider` (in-memory fake) for tests and `mock://*` models.                                                                                                                                                                                                                                            |
 | `ai.interview.engine.ts`     | Pure `InterviewTurnEngine` — `next` / `complete` returning `TurnDecision`                                                                                                                                                                                                                                   |
 | `ai.interview.guardRails.ts` | Guard-rail strategy table                                                                                                                                                                                                                                                                                   |
@@ -75,17 +75,20 @@ The OpenRouter SDK is hidden behind the `AIProviderPort` interface. Tests constr
 All AI provider calls route through OpenRouter via the Vercel AI SDK (`@openrouter/ai-sdk-provider`). The gateway enables access to multiple upstream model providers with a unified API.
 
 **Configuration:**
+
 - `OPENROUTER_API_KEY` environment variable (required for production)
 - `AI_MODEL` sets the model identifier (default: `nvidia/nemotron-3-super-120b-a12b:free` — used for all AI actions: autonomous turns, interviews, handoff summaries)
 - Chat settings pass `provider: { require_parameters: true }` to restrict routing to providers supporting tool/response_format constraints
 
 **Error semantics:**
+
 - HTTP 429 (rate limit) — includes `Retry-After` header (seconds); classified as `AIProviderRateLimitError.retryAfterMs`. Only retried if ≤ 10s.
 - HTTP 502 (model provider down) — classified as retryable `AIProviderError` (single retry after 1s)
 - HTTP 503 (no provider meets routing requirements) — classified as retryable `AIProviderError` (single retry after 1s)
 - OpenRouter does not stream responses in our implementation, so the known caveat of upstream errors embedded in 200 responses on streaming paths does not apply
 
 **Free-tier rate caps:**
+
 - 20 requests per minute (account-wide)
 - 50 requests per day (account with < $10 lifetime credits)
 - 1,000 requests per day (account with ≥ $10 lifetime credits)

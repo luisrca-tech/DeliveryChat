@@ -110,7 +110,10 @@ export function assembleTools(input: {
   turnCtx: TurnEscalationContext;
 }): Record<string, AIProviderTool> {
   const tools: Record<string, AIProviderTool> = {
-    [ESCALATE_TOOL_NAME]: buildEscalateTool(input.turnCtx, input.conversationId),
+    [ESCALATE_TOOL_NAME]: buildEscalateTool(
+      input.turnCtx,
+      input.conversationId,
+    ),
   };
 
   if (!input.toolset) return tools;

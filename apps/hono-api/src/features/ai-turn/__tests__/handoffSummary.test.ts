@@ -12,7 +12,9 @@ vi.mock("../../../env.js", () => ({
   },
 }));
 
-vi.mock("../../ai/ai.openRouterProvider.js", () => ({ createAIProvider: vi.fn() }));
+vi.mock("../../ai/ai.openRouterProvider.js", () => ({
+  createAIProvider: vi.fn(),
+}));
 
 vi.mock("../loadContext.js", () => ({
   loadConversationMessages: vi.fn(),

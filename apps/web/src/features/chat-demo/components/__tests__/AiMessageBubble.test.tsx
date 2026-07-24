@@ -18,10 +18,7 @@ function message(over: Partial<OptimisticMessage> = {}): OptimisticMessage {
   };
 }
 
-function renderPanel(
-  messages: OptimisticMessage[],
-  aiAssistantLabel?: string,
-) {
+function renderPanel(messages: OptimisticMessage[], aiAssistantLabel?: string) {
   const noop = vi.fn();
   const editorHandleRef = { current: null as EditorHandle | null };
   return render(

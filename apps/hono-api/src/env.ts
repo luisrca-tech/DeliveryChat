@@ -40,8 +40,14 @@ export const env = createEnv({
         message: "SECRETS_ENCRYPTION_KEY must be a base64-encoded 32-byte key",
       }),
     OPENROUTER_API_KEY: z.string().min(1).optional(),
-    AI_MODEL: z.string().min(1).default("nvidia/nemotron-3-super-120b-a12b:free"),
-    AI_INTERVIEW_MODEL: z.string().min(1).default("nvidia/nemotron-3-super-120b-a12b:free"),
+    AI_MODEL: z
+      .string()
+      .min(1)
+      .default("nvidia/nemotron-3-super-120b-a12b:free"),
+    AI_INTERVIEW_MODEL: z
+      .string()
+      .min(1)
+      .default("nvidia/nemotron-3-super-120b-a12b:free"),
     AI_CONTEXT_MESSAGE_LIMIT: z
       .string()
       .optional()

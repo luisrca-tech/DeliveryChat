@@ -8,471 +8,471 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as SystemRouteImport } from './routes/_system'
-import { Route as PublicRouteImport } from './routes/_public'
-import { Route as SystemIndexRouteImport } from './routes/_system/index'
-import { Route as SystemConversationsRouteImport } from './routes/_system/conversations'
-import { Route as SystemApplicationsRouteImport } from './routes/_system/applications'
-import { Route as PublicResetPasswordRouteImport } from './routes/_public/reset-password'
-import { Route as PublicLoginRouteImport } from './routes/_public/login'
-import { Route as PublicForgotPasswordRouteImport } from './routes/_public/forgot-password'
-import { Route as PublicAcceptInvitationRouteImport } from './routes/_public/accept-invitation'
-import { Route as SystemSettingsIndexRouteImport } from './routes/_system/settings/index'
-import { Route as SystemApplicationsIndexRouteImport } from './routes/_system/applications/index'
-import { Route as SystemSettingsRateLimitsRouteImport } from './routes/_system/settings/rate-limits'
-import { Route as SystemSettingsMembersRouteImport } from './routes/_system/settings/members'
-import { Route as SystemSettingsBillingRouteImport } from './routes/_system/settings/billing'
-import { Route as SystemSettingsApplicationsRouteImport } from './routes/_system/settings/applications'
-import { Route as SystemSettingsApiKeysRouteImport } from './routes/_system/settings/api-keys'
-import { Route as SystemSettingsAiUsageRouteImport } from './routes/_system/settings/ai-usage'
-import { Route as SystemOnboardingPlansRouteImport } from './routes/_system/onboarding/plans'
-import { Route as SystemBillingSuccessRouteImport } from './routes/_system/billing/success'
-import { Route as SystemApplicationsApplicationIdIndexRouteImport } from './routes/_system/applications/$applicationId/index'
-import { Route as SystemApplicationsApplicationIdDataToolsRouteImport } from './routes/_system/applications/$applicationId/data-tools'
-import { Route as SystemApplicationsApplicationIdAiInterviewRouteImport } from './routes/_system/applications/$applicationId/ai-interview'
-import { Route as SystemApplicationsApplicationIdAiContextRouteImport } from './routes/_system/applications/$applicationId/ai-context'
+import { Route as rootRouteImport } from "./routes/__root";
+import { Route as SystemRouteImport } from "./routes/_system";
+import { Route as PublicRouteImport } from "./routes/_public";
+import { Route as SystemIndexRouteImport } from "./routes/_system/index";
+import { Route as SystemConversationsRouteImport } from "./routes/_system/conversations";
+import { Route as SystemApplicationsRouteImport } from "./routes/_system/applications";
+import { Route as PublicResetPasswordRouteImport } from "./routes/_public/reset-password";
+import { Route as PublicLoginRouteImport } from "./routes/_public/login";
+import { Route as PublicForgotPasswordRouteImport } from "./routes/_public/forgot-password";
+import { Route as PublicAcceptInvitationRouteImport } from "./routes/_public/accept-invitation";
+import { Route as SystemSettingsIndexRouteImport } from "./routes/_system/settings/index";
+import { Route as SystemApplicationsIndexRouteImport } from "./routes/_system/applications/index";
+import { Route as SystemSettingsRateLimitsRouteImport } from "./routes/_system/settings/rate-limits";
+import { Route as SystemSettingsMembersRouteImport } from "./routes/_system/settings/members";
+import { Route as SystemSettingsBillingRouteImport } from "./routes/_system/settings/billing";
+import { Route as SystemSettingsApplicationsRouteImport } from "./routes/_system/settings/applications";
+import { Route as SystemSettingsApiKeysRouteImport } from "./routes/_system/settings/api-keys";
+import { Route as SystemSettingsAiUsageRouteImport } from "./routes/_system/settings/ai-usage";
+import { Route as SystemOnboardingPlansRouteImport } from "./routes/_system/onboarding/plans";
+import { Route as SystemBillingSuccessRouteImport } from "./routes/_system/billing/success";
+import { Route as SystemApplicationsApplicationIdIndexRouteImport } from "./routes/_system/applications/$applicationId/index";
+import { Route as SystemApplicationsApplicationIdDataToolsRouteImport } from "./routes/_system/applications/$applicationId/data-tools";
+import { Route as SystemApplicationsApplicationIdAiInterviewRouteImport } from "./routes/_system/applications/$applicationId/ai-interview";
+import { Route as SystemApplicationsApplicationIdAiContextRouteImport } from "./routes/_system/applications/$applicationId/ai-context";
 
 const SystemRoute = SystemRouteImport.update({
-  id: '/_system',
+  id: "/_system",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const PublicRoute = PublicRouteImport.update({
-  id: '/_public',
+  id: "/_public",
   getParentRoute: () => rootRouteImport,
-} as any)
+} as any);
 const SystemIndexRoute = SystemIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemConversationsRoute = SystemConversationsRouteImport.update({
-  id: '/conversations',
-  path: '/conversations',
+  id: "/conversations",
+  path: "/conversations",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemApplicationsRoute = SystemApplicationsRouteImport.update({
-  id: '/applications',
-  path: '/applications',
+  id: "/applications",
+  path: "/applications",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const PublicResetPasswordRoute = PublicResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+  id: "/reset-password",
+  path: "/reset-password",
   getParentRoute: () => PublicRoute,
-} as any)
+} as any);
 const PublicLoginRoute = PublicLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
+  id: "/login",
+  path: "/login",
   getParentRoute: () => PublicRoute,
-} as any)
+} as any);
 const PublicForgotPasswordRoute = PublicForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
+  id: "/forgot-password",
+  path: "/forgot-password",
   getParentRoute: () => PublicRoute,
-} as any)
+} as any);
 const PublicAcceptInvitationRoute = PublicAcceptInvitationRouteImport.update({
-  id: '/accept-invitation',
-  path: '/accept-invitation',
+  id: "/accept-invitation",
+  path: "/accept-invitation",
   getParentRoute: () => PublicRoute,
-} as any)
+} as any);
 const SystemSettingsIndexRoute = SystemSettingsIndexRouteImport.update({
-  id: '/settings/',
-  path: '/settings/',
+  id: "/settings/",
+  path: "/settings/",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemApplicationsIndexRoute = SystemApplicationsIndexRouteImport.update({
-  id: '/',
-  path: '/',
+  id: "/",
+  path: "/",
   getParentRoute: () => SystemApplicationsRoute,
-} as any)
+} as any);
 const SystemSettingsRateLimitsRoute =
   SystemSettingsRateLimitsRouteImport.update({
-    id: '/settings/rate-limits',
-    path: '/settings/rate-limits',
+    id: "/settings/rate-limits",
+    path: "/settings/rate-limits",
     getParentRoute: () => SystemRoute,
-  } as any)
+  } as any);
 const SystemSettingsMembersRoute = SystemSettingsMembersRouteImport.update({
-  id: '/settings/members',
-  path: '/settings/members',
+  id: "/settings/members",
+  path: "/settings/members",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemSettingsBillingRoute = SystemSettingsBillingRouteImport.update({
-  id: '/settings/billing',
-  path: '/settings/billing',
+  id: "/settings/billing",
+  path: "/settings/billing",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemSettingsApplicationsRoute =
   SystemSettingsApplicationsRouteImport.update({
-    id: '/settings/applications',
-    path: '/settings/applications',
+    id: "/settings/applications",
+    path: "/settings/applications",
     getParentRoute: () => SystemRoute,
-  } as any)
+  } as any);
 const SystemSettingsApiKeysRoute = SystemSettingsApiKeysRouteImport.update({
-  id: '/settings/api-keys',
-  path: '/settings/api-keys',
+  id: "/settings/api-keys",
+  path: "/settings/api-keys",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemSettingsAiUsageRoute = SystemSettingsAiUsageRouteImport.update({
-  id: '/settings/ai-usage',
-  path: '/settings/ai-usage',
+  id: "/settings/ai-usage",
+  path: "/settings/ai-usage",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemOnboardingPlansRoute = SystemOnboardingPlansRouteImport.update({
-  id: '/onboarding/plans',
-  path: '/onboarding/plans',
+  id: "/onboarding/plans",
+  path: "/onboarding/plans",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemBillingSuccessRoute = SystemBillingSuccessRouteImport.update({
-  id: '/billing/success',
-  path: '/billing/success',
+  id: "/billing/success",
+  path: "/billing/success",
   getParentRoute: () => SystemRoute,
-} as any)
+} as any);
 const SystemApplicationsApplicationIdIndexRoute =
   SystemApplicationsApplicationIdIndexRouteImport.update({
-    id: '/$applicationId/',
-    path: '/$applicationId/',
+    id: "/$applicationId/",
+    path: "/$applicationId/",
     getParentRoute: () => SystemApplicationsRoute,
-  } as any)
+  } as any);
 const SystemApplicationsApplicationIdDataToolsRoute =
   SystemApplicationsApplicationIdDataToolsRouteImport.update({
-    id: '/$applicationId/data-tools',
-    path: '/$applicationId/data-tools',
+    id: "/$applicationId/data-tools",
+    path: "/$applicationId/data-tools",
     getParentRoute: () => SystemApplicationsRoute,
-  } as any)
+  } as any);
 const SystemApplicationsApplicationIdAiInterviewRoute =
   SystemApplicationsApplicationIdAiInterviewRouteImport.update({
-    id: '/$applicationId/ai-interview',
-    path: '/$applicationId/ai-interview',
+    id: "/$applicationId/ai-interview",
+    path: "/$applicationId/ai-interview",
     getParentRoute: () => SystemApplicationsRoute,
-  } as any)
+  } as any);
 const SystemApplicationsApplicationIdAiContextRoute =
   SystemApplicationsApplicationIdAiContextRouteImport.update({
-    id: '/$applicationId/ai-context',
-    path: '/$applicationId/ai-context',
+    id: "/$applicationId/ai-context",
+    path: "/$applicationId/ai-context",
     getParentRoute: () => SystemApplicationsRoute,
-  } as any)
+  } as any);
 
 export interface FileRoutesByFullPath {
-  '/accept-invitation': typeof PublicAcceptInvitationRoute
-  '/forgot-password': typeof PublicForgotPasswordRoute
-  '/login': typeof PublicLoginRoute
-  '/reset-password': typeof PublicResetPasswordRoute
-  '/applications': typeof SystemApplicationsRouteWithChildren
-  '/conversations': typeof SystemConversationsRoute
-  '/': typeof SystemIndexRoute
-  '/billing/success': typeof SystemBillingSuccessRoute
-  '/onboarding/plans': typeof SystemOnboardingPlansRoute
-  '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
-  '/settings/api-keys': typeof SystemSettingsApiKeysRoute
-  '/settings/applications': typeof SystemSettingsApplicationsRoute
-  '/settings/billing': typeof SystemSettingsBillingRoute
-  '/settings/members': typeof SystemSettingsMembersRoute
-  '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
-  '/applications/': typeof SystemApplicationsIndexRoute
-  '/settings': typeof SystemSettingsIndexRoute
-  '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
-  '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
-  '/applications/$applicationId/data-tools': typeof SystemApplicationsApplicationIdDataToolsRoute
-  '/applications/$applicationId': typeof SystemApplicationsApplicationIdIndexRoute
+  "/accept-invitation": typeof PublicAcceptInvitationRoute;
+  "/forgot-password": typeof PublicForgotPasswordRoute;
+  "/login": typeof PublicLoginRoute;
+  "/reset-password": typeof PublicResetPasswordRoute;
+  "/applications": typeof SystemApplicationsRouteWithChildren;
+  "/conversations": typeof SystemConversationsRoute;
+  "/": typeof SystemIndexRoute;
+  "/billing/success": typeof SystemBillingSuccessRoute;
+  "/onboarding/plans": typeof SystemOnboardingPlansRoute;
+  "/settings/ai-usage": typeof SystemSettingsAiUsageRoute;
+  "/settings/api-keys": typeof SystemSettingsApiKeysRoute;
+  "/settings/applications": typeof SystemSettingsApplicationsRoute;
+  "/settings/billing": typeof SystemSettingsBillingRoute;
+  "/settings/members": typeof SystemSettingsMembersRoute;
+  "/settings/rate-limits": typeof SystemSettingsRateLimitsRoute;
+  "/applications/": typeof SystemApplicationsIndexRoute;
+  "/settings": typeof SystemSettingsIndexRoute;
+  "/applications/$applicationId/ai-context": typeof SystemApplicationsApplicationIdAiContextRoute;
+  "/applications/$applicationId/ai-interview": typeof SystemApplicationsApplicationIdAiInterviewRoute;
+  "/applications/$applicationId/data-tools": typeof SystemApplicationsApplicationIdDataToolsRoute;
+  "/applications/$applicationId": typeof SystemApplicationsApplicationIdIndexRoute;
 }
 export interface FileRoutesByTo {
-  '/accept-invitation': typeof PublicAcceptInvitationRoute
-  '/forgot-password': typeof PublicForgotPasswordRoute
-  '/login': typeof PublicLoginRoute
-  '/reset-password': typeof PublicResetPasswordRoute
-  '/conversations': typeof SystemConversationsRoute
-  '/': typeof SystemIndexRoute
-  '/billing/success': typeof SystemBillingSuccessRoute
-  '/onboarding/plans': typeof SystemOnboardingPlansRoute
-  '/settings/ai-usage': typeof SystemSettingsAiUsageRoute
-  '/settings/api-keys': typeof SystemSettingsApiKeysRoute
-  '/settings/applications': typeof SystemSettingsApplicationsRoute
-  '/settings/billing': typeof SystemSettingsBillingRoute
-  '/settings/members': typeof SystemSettingsMembersRoute
-  '/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
-  '/applications': typeof SystemApplicationsIndexRoute
-  '/settings': typeof SystemSettingsIndexRoute
-  '/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
-  '/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
-  '/applications/$applicationId/data-tools': typeof SystemApplicationsApplicationIdDataToolsRoute
-  '/applications/$applicationId': typeof SystemApplicationsApplicationIdIndexRoute
+  "/accept-invitation": typeof PublicAcceptInvitationRoute;
+  "/forgot-password": typeof PublicForgotPasswordRoute;
+  "/login": typeof PublicLoginRoute;
+  "/reset-password": typeof PublicResetPasswordRoute;
+  "/conversations": typeof SystemConversationsRoute;
+  "/": typeof SystemIndexRoute;
+  "/billing/success": typeof SystemBillingSuccessRoute;
+  "/onboarding/plans": typeof SystemOnboardingPlansRoute;
+  "/settings/ai-usage": typeof SystemSettingsAiUsageRoute;
+  "/settings/api-keys": typeof SystemSettingsApiKeysRoute;
+  "/settings/applications": typeof SystemSettingsApplicationsRoute;
+  "/settings/billing": typeof SystemSettingsBillingRoute;
+  "/settings/members": typeof SystemSettingsMembersRoute;
+  "/settings/rate-limits": typeof SystemSettingsRateLimitsRoute;
+  "/applications": typeof SystemApplicationsIndexRoute;
+  "/settings": typeof SystemSettingsIndexRoute;
+  "/applications/$applicationId/ai-context": typeof SystemApplicationsApplicationIdAiContextRoute;
+  "/applications/$applicationId/ai-interview": typeof SystemApplicationsApplicationIdAiInterviewRoute;
+  "/applications/$applicationId/data-tools": typeof SystemApplicationsApplicationIdDataToolsRoute;
+  "/applications/$applicationId": typeof SystemApplicationsApplicationIdIndexRoute;
 }
 export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/_public': typeof PublicRouteWithChildren
-  '/_system': typeof SystemRouteWithChildren
-  '/_public/accept-invitation': typeof PublicAcceptInvitationRoute
-  '/_public/forgot-password': typeof PublicForgotPasswordRoute
-  '/_public/login': typeof PublicLoginRoute
-  '/_public/reset-password': typeof PublicResetPasswordRoute
-  '/_system/applications': typeof SystemApplicationsRouteWithChildren
-  '/_system/conversations': typeof SystemConversationsRoute
-  '/_system/': typeof SystemIndexRoute
-  '/_system/billing/success': typeof SystemBillingSuccessRoute
-  '/_system/onboarding/plans': typeof SystemOnboardingPlansRoute
-  '/_system/settings/ai-usage': typeof SystemSettingsAiUsageRoute
-  '/_system/settings/api-keys': typeof SystemSettingsApiKeysRoute
-  '/_system/settings/applications': typeof SystemSettingsApplicationsRoute
-  '/_system/settings/billing': typeof SystemSettingsBillingRoute
-  '/_system/settings/members': typeof SystemSettingsMembersRoute
-  '/_system/settings/rate-limits': typeof SystemSettingsRateLimitsRoute
-  '/_system/applications/': typeof SystemApplicationsIndexRoute
-  '/_system/settings/': typeof SystemSettingsIndexRoute
-  '/_system/applications/$applicationId/ai-context': typeof SystemApplicationsApplicationIdAiContextRoute
-  '/_system/applications/$applicationId/ai-interview': typeof SystemApplicationsApplicationIdAiInterviewRoute
-  '/_system/applications/$applicationId/data-tools': typeof SystemApplicationsApplicationIdDataToolsRoute
-  '/_system/applications/$applicationId/': typeof SystemApplicationsApplicationIdIndexRoute
+  __root__: typeof rootRouteImport;
+  "/_public": typeof PublicRouteWithChildren;
+  "/_system": typeof SystemRouteWithChildren;
+  "/_public/accept-invitation": typeof PublicAcceptInvitationRoute;
+  "/_public/forgot-password": typeof PublicForgotPasswordRoute;
+  "/_public/login": typeof PublicLoginRoute;
+  "/_public/reset-password": typeof PublicResetPasswordRoute;
+  "/_system/applications": typeof SystemApplicationsRouteWithChildren;
+  "/_system/conversations": typeof SystemConversationsRoute;
+  "/_system/": typeof SystemIndexRoute;
+  "/_system/billing/success": typeof SystemBillingSuccessRoute;
+  "/_system/onboarding/plans": typeof SystemOnboardingPlansRoute;
+  "/_system/settings/ai-usage": typeof SystemSettingsAiUsageRoute;
+  "/_system/settings/api-keys": typeof SystemSettingsApiKeysRoute;
+  "/_system/settings/applications": typeof SystemSettingsApplicationsRoute;
+  "/_system/settings/billing": typeof SystemSettingsBillingRoute;
+  "/_system/settings/members": typeof SystemSettingsMembersRoute;
+  "/_system/settings/rate-limits": typeof SystemSettingsRateLimitsRoute;
+  "/_system/applications/": typeof SystemApplicationsIndexRoute;
+  "/_system/settings/": typeof SystemSettingsIndexRoute;
+  "/_system/applications/$applicationId/ai-context": typeof SystemApplicationsApplicationIdAiContextRoute;
+  "/_system/applications/$applicationId/ai-interview": typeof SystemApplicationsApplicationIdAiInterviewRoute;
+  "/_system/applications/$applicationId/data-tools": typeof SystemApplicationsApplicationIdDataToolsRoute;
+  "/_system/applications/$applicationId/": typeof SystemApplicationsApplicationIdIndexRoute;
 }
 export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
+  fileRoutesByFullPath: FileRoutesByFullPath;
   fullPaths:
-    | '/accept-invitation'
-    | '/forgot-password'
-    | '/login'
-    | '/reset-password'
-    | '/applications'
-    | '/conversations'
-    | '/'
-    | '/billing/success'
-    | '/onboarding/plans'
-    | '/settings/ai-usage'
-    | '/settings/api-keys'
-    | '/settings/applications'
-    | '/settings/billing'
-    | '/settings/members'
-    | '/settings/rate-limits'
-    | '/applications/'
-    | '/settings'
-    | '/applications/$applicationId/ai-context'
-    | '/applications/$applicationId/ai-interview'
-    | '/applications/$applicationId/data-tools'
-    | '/applications/$applicationId'
-  fileRoutesByTo: FileRoutesByTo
+    | "/accept-invitation"
+    | "/forgot-password"
+    | "/login"
+    | "/reset-password"
+    | "/applications"
+    | "/conversations"
+    | "/"
+    | "/billing/success"
+    | "/onboarding/plans"
+    | "/settings/ai-usage"
+    | "/settings/api-keys"
+    | "/settings/applications"
+    | "/settings/billing"
+    | "/settings/members"
+    | "/settings/rate-limits"
+    | "/applications/"
+    | "/settings"
+    | "/applications/$applicationId/ai-context"
+    | "/applications/$applicationId/ai-interview"
+    | "/applications/$applicationId/data-tools"
+    | "/applications/$applicationId";
+  fileRoutesByTo: FileRoutesByTo;
   to:
-    | '/accept-invitation'
-    | '/forgot-password'
-    | '/login'
-    | '/reset-password'
-    | '/conversations'
-    | '/'
-    | '/billing/success'
-    | '/onboarding/plans'
-    | '/settings/ai-usage'
-    | '/settings/api-keys'
-    | '/settings/applications'
-    | '/settings/billing'
-    | '/settings/members'
-    | '/settings/rate-limits'
-    | '/applications'
-    | '/settings'
-    | '/applications/$applicationId/ai-context'
-    | '/applications/$applicationId/ai-interview'
-    | '/applications/$applicationId/data-tools'
-    | '/applications/$applicationId'
+    | "/accept-invitation"
+    | "/forgot-password"
+    | "/login"
+    | "/reset-password"
+    | "/conversations"
+    | "/"
+    | "/billing/success"
+    | "/onboarding/plans"
+    | "/settings/ai-usage"
+    | "/settings/api-keys"
+    | "/settings/applications"
+    | "/settings/billing"
+    | "/settings/members"
+    | "/settings/rate-limits"
+    | "/applications"
+    | "/settings"
+    | "/applications/$applicationId/ai-context"
+    | "/applications/$applicationId/ai-interview"
+    | "/applications/$applicationId/data-tools"
+    | "/applications/$applicationId";
   id:
-    | '__root__'
-    | '/_public'
-    | '/_system'
-    | '/_public/accept-invitation'
-    | '/_public/forgot-password'
-    | '/_public/login'
-    | '/_public/reset-password'
-    | '/_system/applications'
-    | '/_system/conversations'
-    | '/_system/'
-    | '/_system/billing/success'
-    | '/_system/onboarding/plans'
-    | '/_system/settings/ai-usage'
-    | '/_system/settings/api-keys'
-    | '/_system/settings/applications'
-    | '/_system/settings/billing'
-    | '/_system/settings/members'
-    | '/_system/settings/rate-limits'
-    | '/_system/applications/'
-    | '/_system/settings/'
-    | '/_system/applications/$applicationId/ai-context'
-    | '/_system/applications/$applicationId/ai-interview'
-    | '/_system/applications/$applicationId/data-tools'
-    | '/_system/applications/$applicationId/'
-  fileRoutesById: FileRoutesById
+    | "__root__"
+    | "/_public"
+    | "/_system"
+    | "/_public/accept-invitation"
+    | "/_public/forgot-password"
+    | "/_public/login"
+    | "/_public/reset-password"
+    | "/_system/applications"
+    | "/_system/conversations"
+    | "/_system/"
+    | "/_system/billing/success"
+    | "/_system/onboarding/plans"
+    | "/_system/settings/ai-usage"
+    | "/_system/settings/api-keys"
+    | "/_system/settings/applications"
+    | "/_system/settings/billing"
+    | "/_system/settings/members"
+    | "/_system/settings/rate-limits"
+    | "/_system/applications/"
+    | "/_system/settings/"
+    | "/_system/applications/$applicationId/ai-context"
+    | "/_system/applications/$applicationId/ai-interview"
+    | "/_system/applications/$applicationId/data-tools"
+    | "/_system/applications/$applicationId/";
+  fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
-  PublicRoute: typeof PublicRouteWithChildren
-  SystemRoute: typeof SystemRouteWithChildren
+  PublicRoute: typeof PublicRouteWithChildren;
+  SystemRoute: typeof SystemRouteWithChildren;
 }
 
-declare module '@tanstack/react-router' {
+declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
-    '/_system': {
-      id: '/_system'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof SystemRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_public': {
-      id: '/_public'
-      path: ''
-      fullPath: ''
-      preLoaderRoute: typeof PublicRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_system/': {
-      id: '/_system/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof SystemIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/conversations': {
-      id: '/_system/conversations'
-      path: '/conversations'
-      fullPath: '/conversations'
-      preLoaderRoute: typeof SystemConversationsRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/applications': {
-      id: '/_system/applications'
-      path: '/applications'
-      fullPath: '/applications'
-      preLoaderRoute: typeof SystemApplicationsRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_public/reset-password': {
-      id: '/_public/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof PublicResetPasswordRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/login': {
-      id: '/_public/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof PublicLoginRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/forgot-password': {
-      id: '/_public/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof PublicForgotPasswordRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_public/accept-invitation': {
-      id: '/_public/accept-invitation'
-      path: '/accept-invitation'
-      fullPath: '/accept-invitation'
-      preLoaderRoute: typeof PublicAcceptInvitationRouteImport
-      parentRoute: typeof PublicRoute
-    }
-    '/_system/settings/': {
-      id: '/_system/settings/'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SystemSettingsIndexRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/applications/': {
-      id: '/_system/applications/'
-      path: '/'
-      fullPath: '/applications/'
-      preLoaderRoute: typeof SystemApplicationsIndexRouteImport
-      parentRoute: typeof SystemApplicationsRoute
-    }
-    '/_system/settings/rate-limits': {
-      id: '/_system/settings/rate-limits'
-      path: '/settings/rate-limits'
-      fullPath: '/settings/rate-limits'
-      preLoaderRoute: typeof SystemSettingsRateLimitsRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/settings/members': {
-      id: '/_system/settings/members'
-      path: '/settings/members'
-      fullPath: '/settings/members'
-      preLoaderRoute: typeof SystemSettingsMembersRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/settings/billing': {
-      id: '/_system/settings/billing'
-      path: '/settings/billing'
-      fullPath: '/settings/billing'
-      preLoaderRoute: typeof SystemSettingsBillingRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/settings/applications': {
-      id: '/_system/settings/applications'
-      path: '/settings/applications'
-      fullPath: '/settings/applications'
-      preLoaderRoute: typeof SystemSettingsApplicationsRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/settings/api-keys': {
-      id: '/_system/settings/api-keys'
-      path: '/settings/api-keys'
-      fullPath: '/settings/api-keys'
-      preLoaderRoute: typeof SystemSettingsApiKeysRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/settings/ai-usage': {
-      id: '/_system/settings/ai-usage'
-      path: '/settings/ai-usage'
-      fullPath: '/settings/ai-usage'
-      preLoaderRoute: typeof SystemSettingsAiUsageRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/onboarding/plans': {
-      id: '/_system/onboarding/plans'
-      path: '/onboarding/plans'
-      fullPath: '/onboarding/plans'
-      preLoaderRoute: typeof SystemOnboardingPlansRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/billing/success': {
-      id: '/_system/billing/success'
-      path: '/billing/success'
-      fullPath: '/billing/success'
-      preLoaderRoute: typeof SystemBillingSuccessRouteImport
-      parentRoute: typeof SystemRoute
-    }
-    '/_system/applications/$applicationId/': {
-      id: '/_system/applications/$applicationId/'
-      path: '/$applicationId'
-      fullPath: '/applications/$applicationId'
-      preLoaderRoute: typeof SystemApplicationsApplicationIdIndexRouteImport
-      parentRoute: typeof SystemApplicationsRoute
-    }
-    '/_system/applications/$applicationId/data-tools': {
-      id: '/_system/applications/$applicationId/data-tools'
-      path: '/$applicationId/data-tools'
-      fullPath: '/applications/$applicationId/data-tools'
-      preLoaderRoute: typeof SystemApplicationsApplicationIdDataToolsRouteImport
-      parentRoute: typeof SystemApplicationsRoute
-    }
-    '/_system/applications/$applicationId/ai-interview': {
-      id: '/_system/applications/$applicationId/ai-interview'
-      path: '/$applicationId/ai-interview'
-      fullPath: '/applications/$applicationId/ai-interview'
-      preLoaderRoute: typeof SystemApplicationsApplicationIdAiInterviewRouteImport
-      parentRoute: typeof SystemApplicationsRoute
-    }
-    '/_system/applications/$applicationId/ai-context': {
-      id: '/_system/applications/$applicationId/ai-context'
-      path: '/$applicationId/ai-context'
-      fullPath: '/applications/$applicationId/ai-context'
-      preLoaderRoute: typeof SystemApplicationsApplicationIdAiContextRouteImport
-      parentRoute: typeof SystemApplicationsRoute
-    }
+    "/_system": {
+      id: "/_system";
+      path: "";
+      fullPath: "";
+      preLoaderRoute: typeof SystemRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_public": {
+      id: "/_public";
+      path: "";
+      fullPath: "";
+      preLoaderRoute: typeof PublicRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/_system/": {
+      id: "/_system/";
+      path: "/";
+      fullPath: "/";
+      preLoaderRoute: typeof SystemIndexRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/conversations": {
+      id: "/_system/conversations";
+      path: "/conversations";
+      fullPath: "/conversations";
+      preLoaderRoute: typeof SystemConversationsRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/applications": {
+      id: "/_system/applications";
+      path: "/applications";
+      fullPath: "/applications";
+      preLoaderRoute: typeof SystemApplicationsRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_public/reset-password": {
+      id: "/_public/reset-password";
+      path: "/reset-password";
+      fullPath: "/reset-password";
+      preLoaderRoute: typeof PublicResetPasswordRouteImport;
+      parentRoute: typeof PublicRoute;
+    };
+    "/_public/login": {
+      id: "/_public/login";
+      path: "/login";
+      fullPath: "/login";
+      preLoaderRoute: typeof PublicLoginRouteImport;
+      parentRoute: typeof PublicRoute;
+    };
+    "/_public/forgot-password": {
+      id: "/_public/forgot-password";
+      path: "/forgot-password";
+      fullPath: "/forgot-password";
+      preLoaderRoute: typeof PublicForgotPasswordRouteImport;
+      parentRoute: typeof PublicRoute;
+    };
+    "/_public/accept-invitation": {
+      id: "/_public/accept-invitation";
+      path: "/accept-invitation";
+      fullPath: "/accept-invitation";
+      preLoaderRoute: typeof PublicAcceptInvitationRouteImport;
+      parentRoute: typeof PublicRoute;
+    };
+    "/_system/settings/": {
+      id: "/_system/settings/";
+      path: "/settings";
+      fullPath: "/settings";
+      preLoaderRoute: typeof SystemSettingsIndexRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/applications/": {
+      id: "/_system/applications/";
+      path: "/";
+      fullPath: "/applications/";
+      preLoaderRoute: typeof SystemApplicationsIndexRouteImport;
+      parentRoute: typeof SystemApplicationsRoute;
+    };
+    "/_system/settings/rate-limits": {
+      id: "/_system/settings/rate-limits";
+      path: "/settings/rate-limits";
+      fullPath: "/settings/rate-limits";
+      preLoaderRoute: typeof SystemSettingsRateLimitsRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/settings/members": {
+      id: "/_system/settings/members";
+      path: "/settings/members";
+      fullPath: "/settings/members";
+      preLoaderRoute: typeof SystemSettingsMembersRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/settings/billing": {
+      id: "/_system/settings/billing";
+      path: "/settings/billing";
+      fullPath: "/settings/billing";
+      preLoaderRoute: typeof SystemSettingsBillingRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/settings/applications": {
+      id: "/_system/settings/applications";
+      path: "/settings/applications";
+      fullPath: "/settings/applications";
+      preLoaderRoute: typeof SystemSettingsApplicationsRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/settings/api-keys": {
+      id: "/_system/settings/api-keys";
+      path: "/settings/api-keys";
+      fullPath: "/settings/api-keys";
+      preLoaderRoute: typeof SystemSettingsApiKeysRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/settings/ai-usage": {
+      id: "/_system/settings/ai-usage";
+      path: "/settings/ai-usage";
+      fullPath: "/settings/ai-usage";
+      preLoaderRoute: typeof SystemSettingsAiUsageRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/onboarding/plans": {
+      id: "/_system/onboarding/plans";
+      path: "/onboarding/plans";
+      fullPath: "/onboarding/plans";
+      preLoaderRoute: typeof SystemOnboardingPlansRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/billing/success": {
+      id: "/_system/billing/success";
+      path: "/billing/success";
+      fullPath: "/billing/success";
+      preLoaderRoute: typeof SystemBillingSuccessRouteImport;
+      parentRoute: typeof SystemRoute;
+    };
+    "/_system/applications/$applicationId/": {
+      id: "/_system/applications/$applicationId/";
+      path: "/$applicationId";
+      fullPath: "/applications/$applicationId";
+      preLoaderRoute: typeof SystemApplicationsApplicationIdIndexRouteImport;
+      parentRoute: typeof SystemApplicationsRoute;
+    };
+    "/_system/applications/$applicationId/data-tools": {
+      id: "/_system/applications/$applicationId/data-tools";
+      path: "/$applicationId/data-tools";
+      fullPath: "/applications/$applicationId/data-tools";
+      preLoaderRoute: typeof SystemApplicationsApplicationIdDataToolsRouteImport;
+      parentRoute: typeof SystemApplicationsRoute;
+    };
+    "/_system/applications/$applicationId/ai-interview": {
+      id: "/_system/applications/$applicationId/ai-interview";
+      path: "/$applicationId/ai-interview";
+      fullPath: "/applications/$applicationId/ai-interview";
+      preLoaderRoute: typeof SystemApplicationsApplicationIdAiInterviewRouteImport;
+      parentRoute: typeof SystemApplicationsRoute;
+    };
+    "/_system/applications/$applicationId/ai-context": {
+      id: "/_system/applications/$applicationId/ai-context";
+      path: "/$applicationId/ai-context";
+      fullPath: "/applications/$applicationId/ai-context";
+      preLoaderRoute: typeof SystemApplicationsApplicationIdAiContextRouteImport;
+      parentRoute: typeof SystemApplicationsRoute;
+    };
   }
 }
 
 interface PublicRouteChildren {
-  PublicAcceptInvitationRoute: typeof PublicAcceptInvitationRoute
-  PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute
-  PublicLoginRoute: typeof PublicLoginRoute
-  PublicResetPasswordRoute: typeof PublicResetPasswordRoute
+  PublicAcceptInvitationRoute: typeof PublicAcceptInvitationRoute;
+  PublicForgotPasswordRoute: typeof PublicForgotPasswordRoute;
+  PublicLoginRoute: typeof PublicLoginRoute;
+  PublicResetPasswordRoute: typeof PublicResetPasswordRoute;
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
@@ -480,17 +480,17 @@ const PublicRouteChildren: PublicRouteChildren = {
   PublicForgotPasswordRoute: PublicForgotPasswordRoute,
   PublicLoginRoute: PublicLoginRoute,
   PublicResetPasswordRoute: PublicResetPasswordRoute,
-}
+};
 
 const PublicRouteWithChildren =
-  PublicRoute._addFileChildren(PublicRouteChildren)
+  PublicRoute._addFileChildren(PublicRouteChildren);
 
 interface SystemApplicationsRouteChildren {
-  SystemApplicationsIndexRoute: typeof SystemApplicationsIndexRoute
-  SystemApplicationsApplicationIdAiContextRoute: typeof SystemApplicationsApplicationIdAiContextRoute
-  SystemApplicationsApplicationIdAiInterviewRoute: typeof SystemApplicationsApplicationIdAiInterviewRoute
-  SystemApplicationsApplicationIdDataToolsRoute: typeof SystemApplicationsApplicationIdDataToolsRoute
-  SystemApplicationsApplicationIdIndexRoute: typeof SystemApplicationsApplicationIdIndexRoute
+  SystemApplicationsIndexRoute: typeof SystemApplicationsIndexRoute;
+  SystemApplicationsApplicationIdAiContextRoute: typeof SystemApplicationsApplicationIdAiContextRoute;
+  SystemApplicationsApplicationIdAiInterviewRoute: typeof SystemApplicationsApplicationIdAiInterviewRoute;
+  SystemApplicationsApplicationIdDataToolsRoute: typeof SystemApplicationsApplicationIdDataToolsRoute;
+  SystemApplicationsApplicationIdIndexRoute: typeof SystemApplicationsApplicationIdIndexRoute;
 }
 
 const SystemApplicationsRouteChildren: SystemApplicationsRouteChildren = {
@@ -503,24 +503,24 @@ const SystemApplicationsRouteChildren: SystemApplicationsRouteChildren = {
     SystemApplicationsApplicationIdDataToolsRoute,
   SystemApplicationsApplicationIdIndexRoute:
     SystemApplicationsApplicationIdIndexRoute,
-}
+};
 
 const SystemApplicationsRouteWithChildren =
-  SystemApplicationsRoute._addFileChildren(SystemApplicationsRouteChildren)
+  SystemApplicationsRoute._addFileChildren(SystemApplicationsRouteChildren);
 
 interface SystemRouteChildren {
-  SystemApplicationsRoute: typeof SystemApplicationsRouteWithChildren
-  SystemConversationsRoute: typeof SystemConversationsRoute
-  SystemIndexRoute: typeof SystemIndexRoute
-  SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute
-  SystemOnboardingPlansRoute: typeof SystemOnboardingPlansRoute
-  SystemSettingsAiUsageRoute: typeof SystemSettingsAiUsageRoute
-  SystemSettingsApiKeysRoute: typeof SystemSettingsApiKeysRoute
-  SystemSettingsApplicationsRoute: typeof SystemSettingsApplicationsRoute
-  SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute
-  SystemSettingsMembersRoute: typeof SystemSettingsMembersRoute
-  SystemSettingsRateLimitsRoute: typeof SystemSettingsRateLimitsRoute
-  SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute
+  SystemApplicationsRoute: typeof SystemApplicationsRouteWithChildren;
+  SystemConversationsRoute: typeof SystemConversationsRoute;
+  SystemIndexRoute: typeof SystemIndexRoute;
+  SystemBillingSuccessRoute: typeof SystemBillingSuccessRoute;
+  SystemOnboardingPlansRoute: typeof SystemOnboardingPlansRoute;
+  SystemSettingsAiUsageRoute: typeof SystemSettingsAiUsageRoute;
+  SystemSettingsApiKeysRoute: typeof SystemSettingsApiKeysRoute;
+  SystemSettingsApplicationsRoute: typeof SystemSettingsApplicationsRoute;
+  SystemSettingsBillingRoute: typeof SystemSettingsBillingRoute;
+  SystemSettingsMembersRoute: typeof SystemSettingsMembersRoute;
+  SystemSettingsRateLimitsRoute: typeof SystemSettingsRateLimitsRoute;
+  SystemSettingsIndexRoute: typeof SystemSettingsIndexRoute;
 }
 
 const SystemRouteChildren: SystemRouteChildren = {
@@ -536,23 +536,23 @@ const SystemRouteChildren: SystemRouteChildren = {
   SystemSettingsMembersRoute: SystemSettingsMembersRoute,
   SystemSettingsRateLimitsRoute: SystemSettingsRateLimitsRoute,
   SystemSettingsIndexRoute: SystemSettingsIndexRoute,
-}
+};
 
 const SystemRouteWithChildren =
-  SystemRoute._addFileChildren(SystemRouteChildren)
+  SystemRoute._addFileChildren(SystemRouteChildren);
 
 const rootRouteChildren: RootRouteChildren = {
   PublicRoute: PublicRouteWithChildren,
   SystemRoute: SystemRouteWithChildren,
-}
+};
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
+  ._addFileTypes<FileRouteTypes>();
 
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
+import type { getRouter } from "./router.tsx";
+import type { createStart } from "@tanstack/react-start";
+declare module "@tanstack/react-start" {
   interface Register {
-    router: Awaited<ReturnType<typeof getRouter>>
+    router: Awaited<ReturnType<typeof getRouter>>;
   }
 }

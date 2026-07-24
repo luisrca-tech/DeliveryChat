@@ -1,9 +1,5 @@
 import type { MessageDeletedPayload, MessageEditedPayload } from "@repo/types";
-import type {
-  Conversation,
-  Message,
-  MessageAuthorType,
-} from "../chat-client";
+import type { Conversation, Message, MessageAuthorType } from "../chat-client";
 
 export type OptimisticMessage = Message & {
   clientId?: string;

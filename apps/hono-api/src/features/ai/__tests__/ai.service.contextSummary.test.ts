@@ -16,7 +16,8 @@ vi.mock("../../../env.js", () => ({
 }));
 
 vi.mock("../ai.openRouterProvider.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../ai.openRouterProvider.js")>();
+  const actual =
+    await importOriginal<typeof import("../ai.openRouterProvider.js")>();
   return {
     ...actual,
     createAIProvider: vi.fn(),

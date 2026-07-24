@@ -10,7 +10,11 @@ export const filterOptions: FilterOption[] = [
   // The queue is human-waiting conversations only: a live AI thread also sits
   // at status=pending (by design, for race-safe takeover) and must not appear
   // here until it escalates (which flips handledBy to "human").
-  { id: "queue", label: "Queue", filters: { status: "pending", handledBy: "human" } },
+  {
+    id: "queue",
+    label: "Queue",
+    filters: { status: "pending", handledBy: "human" },
+  },
   {
     id: "mine",
     label: "My Chats",

@@ -13,7 +13,9 @@ vi.mock("../../../env.js", () => ({
   },
 }));
 
-vi.mock("../../ai/ai.openRouterProvider.js", () => ({ createAIProvider: vi.fn() }));
+vi.mock("../../ai/ai.openRouterProvider.js", () => ({
+  createAIProvider: vi.fn(),
+}));
 vi.mock("../../ai/ai.quota.js", () => ({ checkAiQuota: vi.fn() }));
 
 vi.mock("../../chat/broadcasting.service.js", () => ({
@@ -513,9 +515,9 @@ describe("isDegenerateJsonReply", () => {
   });
 
   it("passes normal prose", () => {
-    expect(
-      isDegenerateJsonReply("Yes, we offer Free and Pro plans."),
-    ).toBe(false);
+    expect(isDegenerateJsonReply("Yes, we offer Free and Pro plans.")).toBe(
+      false,
+    );
   });
 
   it("passes prose containing a small inline code snippet", () => {

@@ -1,6 +1,6 @@
 # AI presentation in the demo chat
 
-How the demo makes an AI-handled conversation *look* like one, matching the real
+How the demo makes an AI-handled conversation _look_ like one, matching the real
 widget. Companion to [`human-handoff.md`](./human-handoff.md), which covers the
 "Talk to a human" button.
 
@@ -32,7 +32,7 @@ as the thread grows. The `messageCount === 0` guard is what makes it correct for
 both entry points, exactly as in the SDK: a new chat has no messages (seed);
 reopening an old thread restores history (don't seed — the visitor was already
 told). `loadingMessages` is part of the rule because mid-load the count is 0 but
-not yet *known*, and seeding there would flash a greeting onto a thread that
+not yet _known_, and seeding there would flash a greeting onto a thread that
 turns out to have history.
 
 **Known quirk, inherited deliberately:** with no `header.title` configured the
@@ -44,11 +44,11 @@ from the widget. Fix it in the SDK first, then here.
 
 Three cues, matching `packages/sdk/src/styles/main.css`:
 
-| Cue | Widget | Demo |
-| --- | --- | --- |
-| Bubble outline | `border: 1px solid var(--dc-primary-color)` | `border border-primary` |
-| Avatar | 24px circle, primary fill, bot glyph | `h-6 w-6` circle, `bg-primary`, lucide `Bot` |
-| Label | 11px/600 in primary | `text-[10px] font-semibold text-primary` |
+| Cue            | Widget                                      | Demo                                         |
+| -------------- | ------------------------------------------- | -------------------------------------------- |
+| Bubble outline | `border: 1px solid var(--dc-primary-color)` | `border border-primary`                      |
+| Avatar         | 24px circle, primary fill, bot glyph        | `h-6 w-6` circle, `bg-primary`, lucide `Bot` |
+| Label          | 11px/600 in primary                         | `text-[10px] font-semibold text-primary`     |
 
 The widget's `AI_AVATAR_ICON` is lucide's `Bot` inlined as SVG, so the demo uses
 the icon component directly and gets a pixel-equivalent result.

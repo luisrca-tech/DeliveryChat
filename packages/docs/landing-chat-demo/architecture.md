@@ -27,9 +27,9 @@ All `fetch` and `WebSocket` calls are centralised in `apps/web/src/features/chat
 
 ## REST base and WebSocket URL
 
-| Transport | Pattern                              |
-| --------- | ------------------------------------ |
-| REST      | `{PUBLIC_API_URL}/api/v1/…`          |
+| Transport | Pattern                                  |
+| --------- | ---------------------------------------- |
+| REST      | `{PUBLIC_API_URL}/api/v1/…`              |
 | WebSocket | `wss://{api-host}/api/v1/ws?token={jwt}` |
 
 The JWT is obtained via `POST /api/v1/widget/ws-token` immediately before opening the socket.

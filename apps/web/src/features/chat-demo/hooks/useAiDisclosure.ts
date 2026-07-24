@@ -44,8 +44,7 @@ export function useAiDisclosure({
         conversationId,
         messageCount,
         loadingMessages,
-        alreadySeeded:
-          conversationId !== null && disclosed.has(conversationId),
+        alreadySeeded: conversationId !== null && disclosed.has(conversationId),
       })
     ) {
       return;

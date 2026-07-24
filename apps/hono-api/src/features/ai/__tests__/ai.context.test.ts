@@ -374,7 +374,9 @@ describe("buildAutonomousSystemPrompt — grounded special-value answers", () =>
     const result = prompt();
     expect(result).toMatch(/NEVER announce/);
     expect(result).toMatch(/call the tool silently/i);
-    expect(result).toMatch(/promises information later instead of containing it/i);
+    expect(result).toMatch(
+      /promises information later instead of containing it/i,
+    );
   });
 
   it("forbids echoing raw JSON or tool call input/output in the reply", () => {
